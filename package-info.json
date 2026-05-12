@@ -1,0 +1,9 @@
+{
+  "audience": "public",
+  "description": "Public AI guidance for the NVIDIA-DOCA/doca-skills repository.",
+  "generated_by": "DOCA public package export",
+  "manifest": "doca-skills-public",
+  "profile": null,
+  "requires_profile": false,
+  "schema_version": "1.0"
+}
