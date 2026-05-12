@@ -5,8 +5,8 @@ schema, observability, and conformance questions
 Read when: evaluating AI capabilities for samples and applications in the
 current DOCA source package
 Load next: `guides/README.md`,
-`getting-started/quickstart.md`, `getting-started/first-commands.md`, `modules/samples-applications.md`,
-`reference/c-cpp-style.md`, `skills/doca-explorer/SKILL.md`
+`getting-started/quickstart.md`, `getting-started/first-commands.md`, `modules/README.md`, `reference/c-cpp-style.md`,
+`skills/doca-explorer/SKILL.md`
 
 Use this map when the user asks what an agent can do with DOCA samples or applications. The answer should report
 source-package evidence, safe read-only commands, and runtime evidence needed for hardware or environment-specific
@@ -16,8 +16,8 @@ facts.
 
 | Capability | Source-package behavior |
 | --- | --- |
-| Documentation explorer | Start from `llms.txt`, root adapters, this file, quickstart, package-facing SDK docs, sample/application guidance, and any module guidance present in `modules/`. Return the exact files used. |
-| Coding standards and code review | Use `reference/c-cpp-style.md`, `getting-started/sdk-development.md`, and `modules/samples-applications.md` to review sample readability, cleanup, license style, DOCA logging, dependency handling, and runtime-action safety. |
+| Documentation explorer | Start from `llms.txt`, root entrypoints, this file, quickstart, package-facing SDK docs, module templates and capability-map guidance, and any module guidance present in `modules/`. Return the exact files used. |
+| Coding standards and code review | Use `reference/c-cpp-style.md`, `getting-started/sdk-development.md`, and `modules/README.md` to review sample readability, cleanup, license style, DOCA logging, dependency handling, and runtime-action safety. |
 | Libraries overview | For SDK and library users, build the overview from package-visible `contracts/capability-catalog.json`, SDK headers, `libs/**/meson.build`, package-facing Meson files, dependency files, and nearby samples. Mark absent headers or unmeasured runtime facts as requiring package-owner or runtime verification. |
 | Services overview | For service or application operators, build the overview from `services/`, `applications/`, package-facing application Meson files, service/application module guidance, runtime prerequisites, and blocked mutation classes. Keep service startup, traffic, device, network, credential, and persistent configuration actions approval-gated. |
 | Tools overview | For CLI, build, debug, and validation users, build the overview from `tools/`, `tools/`, package helper scripts, validation commands, and tool module guidance. Keep tool output source-backed and separate developer-only tools from package-visible helpers. |

@@ -2,7 +2,7 @@
 
 Applies to: SDK-facing sample and application build failures
 Read when: Meson, Ninja, or dependency discovery fails in an SDK source package
-Load next: `getting-started/first-commands.md`, `getting-started/pkg-config.md`, `getting-started/validation.md`, `modules/samples-applications.md`
+Load next: `getting-started/first-commands.md`, `getting-started/pkg-config.md`, `getting-started/validation.md`, `modules/README.md`
 
 Treat build failures as evidence to classify, not as a reason to guess new code. Keep the package read-only until the
 failure points to a source defect.

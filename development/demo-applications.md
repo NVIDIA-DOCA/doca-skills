@@ -2,11 +2,10 @@
 
 Applies to: DOCA SDK demo applications, examples, and tutorial-style application code
 Read when: a user asks how to build a demo application with DOCA
-Load next: `modules/samples-applications.md`, `getting-started/sdk-development.md`, `getting-started/validation.md`
+Load next: `modules/README.md`, `getting-started/sdk-development.md`, `getting-started/validation.md`
 
-This is a topic router for demo-application work. The canonical implementation rules live in
-`modules/samples-applications.md`; use this file when a user starts from a "demo application" question rather than a
-source path.
+This is a topic router for demo-application work. The canonical implementation rules live in `modules/README.md`; use
+this file when a user starts from a "demo application" question rather than a source path.
 
 ## Demo Application Role
 

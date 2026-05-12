@@ -2,10 +2,9 @@
 
 Applies to: DOCA SDK samples and package-facing sample builds
 Read when: a user asks how to build a DOCA sample
-Load next: `modules/samples-applications.md`, `getting-started/validation.md`, `getting-started/pkg-config.md`
+Load next: `modules/README.md`, `getting-started/validation.md`, `getting-started/pkg-config.md`
 
-This topic router provides the sample-build entrypoint. Detailed sample staging rules live in
-`modules/samples-applications.md`.
+This topic router provides the sample-build entrypoint. Detailed sample staging rules live in `modules/README.md`.
 
 ## Prerequisites
 

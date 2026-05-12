@@ -2,7 +2,7 @@
 
 Applies to: SDK-facing C/C++ code, samples, applications, and build snippets
 Read when: changing source that may be used as SDK reference material
-Load next: `getting-started/source-boundaries.md`, `getting-started/pkg-config.md`, `getting-started/troubleshooting.md`, `modules/samples-applications.md`
+Load next: `getting-started/source-boundaries.md`, `getting-started/pkg-config.md`, `getting-started/troubleshooting.md`, `modules/README.md`
 
 Prefer examples that teach one DOCA concept at a time. Keep setup, argument parsing, resource creation, and cleanup easy
 to inspect, even when production library code would use denser helper layers.

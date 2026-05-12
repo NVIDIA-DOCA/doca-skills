@@ -2,7 +2,7 @@
 
 Applies to: SDK-facing C/C++ code, samples, applications, and build snippets
 Read when: a user asks for general DOCA SDK development best practices
-Load next: `getting-started/sdk-development.md`, `modules/samples-applications.md`, `reference/c-cpp-style.md`
+Load next: `getting-started/sdk-development.md`, `modules/README.md`, `reference/c-cpp-style.md`
 
 This topic router points to the canonical SDK development, sample/application, and C/C++ style guidance.
 

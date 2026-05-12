@@ -29,9 +29,9 @@ python3 tools/run_agent_task.py \
 
 ## Evidence Roots
 
-Use `--repo-root .` when checking this helper repository's bundled contracts and tools. Use
-`--repo-root <source-package-root>` when the DOCA source package contains `contracts/agent-manifest.json` or
-package-local AI docs.
+Use `--repo-root .` only when checking this helper repository's bundled contracts and tools. Use
+`--repo-root <source-package-root>` for SDK facts from the DOCA source package. `contracts/agent-manifest.json` lists
+the helper repository's bundled task and capability contracts.
 
 If the source package has no helper contracts, keep that as a blocker instead of blending helper-repository evidence
 with package evidence. For an installed SDK fallback, inspect only files and package metadata that already exist:
@@ -47,7 +47,7 @@ packages, edit system paths, or guess device capability.
 
 ## Activation
 
-Coding agents should start from the root adapter they already support: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+Coding agents should start from the root entrypoint they already support: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
 `JULES.md`, `SKILLS.md`, `llms.txt`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, or
 `.roo/rules/doca.md`.
 

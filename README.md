@@ -6,25 +6,35 @@ Load next: `getting-started/README.md`, `contracts/agent-manifest.json`,
 `skills/doca-user-rules/SKILL.md`
 
 This repository stores DOCA AI guidance, portable skills, and helper tools for agents that work with DOCA SDK source
-packages. It is arranged as a standalone documentation and tooling payload: paths are written for this repository
-layout.
+packages. It is a standalone helper payload: paths are written for this repository layout, and SDK facts come from the
+source package passed to helper commands.
 
 ## First Steps
 
-1. Read `getting-started/quickstart.md`.
-2. List available contracts with `python3 tools/lookup_capability.py --repo-root . --list`.
-3. For source-package discovery, run:
+Choose the mode first:
 
-   ```bash
-   python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
-   ```
+- Helper repository mode: read `getting-started/quickstart.md`, list bundled contracts, and verify the helper tools.
+- SDK source package mode: keep this repository separate from the DOCA SDK source package and pass that source root with
+  `--repo-root`.
 
-4. For sample or application build planning, run:
+For this helper repository:
 
-   ```bash
-   python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> \
-       --focus-path <sample-or-application-path>
-   ```
+```bash
+python3 tools/lookup_capability.py --repo-root . --list
+```
+
+For source-package discovery:
+
+```bash
+python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
+```
+
+For sample or application build planning:
+
+```bash
+python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> \
+    --focus-path <sample-or-application-path>
+```
 
 ## Repository Map
 
@@ -50,6 +60,7 @@ flowchart TD
     skills["skills/ and .agents/skills/<br/>portable workflows"]
     contracts["contracts/<br/>task and capability manifest"]
     tools["tools/<br/>read-only helpers"]
+    helper["Helper repo mode<br/>bundled docs and contracts"]
     source["DOCA SDK source package<br/>local files and package metadata"]
     report["Structured answer<br/>facts, blockers, safe next commands"]
 
@@ -59,8 +70,10 @@ flowchart TD
     guide --> contracts
     skills --> contracts
     contracts --> tools
+    tools --> helper
     tools --> source
     source --> report
+    helper --> report
 ```
 
 ## Boundary

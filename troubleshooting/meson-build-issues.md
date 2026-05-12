@@ -2,7 +2,7 @@
 
 Applies to: Meson configuration and compile failures in DOCA SDK source packages
 Read when: `meson setup`, `meson compile`, or a package-facing Meson file fails
-Load next: `getting-started/troubleshooting.md`, `getting-started/pkg-config.md`, `modules/samples-applications.md`
+Load next: `getting-started/troubleshooting.md`, `getting-started/pkg-config.md`, `modules/README.md`
 
 Use package-facing Meson files as evidence. Do not infer dependencies from memory when a nearby `meson.build` is
 present.

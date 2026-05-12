@@ -1,102 +1,56 @@
 # Quickstart
 
-Applies to: agents using a DOCA SDK source package
-Read when: preparing an agent to inspect, build, or modify DOCA sources from a packaged source tree
-Load next: `llms.txt`, `getting-started/README.md`, `getting-started/first-commands.md`, `getting-started/package-install.md`, `getting-started/validation.md`, `skills/doca-user-rules/SKILL.md`, `skills/doca-ai-runner/SKILL.md`, `skills/doca-programming-guide/SKILL.md`
+Applies to: `NVIDIA-DOCA/doca-skills`
+Read when: starting agent-assisted DOCA SDK work from this helper repository
+Load next: `README.md`, `getting-started/README.md`, `getting-started/first-commands.md`, `skills/doca-user-rules/SKILL.md`, `skills/doca-ai-runner/SKILL.md`
 
-This quickstart is the package-facing entry point for using the packaged DOCA AI guidance with coding agents. It assumes
-the user has a DOCA source package that already contains the root adapter files and `top-level guidance directories`.
+This repository gives agents a small, source-backed starting point for DOCA SDK questions. It is a helper repository,
+not the SDK source tree.
 
-## What The Package Provides
+## Choose Mode
 
-An agent-ready source package includes:
+Use helper repository mode when checking the guidance and tools in this repository:
 
-- Root adapter files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `JULES.md`, `SKILLS.md`, `llms.txt`,
-  `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, and `.roo/rules/doca.md`.
-- Source-package safe guidance under `getting-started/`, reference coding rules under `reference/`, and module guidance
-  under `modules/`.
-- Filtered machine-readable contracts under `contracts/`.
-- Standard-library Python helpers under `tools/`.
-- Portable skills under `skills/` for base user rules, read-only discovery, Programming Guide enrichment, DOCA
-  capability exploration, build planning, and the common `doca-ai-runner`; when the filesystem supports it, matching
-  `.agents/skills/<name>` adapters.
+```bash
+python3 tools/lookup_capability.py --repo-root . --list
+```
 
-The package is self-contained for source guidance, read-only discovery, and planning. Device credentials and global
-agent configuration are only relevant for user-approved runtime workflows that explicitly require them.
+Use SDK source package mode when answering SDK version, header, dependency, sample, application, device, or topology
+questions:
 
-## Requirements
+```bash
+python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
+python3 tools/lookup_capability.py --repo-root <source-package-root> --api-index <capability-id>
+```
 
-Use the package from its source root. The read-only discovery commands require only Python 3 from the standard library.
-Build planning and validation can inspect source without installing packages. Actual local builds require the normal SDK
-build tools and dependencies that the package source declares, such as Meson, Ninja, `pkg-config`, a compiler toolchain,
-and the relevant DOCA development packages.
-
-Agents must not install system packages, change network or device state, edit global IDE configuration, write into
-`$HOME`, or run runtime traffic/device commands unless the local owner explicitly approves that class of action.
+Do not treat helper repository facts as SDK facts. If the SDK source package is missing contracts, helper tools,
+headers, metadata, or sensors, report that gap instead of guessing from this repository.
 
 ## First Ten Minutes
 
-Start at the source package root and run the baseline source-package discovery commands in
-`getting-started/first-commands.md` to verify what the package exposes.
+1. Read `README.md`, this file, and `skills/doca-user-rules/SKILL.md`.
+2. Run `python3 tools/lookup_capability.py --repo-root . --list` to verify the helper repository contract surface.
+3. If the task targets a DOCA SDK source package, rerun discovery with `--repo-root <source-package-root>`.
+4. For SDK API questions, use `lookup_capability.py --api-index` against the SDK source package before naming headers,
+   functions, dependencies, or samples.
+5. For sample or application builds, start with planner-only mode:
 
-For SDK or API questions, inspect the package-local capability before writing guidance or code by using the API or
-library lookup commands in that file.
+   ```bash
+   python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> \
+       --focus-path <sample-or-application-path>
+   ```
 
-For samples or application capability questions, load the DOCA capability map and report source-package evidence
-together with runtime or package metadata still needed. Use the sample or application audit commands in
-`getting-started/first-commands.md`.
+6. Treat package installs, device changes, network changes, persistent configuration, credentials, runtime traffic, and
+   runtime samples as blocked until the local owner approves that action class.
 
-The expected answer should include documentation entrypoints, coding standards, libraries/services/tools overviews,
-capability and topology coverage, lifecycle/schema coverage, dry-run commands, observability coverage, safety
-boundaries, version facts, and conformance gaps. Use `guides/capability-map.md` and `skills/doca-explorer/SKILL.md` for
-the exact fields.
+## Expected Answer Shape
 
-For build requests, start with planner-only mode. It reports target paths, nearby build files, output directories,
-commands, and unmet prerequisites without creating build output. Use the package-build planner command in
-`getting-started/first-commands.md`.
+Useful answers should name:
 
-If the local owner approves build output, run only the executor command and build directory reported by the planner, or
-the approval-gated local build form in `getting-started/first-commands.md`.
-
-For source-change requests, use only task IDs listed by the current source package manifest. If no source-change task is
-present, inspect and validate changes through the local source owner's normal review flow.
-
-## Agent Prompt Template
-
-Users can give this prompt to a coding agent from the source root:
-
-```text
-Use the packaged DOCA AI guidance in this source tree. Read llms.txt or the
-root adapter, then getting-started/quickstart.md,
-getting-started/first-commands.md, and
-skills/doca-user-rules/SKILL.md. Before suggesting runtime commands or
-code changes, use skills/doca-discover-environment/SKILL.md, run
-read-only discovery, report source_version, available_capabilities, and
-experimental_api_summary, and state any unmet prerequisites instead of
-installing packages or changing device state.
-```
-
-For API-specific work, add:
-
-```text
-Use lookup_capability.py --api-index for the relevant capability before naming
-SDK headers, functions, Meson dependencies, or sample references.
-Use skills/doca-programming-guide/SKILL.md when Programming
-Guide context is needed, and report local source/package evidence before
-applying online documentation to this package.
-```
-
-## Self-Check
-
-After unpacking the source package, verify these points before asking an agent to build, explain, or modify DOCA code:
-
-- The source root contains `llms.txt` plus the adapter files your agent already knows how to read, such as `AGENTS.md`,
-  `CLAUDE.md`, `GEMINI.md`, `JULES.md`, or `SKILLS.md`.
-- `package-info.json` reports the package manifest when the source view was produced by the AI docs package tool.
-- `run_agent_task.py --task discover-doca-environment` returns structured source facts and does not mutate the system.
-- `lookup_capability.py --api-index` reports SDK headers, exported symbols, package dependencies, and sample references
-  from this source package.
-- Planner-only build commands report next steps and blockers before creating build output.
-- Source packages with samples or applications can still produce a structured capability audit through
-  `skills/doca-explorer/SKILL.md`; missing library source, topology sensors, runtime counters, or conformance tests
-  should appear as explicit gaps rather than guessed facts.
+- Guidance files read from this repository.
+- SDK source package path used, or `not_provided`.
+- Commands run and their structured results.
+- Capability or task ID selected.
+- Source-backed libraries, services, and tools overviews when relevant.
+- Missing files, metadata, sensors, packages, devices, or approvals.
+- Exact next safe command.
