@@ -24,23 +24,20 @@ Use this as the base behavior for DOCA source-package tasks.
 
 - Start from the repository or source-package root.
 - Read the smallest relevant guidance set for the task.
-- Run read-only discovery before naming runtime commands, package versions,
-  available capabilities, or environment facts.
-- Use capability lookup before naming headers, functions, dependencies,
-  lifecycle steps, samples, or applications.
+- Run read-only discovery before naming runtime commands, package versions, available capabilities, or environment
+  facts.
+- Use capability lookup before naming headers, functions, dependencies, lifecycle steps, samples, or applications.
 - Treat missing tools, metadata, devices, or paths as blockers to report.
-- Ask only when the answer decides between source writes, build output, runtime
-  execution, device state, networking, credentials, or persistent config.
+- Ask only when the answer decides between source writes, build output, runtime execution, device state, networking,
+  credentials, or persistent config.
 
 ## Forbidden By Default
 
-Do not install packages, mutate devices, change networking, write credentials,
-edit global agent or IDE configuration, change persistent system settings, run
-traffic, or execute runtime samples unless the user explicitly approves that
+Do not install packages, mutate devices, change networking, write credentials, edit global agent or IDE configuration,
+change persistent system settings, run traffic, or execute runtime samples unless the user explicitly approves that
 action class.
 
 ## Result
 
-Close with `diagnosis`, `source_inventory`, selected contract or capability,
-commands run, `verification_commands`, `unmet_prerequisites`,
-`blocked_actions`, and exact next safe command.
+Close with `diagnosis`, `source_inventory`, selected contract or capability, commands run, `verification_commands`,
+`unmet_prerequisites`, `blocked_actions`, and exact next safe command.

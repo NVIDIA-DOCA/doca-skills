@@ -5,17 +5,18 @@ Read when: navigating DOCA AI guidance, portable skills, and helper tools
 Load next: `getting-started/README.md`, `contracts/agent-manifest.json`,
 `skills/doca-user-rules/SKILL.md`
 
-This repository stores DOCA AI guidance, portable skills, and helper
-tools for agents that work with DOCA SDK source packages. It is arranged as a
-standalone documentation and tooling payload: paths are written for this
-repository layout.
+This repository stores DOCA AI guidance, portable skills, and helper tools for agents that work with DOCA SDK source
+packages. It is arranged as a standalone documentation and tooling payload: paths are written for this repository
+layout.
 
 ## First Steps
 
 1. Read `getting-started/quickstart.md`.
 2. List available contracts with `python3 tools/lookup_capability.py --repo-root . --list`.
-3. For source-package discovery, run `python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>`.
-4. For sample or application build planning, run `python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> --focus-path <sample-or-application-path>`.
+3. For source-package discovery, run
+   `python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>`.
+4. For sample or application build planning, run
+   `python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> --focus-path <sample-or-application-path>`.
 
 ## Repository Map
 
@@ -57,9 +58,7 @@ flowchart TD
 
 ## Boundary
 
-The helper tools are read-only by default. They may inspect source files,
-package metadata, SDK headers, and local discovery utilities. They must not
-install packages, mutate devices, change networking, write credentials, change
-persistent configuration, run traffic, or execute runtime samples unless a local
-owner explicitly approves that action class outside this repository's default
-flows.
+The helper tools are read-only by default. They may inspect source files, package metadata, SDK headers, and local
+discovery utilities. They must not install packages, mutate devices, change networking, write credentials, change
+persistent configuration, run traffic, or execute runtime samples unless a local owner explicitly approves that action
+class outside this repository's default flows.

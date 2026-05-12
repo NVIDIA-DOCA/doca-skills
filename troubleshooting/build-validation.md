@@ -4,9 +4,8 @@ Applies to: DOCA SDK sample and application build validation
 Read when: a build validation command fails or cannot be selected
 Load next: `getting-started/validation.md`, `getting-started/troubleshooting.md`, `getting-started/pkg-config.md`
 
-This topic router is for build validation failures. The canonical source-package safe
-flows live in `getting-started/validation.md` and
-`getting-started/troubleshooting.md`.
+This topic router is for build validation failures. The canonical source-package safe flows live in
+`getting-started/validation.md` and `getting-started/troubleshooting.md`.
 
 ## Common Build Validation Issues
 
@@ -18,9 +17,8 @@ flows live in `getting-started/validation.md` and
 
 ## Dependency Management
 
-Use `pkg-config --modversion <name>` and `pkg-config --cflags --libs <name>` to
-prove dependency availability. Report failures as `unmet_prerequisites`; do not
-install packages or hard-code absolute include/library paths.
+Use `pkg-config --modversion <name>` and `pkg-config --cflags --libs <name>` to prove dependency availability. Report
+failures as `unmet_prerequisites`; do not install packages or hard-code absolute include/library paths.
 
 ## Validation Practice
 
@@ -30,5 +28,5 @@ Start with:
 python3 tools/run_agent_task.py --task build-sdk-sample --repo-root . --focus-path <sample-or-application-path>
 ```
 
-Run the executor form only when the local owner approves repository-contained
-build output and supplies the planner-reported build directory.
+Run the executor form only when the local owner approves repository-contained build output and supplies the
+planner-reported build directory.

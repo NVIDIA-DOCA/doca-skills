@@ -4,8 +4,8 @@ Applies to: DOCA SDK sample and application build failures
 Read when: a user asks for general DOCA build troubleshooting
 Load next: `troubleshooting/build-validation.md`, `troubleshooting/meson-build-issues.md`, `getting-started/troubleshooting.md`
 
-Use this as the general troubleshooting entrypoint. More specific Meson,
-pkg-config, sample-staging, and build-validation rules live in the loaded files.
+Use this as the general troubleshooting entrypoint. More specific Meson, pkg-config, sample-staging, and
+build-validation rules live in the loaded files.
 
 ## Common Build Issues
 
@@ -17,9 +17,8 @@ pkg-config, sample-staging, and build-validation rules live in the loaded files.
 
 ## Resolution Pattern
 
-Collect exact evidence, classify the blocker, and report the next safe command.
-Do not install packages, mutate device state, edit persistent environment
-configuration, or claim a build passed when only discovery succeeded.
+Collect exact evidence, classify the blocker, and report the next safe command. Do not install packages, mutate device
+state, edit persistent environment configuration, or claim a build passed when only discovery succeeded.
 
 Use this evidence shape for concise user-facing reports:
 

@@ -27,10 +27,8 @@ Start planner-only:
 python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> --focus-path <sample-or-application-path>
 ```
 
-Use output fields `target_path`, `package_build_files`,
-`package_dependency_files`, `required_packages`, `helper_sources`,
-`include_directories`, `validation_command_candidates`, and
-`unmet_prerequisites`.
+Use output fields `target_path`, `package_build_files`, `package_dependency_files`, `required_packages`,
+`helper_sources`, `include_directories`, `validation_command_candidates`, and `unmet_prerequisites`.
 
 ## Execute
 
@@ -42,5 +40,5 @@ python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-pack
   --build-dir <planner-reported-build-dir>
 ```
 
-Do not install packages, start services, mutate devices, change networking, or
-run runtime samples as part of build planning.
+Do not install packages, start services, mutate devices, change networking, or run runtime samples as part of build
+planning.

@@ -5,15 +5,11 @@ schema, observability, and conformance questions
 Read when: evaluating AI capabilities for samples and applications in the
 current DOCA source package
 Load next: `guides/README.md`,
-`getting-started/quickstart.md`,
-`getting-started/first-commands.md`,
-`modules/samples-applications.md`,
-`reference/c-cpp-style.md`,
-`skills/doca-explorer/SKILL.md`
+`getting-started/quickstart.md`, `getting-started/first-commands.md`, `modules/samples-applications.md`,
+`reference/c-cpp-style.md`, `skills/doca-explorer/SKILL.md`
 
-Use this map when the user asks what an agent can do with DOCA samples or
-applications. The answer should report source-package evidence, safe read-only
-commands, and runtime evidence needed for hardware or environment-specific
+Use this map when the user asks what an agent can do with DOCA samples or applications. The answer should report
+source-package evidence, safe read-only commands, and runtime evidence needed for hardware or environment-specific
 facts.
 
 ## Capability Summary
@@ -38,45 +34,35 @@ facts.
 
 ## Required Response Shape
 
-For capability audits, return these keys so source-owner reviews can
-compare runs:
+For capability audits, return these keys so source-owner reviews can compare runs:
 
-- `source_view`: whether the package exposes samples, applications, SDK
-  headers, contracts, helper scripts, and module docs.
+- `source_view`: whether the package exposes samples, applications, SDK headers, contracts, helper scripts, and module
+  docs.
 - `documentation_entrypoints`: files read for documentation exploration.
-- `coding_standards`: style and review rules applied to sample/application
-  code.
-- `libraries_overview`: SDK/library capabilities, SDK headers, API evidence,
-  package dependencies, and samples relevant to library users.
-- `services_overview`: service/application capabilities, operator-facing
-  prerequisites, runtime evidence still needed, and blocked mutation classes.
-- `tools_overview`: package-visible tools, helper scripts, CLI/build/debug
-  entrypoints, and validation commands relevant to tool users.
-- `capability_coverage`: devices, libraries, modes, and offloads that were
-  measured, source-visible, or require runtime verification.
-- `topology_coverage`: host, BlueField, GPU, NIC, PCIe, NUMA, and memory-domain
-  facts, each marked measured, source-visible, or requiring runtime
+- `coding_standards`: style and review rules applied to sample/application code.
+- `libraries_overview`: SDK/library capabilities, SDK headers, API evidence, package dependencies, and samples relevant
+  to library users.
+- `services_overview`: service/application capabilities, operator-facing prerequisites, runtime evidence still needed,
+  and blocked mutation classes.
+- `tools_overview`: package-visible tools, helper scripts, CLI/build/debug entrypoints, and validation commands relevant
+  to tool users.
+- `capability_coverage`: devices, libraries, modes, and offloads that were measured, source-visible, or require runtime
   verification.
-- `lifecycle_coverage`: visible object lifecycle phases and the evidence file
-  for each phase.
-- `schema_coverage`: machine-readable contracts, configs, errors, counters, and
-  constraints present in the package.
+- `topology_coverage`: host, BlueField, GPU, NIC, PCIe, NUMA, and memory-domain facts, each marked measured,
+  source-visible, or requiring runtime verification.
+- `lifecycle_coverage`: visible object lifecycle phases and the evidence file for each phase.
+- `schema_coverage`: machine-readable contracts, configs, errors, counters, and constraints present in the package.
 - `dry_run_commands`: planner or validation commands that do not mutate state.
-- `observability_coverage`: health, counters, traces, and resource ownership
-  facts visible without runtime mutation.
+- `observability_coverage`: health, counters, traces, and resource ownership facts visible without runtime mutation.
 - `safety_boundaries`: action classes that require explicit user approval.
-- `version_compatibility`: package version and compatibility facts plus any
-  unknowns.
-- `conformance_status`: package-smoke, validator, or test evidence
-  plus runtime evidence still needed.
+- `version_compatibility`: package version and compatibility facts plus any unknowns.
+- `conformance_status`: package-smoke, validator, or test evidence plus runtime evidence still needed.
 
 ## Safe First Commands
 
-Run the baseline discovery and sample/application audit commands from
-`getting-started/first-commands.md`. For a named sample or application, use
-the planner-only build or source-change command from that file before any build
-output or source write.
+Run the baseline discovery and sample/application audit commands from `getting-started/first-commands.md`. For a named
+sample or application, use the planner-only build or source-change command from that file before any build output or
+source write.
 
-If the package lacks `tools`, switch to the installed-package fallback in
-`getting-started/validation.md` and report missing helper paths in
-`unmet_prerequisites`.
+If the package lacks `tools`, switch to the installed-package fallback in `getting-started/validation.md` and report
+missing helper paths in `unmet_prerequisites`.

@@ -4,8 +4,8 @@ Applies to: DOCA SDK samples and package-facing sample builds
 Read when: a user asks how to build a DOCA sample
 Load next: `modules/samples-applications.md`, `getting-started/validation.md`, `getting-started/pkg-config.md`
 
-This topic router provides the sample-build entrypoint. Detailed sample staging
-rules live in `modules/samples-applications.md`.
+This topic router provides the sample-build entrypoint. Detailed sample staging rules live in
+`modules/samples-applications.md`.
 
 ## Prerequisites
 
@@ -34,14 +34,13 @@ rules live in `modules/samples-applications.md`.
    python3 tools/run_agent_task.py --task build-sdk-sample --repo-root . --focus-path <sample-path>
    ```
 
-4. Inspect the reported `package_build_files` when present. A
-   `meson.build.public` file records the package-facing dependencies, helper
-   sources, and include directories for package-facing builds.
+4. Inspect the reported `package_build_files` when present. A `meson.build.public` file records the package-facing
+   dependencies, helper sources, and include directories for package-facing builds.
 
 5. Verify each Meson/pkg-config dependency before executing the build.
 
-6. Run build execution only with local approval for repository-contained build
-   output and the planner-reported build directory.
+6. Run build execution only with local approval for repository-contained build output and the planner-reported build
+   directory.
 
-If any step fails, report the failing command and `unmet_prerequisites` instead
-of installing packages or changing system state.
+If any step fails, report the failing command and `unmet_prerequisites` instead of installing packages or changing
+system state.

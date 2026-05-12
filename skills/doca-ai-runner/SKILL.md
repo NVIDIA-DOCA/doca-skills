@@ -10,8 +10,7 @@ Read when: a `doca-skills` export needs a short runner skill
 
 # DOCA AI Runner
 
-Use this skill when work needs source-backed DOCA facts before build,
-runtime, API, or package claims.
+Use this skill when work needs source-backed DOCA facts before build, runtime, API, or package claims.
 
 ## Read First
 
@@ -36,16 +35,13 @@ python3 tools/lookup_capability.py --repo-root <source-package-root> --api-index
 
 ## Rules
 
-- Treat helper output, SDK headers, package metadata, and source files as
-  evidence.
+- Treat helper output, SDK headers, package metadata, and source files as evidence.
 - Use planner-only task output before any build or source edit.
-- Do not install packages, mutate devices, change networking, write
-  credentials, alter persistent config, run traffic, or execute runtime samples
-  as a side effect of answering.
-- Report missing helper paths, packages, headers, sensors, or approvals as
-  blockers.
+- Do not install packages, mutate devices, change networking, write credentials, alter persistent config, run traffic,
+  or execute runtime samples as a side effect of answering.
+- Report missing helper paths, packages, headers, sensors, or approvals as blockers.
 
 ## Return
 
-Include `diagnosis`, `source_inventory`, selected contract or capability ID,
-commands run, `unmet_prerequisites`, and exact next safe command.
+Include `diagnosis`, `source_inventory`, selected contract or capability ID, commands run, `unmet_prerequisites`, and
+exact next safe command.

@@ -5,10 +5,9 @@ Read when: an agent needs module-specific context for `<topic>`
 Load next: `guides/capability-map.md`,
 `contracts/agent-manifest.json`
 
-Copy this file when a source package or SDK area needs module-specific guidance.
-Replace placeholder text with source-backed evidence. Keep the three persona
-sections even when one is not applicable, and mark that section `not_applicable`
-with evidence.
+Copy this file when a source package or SDK area needs module-specific guidance. Replace placeholder text with
+source-backed evidence. Keep the three persona sections even when one is not applicable, and mark that section
+`not_applicable` with evidence.
 
 ## Scope
 
@@ -57,5 +56,5 @@ Use this section for tool users and build/debug workflows.
 - Keep runtime evidence separate from source and package evidence.
 - Report missing headers, dependencies, devices, or tools as blockers.
 - Do not invent API names, package names, devices, ports, or topology.
-- Do not install packages, configure networking, write credentials, mutate
-  devices, run traffic, or execute runtime samples without local owner approval.
+- Do not install packages, configure networking, write credentials, mutate devices, run traffic, or execute runtime
+  samples without local owner approval.

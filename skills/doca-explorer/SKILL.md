@@ -10,8 +10,7 @@ Read when: a `doca-skills` export needs a short exploration skill
 
 # DOCA Explorer
 
-Use this skill when the user asks what an agent can learn or safely do with a
-DOCA source package.
+Use this skill when the user asks what an agent can learn or safely do with a DOCA source package.
 
 ## Read First
 
@@ -34,15 +33,12 @@ python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <so
 Use source-backed sections:
 
 - `documentation_entrypoints`
-- `libraries_overview`: SDK/library users, headers, APIs, Meson/pkg-config
-  evidence.
-- `services_overview`: service or application operators, runtime
-  prerequisites, blocked mutations.
+- `libraries_overview`: SDK/library users, headers, APIs, Meson/pkg-config evidence.
+- `services_overview`: service or application operators, runtime prerequisites, blocked mutations.
 - `tools_overview`: CLI, build, debug helpers, validation commands.
 - `capability_coverage`
 - `topology_coverage`
 - `safety_boundaries`
 - `unmet_prerequisites`
 
-Use `not_measured` or `requires_runtime_verification` for facts not proven by
-current source or read-only tool output.
+Use `not_measured` or `requires_runtime_verification` for facts not proven by current source or read-only tool output.

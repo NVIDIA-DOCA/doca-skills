@@ -4,9 +4,8 @@ Applies to: local DOCA SDK build diagnostics on Linux distributions
 Read when: a user asks how to set `PKG_CONFIG_PATH` for DOCA builds
 Load next: `getting-started/pkg-config.md`, `getting-started/troubleshooting.md`
 
-This topic router points to `getting-started/pkg-config.md`, which owns the
-canonical `pkg-config` workflow. Use temporary shell exports for diagnostics;
-do not edit persistent shell startup files unless the user explicitly asks.
+This topic router points to `getting-started/pkg-config.md`, which owns the canonical `pkg-config` workflow. Use
+temporary shell exports for diagnostics; do not edit persistent shell startup files unless the user explicitly asks.
 
 ## Discover Metadata Directories
 
