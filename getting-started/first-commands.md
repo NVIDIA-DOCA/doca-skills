@@ -44,7 +44,7 @@ helper sources, include directories, output directories, approval classes, and
 unmet prerequisites without creating build output.
 
 Source-change planners are not part of the skills repository. If a DOCA
-source package publishes a source-change task in its manifest, use that exact
+source package includees a source-change task in its manifest, use that exact
 task ID and keep execution under the local package owner's policy.
 
 ## Approval-Gated Local Build

@@ -14,16 +14,6 @@ git diff --check
 prek run --files <changed-files>
 ```
 
-For AI guidance or adapter changes, also run:
-
-```bash
-python3 tools/validate_ai_adapters.py
-python3 tools/validate_ai_contracts.py
-```
-
-These checks are wired into pre-commit for relevant `top-level guidance directories`, adapter,
-contract, package-manifest, and `tools/` changes.
-
 If `prek` is not installed, use:
 
 ```bash
@@ -83,7 +73,7 @@ explicitly instead of implying the command is universal.
 
 ## Read-Only Agent Discovery
 
-Packaged AI docs include capability lookup and a read-only task runner for the
+AI docs include capability lookup and a read-only task runner for the
 first environment discovery step. Use lookup to choose the relevant source
 guidance, then run the baseline source-package discovery commands in
 `getting-started/first-commands.md` before suggesting runtime commands.
@@ -176,8 +166,8 @@ build directory, command records, built targets, and unmet prerequisites. It
 must not install packages or run runtime, device, network, credential, or
 production actions.
 
-Skills packages do not publish module patch helpers. If a DOCA source
-package publishes a source-change task in its own manifest, use that exact task
+Skills packages do not include module patch helpers. If a DOCA source
+package includees a source-change task in its own manifest, use that exact task
 ID and keep any execution under the local source owner's review and approval
 policy.
 
@@ -187,7 +177,7 @@ Use `package-info.json`, `contracts/agent-manifest.json`,
 package artifacts identify the package manifest, visible
 capabilities, supported task IDs, source version, and discovery blockers.
 
-Maintainer-only measurement definitions, scoring code, result harvesting, and
+Measurement definitions, scoring code, result harvesting, and
 regression gates are not part of the helper payload. Packages
 should expose source-backed discovery and validation commands, not scorer
 inputs or scorer helpers.

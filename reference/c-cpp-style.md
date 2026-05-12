@@ -75,7 +75,7 @@ complete enough to audit:
   completion status and ownership changes; they should not free resources that
   the surrounding API still owns.
 - Keep runtime, device, hugepage, package-install, credential, network, and
-  production actions outside generated source skeletons unless the user
+  production actions outside source skeletons unless the user
   explicitly approved that state change.
 - If a full program would be too long or depends on unavailable package files,
   return a compact skeleton plus `unmet_prerequisites` and

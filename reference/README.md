@@ -20,7 +20,7 @@ introducing new abstractions.
 - `system_tests/`: integration and system-level test assets.
 - `verification/`: verification frameworks and test suites.
 - `devtools/`: repository automation, coding-style hooks, CI helpers, and MCP servers.
-- `configs/`: Meson feature/profile configuration and packaging metadata.
+- `configs/`: Meson feature/profile configuration and package metadata.
 
 ## Build System
 
@@ -46,7 +46,7 @@ Use local metadata before relying on memory or online documentation:
   subdirectories, and dependency names.
 - `meson.build.public` files describe package-facing sample or application
   builds when they differ from the full repository layout.
-- `configs/` contains build profiles and packaging metadata for repository
+- `configs/` contains build profiles and package metadata for repository
   builds.
 - `python3 tools/run_agent_task.py --task discover-doca-environment --repo-root .`
   returns a read-only JSON discovery result that should anchor user-facing
@@ -63,10 +63,9 @@ they matter.
 - Keep SDK API changes narrow and update all call sites when signatures move.
 - Do not edit vendored code under `third_party/` unless the task explicitly
   targets that vendor copy.
-- Do not introduce generated-file churn. If a file is generated, find the
-  generator and update the source of truth.
+- Avoid derived-file churn; update the owning source instead.
 - Keep documentation factual and path-specific; avoid speculative claims about
-  unsupported platforms or packaging behavior.
+  unsupported platforms or package behavior.
 
 ## Validation Defaults
 

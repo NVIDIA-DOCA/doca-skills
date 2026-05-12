@@ -26,12 +26,12 @@
         "offloads": [
           "The repository-level SDK contract does not prove any runtime offload is available on the current machine.",
           "Use package-facing module documentation or package-provided source evidence before planning Flow steering, DPA execution, PCC behavior, RDMA, DMA, GPU, crypto, or other offload families.",
-          "Generated code should call capability or support checks before enabling device-specific offload paths."
+          "Agent-produced code should call capability or support checks before enabling device-specific offload paths."
         ],
         "versions": [
           "Read VERSION, top-level meson.build, package metadata, and SDK doca_version headers before making source-package version claims.",
           "Use compatibility tests, SDK headers, and release-facing package data before making API-stability or package-combination claims.",
-          "Treat installed package, driver, firmware, DPDK, and source-package versions as runtime facts to collect when they affect generated code."
+          "Treat installed package, driver, firmware, DPDK, and source-package versions as runtime facts to collect when they affect agent-produced code."
         ]
       },
       "id": "doca-sdk",
@@ -55,12 +55,6 @@
         "discover-doca-environment"
       ]
     }
-  ],
-  "generated_by": "DOCA package export",
-  "generated_from": [
-    "contracts/capabilities/doca-sdk.json",
-    "contracts/tasks/build-sdk-sample.yaml",
-    "contracts/tasks/discover-doca-environment.yaml"
   ],
   "schema_version": "1.0"
 }

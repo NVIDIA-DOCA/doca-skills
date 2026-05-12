@@ -58,7 +58,7 @@ Use these common package anchors only as starting points; the selected
 | DOCA Flow samples and DPDK-backed demo applications | `doca-flow`, `doca-dpdk-bridge`, `doca-argp`, `libdpdk` |
 | Security, secure-channel, service-chain, and UPF applications | Start from the selected application `dependencies/meson.build`; common anchors include `doca-flow`, `doca-dpdk-bridge`, `doca-comch`, `doca-apsh`, `doca-telemetry-exporter`, `json-c`, and `libdpdk` |
 | DMA and other task-style SDK examples | `doca-dma`, `doca-common`, `doca-argp` |
-| Applications with helper libraries or generated code | The `app_doca_depends` and `app_driver_depends` entries from the selected `applications/**/dependencies/meson.build` |
+| Applications with helper libraries or agent-produced code | The `app_doca_depends` and `app_driver_depends` entries from the selected `applications/**/dependencies/meson.build` |
 
 When `meson setup` or `pkg-config` cannot find a DOCA dependency, report it as
 an unmet prerequisite and show the local validation command that failed. Do not

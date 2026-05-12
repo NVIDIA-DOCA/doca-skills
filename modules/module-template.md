@@ -44,7 +44,7 @@ Use this section for service, application, and operator workflows.
 
 Use this section for tool users and build/debug workflows.
 
-- `cli_tools`: `<CLI helpers, scripts, or generated commands>`
+- `cli_tools`: `<CLI helpers, scripts, or helper commands>`
 - `build_tools`: `<Meson, Ninja, pkg-config, compiler, or package helpers>`
 - `debug_tools`: `<log, trace, status, or validation helpers>`
 - `safe_commands`: `<read-only or planner-only commands>`

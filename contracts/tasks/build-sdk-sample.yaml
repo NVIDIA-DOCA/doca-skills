@@ -32,7 +32,7 @@ structured_errors:
   - {"code": "invalid_focus_path", "message": "The selected focus path is missing, ambiguous, or outside the source tree.", "recovery": "Pass exactly one repository-relative sample or application path."}
   - {"code": "invalid_build_dir", "message": "The build directory is absent, mismatched, or outside the repository.", "recovery": "Reuse the planner-reported local build directory for the selected focus path."}
   - {"code": "missing_dependency", "message": "A required build dependency or toolchain is unavailable.", "recovery": "Report the missing dependency instead of editing source around it."}
-  - {"code": "configuration_failed", "message": "Meson configuration failed for the selected package view.", "recovery": "Remove or ignore generated build output and report the focused failure."}
+  - {"code": "configuration_failed", "message": "Meson configuration failed for the selected package view.", "recovery": "Remove or ignore build output and report the focused failure."}
   - {"code": "build_failed", "message": "The focused target failed to build.", "recovery": "Report the exact command and failing target before broader changes."}
   - {"code": "build_timeout", "message": "A local build command exceeded the executor timeout.", "recovery": "Inspect or remove the local build directory before retrying the focused build."}
   - {"code": "executor_error", "message": "The local build command could not start.", "recovery": "Inspect local filesystem permissions and build tool availability before retrying."}
@@ -64,7 +64,3 @@ recovery:
   - Remove or ignore the local build directory if configuration fails.
   - If dependencies are unavailable, report the missing dependency instead of editing source around it.
   - If the package view is incomplete, validate only with files present in that package and state the limitation.
-maintenance:
-  - Keep source_globs aligned with sample and application Meson ownership.
-  - Add module-specific tasks only when build behavior differs from this generic pattern.
-  - Keep commands reproducible from the repository root.

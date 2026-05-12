@@ -146,12 +146,6 @@
       },
       "type": "array"
     },
-    "maintenance": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
     "outputs": {
       "items": {
         "$ref": "#/$defs/output_field"
@@ -217,8 +211,7 @@
     "actuators",
     "constraints",
     "verifier",
-    "recovery",
-    "maintenance"
+    "recovery"
   ],
   "title": "DOCA Agent Task",
   "type": "object"

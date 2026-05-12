@@ -33,12 +33,12 @@ facts.
 | Unified error taxonomy | Use task `structured_errors`, `doca_error_t` style guidance, observed sample error handling, and recovery hints from validation docs. If a library lacks package-visible error taxonomy, return a gap instead of normalizing undocumented errors. |
 | Structured observability | Report health, counters, traces, resource ownership, telemetry, or queue state only when package-visible samples, online docs, or read-only sensors expose them. Runtime counters and traces require explicit approval and hardware access. |
 | Permission and safety model | Default to read-only source/package inspection. Block package installation, device mutation, network changes, persistent configuration, credentials, runtime traffic, and production actions unless the local owner explicitly approves the action class. |
-| Version and compatibility reporting | Use `VERSION`, `package-info.json`, `pkg-config --modversion <pkg-name>`, generated manifest digests, and source-package discovery output. If package metadata is absent, mark version facts as unknown. |
+| Version and compatibility reporting | Use `VERSION`, `package-info.json`, `pkg-config --modversion <pkg-name>`, manifest digests, and source-package discovery output. If package metadata is absent, mark version facts as unknown. |
 | Conformance tests | Use package dry-run/smoke checks, adapter/contract validators, and planner outputs as current conformance evidence. Per-library runtime conformance requires explicit test or SDK/package harness evidence. |
 
 ## Required Response Shape
 
-For capability audits, return these keys so manager and maintainer reviews can
+For capability audits, return these keys so source-owner reviews can
 compare runs:
 
 - `source_view`: whether the package exposes samples, applications, SDK

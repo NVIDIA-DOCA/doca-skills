@@ -1,6 +1,5 @@
 {
   "description": "AI guidance for the NVIDIA-DOCA/doca-skills repository.",
-  "generated_by": "DOCA package export",
   "manifest": "doca-skills",
   "profile": null,
   "requires_profile": false,

@@ -69,15 +69,6 @@
       },
       "type": "array"
     },
-    "generated_by": {
-      "type": "string"
-    },
-    "generated_from": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
     "schema_version": {
       "type": "string"
     },
@@ -105,8 +96,6 @@
   },
   "required": [
     "schema_version",
-    "generated_by",
-    "generated_from",
     "capabilities",
     "tasks",
     "validation"

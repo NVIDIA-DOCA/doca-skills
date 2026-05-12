@@ -17,7 +17,7 @@ headers, packages, or lifecycle steps.
 ## Facts To Report
 
 - `source_version` from the local source package.
-- Available capability IDs from the generated manifest.
+- Available capability IDs from the manifest.
 - SDK-header experimental API marker summary.
 - Package metadata when `package-info.json` exists.
 - Missing discovery utilities as blockers, not guessed facts.

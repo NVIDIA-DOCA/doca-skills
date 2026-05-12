@@ -46,7 +46,3 @@ recovery:
   - If discovery fails, stop with the missing prerequisite and avoid runtime actions.
   - If conflicting source and installed versions are found, ask which environment is authoritative.
   - If a value came from a sample instead of a sensor, discard it and rerun discovery.
-maintenance:
-  - Keep sensors aligned with current DOCA discovery utilities and SDK device-info APIs.
-  - Add source_globs when new top-level SDK metadata becomes authoritative.
-  - Keep this task source-package safe so it can ship in source packages.

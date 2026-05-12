@@ -22,7 +22,7 @@ safe to use before proposing builds, runtime commands, or source edits.
 
 ## Machine-Readable Entry Points
 
-- `contracts/agent-manifest.json`: generated task and capability index.
+- `contracts/agent-manifest.json`: task and capability index.
 - `contracts/capability-catalog.json`: compact capability summaries.
 - `contracts/tasks/discover-doca-environment.yaml`: read-only environment discovery task.
 - `contracts/tasks/build-sdk-sample.yaml`: package-local build planning task.

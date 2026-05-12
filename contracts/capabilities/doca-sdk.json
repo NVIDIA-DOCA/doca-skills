@@ -30,22 +30,17 @@
     "offloads": [
       "The repository-level SDK contract does not prove any runtime offload is available on the current machine.",
       "Use package-facing module documentation or package-provided source evidence before planning Flow steering, DPA execution, PCC behavior, RDMA, DMA, GPU, crypto, or other offload families.",
-      "Generated code should call capability or support checks before enabling device-specific offload paths."
+      "Agent-produced code should call capability or support checks before enabling device-specific offload paths."
     ],
     "versions": [
       "Read VERSION, top-level meson.build, package metadata, and SDK doca_version headers before making source-package version claims.",
       "Use compatibility tests, SDK headers, and release-facing package data before making API-stability or package-combination claims.",
-      "Treat installed package, driver, firmware, DPDK, and source-package versions as runtime facts to collect when they affect generated code."
+      "Treat installed package, driver, firmware, DPDK, and source-package versions as runtime facts to collect when they affect agent-produced code."
     ]
   },
   "id": "doca-sdk",
-  "maintenance": [
-    "Keep source_globs aligned with top-level build, package, sample, application, and SDK-header ownership.",
-    "When new source package views are added, update package manifests and rerun tools/validate_ai_contracts.py.",
-    "When making quantitative API-stability claims, use source-package discovery output as evidence."
-  ],
   "recovery": [
-    "Revert generated build directories rather than editing source to hide a failed configuration.",
+    "Revert build directories rather than editing source to hide a failed configuration.",
     "If package or version discovery is inconclusive, report the missing sensor instead of inventing a package matrix.",
     "If a command requires unavailable hardware or privileges, stop at the last read-only verifier and state the unmet prerequisite."
   ],
@@ -65,7 +60,7 @@
     "devtools/public/**"
   ],
   "verifier": [
-    "Run python3 tools/validate_ai_contracts.py after AI contract changes.",
+    "Run python3 tools/lookup_capability.py --repo-root . --list after contract changes.",
     "Use git diff --check for documentation-only changes.",
     "For source changes, run the smallest Meson/Ninja or package command that covers the touched target and report exact prerequisites."
   ]

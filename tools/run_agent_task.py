@@ -214,7 +214,7 @@ def unsupported(task_id, manifest):
     add_error(
         result,
         'unsupported_task',
-        'The requested task is not published by this package.',
+        'The requested task is not includeed by this package.',
         'Use one of the task IDs listed in contracts/agent-manifest.json.',
     )
     result['outputs']['available_tasks'] = available

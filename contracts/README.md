@@ -1,34 +1,23 @@
 # DOCA Agent Contracts
 
-Applies to: `contracts/**`, generated AI manifests, capability contracts, task runbooks
+Applies to: `contracts/**`, AI manifests, capability contracts, task runbooks
 Read when: adding or consuming machine-readable DOCA guidance for coding agents
 Load next: `contracts/agent-manifest.json`, `contracts/capabilities/`, `contracts/tasks/`
 
 Agent contracts are the machine-readable layer above the human guidance in
 `top-level guidance directories`. They describe what an agent may try, which repository paths are the
-source of truth, which discovery sensors must run first, which mutations require
+evidence source, which discovery sensors must run first, which mutations require
 approval, what typed inputs and outputs the task expects, and how a task is
 verified or recovered.
 
-## Source Of Truth
+## Contract Files
 
 Capability contracts live under `contracts/capabilities/*.json`.
 Task runbooks live under `contracts/tasks/*.yaml`.
 `contracts/agent-manifest.json` and
-`contracts/capability-catalog.json` are generated indexes from those
-files:
+`contracts/capability-catalog.json` summarize the contract files included in this package.
 
-```bash
-python3 tools/generate_agent_manifest.py --check
-```
-
-Do not hand-edit the generated indexes. Add or update capability and task
-contracts, then regenerate them.
-
-Source packages regenerate this manifest during packaging. Capabilities and
-tasks whose `source_globs` do not match the packaged source tree are omitted, so
-each source view receives only contracts and catalog entries that apply to files
-it actually contains.
+This package includes only contracts and catalog entries that apply to files it contains.
 
 Use the capability lookup helper when an agent needs a compact summary or the
 next files to load:
@@ -46,12 +35,10 @@ dependencies, and sample/application references for the selected capability.
 
 ## Manifest Structure Quick Reference
 
-`contracts/agent-manifest.json` is a generated entrypoint for agents and
-packagers. Treat these fields as the stable user-facing shape:
+`contracts/agent-manifest.json` is an entrypoint for agents and
+package tools. Treat these fields as the contract shape:
 
 - `schema_version`: manifest format version.
-- `generated_by`: generator path and command provenance.
-- `generated_from`: source contract directories used to create the index.
 - `capabilities`: capability records selected from
   `contracts/capabilities/*.json`.
 - `tasks`: executable or planner-backed task records selected from
@@ -65,8 +52,7 @@ reason about device-aware code paths without scraping human prose. Task records
 identify the task ID, risk class, command kind, typed inputs and outputs,
 structured errors, approval gates, result schema, verifier, and recovery
 behavior. Consumers should read these fields instead of scraping human prose,
-and maintainers should update the source capability or task file before
-regenerating the manifest.
+and source owners should update the matching capability or task file when the contract changes.
 
 ## Read-Only Runner
 
@@ -109,8 +95,8 @@ build directory, command records, built targets, and unmet prerequisites. It
 does not install packages or run runtime, device, network, credential, or
 production actions.
 
-Some DOCA source packages may publish additional source-change task IDs. Source
-skills packages do not publish module patch helpers. If a package
+Some DOCA source packages may list additional source-change task IDs. Source
+skills packages do not include module patch helpers. If a package
 manifest includes such a task, follow that task contract and the local source
 owner's review and approval policy rather than inferring execution behavior
 from a skills repository.
@@ -120,14 +106,14 @@ from a skills repository.
 Task contracts can either spell out `approval_required_for` directly or use a
 reusable `approval_profile` when several contracts need the same approval gates.
 The contract loader expands the profile into `approval_required_for`, so
-runners and generated consumers still receive the stable approval list.
+runners and tool consumers still receive the stable approval list.
 
 Skills packages should treat any unavailable source-change approval
-profile as intentionally unpublished. Source packages that publish
+profile as intentionally unavailable. Source packages that include
 source-change task IDs must keep their approval profile documented in the task
 contract itself.
 
-## Maintenance Rules
+## Contract Rules
 
 - Every contract must include `source_globs`, `sensors`,
   `constraints`, `verifier`, and `recovery`.
@@ -152,23 +138,15 @@ contract itself.
   device names, PCI addresses, representors, firmware, package versions, and
   capability support.
 - Claims about API stability, compatibility, or experimental API counts must
-  point to a reproducible command or generated evidence.
+  point to a reproducible command or reproducible evidence.
 
 ## Validation
 
-Run this before uploading contract changes:
+Use these package checks before relying on contract data:
 
 ```bash
-python3 tools/validate_ai_contracts.py
+python3 tools/lookup_capability.py --repo-root . --list
 python3 tools/run_agent_task.py --task discover-doca-environment --repo-root .
 ```
 
-The validator checks schema shape, source-path drift, task-to-capability
-references, generated-manifest freshness, and package-manifest coverage.
-It is also wired into pre-commit for contract, package-manifest, and helper-tool
-changes that can make packaged agent guidance stale.
-
-Maintainer-only package measurement and regression gates live in the full DOCA
-developer checkout. Source packages should rely on the manifest,
-capability catalog, lookup helper, and task runner instead of shipping status
-or scoring helpers.
+This package exposes source-backed discovery and validation commands, not scorer inputs or scorer helpers.

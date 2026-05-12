@@ -14,12 +14,6 @@
       ]
     }
   ],
-  "generated_by": "DOCA package export",
-  "generated_from": [
-    "contracts/capabilities/doca-sdk.json",
-    "contracts/tasks/build-sdk-sample.yaml",
-    "contracts/tasks/discover-doca-environment.yaml"
-  ],
   "schema_version": "1.0",
   "tasks": [
     {

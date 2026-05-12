@@ -6,7 +6,7 @@ Load next: `llms.txt`, `getting-started/README.md`, `getting-started/first-comma
 
 This quickstart is the package-facing entry point for using the packaged DOCA
 AI guidance with coding agents. It assumes the user has a DOCA source package
-that already contains the generated root adapter files and `top-level guidance directories`.
+that already contains the root adapter files and `top-level guidance directories`.
 
 ## What The Package Provides
 
@@ -72,7 +72,7 @@ If the local owner approves build output, run only the executor command and
 build directory reported by the planner, or the approval-gated local build form
 in `getting-started/first-commands.md`.
 
-For source-change requests, use only task IDs published by the current source
+For source-change requests, use only task IDs listed by the current source
 package manifest. If no source-change task is present, inspect and validate
 changes through the local source owner's normal review flow.
 
@@ -110,7 +110,7 @@ to build, explain, or modify DOCA code:
   knows how to read, such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
   `JULES.md`, or `SKILLS.md`.
 - `package-info.json` reports the package manifest when
-  the source view was produced by the AI docs packager.
+  the source view was produced by the AI docs package tool.
 - `run_agent_task.py --task discover-doca-environment` returns structured
   source facts and does not mutate the system.
 - `lookup_capability.py --api-index` reports SDK headers, exported symbols,

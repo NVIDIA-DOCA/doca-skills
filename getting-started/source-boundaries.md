@@ -1,6 +1,6 @@
 # Source-package Source Boundaries
 
-Applies to: `applications/**`, `samples/**`, SDK-facing examples, publishable snippets
+Applies to: `applications/**`, `samples/**`, SDK-facing examples, includeable snippets
 Read when: editing source intended to demonstrate or consume the DOCA SDK
 Load next: `getting-started/sdk-development.md`, `getting-started/validation.md`
 
@@ -29,10 +29,10 @@ headers into sample or application code.
 - Keep examples portable across supported Linux development environments unless
   the surrounding code is explicitly platform-specific.
 
-## License And Generated Files
+## License And Derived Files
 
-The license checker skips many documentation, generated, and configuration file
+The license checker skips many documentation, derived, and configuration file
 types, but source files under `samples/` and `applications/` still need the
 source license header unless a local exception already exists. Do not
-modify vendored or generated files to satisfy style rules; find the owning
-source or generator instead.
+modify vendored or derived files to satisfy style rules; find the owning
+owning source instead.

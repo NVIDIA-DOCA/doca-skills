@@ -24,5 +24,5 @@ the user's local DOCA environment before being stated as measured.
 - Capability and environment discovery: `skills/doca-discover-environment/SKILL.md`
 - Programming Guide enrichment: `skills/doca-programming-guide/SKILL.md`
 - Build planning: `skills/doca-build-sdk-sample/SKILL.md`
-- Source-change planning: use only task IDs published in the package manifest;
-  skills packages do not publish module patch helpers.
+- Source-change planning: use only task IDs listed in the package manifest;
+  skills packages do not include module patch helpers.

@@ -77,12 +77,6 @@
     "id": {
       "type": "string"
     },
-    "maintenance": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
     "recovery": {
       "items": {
         "type": "string"
@@ -115,8 +109,7 @@
     "sensors",
     "constraints",
     "verifier",
-    "recovery",
-    "maintenance"
+    "recovery"
   ],
   "title": "DOCA Agent Capability",
   "type": "object"
