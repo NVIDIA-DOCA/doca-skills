@@ -1,0 +1,73 @@
+{
+  "audience": "public",
+  "constraints": [
+    "Do not treat sample values, example PCI addresses, interface names, IB device names, or representor names as facts about the current machine.",
+    "Do not claim API stability unless the claim is backed by current headers, compatibility tests, or release documentation in the checked-out source.",
+    "Do not upgrade or mix individual DOCA packages independently unless the source package documents that combination as supported.",
+    "Prefer narrow source edits and reversible local build output over persistent system changes."
+  ],
+  "description": "Repository-level SDK source, build, package, and public-header behavior for DOCA coding agents.",
+  "discovery_data": {
+    "constraints": [
+      "Do not treat sample PCI addresses, interface names, IB device names, representor names, queue counts, or NUMA placement as current-machine facts.",
+      "Do not mix or upgrade individual DOCA packages independently unless local package metadata documents that combination.",
+      "Ask for read-only environment evidence before generating code that depends on host, BlueField, NIC, GPU, PCIe, NUMA, representor, queue, or memory-domain topology."
+    ],
+    "devices": [
+      "The SDK source exposes DOCA device, devinfo, representor, mmap, buffer, and package-facing sample patterns; runtime device facts require local read-only discovery.",
+      "Agents should model host, BlueField Arm-side, NIC, GPU, PCIe, NUMA, representor, queue, and memory-domain observations separately before selecting topology-specific code.",
+      "Example selectors such as PCI address, interface name, IB device name, mlx name, GPU ID, and representor ID are inputs to discover or validate, not stable defaults."
+    ],
+    "libraries": [
+      "Top-level Meson files, public headers, package metadata, and sample/application dependencies enumerate the visible SDK library surface.",
+      "Common SDK facilities provide device, version, logging, mmap, buffer, and utility contracts used by public samples and applications.",
+      "This repository-level contract covers SDK-level source, package, sample, and application facts."
+    ],
+    "modes": [
+      "Repository, package, sample, application, and public-header views can differ; use source_globs and package manifests to determine the current source view.",
+      "Build planning and source edits are local-source actions, while runtime sample execution, device mode changes, firmware actions, and persistent configuration are separate approval classes.",
+      "Host-side, BlueField-side, switch, queue, memory-domain, and offload modes must be discovered through local sensors or module-specific capability checks."
+    ],
+    "offloads": [
+      "The repository-level SDK contract does not prove any runtime offload is available on the current machine.",
+      "Use public module documentation or package-provided source evidence before planning Flow steering, DPA execution, PCC behavior, RDMA, DMA, GPU, crypto, or other offload families.",
+      "Generated code should call capability or support checks before enabling device-specific offload paths."
+    ],
+    "versions": [
+      "Read VERSION, top-level meson.build, package metadata, and public doca_version headers before making source-package version claims.",
+      "Use compatibility tests, public headers, and release-facing package data before making API-stability or package-combination claims.",
+      "Treat installed package, driver, firmware, DPDK, and source-package versions as runtime facts to collect when they affect generated code."
+    ]
+  },
+  "id": "doca-sdk",
+  "maintenance": [
+    "Keep source_globs aligned with top-level build, package, sample, application, and public-header ownership.",
+    "When new public source package views are added, update package manifests and rerun tools/validate_ai_contracts.py.",
+    "When making quantitative API-stability claims, use source-package discovery output as evidence."
+  ],
+  "recovery": [
+    "Revert generated build directories rather than editing source to hide a failed configuration.",
+    "If package or version discovery is inconclusive, report the missing sensor instead of inventing a package matrix.",
+    "If a command requires unavailable hardware or privileges, stop at the last read-only verifier and state the unmet prerequisite."
+  ],
+  "sensors": [
+    "Read VERSION, meson.build, meson_options.txt, and package-specific Meson files before selecting a build target.",
+    "Inspect public headers under libs/**/include/public before using an API and check whether DOCA_EXPERIMENTAL is attached to that API.",
+    "Use available DOCA discovery utilities, package metadata, or documented device-info APIs to discover local devices and capabilities before runtime actions.",
+    "Read nearby samples and applications only as examples of patterns, not as proof that their command-line values exist on the current system."
+  ],
+  "source_globs": [
+    "VERSION",
+    "meson.build",
+    "meson_options.txt",
+    "libs/**/include/public/**/*.h",
+    "samples/**/meson.build",
+    "applications/**/meson.build",
+    "devtools/public/**"
+  ],
+  "verifier": [
+    "Run python3 tools/validate_ai_contracts.py after AI contract changes.",
+    "Use git diff --check for documentation-only changes.",
+    "For source changes, run the smallest Meson/Ninja or package command that covers the touched target and report exact prerequisites."
+  ]
+}

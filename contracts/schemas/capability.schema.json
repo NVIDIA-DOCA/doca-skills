@@ -1,0 +1,129 @@
+{
+  "$id": "https://docs.nvidia.com/doca/ai/capability.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audience": {
+      "enum": [
+        "public"
+      ]
+    },
+    "constraints": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "description": {
+      "type": "string"
+    },
+    "discovery_data": {
+      "additionalProperties": false,
+      "properties": {
+        "constraints": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "devices": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "libraries": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "modes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "offloads": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "versions": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "devices",
+        "libraries",
+        "modes",
+        "offloads",
+        "versions",
+        "constraints"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "type": "string"
+    },
+    "maintenance": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "recovery": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "sensors": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "source_globs": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "verifier": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "audience",
+    "description",
+    "source_globs",
+    "sensors",
+    "constraints",
+    "verifier",
+    "recovery",
+    "maintenance"
+  ],
+  "title": "DOCA Agent Capability",
+  "type": "object"
+}

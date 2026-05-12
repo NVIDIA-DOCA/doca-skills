@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "capability_entry": {
+      "additionalProperties": false,
+      "properties": {
+        "audience": {
+          "enum": [
+            "public"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "source_globs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "audience",
+        "source_globs"
+      ],
+      "type": "object"
+    },
+    "task_entry": {
+      "additionalProperties": false,
+      "properties": {
+        "audience": {
+          "enum": [
+            "public"
+          ]
+        },
+        "command_kind": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "result_schema": {
+          "type": "string"
+        },
+        "risk_class": {
+          "type": "string"
+        },
+        "source_globs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "audience",
+        "source_globs",
+        "risk_class",
+        "command_kind",
+        "result_schema"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://docs.nvidia.com/doca/ai/agent-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "audience": {
+      "enum": [
+        "public"
+      ]
+    },
+    "capabilities": {
+      "items": {
+        "$ref": "#/$defs/capability_entry"
+      },
+      "type": "array"
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "generated_from": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/task_entry"
+      },
+      "type": "array"
+    },
+    "validation": {
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "commands"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "generated_by",
+    "generated_from",
+    "audience",
+    "capabilities",
+    "tasks",
+    "validation"
+  ],
+  "title": "DOCA Agent Manifest",
+  "type": "object"
+}

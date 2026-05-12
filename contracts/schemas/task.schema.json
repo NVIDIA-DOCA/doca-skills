@@ -1,0 +1,231 @@
+{
+  "$defs": {
+    "input_field": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "$ref": "#/$defs/value_type"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "required",
+        "description"
+      ],
+      "type": "object"
+    },
+    "output_field": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/value_type"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "description"
+      ],
+      "type": "object"
+    },
+    "structured_error": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "recovery": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "recovery"
+      ],
+      "type": "object"
+    },
+    "value_type": {
+      "enum": [
+        "array",
+        "boolean",
+        "enum",
+        "integer",
+        "number",
+        "object",
+        "path",
+        "string"
+      ]
+    }
+  },
+  "$id": "https://docs.nvidia.com/doca/ai/task.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "anyOf": [
+    {
+      "required": [
+        "approval_required_for"
+      ]
+    },
+    {
+      "required": [
+        "approval_profile"
+      ]
+    }
+  ],
+  "properties": {
+    "actuators": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "approval_profile": {
+      "enum": [
+        "local-source-change-runtime-guarded"
+      ]
+    },
+    "approval_required_for": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "audience": {
+      "enum": [
+        "public"
+      ]
+    },
+    "capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "command_kind": {
+      "enum": [
+        "build",
+        "discovery",
+        "package",
+        "review",
+        "runtime-mutate",
+        "runtime-read",
+        "source-change",
+        "test"
+      ]
+    },
+    "constraints": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "goal": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/input_field"
+      },
+      "type": "array"
+    },
+    "maintenance": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/output_field"
+      },
+      "type": "array"
+    },
+    "recovery": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "result_schema": {
+      "type": "string"
+    },
+    "risk_class": {
+      "enum": [
+        "read-only",
+        "local-write",
+        "system-read",
+        "system-write",
+        "device-mutate",
+        "production-risk"
+      ]
+    },
+    "sensors": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "source_globs": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "structured_errors": {
+      "items": {
+        "$ref": "#/$defs/structured_error"
+      },
+      "type": "array"
+    },
+    "verifier": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "audience",
+    "goal",
+    "source_globs",
+    "capabilities",
+    "risk_class",
+    "command_kind",
+    "inputs",
+    "outputs",
+    "structured_errors",
+    "result_schema",
+    "sensors",
+    "actuators",
+    "constraints",
+    "verifier",
+    "recovery",
+    "maintenance"
+  ],
+  "title": "DOCA Agent Task",
+  "type": "object"
+}

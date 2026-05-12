@@ -1,0 +1,68 @@
+{
+  "capabilities": [
+    {
+      "audience": "public",
+      "contract_path": "contracts/capabilities/doca-sdk.json",
+      "discovery_data": {
+        "constraints": [
+          "Do not treat sample PCI addresses, interface names, IB device names, representor names, queue counts, or NUMA placement as current-machine facts.",
+          "Do not mix or upgrade individual DOCA packages independently unless local package metadata documents that combination.",
+          "Ask for read-only environment evidence before generating code that depends on host, BlueField, NIC, GPU, PCIe, NUMA, representor, queue, or memory-domain topology."
+        ],
+        "devices": [
+          "The SDK source exposes DOCA device, devinfo, representor, mmap, buffer, and package-facing sample patterns; runtime device facts require local read-only discovery.",
+          "Agents should model host, BlueField Arm-side, NIC, GPU, PCIe, NUMA, representor, queue, and memory-domain observations separately before selecting topology-specific code.",
+          "Example selectors such as PCI address, interface name, IB device name, mlx name, GPU ID, and representor ID are inputs to discover or validate, not stable defaults."
+        ],
+        "libraries": [
+          "Top-level Meson files, public headers, package metadata, and sample/application dependencies enumerate the visible SDK library surface.",
+          "Common SDK facilities provide device, version, logging, mmap, buffer, and utility contracts used by public samples and applications.",
+          "This repository-level contract covers SDK-level source, package, sample, and application facts."
+        ],
+        "modes": [
+          "Repository, package, sample, application, and public-header views can differ; use source_globs and package manifests to determine the current source view.",
+          "Build planning and source edits are local-source actions, while runtime sample execution, device mode changes, firmware actions, and persistent configuration are separate approval classes.",
+          "Host-side, BlueField-side, switch, queue, memory-domain, and offload modes must be discovered through local sensors or module-specific capability checks."
+        ],
+        "offloads": [
+          "The repository-level SDK contract does not prove any runtime offload is available on the current machine.",
+          "Use public module documentation or package-provided source evidence before planning Flow steering, DPA execution, PCC behavior, RDMA, DMA, GPU, crypto, or other offload families.",
+          "Generated code should call capability or support checks before enabling device-specific offload paths."
+        ],
+        "versions": [
+          "Read VERSION, top-level meson.build, package metadata, and public doca_version headers before making source-package version claims.",
+          "Use compatibility tests, public headers, and release-facing package data before making API-stability or package-combination claims.",
+          "Treat installed package, driver, firmware, DPDK, and source-package versions as runtime facts to collect when they affect generated code."
+        ]
+      },
+      "id": "doca-sdk",
+      "load_next": [
+        "getting-started/sdk-development.md",
+        "modules/README.md",
+        "contracts/capabilities/doca-sdk.json"
+      ],
+      "public_safe": true,
+      "source_globs": [
+        "VERSION",
+        "meson.build",
+        "meson_options.txt",
+        "libs/**/include/public/**/*.h",
+        "samples/**/meson.build",
+        "applications/**/meson.build",
+        "devtools/public/**"
+      ],
+      "summary": "Repository-level SDK source, build, package, and public-header behavior for DOCA coding agents.",
+      "tasks": [
+        "build-sdk-sample",
+        "discover-doca-environment"
+      ]
+    }
+  ],
+  "generated_by": "DOCA public package export",
+  "generated_from": [
+    "contracts/capabilities/doca-sdk.json",
+    "contracts/tasks/build-sdk-sample.yaml",
+    "contracts/tasks/discover-doca-environment.yaml"
+  ],
+  "schema_version": "1.0"
+}
