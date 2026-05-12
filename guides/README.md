@@ -2,7 +2,7 @@
 
 Applies to: DOCA source-package questions
 Read when: answering questions about DOCA samples, applications, build metadata, capability evidence, or documentation
-Load next: `guides/capability-map.md`; then one skill from `skills/`
+Load next: `guides/persona-routing.md`, `guides/capability-map.md`; then one skill from `skills/`
 
 Agents should ground answers in source files, Meson build metadata, packaged AI contracts, and NVIDIA documentation.
 Runtime facts should be verified on the user's local DOCA environment before being stated as measured.
@@ -17,6 +17,7 @@ Runtime facts should be verified on the user's local DOCA environment before bei
 
 ## Skill Selection
 
+- Persona routing: `guides/persona-routing.md`
 - Documentation and capability discovery: `skills/doca-explorer/SKILL.md`
 - Capability and environment discovery: `skills/doca-discover-environment/SKILL.md`
 - Programming Guide enrichment: `skills/doca-programming-guide/SKILL.md`

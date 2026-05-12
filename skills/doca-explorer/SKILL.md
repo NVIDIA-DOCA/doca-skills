@@ -16,6 +16,7 @@ Use this skill when the user asks what an agent can learn or safely do with a DO
 
 - `llms.txt`
 - `getting-started/quickstart.md`
+- `guides/persona-routing.md`
 - `guides/capability-map.md`
 - `modules/README.md`
 - `modules/library-template.md`
@@ -34,6 +35,7 @@ python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <so
 
 Use source-backed sections:
 
+- `persona_route`: primary user type, matched evidence, and any secondary user needs.
 - `documentation_entrypoints`
 - `libraries_overview`: SDK/library users, headers, APIs, Meson/pkg-config evidence.
 - `services_overview`: service or application operators, runtime prerequisites, blocked mutations.

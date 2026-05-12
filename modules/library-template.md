@@ -10,6 +10,7 @@ source-backed evidence from headers, Meson files, package metadata, samples, app
 ## Scope
 
 - `module_id`: `<short-library-id>`
+- `primary_persona`: `SDK library developer`
 - `library_paths`: `<libs/<name> paths or installed source-package paths>`
 - `sdk_headers`: `<headers agents may inspect or cite>`
 - `sample_paths`: `<samples or applications that exercise the APIs>`
@@ -19,6 +20,7 @@ source-backed evidence from headers, Meson files, package metadata, samples, app
 ## libraries_overview
 
 - `library_name`: `<SDK library name or package-facing component name>`
+- `user_goals`: `<API lookup, lifecycle explanation, dependency mapping, or sample usage>`
 - `headers`: `<header paths that prove available APIs>`
 - `key_apis`: `<functions, structs, lifecycle calls, callback types, and stability notes>`
 - `dependencies`: `<pkg-config names, Meson dependency names, package names, and nearby dependency files>`
@@ -30,6 +32,7 @@ source-backed evidence from headers, Meson files, package metadata, samples, app
 ## Evidence Rules
 
 - Cite package-local headers and Meson/package metadata before online or memory-based facts.
+- Optimize answers for developers writing or reviewing source that calls the SDK APIs.
 - Use `tools/lookup_capability.py --repo-root . --api-index <capability-id>` when the package includes it.
 - Keep source evidence separate from runtime availability; source presence does not prove a device or offload is usable.
 - Do not invent API names, package names, dependency names, sample paths, devices, ports, or topology.

@@ -7,6 +7,18 @@ Load next: the matching `skills/<name>/SKILL.md`
 Use these skills as focused runbooks. Pick the smallest skill that matches the task, read its `SKILL.md`, then follow
 the linked guidance and helper commands.
 
+## By Persona
+
+| Persona | Start With | Main Output |
+| --- | --- | --- |
+| SDK library developer | `doca-programming-guide`, then `doca-explorer` | `libraries_overview` |
+| Service or application operator | `doca-discover-environment`, then `doca-explorer` | `services_overview` |
+| Tool workflow user | `doca-ai-runner`, then `doca-explorer` | `tools_overview` |
+| Sample or application builder | `doca-build-sdk-sample` | build plan plus matching overview |
+| Environment/setup investigator | `doca-discover-environment` | measured facts and blockers |
+
+Read `guides/persona-routing.md` when a prompt mixes more than one persona.
+
 | Skill | Use When |
 | --- | --- |
 | `doca-user-rules` | Start any DOCA SDK task with safe defaults and concise answer rules. |

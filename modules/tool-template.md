@@ -10,6 +10,7 @@ evidence from tool source, scripts, Meson files, package metadata, docs, tests, 
 ## Scope
 
 - `module_id`: `<short-tool-id>`
+- `primary_persona`: `tool workflow user`
 - `tool_paths`: `<tools, scripts, helper modules, or package paths>`
 - `cli_entrypoints`: `<commands, binaries, scripts, or tool docs>`
 - `package_metadata`: `<Meson, pkg-config, dependency, or package metadata paths>`
@@ -18,6 +19,7 @@ evidence from tool source, scripts, Meson files, package metadata, docs, tests, 
 ## tools_overview
 
 - `tool_name`: `<CLI, helper, build, debug, or validation tool name>`
+- `user_goals`: `<command selection, argument mapping, output interpretation, or troubleshooting>`
 - `cli_tools`: `<commands, arguments, help output, scripts, or installed binaries>`
 - `build_tools`: `<Meson, Ninja, pkg-config, compiler, package, or source helper dependencies>`
 - `debug_tools`: `<log, trace, status, validation, or troubleshooting helpers>`
@@ -31,6 +33,7 @@ evidence from tool source, scripts, Meson files, package metadata, docs, tests, 
 
 - Cite package-local tool source, scripts, help output, Meson files, package metadata, and tests before online or
   memory-based facts.
+- Optimize answers for users who need exact commands, inputs, outputs, and failure interpretation.
 - Keep read-only commands separate from commands that create build output, write files, install packages, or mutate
   runtime state.
 - Preserve documented command-line behavior unless the user explicitly asks to change it.

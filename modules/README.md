@@ -9,7 +9,7 @@ This directory contains only reusable module guidance structure. It should not s
 that makes the template look owned by that module. Copy the template that matches the released product shape: library,
 service, or tool.
 
-Use the template that matches the primary user:
+Use `guides/persona-routing.md` before choosing a template. Use the template that matches the primary user:
 
 - `library-template.md`: SDK and library users, headers, APIs, Meson, and pkg-config evidence.
 - `service-template.md`: service or application operators, runtime prerequisites, and blocked mutations.

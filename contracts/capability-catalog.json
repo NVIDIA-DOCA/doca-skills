@@ -40,6 +40,139 @@
         "modules/README.md",
         "contracts/capabilities/doca-sdk.json"
       ],
+      "persona_routes": {
+        "environment_investigator": {
+          "blocked_by_default": [
+            "Package installation",
+            "Device, network, credential, or persistent configuration changes",
+            "Runtime sample execution"
+          ],
+          "expected_outputs": [
+            "source_inventory",
+            "available_capabilities",
+            "measured_facts",
+            "not_measured_facts",
+            "next_safe_command"
+          ],
+          "needs": [
+            "Source version",
+            "Package metadata",
+            "Capability IDs",
+            "Topology facts with measured or not_measured status"
+          ],
+          "start_with": [
+            "skills/doca-discover-environment/SKILL.md",
+            "getting-started/validation.md",
+            "tools/run_agent_task.py --task discover-doca-environment"
+          ]
+        },
+        "library_developer": {
+          "blocked_by_default": [
+            "Invented APIs or dependency names",
+            "Runtime offload claims without local evidence",
+            "Source edits before API and dependency evidence is collected"
+          ],
+          "expected_outputs": [
+            "libraries_overview",
+            "sdk_headers",
+            "key_apis",
+            "dependencies",
+            "lifecycle_steps",
+            "unmet_prerequisites"
+          ],
+          "needs": [
+            "SDK headers",
+            "API lifecycle",
+            "Meson and pkg-config dependencies",
+            "Samples or applications that exercise the APIs"
+          ],
+          "start_with": [
+            "skills/doca-programming-guide/SKILL.md",
+            "skills/doca-explorer/SKILL.md",
+            "tools/lookup_capability.py --api-index <capability-id>"
+          ]
+        },
+        "sample_builder": {
+          "blocked_by_default": [
+            "Runtime sample execution",
+            "Package installation",
+            "Device, network, traffic, or persistent configuration changes"
+          ],
+          "expected_outputs": [
+            "target_path",
+            "package_build_files",
+            "package_dependency_files",
+            "required_packages",
+            "validation_command_candidates",
+            "matching_overview"
+          ],
+          "needs": [
+            "Build target",
+            "Package-facing Meson files",
+            "Dependency files",
+            "Include paths",
+            "Build blockers"
+          ],
+          "start_with": [
+            "skills/doca-build-sdk-sample/SKILL.md",
+            "contracts/tasks/build-sdk-sample.yaml",
+            "tools/run_agent_task.py --task build-sdk-sample"
+          ]
+        },
+        "service_operator": {
+          "blocked_by_default": [
+            "Service startup",
+            "Live traffic",
+            "Device, network, firmware, credential, or persistent configuration changes"
+          ],
+          "expected_outputs": [
+            "services_overview",
+            "runtime_prerequisites",
+            "safe_discovery",
+            "observability",
+            "blocked_mutations",
+            "unmet_prerequisites"
+          ],
+          "needs": [
+            "Runtime prerequisites",
+            "Operator entrypoints",
+            "Configuration files",
+            "Health or status evidence",
+            "Blocked state changes"
+          ],
+          "start_with": [
+            "skills/doca-discover-environment/SKILL.md",
+            "skills/doca-explorer/SKILL.md",
+            "modules/service-template.md"
+          ]
+        },
+        "tool_user": {
+          "blocked_by_default": [
+            "Commands that write build output without approval",
+            "Device, network, credential, or runtime state mutation",
+            "Undocumented flags or output paths"
+          ],
+          "expected_outputs": [
+            "tools_overview",
+            "cli_tools",
+            "safe_commands",
+            "approval_gated_commands",
+            "output_artifacts",
+            "failure_interpretation"
+          ],
+          "needs": [
+            "CLI entrypoints",
+            "Arguments and output files",
+            "Build, debug, and validation helpers",
+            "Failure interpretation"
+          ],
+          "start_with": [
+            "skills/doca-ai-runner/SKILL.md",
+            "skills/doca-explorer/SKILL.md",
+            "modules/tool-template.md"
+          ]
+        }
+      },
       "source_globs": [
         "VERSION",
         "meson.build",

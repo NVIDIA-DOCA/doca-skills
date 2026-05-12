@@ -2,8 +2,8 @@
 
 Applies to: `NVIDIA-DOCA/doca-skills`
 Read when: navigating DOCA AI guidance, portable skills, and helper tools
-Load next: `getting-started/README.md`, `examples/README.md`,
-`contracts/agent-manifest.json`, `skills/doca-user-rules/SKILL.md`
+Load next: `getting-started/README.md`, `guides/persona-routing.md`,
+`examples/README.md`, `contracts/agent-manifest.json`, `skills/doca-user-rules/SKILL.md`
 
 This repository stores DOCA AI guidance, portable skills, and helper tools for agents that work with DOCA SDK source
 packages. It is a standalone helper payload: paths are written for this repository layout, and SDK facts come from the
@@ -48,7 +48,7 @@ python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-pack
 | `.agents/skills/` | Symlinks for tools that discover Agent Skills from a standard location. |
 | `tools/` | Small Python helpers for capability lookup, source-package discovery, and build planning. |
 | `development/`, `environment-setup/`, `troubleshooting/` | Topic routers for common SDK workflows. |
-| `guides/` | Higher-level capability and source-package navigation guides. |
+| `guides/` | Persona routing, capability, and source-package navigation guides. |
 | `modules/` | Module guide template and index for SDK areas that need focused context. |
 
 ## Architecture
@@ -59,6 +59,7 @@ flowchart TD
     entry["Root entrypoints<br/>AGENTS.md, llms.txt, README.md"]
     guide["getting-started/<br/>quickstart and first commands"]
     examples["examples/<br/>prompts and flow diagrams"]
+    personas["guides/persona-routing.md<br/>library, service, tool, build, setup users"]
     skills["skills/ and .agents/skills/<br/>portable workflows"]
     contracts["contracts/<br/>task and capability manifest"]
     tools["tools/<br/>read-only helpers"]
@@ -69,7 +70,10 @@ flowchart TD
     user --> entry
     entry --> guide
     entry --> examples
+    guide --> personas
     entry --> skills
+    personas --> skills
+    personas --> contracts
     guide --> contracts
     examples --> skills
     examples --> contracts

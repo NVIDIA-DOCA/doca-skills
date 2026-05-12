@@ -203,14 +203,18 @@ def build_api_index(repo_root, capability, symbol_filter=None):
 def build_lookup_payload(catalog, mode, capability_id=None, repo_root=None, symbol_filter=None):
     """Build the JSON payload for one lookup CLI mode."""
     if mode == "list":
+        capabilities = []
+        for capability in catalog.get("capabilities", []):
+            entry = {
+                "id": capability["id"],
+                "summary": capability["summary"],
+            }
+            persona_routes = capability.get("persona_routes", {})
+            if persona_routes:
+                entry["personas"] = sorted(persona_routes)
+            capabilities.append(entry)
         return {
-            "capabilities": [
-                {
-                    "id": capability["id"],
-                    "summary": capability["summary"],
-                }
-                for capability in catalog.get("capabilities", [])
-            ],
+            "capabilities": capabilities,
         }
 
     capability = _find_capability(catalog, capability_id)

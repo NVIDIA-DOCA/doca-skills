@@ -1,4 +1,50 @@
 {
+  "$defs": {
+    "persona_route": {
+      "additionalProperties": false,
+      "properties": {
+        "blocked_by_default": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "expected_outputs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "needs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "start_with": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "needs",
+        "start_with",
+        "expected_outputs",
+        "blocked_by_default"
+      ],
+      "type": "object"
+    }
+  },
   "$id": "https://docs.nvidia.com/doca/ai/capability.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
@@ -76,6 +122,27 @@
     },
     "id": {
       "type": "string"
+    },
+    "persona_routes": {
+      "additionalProperties": false,
+      "properties": {
+        "environment_investigator": {
+          "$ref": "#/$defs/persona_route"
+        },
+        "library_developer": {
+          "$ref": "#/$defs/persona_route"
+        },
+        "sample_builder": {
+          "$ref": "#/$defs/persona_route"
+        },
+        "service_operator": {
+          "$ref": "#/$defs/persona_route"
+        },
+        "tool_user": {
+          "$ref": "#/$defs/persona_route"
+        }
+      },
+      "type": "object"
     },
     "recovery": {
       "items": {

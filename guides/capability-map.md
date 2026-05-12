@@ -5,14 +5,19 @@ schema, observability, and conformance questions
 Read when: evaluating AI capabilities for samples and applications in the
 current DOCA source package
 Load next: `guides/README.md`,
-`getting-started/quickstart.md`, `getting-started/first-commands.md`, `modules/README.md`, `reference/c-cpp-style.md`,
-`skills/doca-explorer/SKILL.md`
+`guides/persona-routing.md`, `getting-started/quickstart.md`, `getting-started/first-commands.md`, `modules/README.md`,
+`reference/c-cpp-style.md`, `skills/doca-explorer/SKILL.md`
 
 Use this map when the user asks what an agent can do with DOCA samples or applications. The answer should report
 source-package evidence, safe read-only commands, and runtime evidence needed for hardware or environment-specific
 facts.
 
 ## Capability Summary
+
+Start capability audits by classifying the requester with `guides/persona-routing.md`. Library developers,
+service/application operators, tool workflow users, sample/application builders, and setup investigators need different
+evidence and safety boundaries. Keep the three overview sections separate even when one prompt touches more than one
+persona.
 
 | Capability | Source-package behavior |
 | --- | --- |
@@ -38,6 +43,7 @@ For capability audits, return these keys so source-owner reviews can compare run
 
 - `source_view`: whether the package exposes samples, applications, SDK headers, contracts, helper scripts, and module
   docs.
+- `persona_route`: chosen persona, why it matched, and guidance files read.
 - `documentation_entrypoints`: files read for documentation exploration.
 - `coding_standards`: style and review rules applied to sample/application code.
 - `libraries_overview`: SDK/library capabilities, SDK headers, API evidence, package dependencies, and samples relevant

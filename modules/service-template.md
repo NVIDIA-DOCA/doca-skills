@@ -11,6 +11,7 @@ package metadata, or read-only discovery output.
 ## Scope
 
 - `module_id`: `<short-service-id>`
+- `primary_persona`: `service or application operator`
 - `service_paths`: `<services, applications, extensions, or configuration paths>`
 - `operator_entrypoints`: `<binaries, service names, config files, deployment files, or docs>`
 - `package_metadata`: `<Meson, package, profile, or config metadata paths>`
@@ -19,6 +20,7 @@ package metadata, or read-only discovery output.
 ## services_overview
 
 - `service_name`: `<service, application, or operator-visible component name>`
+- `user_goals`: `<startup readiness, configuration review, observability, or safe validation>`
 - `operator_entrypoints`: `<CLI, service, config, deployment, or documentation entrypoints>`
 - `runtime_prerequisites`: `<devices, packages, modes, peer setup, topology, privileges, or feature gates>`
 - `safe_discovery`: `<read-only commands or files agents may inspect before suggesting actions>`
@@ -31,6 +33,7 @@ package metadata, or read-only discovery output.
 
 - Cite package-local service/application files, configs, Meson files, and package metadata before online or memory-based
   facts.
+- Optimize answers for operators who need prerequisites, health signals, and explicit blocked actions.
 - Treat deployment, device, network, credential, package-manager, firmware, traffic, and persistent configuration
   actions as approval-gated.
 - Do not treat sample config values, interface names, PCI addresses, ports, peer hosts, or credentials as
