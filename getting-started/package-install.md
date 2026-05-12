@@ -52,7 +52,7 @@ Coding agents should start from the root adapter they already support: `AGENTS.m
 `.roo/rules/doca.md`.
 
 No command in this repository should edit global agent settings or write into user home directories. If a local owner
-wants editor-specific activation, copy the matching template from `adapters/` into the workspace explicitly.
+wants editor-specific activation, use the root entrypoint that their tool already supports.
 
 ## Boundaries
 

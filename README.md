@@ -39,7 +39,6 @@ layout.
 | `development/`, `environment-setup/`, `troubleshooting/` | Topic routers for common SDK workflows. |
 | `guides/` | Higher-level capability and source-package navigation guides. |
 | `modules/` | Module guide template and index for SDK areas that need focused context. |
-| `adapters/` | Optional editor or agent adapter templates. |
 
 ## Architecture
 
