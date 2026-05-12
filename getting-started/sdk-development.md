@@ -29,20 +29,20 @@ Use dependencies already declared by the target module. When a new dependency is
 dependency file and any package metadata that the existing module pattern requires.
 
 For standalone SDK examples, prefer the package's Meson dependency names instead of private include paths or
-repository-only helper libraries. Discover the dependency names from the nearest `meson.build`, `meson.build.public`, or
-the dynamic API inventory:
+repository-only helper libraries. Discover the dependency names from the nearest `meson.build` or the dynamic API
+inventory:
 
 ```bash
 python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
 ```
 
 For sample and application build planning, also read the `package_build_files` and `package_dependency_files` fields
-returned by the build planner. A nearby `meson.build.public` is the package-facing staging contract for source package
-views; a sample or application `dependencies/meson.build` records the DOCA and driver packages that the package-facing
-build checks before entering the target directory. Use those files to report required packages, helper sources, and
-include directories before running any local build.
+returned by the build planner. A nearby `meson.build` is the package-facing staging contract for source package views; a
+sample or application `dependencies/meson.build` records the DOCA and driver packages that the package-facing build
+checks before entering the target directory. Use those files to report required packages, helper sources, and include
+directories before running any local build.
 
-Use these common package anchors only as starting points; the selected `meson.build.public` and dependency files remain
+Use these common package anchors only as starting points; the selected `meson.build` and dependency files remain
 authoritative:
 
 | SDK area | Common package names to verify first |

@@ -15,9 +15,11 @@ metadata, SDK headers, and the tool outputs in this repository as the evidence f
 2. Run the safe first commands in `first-commands.md`.
 3. Use `building-samples.md`, `pkg-config.md`, `using-pkg-config.md`, `sdk-development.md`, and `troubleshooting.md` for
    SDK build or dependency questions.
-4. Use `validation.md` to keep source-package facts separate from runtime or device checks.
-5. Use `../troubleshooting/build-issues.md` when a build failure needs a focused troubleshooting entrypoint.
-6. Use `online-docs.md` only as conceptual context; local package evidence remains authoritative for what can be built
+4. Use `package-install.md` when this helper repository is separate from the source package, or when only installed SDK
+   headers are available.
+5. Use `validation.md` to keep source-package facts separate from runtime or device checks.
+6. Use `../troubleshooting/build-issues.md` when a build failure needs a focused troubleshooting entrypoint.
+7. Use `online-docs.md` only as conceptual context; local package evidence remains authoritative for what can be built
    now.
 
 ## Safety

@@ -122,7 +122,7 @@ def _collect_build_dependencies(repo_root, capability, symbol_filter):
     """Collect DOCA dependency names from nearby Meson build files."""
     dependencies = []
     for rel_path, path in _iter_files_for_capability(repo_root, capability):
-        if path.name not in {"meson.build", "meson.build.public"}:
+        if path.name not in {"meson.build"}:
             continue
         deps = _unique_sorted(DOCA_DEP_RE.findall(_read_text(path)))
         if symbol_filter:

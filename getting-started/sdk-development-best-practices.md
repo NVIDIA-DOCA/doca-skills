@@ -8,8 +8,8 @@ This topic router points to the canonical SDK development, sample/application, a
 
 ## Dependency Management
 
-Use package-facing build metadata instead of guessed paths. Check `meson.build.public`, `meson.build`, and the API
-inventory before naming a dependency:
+Use package-facing build metadata instead of guessed paths. Check `meson.build` and the API inventory before naming a
+dependency:
 
 ```bash
 python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
@@ -26,7 +26,7 @@ Keep Meson changes at the owning layer:
 
 - Use existing options from `meson_options.txt` for global behavior.
 - Preserve tab indentation in `meson.build` files.
-- Check package-facing `meson.build.public` files before changing standalone sample or application builds.
+- Check package-facing `meson.build` files before changing standalone sample or application builds.
 - Keep runtime/device prerequisites separate from configure and compile validation.
 
 ## Practices To Preserve

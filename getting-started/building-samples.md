@@ -10,7 +10,7 @@ This topic router provides the sample-build entrypoint. Detailed sample staging 
 ## Prerequisites
 
 - Start from a writable source tree or staged sample tree.
-- Inspect the nearest `meson.build.public` or `meson.build`.
+- Inspect the nearest `meson.build`.
 - Verify required packages with `pkg-config`.
 - Keep runtime prerequisites separate from build prerequisites.
 
@@ -34,7 +34,7 @@ This topic router provides the sample-build entrypoint. Detailed sample staging 
    python3 tools/run_agent_task.py --task build-sdk-sample --repo-root . --focus-path <sample-path>
    ```
 
-4. Inspect the reported `package_build_files` when present. A `meson.build.public` file records the package-facing
+4. Inspect the reported `package_build_files` when present. A `meson.build` file records the package-facing
    dependencies, helper sources, and include directories for package-facing builds.
 
 5. Verify each Meson/pkg-config dependency before executing the build.

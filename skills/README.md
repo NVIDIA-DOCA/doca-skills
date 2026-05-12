@@ -20,6 +20,6 @@ the linked guidance and helper commands.
 
 - Use `doca-user-rules` before changing assumptions or command risk.
 - Use `doca-discover-environment` before answering version, package, device, or capability questions.
-- Use `doca-build-sdk-sample` when the request names a sample, application, or `meson.build.public` path.
+- Use `doca-build-sdk-sample` when the request names a sample, application, or `meson.build` path.
 - Use `doca-explorer` when the user asks where something lives or what guidance applies.
 - Use `doca-programming-guide` when the answer needs SDK API context, lifecycle steps, or links to NVIDIA documentation.

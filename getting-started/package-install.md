@@ -27,6 +27,24 @@ python3 tools/run_agent_task.py \
     --focus-path <sample-or-application-path>
 ```
 
+## Evidence Roots
+
+Use `--repo-root .` when checking this helper repository's bundled contracts and tools. Use
+`--repo-root <source-package-root>` when the DOCA source package contains `contracts/agent-manifest.json` or
+package-local AI docs.
+
+If the source package has no helper contracts, keep that as a blocker instead of blending helper-repository evidence
+with package evidence. For an installed SDK fallback, inspect only files and package metadata that already exist:
+
+```bash
+prefix=${DOCA_PREFIX:-/opt/mellanox/doca}
+find "$prefix/include" -maxdepth 1 -name 'doca*.h' -print
+find "$prefix" -path '*/pkgconfig/doca-*.pc' -print
+```
+
+Use those results to name available headers and packages. Do not treat missing helper contracts as permission to install
+packages, edit system paths, or guess device capability.
+
 ## Activation
 
 Coding agents should start from the root adapter they already support: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,

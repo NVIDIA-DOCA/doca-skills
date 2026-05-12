@@ -32,8 +32,7 @@ For tutorial-style answers, include:
 - The source package and version evidence used.
 - The library or capability selected.
 - The required Meson/pkg-config dependencies.
-- The package-facing `meson.build.public` file and any `dependencies/meson.build` file used to derive those
-  dependencies.
+- The package-facing `meson.build` file and any `dependencies/meson.build` file used to derive those dependencies.
 - The staged source layout when the demo is copied out of the package.
 - Build-only validation commands.
 - Runtime prerequisites and the approval class needed before running.

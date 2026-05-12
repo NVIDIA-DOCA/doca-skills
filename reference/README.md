@@ -40,8 +40,8 @@ Use local metadata before relying on memory or online documentation:
 
 - `VERSION` is the source-package version visible to local agents.
 - Top-level and module `meson.build` files define source layout, enabled subdirectories, and dependency names.
-- `meson.build.public` files describe package-facing sample or application builds when they differ from the full
-  repository layout.
+- `meson.build` files describe package-facing sample or application builds when they differ from the full repository
+  layout.
 - `configs/` contains build profiles and package metadata for repository builds.
 - `python3 tools/run_agent_task.py --task discover-doca-environment --repo-root .` returns a read-only JSON discovery
   result that should anchor user-facing environment answers.

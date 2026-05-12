@@ -199,7 +199,6 @@ def build_sample(repo_root, task, focus_path):
 
     target_dir = rel_focus if full_focus.is_dir() else rel_focus.parent
     package_build_files = existing_relpaths(repo_root, [
-        target_dir / 'meson.build.public',
         target_dir / 'meson.build',
     ])
     package_dependency_files = existing_relpaths(repo_root, [

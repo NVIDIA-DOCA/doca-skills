@@ -13,7 +13,7 @@ source-backed evidence from headers, Meson files, package metadata, samples, app
 - `library_paths`: `<libs/<name> paths or installed source-package paths>`
 - `sdk_headers`: `<headers agents may inspect or cite>`
 - `sample_paths`: `<samples or applications that exercise the APIs>`
-- `package_metadata`: `<meson.build, meson.build.public, pkg-config, or package metadata paths>`
+- `package_metadata`: `<meson.build, pkg-config, or package metadata paths>`
 - `out_of_scope`: `<paths, APIs, runtime modes, or commands this guide does not cover>`
 
 ## libraries_overview

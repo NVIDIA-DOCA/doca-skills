@@ -22,7 +22,7 @@ prerequisites without creating build output or running a build.
 - Header exists but link fails: run `pkg-config --cflags --libs <name>` and verify the Meson dependency uses the package
   name from the package Meson file.
 - Sample source file cannot be found: stage the sample from a writable directory and include helper files listed by the
-  sample's `meson.build.public`.
+  sample's `meson.build`.
 - DPDK or driver symbols are missing: verify the package versions and feature checks printed by the package Meson file
   before changing source.
 - Runtime command needs hugepages, devices, representors, or privileged setup: stop at build validation unless the local
@@ -35,7 +35,7 @@ When reporting a failure, include:
 - The exact command.
 - The repository-relative focus path.
 - The dependency or source file that failed.
-- The relevant `meson.build` or `meson.build.public` path.
+- The relevant `meson.build` path.
 - The `unmet_prerequisites` entry when the environment is incomplete.
 - The next safe command the user can run after fixing the prerequisite.
 

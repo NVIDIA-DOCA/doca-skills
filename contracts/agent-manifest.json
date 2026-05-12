@@ -26,10 +26,8 @@
         "meson.build",
         "meson_options.txt",
         "samples/**/meson.build",
-        "samples/**/meson.build.public",
         "samples/**/dependencies/meson.build",
         "applications/**/meson.build",
-        "applications/**/meson.build.public",
         "applications/**/dependencies/meson.build"
       ]
     },
