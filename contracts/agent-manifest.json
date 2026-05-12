@@ -9,8 +9,7 @@
         "meson_options.txt",
         "libs/**/include/public/**/*.h",
         "samples/**/meson.build",
-        "applications/**/meson.build",
-        "devtools/public/**"
+        "applications/**/meson.build"
       ]
     }
   ],

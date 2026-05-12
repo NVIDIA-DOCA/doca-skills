@@ -189,8 +189,7 @@
     "meson_options.txt",
     "libs/**/include/public/**/*.h",
     "samples/**/meson.build",
-    "applications/**/meson.build",
-    "devtools/public/**"
+    "applications/**/meson.build"
   ],
   "verifier": [
     "Run python3 tools/lookup_capability.py --repo-root . --list after contract changes.",
