@@ -13,16 +13,24 @@ layout.
 
 1. Read `getting-started/quickstart.md`.
 2. List available contracts with `python3 tools/lookup_capability.py --repo-root . --list`.
-3. For source-package discovery, run
-   `python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>`.
-4. For sample or application build planning, run
-   `python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> --focus-path <sample-or-application-path>`.
+3. For source-package discovery, run:
+
+   ```bash
+   python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
+   ```
+
+4. For sample or application build planning, run:
+
+   ```bash
+   python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> \
+       --focus-path <sample-or-application-path>
+   ```
 
 ## Repository Map
 
 | Path | Purpose |
 | --- | --- |
-| `getting-started/` | Quickstart, first commands, package setup, SDK development, pkg-config, troubleshooting, and validation guidance. |
+| `getting-started/` | Quickstart, first commands, setup, sample builds, SDK development, pkg-config, troubleshooting. |
 | `reference/` | Common agent behavior, safety boundaries, and C/C++ style guidance. |
 | `contracts/` | Machine-readable capability and task contracts. |
 | `skills/` | Portable agent skills. |
