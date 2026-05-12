@@ -43,7 +43,7 @@ sensors:
 actuators:
   - Configure a local Meson build directory.
   - Build only the selected target or the smallest enclosing target.
-  - Run file-level hooks for edited files.
+  - Run package-local validation for edited files.
 constraints:
   - Do not reorder top-level Meson subdirectories for a local target build.
   - Do not create global Meson options when an existing option or local dependency pattern exists.

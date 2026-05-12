@@ -18,7 +18,7 @@ introducing new abstractions.
 - `extensions/`: optional and add-on libraries, tools, and services.
 - `system_tests/`: integration and system-level test assets.
 - `verification/`: verification frameworks and test suites.
-- `devtools/`: repository automation, coding-style hooks, CI helpers, and MCP servers.
+- `devtools/`: repository automation, coding-style checks, CI helpers, and MCP servers.
 - `configs/`: Meson feature/profile configuration and package metadata.
 
 ## Build System
@@ -31,8 +31,7 @@ Several directories are optional during package builds. `extensions/`, `services
 may be absent or disabled in some source layouts, so agents should not assume they are always available in
 release/package contexts.
 
-Meson files in this repository use tabs for indentation. The pre-commit hook `meson-tabs-only` enforces this for
-`meson.build` files.
+Meson files in this repository use tabs for indentation. Preserve tabs when editing `meson.build` files.
 
 ## Version And Package Metadata
 
@@ -60,5 +59,5 @@ user can build now. Use online documentation only to enrich context, and call ou
 
 ## Validation Defaults
 
-For docs-only changes, run `git diff --check` and the relevant pre-commit or `prek` file-level hooks. For code changes,
-add the smallest meaningful compile, unit, or script validation that covers the touched subsystem.
+For docs-only changes, run `git diff --check`. For code changes, add the smallest meaningful compile, unit, or script
+validation that covers the touched subsystem.

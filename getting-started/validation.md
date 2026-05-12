@@ -11,22 +11,15 @@ reproduce the result.
 
 ```bash
 git diff --check
-prek run --files <changed-files>
 ```
 
-If `prek` is not installed, use:
-
-```bash
-pre-commit run --files <changed-files>
-```
+For AI guidance or helper changes, also run the package-local validation commands named in
+`getting-started/first-commands.md` when those files exist in the source package.
 
 ## C/C++ Source Changes
 
-For formatting and static checks, run file-level hooks first:
-
-```bash
-prek run --files <changed-source-files>
-```
+For formatting and static checks, use the package-local formatter or build validation documented by the source package.
+If no such command is available, report the missing validation command instead of guessing.
 
 For build coverage, configure a focused Meson build that includes the touched target and run the matching Ninja target
 or test suite. Keep the command in the final report so reviewers can repeat it.
