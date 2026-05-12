@@ -2,18 +2,18 @@
 
 Applies to: `NVIDIA-DOCA/doca-skills`
 Read when: deciding whether a source package needs module-specific guidance
-Load next: `modules/module-template.md`,
-`guides/capability-map.md`, `contracts/agent-manifest.json`
+Load next: `modules/library-template.md`,
+`modules/service-template.md`, `modules/tool-template.md`, `guides/capability-map.md`, `contracts/agent-manifest.json`
 
 This directory contains only reusable module guidance structure. It should not ship one module as the example because
-that makes the template look owned by that module. Copy `module-template.md` when a source package or SDK area needs its
-own module guide.
+that makes the template look owned by that module. Copy the template that matches the released product shape: library,
+service, or tool.
 
-Every module guide should use the same persona split:
+Use the template that matches the primary user:
 
-- `libraries_overview`: SDK and library users, headers, APIs, Meson, and pkg-config evidence.
-- `services_overview`: service or application operators, runtime prerequisites, and blocked mutations.
-- `tools_overview`: tool users, CLI/build/debug helpers, and validation commands.
+- `library-template.md`: SDK and library users, headers, APIs, Meson, and pkg-config evidence.
+- `service-template.md`: service or application operators, runtime prerequisites, and blocked mutations.
+- `tool-template.md`: tool users, CLI/build/debug helpers, and validation commands.
 
 Use `contracts/agent-manifest.json` and `contracts/capability-catalog.json` to see the contract surface shipped in this
 repository. Use source evidence only as narrow references back to SDK source packages, SDK headers, Meson metadata,
@@ -24,9 +24,9 @@ package metadata, samples, or applications.
 | Need | Fill In |
 | --- | --- |
 | Module scope | Exact source package, SDK header, sample, application, or package metadata paths covered by the guide. |
-| Library persona | API/header/dependency facts for SDK and library users. |
-| Service persona | Runtime prerequisites, operator-visible knobs, and blocked state changes. |
-| Tool persona | CLI, build, debug, and validation entrypoints. |
+| Library template | API/header/dependency facts for SDK and library users. |
+| Service template | Runtime prerequisites, operator-visible knobs, and blocked state changes. |
+| Tool template | CLI, build, debug, and validation entrypoints. |
 | Evidence | Source-backed files or commands that prove each claim. |
 | Safety | Commands or state changes agents must not run without local owner approval. |
 

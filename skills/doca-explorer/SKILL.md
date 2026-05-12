@@ -18,7 +18,9 @@ Use this skill when the user asks what an agent can learn or safely do with a DO
 - `getting-started/quickstart.md`
 - `guides/capability-map.md`
 - `modules/README.md`
-- `modules/module-template.md`
+- `modules/library-template.md`
+- `modules/service-template.md`
+- `modules/tool-template.md`
 - `skills/doca-ai-runner/SKILL.md`
 
 ## Commands
