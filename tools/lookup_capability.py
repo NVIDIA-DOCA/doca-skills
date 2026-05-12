@@ -167,7 +167,7 @@ def build_api_index(repo_root, capability, symbol_filter=None):
         "source_globs": capability.get("source_globs", []),
         "load_next": capability.get("load_next", []),
         "symbol_filter": symbol_filter,
-        "public_headers": _collect_public_headers(repo_root, capability, symbol_filter),
+        "sdk_headers": _collect_public_headers(repo_root, capability, symbol_filter),
         "version_maps": _collect_version_maps(repo_root, capability, symbol_filter),
         "build_dependencies": _collect_build_dependencies(repo_root, capability, symbol_filter),
         "sample_references": _collect_sample_references(repo_root, capability, symbol_filter),
@@ -204,7 +204,6 @@ def build_lookup_payload(catalog, mode, capability_id=None, repo_root=None, symb
         return {
             "id": capability["id"],
             "summary": capability["summary"],
-            "public_safe": capability["public_safe"],
             "tasks": capability["tasks"],
             "load_next": capability["load_next"],
         }
@@ -224,7 +223,7 @@ def main(argv):
     group.add_argument("--list", action="store_true", help="List available capabilities")
     group.add_argument("--summary", help="Print a compact capability summary")
     group.add_argument("--detail", help="Print full capability catalog entry")
-    group.add_argument("--api-index", help="Build a source-backed public API inventory for a capability")
+    group.add_argument("--api-index", help="Build a source-backed SDK API inventory for a capability")
     parser.add_argument(
         "--symbol-filter",
         help="Limit API inventory to symbols, files, or dependencies containing this text",

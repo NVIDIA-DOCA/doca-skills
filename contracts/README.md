@@ -25,7 +25,7 @@ python3 tools/generate_agent_manifest.py --check
 Do not hand-edit the generated indexes. Add or update capability and task
 contracts, then regenerate them.
 
-Audience packages regenerate this manifest during packaging. Capabilities and
+Source packages regenerate this manifest during packaging. Capabilities and
 tasks whose `source_globs` do not match the packaged source tree are omitted, so
 each source view receives only contracts and catalog entries that apply to files
 it actually contains.
@@ -41,7 +41,7 @@ python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
 ```
 
 Use `--api-index` for library, API, or lifecycle questions. It scans only the
-current source view and returns public-header symbols, exported symbols, Meson
+current source view and returns SDK-header symbols, exported symbols, Meson
 dependencies, and sample/application references for the selected capability.
 
 ## Manifest Structure Quick Reference
@@ -52,13 +52,12 @@ packagers. Treat these fields as the stable user-facing shape:
 - `schema_version`: manifest format version.
 - `generated_by`: generator path and command provenance.
 - `generated_from`: source contract directories used to create the index.
-- `audience`: intended visibility of the packaged manifest.
 - `capabilities`: capability records selected from
   `contracts/capabilities/*.json`.
 - `tasks`: executable or planner-backed task records selected from
   `contracts/tasks/*.yaml`.
 
-Capability records identify the source area, audience, source globs, guidance
+Capability records identify the source area, source globs, guidance
 files, sensors, constraints, validation, and recovery notes for a module or
 workflow. Capability records can also expose `discovery_data` with normalized
 device, library, mode, offload, version, and constraint lists so agents can
@@ -110,11 +109,11 @@ build directory, command records, built targets, and unmet prerequisites. It
 does not install packages or run runtime, device, network, credential, or
 production actions.
 
-Some DOCA source packages may publish additional source-change task IDs. Public
+Some DOCA source packages may publish additional source-change task IDs. Source
 skills packages do not publish module patch helpers. If a package
 manifest includes such a task, follow that task contract and the local source
 owner's review and approval policy rather than inferring execution behavior
-from a public skills repository.
+from a skills repository.
 
 ## Approval Profiles
 
@@ -123,14 +122,14 @@ reusable `approval_profile` when several contracts need the same approval gates.
 The contract loader expands the profile into `approval_required_for`, so
 runners and generated consumers still receive the stable approval list.
 
-Public skills packages should treat any unavailable source-change approval
+Skills packages should treat any unavailable source-change approval
 profile as intentionally unpublished. Source packages that publish
 source-change task IDs must keep their approval profile documented in the task
 contract itself.
 
 ## Maintenance Rules
 
-- Every contract must include `audience`, `source_globs`, `sensors`,
+- Every contract must include `source_globs`, `sensors`,
   `constraints`, `verifier`, and `recovery`.
 - Use `discovery_data` when a capability needs machine-readable device,
   library, mode, offload, version, or constraint facts for source-aware agents.
@@ -170,6 +169,6 @@ It is also wired into pre-commit for contract, package-manifest, and helper-tool
 changes that can make packaged agent guidance stale.
 
 Maintainer-only package measurement and regression gates live in the full DOCA
-developer checkout. Public source packages should rely on the manifest,
+developer checkout. Source packages should rely on the manifest,
 capability catalog, lookup helper, and task runner instead of shipping status
 or scoring helpers.

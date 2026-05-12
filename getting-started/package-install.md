@@ -1,11 +1,11 @@
 # Package Use
 
-Applies to: public DOCA AI guidance and helper tools
+Applies to: DOCA AI guidance and helper tools
 Read when: deciding how to use this repository with a DOCA SDK source package
 Load next: `getting-started/quickstart.md`,
 `getting-started/first-commands.md`, `getting-started/validation.md`
 
-This repository is a standalone public helper payload. Use it next to a DOCA SDK
+This repository is a standalone helper payload. Use it next to a DOCA SDK
 source package, installed SDK headers, or package metadata that the local
 workspace already exposes.
 
@@ -42,7 +42,7 @@ the matching template from `adapters/` into the workspace explicitly.
 
 ## Boundaries
 
-Default public helper flows inspect files and report facts. They do not install
+Default helper flows inspect files and report facts. They do not install
 packages, change devices, configure networking, write credentials, alter
 persistent configuration, run traffic, or execute runtime samples. Report those
 needs as blockers and ask the local owner for the right package, device, or

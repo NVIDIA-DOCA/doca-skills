@@ -110,11 +110,6 @@
       },
       "type": "array"
     },
-    "audience": {
-      "enum": [
-        "public"
-      ]
-    },
     "capabilities": {
       "items": {
         "type": "string"
@@ -209,7 +204,6 @@
   },
   "required": [
     "id",
-    "audience",
     "goal",
     "source_globs",
     "capabilities",

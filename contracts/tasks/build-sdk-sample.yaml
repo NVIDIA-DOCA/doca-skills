@@ -1,5 +1,4 @@
 id: build-sdk-sample
-audience: public
 goal: Build a focused DOCA sample or application target from the checked-out source tree.
 source_globs:
   - meson.build
@@ -24,8 +23,8 @@ outputs:
   - {"name": "configured", "type": "boolean", "description": "Whether Meson configuration completed for the selected source view."}
   - {"name": "built_targets", "type": "array", "description": "Focused targets that were built successfully."}
   - {"name": "build_dir", "type": "path", "description": "Planner-reported repository-relative local build directory used by the executor."}
-  - {"name": "package_build_files", "type": "array", "description": "Package-facing Meson files near the selected target, such as meson.build.public, that should be inspected before public package sample builds."}
-  - {"name": "package_dependency_files", "type": "array", "description": "Package-facing dependency Meson files near the selected sample or application target, such as samples/<module>/dependencies/meson.build or applications/<app>/dependencies/meson.build, that should be inspected before public package builds."}
+  - {"name": "package_build_files", "type": "array", "description": "Package-facing Meson files near the selected target, such as meson.build.public, that should be inspected before package sample builds."}
+  - {"name": "package_dependency_files", "type": "array", "description": "Package-facing dependency Meson files near the selected sample or application target, such as samples/<module>/dependencies/meson.build or applications/<app>/dependencies/meson.build, that should be inspected before package builds."}
   - {"name": "commands", "type": "array", "description": "Repo-root Meson command records with argv, rendered command, exit code, stdout, and stderr."}
   - {"name": "unmet_prerequisites", "type": "array", "description": "Missing dependencies, toolchains, or package files that blocked validation."}
 structured_errors:
@@ -42,7 +41,7 @@ sensors:
   - Identify the exact sample or application path before choosing a build target.
   - Read the nearest meson.build and dependency file for that target.
   - Check whether the package view has a package-specific Meson layout before assuming full-repo layout.
-  - Inspect edited source files for public API or experimental API usage before building.
+  - Inspect edited source files for SDK API or experimental API usage before building.
 actuators:
   - Configure a local Meson build directory.
   - Build only the selected target or the smallest enclosing target.

@@ -1,13 +1,12 @@
 ---
 name: doca-discover-environment
 description: Run read-only DOCA source-package discovery and report package, capability, version, and topology facts without hardcoded assumptions.
-package_visibility: public
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: public DOCA source-package and environment discovery
-Read when: a public `doca-skills` export needs a short discovery skill
+Applies to: DOCA source-package and environment discovery
+Read when: a `doca-skills` export needs a short discovery skill
 
 # DOCA Discover Environment
 

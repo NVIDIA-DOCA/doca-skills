@@ -1,4 +1,4 @@
-# Public Validation
+# Source-Package Safe Validation
 
 Applies to: docs, samples, applications, and SDK-facing source changes
 Read when: selecting validation for changes that should not require site-specific infrastructure
@@ -95,14 +95,14 @@ capability facts.
 
 For comparable discovery responses, include a structured `outputs` object
 with `source_version`, `available_capabilities`, and
-`experimental_api_summary`. These names are the public contract for the
+`experimental_api_summary`. These names are the package contract for the
 read-only discovery step; do not replace them with a prose-only summary.
 
 ## Install-Only Discovery Fallback
 
 If the user only has a binary or runtime install and the source-package helpers
 under `tools` are absent, keep the response structured and use the
-installed public package surface as a fallback:
+installed package surface as a fallback:
 
 ```bash
 prefix=${DOCA_PREFIX:-/opt/mellanox/doca}
@@ -117,7 +117,7 @@ Map those files into the same fields the source runner would populate:
 - `source_version`: package version when available from package metadata or
   `pkg-config --modversion`; otherwise `unknown`.
 - `available_capabilities`: installed libraries inferred from `doca-*.pc`
-  files and public `doca_*.h` headers. If
+  files and SDK `doca_*.h` headers. If
   `contracts/agent-manifest.json` is present, it remains the canonical
   capability list.
 - `experimental_api_summary`: a union with a `status` discriminator. The
@@ -141,7 +141,7 @@ was not run:
 
 If grep was run, set `status` to `approximate`, include
 `experimental_marker_count`, keep the count command in `fallback_command`, and
-state that the count came from installed public headers. Do not paste raw match
+state that the count came from installed SDK headers. Do not paste raw match
 output into structured results. Add the missing helper path to
 `unmet_prerequisites`; do not hide the difference between source-package
 discovery and install-only discovery.
@@ -154,7 +154,7 @@ python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
 python3 tools/lookup_capability.py --repo-root . --api-index <capability-id> --symbol-filter <term>
 ```
 
-The inventory reports public headers, exported symbols, Meson dependencies, and
+The inventory reports SDK headers, exported symbols, Meson dependencies, and
 sample references present in this source view. If it cannot find a symbol or
 dependency, report the searched capability and filter rather than inventing a
 private or unavailable API.
@@ -176,7 +176,7 @@ build directory, command records, built targets, and unmet prerequisites. It
 must not install packages or run runtime, device, network, credential, or
 production actions.
 
-Public skills packages do not publish module patch helpers. If a DOCA source
+Skills packages do not publish module patch helpers. If a DOCA source
 package publishes a source-change task in its own manifest, use that exact task
 ID and keep any execution under the local source owner's review and approval
 policy.
@@ -184,10 +184,10 @@ policy.
 Use `package-info.json`, `contracts/agent-manifest.json`,
 `contracts/capability-catalog.json`, `lookup_capability.py`, and
 `run_agent_task.py` when filing a bug report or comparing packages. These
-public artifacts identify the package manifest, audience, visible
+package artifacts identify the package manifest, visible
 capabilities, supported task IDs, source version, and discovery blockers.
 
 Maintainer-only measurement definitions, scoring code, result harvesting, and
-regression gates are not part of the public helper payload. Public packages
+regression gates are not part of the helper payload. Packages
 should expose source-backed discovery and validation commands, not scorer
 inputs or scorer helpers.

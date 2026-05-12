@@ -18,7 +18,7 @@ headers, packages, or lifecycle steps.
 
 - `source_version` from the local source package.
 - Available capability IDs from the generated manifest.
-- Public-header experimental API marker summary.
+- SDK-header experimental API marker summary.
 - Package metadata when `package-info.json` exists.
 - Missing discovery utilities as blockers, not guessed facts.
 

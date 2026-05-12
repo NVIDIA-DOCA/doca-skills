@@ -52,7 +52,7 @@ Use local metadata before relying on memory or online documentation:
   returns a read-only JSON discovery result that should anchor user-facing
   environment answers.
 
-If local metadata and public online documentation disagree, treat the installed
+If local metadata and online documentation disagree, treat the installed
 or source package as authoritative for what the user can build now. Use online
 documentation only to enrich context, and call out version differences when
 they matter.
@@ -60,7 +60,7 @@ they matter.
 ## Edit Discipline
 
 - Prefer the existing local API, naming style, and error handling pattern.
-- Keep public API changes narrow and update all call sites when signatures move.
+- Keep SDK API changes narrow and update all call sites when signatures move.
 - Do not edit vendored code under `third_party/` unless the task explicitly
   targets that vendor copy.
 - Do not introduce generated-file churn. If a file is generated, find the

@@ -9,20 +9,20 @@ rules apply to a code change, mention that DOCA coding conventions were applied.
 
 ## Naming And API Shape
 
-- Public APIs use `doca_<module>_<action>()`.
+- SDK APIs use `doca_<module>_<action>()`.
 - Private or static helpers use `<module>_<action>()` or
   `priv_doca_<module>_<action>()`.
 - `create` implies allocation or object creation. Use `set` for plain field
   updates.
 - Prefer configuration structs over long parameter lists for new interfaces.
 
-## Headers And Public API
+## Headers And SDK API
 
 - Use include guards, not `#pragma once`.
-- Public API guards use `DOCA_<MODULE>_H_`.
+- SDK API guards use `DOCA_<MODULE>_H_`.
 - Local header guards follow sibling-file conventions and usually mirror the
   filename in upper case.
-- Public headers need `extern "C"` wrappers, Doxygen documentation, and the
+- SDK headers need `extern "C"` wrappers, Doxygen documentation, and the
   correct `DOCA_STABLE` or `DOCA_EXPERIMENTAL` tags.
 
 ## Error Handling
@@ -64,7 +64,7 @@ For non-trivial C or C++ edits, check these points before finalizing:
 When an agent returns C or C++ skeleton code for a user, make it compact but
 complete enough to audit:
 
-- Include the public headers that define every API named in the skeleton.
+- Include the SDK headers that define every API named in the skeleton.
 - Initialize all owned handles, pointers, buffers, and task state before any
   branch can jump to cleanup.
 - Show acquisition and cleanup in reverse order. Each cleanup label should own
@@ -121,7 +121,7 @@ complete enough to audit:
   IP addresses, device paths, or representor names in source. Discover them
   from arguments, configuration, or runtime sensors.
 - Keep declarations and defines near the top of files, following local layout.
-- Place static helpers before public function implementations unless local
+- Place static helpers before exported function implementations unless local
   style clearly differs.
 - When fixing a bug, search for similar code paths in sibling modules.
 - When a signature changes, verify all call sites.

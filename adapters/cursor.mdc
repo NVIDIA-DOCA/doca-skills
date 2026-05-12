@@ -1,15 +1,15 @@
 ---
-description: Public DOCA AI guidance for Cursor in public source packages
+description: Source-package safe DOCA AI guidance for Cursor in source packages
 alwaysApply: false
 ---
 
 # DOCA AI Guidance
 
-Applies to: packaged public DOCA SDK source opened in Cursor
+Applies to: packaged DOCA SDK source opened in Cursor
 Read when: a user explicitly enables this Cursor rule for the source package
 Load next: `getting-started/README.md`, `reference/README.md`, `contracts/README.md`, `modules/README.md`
 
-This package contains public AI guidance only. Read
+This package contains source-package safe AI guidance only. Read
 `getting-started/README.md` first, then load reference or module guidance that
 matches the files being edited.
 

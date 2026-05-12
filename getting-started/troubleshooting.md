@@ -1,4 +1,4 @@
-# Public Build Troubleshooting
+# Source-package Build Troubleshooting
 
 Applies to: SDK-facing sample and application build failures
 Read when: Meson, Ninja, or dependency discovery fails in an SDK source package
@@ -23,11 +23,11 @@ output or running a build.
   `getting-started/pkg-config.md`. Report the package as an unmet prerequisite
   if the check fails.
 - Header exists but link fails: run `pkg-config --cflags --libs <name>` and
-  verify the Meson dependency uses the package name from the public Meson file.
+  verify the Meson dependency uses the package name from the package Meson file.
 - Sample source file cannot be found: stage the sample from a writable
   directory and include helper files listed by the sample's `meson.build.public`.
 - DPDK or driver symbols are missing: verify the package versions and feature
-  checks printed by the public Meson file before changing source.
+  checks printed by the package Meson file before changing source.
 - Runtime command needs hugepages, devices, representors, or privileged setup:
   stop at build validation unless the local owner explicitly approves runtime or
   device mutation.

@@ -1,13 +1,12 @@
 ---
 name: doca-ai-runner
-description: Use public DOCA helper tools for capability lookup, source-package discovery, and build planning without mutating user state.
-package_visibility: public
+description: Use DOCA helper tools for capability lookup, source-package discovery, and build planning without mutating user state.
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: public DOCA helper tools, source-package discovery, capability lookup, and build planning
-Read when: a public `doca-skills` export needs a short runner skill
+Applies to: DOCA helper tools, source-package discovery, capability lookup, and build planning
+Read when: a `doca-skills` export needs a short runner skill
 
 # DOCA AI Runner
 
@@ -37,7 +36,7 @@ python3 tools/lookup_capability.py --repo-root <source-package-root> --api-index
 
 ## Rules
 
-- Treat helper output, public headers, package metadata, and source files as
+- Treat helper output, SDK headers, package metadata, and source files as
   evidence.
 - Use planner-only task output before any build or source edit.
 - Do not install packages, mutate devices, change networking, write

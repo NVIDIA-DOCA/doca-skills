@@ -1,13 +1,12 @@
 ---
 name: doca-explorer
 description: Explore DOCA source-package docs, samples, applications, contracts, and module templates with libraries/services/tools overviews.
-package_visibility: public
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: public DOCA source-package exploration and libraries/services/tools overviews
-Read when: a public `doca-skills` export needs a short exploration skill
+Applies to: DOCA source-package exploration and libraries/services/tools overviews
+Read when: a `doca-skills` export needs a short exploration skill
 
 # DOCA Explorer
 

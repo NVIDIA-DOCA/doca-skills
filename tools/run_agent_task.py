@@ -222,7 +222,7 @@ def unsupported(task_id, manifest):
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(description='Run packaged DOCA public AI tasks')
+    parser = argparse.ArgumentParser(description='Run packaged DOCA AI tasks')
     parser.add_argument('--task', required=True)
     parser.add_argument('--repo-root', default='.')
     parser.add_argument('--focus-path')

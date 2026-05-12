@@ -1,13 +1,12 @@
 ---
 name: doca-build-sdk-sample
 description: Plan a DOCA SDK sample or application build from source evidence, then run only an explicitly approved repository-contained build.
-package_visibility: public
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: public DOCA sample and application build planning
-Read when: a public `doca-skills` export needs a short build-planning skill
+Applies to: DOCA sample and application build planning
+Read when: a `doca-skills` export needs a short build-planning skill
 
 # DOCA Build SDK Sample
 

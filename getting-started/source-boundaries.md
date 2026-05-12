@@ -1,11 +1,11 @@
-# Public Public-Source Boundaries
+# Source-package Source Boundaries
 
 Applies to: `applications/**`, `samples/**`, SDK-facing examples, publishable snippets
 Read when: editing source intended to demonstrate or consume the DOCA SDK
 Load next: `getting-started/sdk-development.md`, `getting-started/validation.md`
 
-The repository treats `applications/` and `samples/` as public-source areas for
-license-header checks. Agents editing these trees should preserve the public
+The repository treats `applications/` and `samples/` as source areas for
+license-header checks. Agents editing these trees should preserve the
 license style used by neighboring files and avoid copying private-library
 headers into sample or application code.
 
@@ -15,10 +15,10 @@ headers into sample or application code.
   clever reuse, and keep sample code close to the API being demonstrated.
 - `applications/` contains larger programs that may combine several DOCA
   components. Follow the application-local structure before adding helpers.
-- Public headers under SDK libraries still follow library-specific API rules;
-  a public header is not the same thing as a public-source example.
+- SDK headers under SDK libraries still follow library-specific API rules;
+  an SDK header is not the same thing as a source example.
 
-## Public Content Rules
+## Source-Package Safe Content Rules
 
 - Do not include private hostnames, private file-share paths, account names, or
   credential setup instructions.
@@ -33,6 +33,6 @@ headers into sample or application code.
 
 The license checker skips many documentation, generated, and configuration file
 types, but source files under `samples/` and `applications/` still need the
-public source license header unless a local exception already exists. Do not
+source license header unless a local exception already exists. Do not
 modify vendored or generated files to satisfy style rules; find the owning
 source or generator instead.

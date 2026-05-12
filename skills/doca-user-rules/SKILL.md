@@ -1,13 +1,12 @@
 ---
 name: doca-user-rules
-description: "Apply base DOCA public skill behavior: inspect local source evidence first, use read-only tools, keep actions scoped, and report blockers."
-package_visibility: public
+description: "Apply base DOCA skill behavior: inspect local source evidence first, use read-only tools, keep actions scoped, and report blockers."
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: public DOCA base user rules and safe first responses
-Read when: a public `doca-skills` export needs a short base behavior skill
+Applies to: DOCA base user rules and safe first responses
+Read when: a `doca-skills` export needs a short base behavior skill
 
 # DOCA User Rules
 

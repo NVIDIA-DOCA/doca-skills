@@ -1,8 +1,8 @@
-# Public SDK Development Guidance
+# SDK Development Guidance
 
 Applies to: SDK-facing C/C++ code, samples, applications, and build snippets
 Read when: changing source that may be used as SDK reference material
-Load next: `getting-started/public-sources.md`, `getting-started/pkg-config.md`, `getting-started/troubleshooting.md`, `modules/samples-applications.md`
+Load next: `getting-started/source-boundaries.md`, `getting-started/pkg-config.md`, `getting-started/troubleshooting.md`, `modules/samples-applications.md`
 
 Prefer examples that teach one DOCA concept at a time. Keep setup, argument
 parsing, resource creation, and cleanup easy to inspect, even when production
@@ -23,7 +23,7 @@ library code would use denser helper layers.
 - Use existing option names from `meson_options.txt` instead of inventing local
   switches for global behavior.
 - Do not reorder top-level Meson subdirectories.
-- If a sample supports a public package layout, check whether it has a
+- If a sample supports a source package layout, check whether it has a
   package-specific Meson file before assuming only the repository layout exists.
 
 ## Dependencies
@@ -32,7 +32,7 @@ Use dependencies already declared by the target module. When a new dependency is
 required, update the matching Meson dependency file and any package metadata that
 the existing module pattern requires.
 
-For standalone SDK examples, prefer the package's public Meson dependency names
+For standalone SDK examples, prefer the package's Meson dependency names
 instead of private include paths or repository-only helper libraries. Discover
 the dependency names from the nearest `meson.build`, `meson.build.public`, or
 the dynamic API inventory:
@@ -43,7 +43,7 @@ python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
 
 For sample and application build planning, also read the `package_build_files`
 and `package_dependency_files` fields returned by the build planner. A nearby
-`meson.build.public` is the package-facing staging contract for public package
+`meson.build.public` is the package-facing staging contract for source package
 views; a sample or application `dependencies/meson.build` records the DOCA and
 driver packages that the package-facing build checks before entering the target
 directory. Use those files to report required packages, helper sources, and
@@ -80,9 +80,9 @@ the response.
 
 ## Installed Package Fallback
 
-Some public users ask from an installed package tree rather than a source
+Some users ask from an installed package tree rather than a source
 package checkout. When `tools/run_agent_task.py` or
-`tools/lookup_capability.py` is not present, use the installed public
+`tools/lookup_capability.py` is not present, use the installed SDK
 surface instead of inventing source-package results. Start with the
 install-only discovery fallback in `getting-started/validation.md`, then run
 pkg-config checks for the selected dependency:
@@ -92,7 +92,7 @@ pkg-config --modversion <pkg-name>
 pkg-config --cflags --libs <pkg-name>
 ```
 
-For API lookup, cite the installed public header path or the
+For API lookup, cite the installed SDK header path or the
 `pkg-config --cflags` include path used to verify the symbol. For sample and
 application work, cite installed samples under `<prefix>/samples` or
 `<prefix>/applications` when present. Do not reference repository-only helpers
@@ -121,7 +121,7 @@ from installed headers but an executable source helper could not run.
 
 Many SDK examples use the same core primitives even when the target library is
 Flow, DMA, RDMA, Compress, or another module. Before writing a new example,
-inspect the public headers and nearby samples returned by the API inventory,
+inspect the SDK headers and nearby samples returned by the API inventory,
 then map object lifetimes around these roles:
 
 - `doca_error_t`: status value returned by DOCA APIs. Preserve the first
@@ -138,6 +138,6 @@ then map object lifetimes around these roles:
   progress the PE, and release resources according to the library sample.
 
 For task lifecycle answers, include the selected library, required package
-dependencies, the source-backed public functions, and cleanup order. If the
+dependencies, the source-backed SDK functions, and cleanup order. If the
 current package does not expose the expected symbol, report the missing symbol
 from the API inventory rather than substituting an API from memory.

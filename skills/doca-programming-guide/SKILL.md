@@ -1,13 +1,12 @@
 ---
 name: doca-programming-guide
-description: Route DOCA Programming Guide questions through public docs plus local source-package evidence for APIs, lifecycle, dependencies, and safety.
-package_visibility: public
+description: Route DOCA Programming Guide questions through documentation plus local source-package evidence for APIs, lifecycle, dependencies, and safety.
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: public DOCA Programming Guide routing and source-backed API answers
-Read when: a public `doca-skills` export needs a short Programming Guide skill
+Applies to: DOCA Programming Guide routing and source-backed API answers
+Read when: a `doca-skills` export needs a short Programming Guide skill
 
 # DOCA Programming Guide
 
@@ -16,7 +15,7 @@ checking, debugging, utility, and driver questions.
 
 ## Read First
 
-- `getting-started/public-online-docs.md`
+- `getting-started/online-docs.md`
 - `getting-started/first-commands.md`
 - `getting-started/sdk-development.md`
 - `contracts/README.md`
@@ -24,7 +23,7 @@ checking, debugging, utility, and driver questions.
 
 ## Source Order
 
-1. Inspect `VERSION`, package metadata, public headers, Meson/pkg-config files,
+1. Inspect `VERSION`, package metadata, SDK headers, Meson/pkg-config files,
    contracts, samples, and applications in the source package.
 2. Use <https://docs.nvidia.com/doca/sdk/doca-programming-guide/index.html>
    for conceptual routing.
@@ -40,7 +39,7 @@ python3 tools/lookup_capability.py --repo-root <source-package-root> --api-index
 
 ## Return
 
-Include `source_version`, `public_doc_context`, `version_mismatch`,
+Include `source_version`, `online_doc_context`, `version_mismatch`,
 `local_evidence`, `library_name`, `key_functions`, `required_packages`,
 `lifecycle_steps`, `capability_check_plan`, `debuggability_plan`,
 `safe_boundaries`, and `verification_commands`.

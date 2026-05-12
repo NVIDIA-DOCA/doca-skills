@@ -3,11 +3,6 @@
     "capability_entry": {
       "additionalProperties": false,
       "properties": {
-        "audience": {
-          "enum": [
-            "public"
-          ]
-        },
         "id": {
           "type": "string"
         },
@@ -24,7 +19,6 @@
       "required": [
         "id",
         "path",
-        "audience",
         "source_globs"
       ],
       "type": "object"
@@ -32,11 +26,6 @@
     "task_entry": {
       "additionalProperties": false,
       "properties": {
-        "audience": {
-          "enum": [
-            "public"
-          ]
-        },
         "command_kind": {
           "type": "string"
         },
@@ -62,7 +51,6 @@
       "required": [
         "id",
         "path",
-        "audience",
         "source_globs",
         "risk_class",
         "command_kind",
@@ -75,11 +63,6 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
-    "audience": {
-      "enum": [
-        "public"
-      ]
-    },
     "capabilities": {
       "items": {
         "$ref": "#/$defs/capability_entry"
@@ -124,7 +107,6 @@
     "schema_version",
     "generated_by",
     "generated_from",
-    "audience",
     "capabilities",
     "tasks",
     "validation"

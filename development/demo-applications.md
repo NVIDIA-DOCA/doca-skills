@@ -1,6 +1,6 @@
 # Developing Demo Applications With DOCA
 
-Applies to: DOCA SDK demo applications, public examples, and tutorial-style application code
+Applies to: DOCA SDK demo applications, examples, and tutorial-style application code
 Read when: a user asks how to build a demo application with DOCA
 Load next: `modules/samples-applications.md`, `getting-started/sdk-development.md`, `getting-started/validation.md`
 

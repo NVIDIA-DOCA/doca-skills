@@ -1,13 +1,13 @@
 # DOCA Skills
 
 Applies to: `NVIDIA-DOCA/doca-skills`
-Read when: navigating public DOCA AI guidance, portable skills, and helper tools
+Read when: navigating DOCA AI guidance, portable skills, and helper tools
 Load next: `getting-started/README.md`, `contracts/agent-manifest.json`,
 `skills/doca-user-rules/SKILL.md`
 
-This repository stores public DOCA AI guidance, portable skills, and helper
+This repository stores DOCA AI guidance, portable skills, and helper
 tools for agents that work with DOCA SDK source packages. It is arranged as a
-standalone public documentation and tooling payload: paths are written for this
+standalone documentation and tooling payload: paths are written for this
 repository layout.
 
 ## First Steps
@@ -26,7 +26,7 @@ repository layout.
 | `contracts/` | Machine-readable capability and task contracts. |
 | `skills/` | Portable agent skills. |
 | `.agents/skills/` | Symlinks for tools that discover Agent Skills from a standard location. |
-| `tools/` | Small public Python helpers for capability lookup, source-package discovery, and build planning. |
+| `tools/` | Small Python helpers for capability lookup, source-package discovery, and build planning. |
 | `development/`, `environment-setup/`, `troubleshooting/` | Topic routers for common SDK workflows. |
 | `guides/` | Higher-level capability and source-package navigation guides. |
 | `modules/` | Module guide template and index for SDK areas that need focused context. |
@@ -57,8 +57,8 @@ flowchart TD
 
 ## Boundary
 
-The public helper tools are read-only by default. They may inspect source files,
-package metadata, public headers, and local discovery utilities. They must not
+The helper tools are read-only by default. They may inspect source files,
+package metadata, SDK headers, and local discovery utilities. They must not
 install packages, mutate devices, change networking, write credentials, change
 persistent configuration, run traffic, or execute runtime samples unless a local
 owner explicitly approves that action class outside this repository's default

@@ -4,7 +4,7 @@ Applies to: agents using a DOCA SDK source package
 Read when: preparing an agent to inspect, build, or modify DOCA sources from a packaged source tree
 Load next: `llms.txt`, `getting-started/README.md`, `getting-started/first-commands.md`, `getting-started/package-install.md`, `getting-started/validation.md`, `skills/doca-user-rules/SKILL.md`, `skills/doca-ai-runner/SKILL.md`, `skills/doca-programming-guide/SKILL.md`
 
-This quickstart is the public entry point for using the packaged DOCA
+This quickstart is the package-facing entry point for using the packaged DOCA
 AI guidance with coding agents. It assumes the user has a DOCA source package
 that already contains the generated root adapter files and `top-level guidance directories`.
 
@@ -15,7 +15,7 @@ An agent-ready source package includes:
 - Root adapter files such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
   `JULES.md`, `SKILLS.md`, `llms.txt`, `.github/copilot-instructions.md`,
   `.windsurfrules`, `.clinerules`, and `.roo/rules/doca.md`.
-- Public guidance under `getting-started/`, reference coding rules under
+- Source-package safe guidance under `getting-started/`, reference coding rules under
   `reference/`, and module guidance under `modules/`.
 - Filtered machine-readable contracts under `contracts/`.
 - Standard-library Python helpers under `tools/`.
@@ -95,8 +95,8 @@ For API-specific work, add:
 
 ```text
 Use lookup_capability.py --api-index for the relevant capability before naming
-public headers, functions, Meson dependencies, or sample references.
-Use skills/doca-programming-guide/SKILL.md when public Programming
+SDK headers, functions, Meson dependencies, or sample references.
+Use skills/doca-programming-guide/SKILL.md when Programming
 Guide context is needed, and report local source/package evidence before
 applying online documentation to this package.
 ```
@@ -109,11 +109,11 @@ to build, explain, or modify DOCA code:
 - The source root contains `llms.txt` plus the adapter files your agent already
   knows how to read, such as `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
   `JULES.md`, or `SKILLS.md`.
-- `package-info.json` reports the package manifest and audience when
+- `package-info.json` reports the package manifest when
   the source view was produced by the AI docs packager.
 - `run_agent_task.py --task discover-doca-environment` returns structured
   source facts and does not mutate the system.
-- `lookup_capability.py --api-index` reports public headers, exported symbols,
+- `lookup_capability.py --api-index` reports SDK headers, exported symbols,
   package dependencies, and sample references from this source package.
 - Planner-only build commands report next steps and blockers before creating
   build output.

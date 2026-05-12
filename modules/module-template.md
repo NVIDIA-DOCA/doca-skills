@@ -13,16 +13,16 @@ with evidence.
 ## Scope
 
 - `module_id`: `<short-id>`
-- `source_paths`: `<public-header-or-package-paths>`
+- `source_paths`: `<sdk-header-or-package-paths>`
 - `sample_paths`: `<sample-or-application-paths>`
-- `package_metadata`: `<meson-build-public-or-package-metadata-paths>`
+- `package_metadata`: `<package-meson-or-package-metadata-paths>`
 - `out_of_scope`: `<paths-or-actions-this-guide-does-not-cover>`
 
 ## libraries_overview
 
 Use this section for SDK and library users.
 
-- `public_headers`: `<headers and APIs agents may cite>`
+- `sdk_headers`: `<headers and APIs agents may cite>`
 - `key_apis`: `<functions, structs, lifecycle calls, and stability notes>`
 - `dependencies`: `<pkg-config names, Meson dependencies, package names>`
 - `build_evidence`: `<Meson files, package metadata, source commands>`

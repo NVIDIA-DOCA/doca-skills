@@ -22,16 +22,16 @@ facts.
 | --- | --- |
 | Documentation explorer | Start from `llms.txt`, root adapters, this file, quickstart, package-facing SDK docs, sample/application guidance, and any module guidance present in `modules/`. Return the exact files used. |
 | Coding standards and code review | Use `reference/c-cpp-style.md`, `getting-started/sdk-development.md`, and `modules/samples-applications.md` to review sample readability, cleanup, license style, DOCA logging, dependency handling, and runtime-action safety. |
-| Libraries overview | For SDK and library users, build the overview from package-visible `contracts/capability-catalog.json`, public headers, `libs/**/meson.build`, package-facing Meson files, dependency files, and nearby samples. Mark absent headers or unmeasured runtime facts as requiring package-owner or runtime verification. |
+| Libraries overview | For SDK and library users, build the overview from package-visible `contracts/capability-catalog.json`, SDK headers, `libs/**/meson.build`, package-facing Meson files, dependency files, and nearby samples. Mark absent headers or unmeasured runtime facts as requiring package-owner or runtime verification. |
 | Services overview | For service or application operators, build the overview from `services/`, `applications/`, package-facing application Meson files, service/application module guidance, runtime prerequisites, and blocked mutation classes. Keep service startup, traffic, device, network, credential, and persistent configuration actions approval-gated. |
 | Tools overview | For CLI, build, debug, and validation users, build the overview from `tools/`, `tools/`, package helper scripts, validation commands, and tool module guidance. Keep tool output source-backed and separate developer-only tools from package-visible helpers. |
 | Capability discovery | Run `lookup_capability.py --list` and `run_agent_task.py --task discover-doca-environment`. Report capability IDs, source version, package metadata, missing sensors, and available package-facing build files. |
 | Topology discovery | Use only read-only sensors reported by `discover-doca-environment`, such as package, RDMA, PCI, or devlink probes when available. Host, BlueField, GPU, NIC, PCIe, NUMA, memory-domain, representor, and offload topology must be `not_measured` when sensors are missing or runtime access is not approved. |
-| Standard object lifecycle | Derive create, configure, validate, start, query, stop, and destroy phases from public headers when present, package-visible module guidance, and sample/application source. If headers are absent, report sample-observed lifecycle only and mark API completeness as partial. |
+| Standard object lifecycle | Derive create, configure, validate, start, query, stop, and destroy phases from SDK headers when present, package-visible module guidance, and sample/application source. If headers are absent, report sample-observed lifecycle only and mark API completeness as partial. |
 | Machine-readable schemas | Prefer `contracts/agent-manifest.json`, `capability-catalog.json`, task schemas, package metadata, and planner JSON. Library-specific API/config/error/counter schemas are only available when present in the package; do not invent them from sample code. |
 | Dry-run or validate mode | Use planner-only `run_agent_task.py` commands first. Build and source-change executors require explicit local approvals and repo-contained output paths. Runtime/device validation requires explicit user approval. |
 | Unified error taxonomy | Use task `structured_errors`, `doca_error_t` style guidance, observed sample error handling, and recovery hints from validation docs. If a library lacks package-visible error taxonomy, return a gap instead of normalizing undocumented errors. |
-| Structured observability | Report health, counters, traces, resource ownership, telemetry, or queue state only when package-visible samples, public docs, or read-only sensors expose them. Runtime counters and traces require explicit approval and hardware access. |
+| Structured observability | Report health, counters, traces, resource ownership, telemetry, or queue state only when package-visible samples, online docs, or read-only sensors expose them. Runtime counters and traces require explicit approval and hardware access. |
 | Permission and safety model | Default to read-only source/package inspection. Block package installation, device mutation, network changes, persistent configuration, credentials, runtime traffic, and production actions unless the local owner explicitly approves the action class. |
 | Version and compatibility reporting | Use `VERSION`, `package-info.json`, `pkg-config --modversion <pkg-name>`, generated manifest digests, and source-package discovery output. If package metadata is absent, mark version facts as unknown. |
 | Conformance tests | Use package dry-run/smoke checks, adapter/contract validators, and planner outputs as current conformance evidence. Per-library runtime conformance requires explicit test or SDK/package harness evidence. |
@@ -41,12 +41,12 @@ facts.
 For capability audits, return these keys so manager and maintainer reviews can
 compare runs:
 
-- `source_view`: whether the package exposes samples, applications, public
+- `source_view`: whether the package exposes samples, applications, SDK
   headers, contracts, helper scripts, and module docs.
 - `documentation_entrypoints`: files read for documentation exploration.
 - `coding_standards`: style and review rules applied to sample/application
   code.
-- `libraries_overview`: SDK/library capabilities, public headers, API evidence,
+- `libraries_overview`: SDK/library capabilities, SDK headers, API evidence,
   package dependencies, and samples relevant to library users.
 - `services_overview`: service/application capabilities, operator-facing
   prerequisites, runtime evidence still needed, and blocked mutation classes.

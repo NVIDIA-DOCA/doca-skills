@@ -1,7 +1,7 @@
 # Source-Package First Commands
 
 Applies to: source-package discovery, capability lookup, SDK build planning, and optional source-change task routing
-Read when: another public doc or portable skill needs safe first commands for a DOCA source package
+Read when: another doc or portable skill needs safe first commands for a DOCA source package
 Load next: `getting-started/validation.md`, `contracts/README.md`, `skills/doca-ai-runner/SKILL.md`
 
 Run these commands from the repository or source-package root. Skip a command
@@ -43,7 +43,7 @@ planner-only build task reports package-facing build files, dependency files,
 helper sources, include directories, output directories, approval classes, and
 unmet prerequisites without creating build output.
 
-Source-change planners are not part of the public skills repository. If a DOCA
+Source-change planners are not part of the skills repository. If a DOCA
 source package publishes a source-change task in its manifest, use that exact
 task ID and keep execution under the local package owner's policy.
 

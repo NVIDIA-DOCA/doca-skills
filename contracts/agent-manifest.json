@@ -1,8 +1,6 @@
 {
-  "audience": "public",
   "capabilities": [
     {
-      "audience": "public",
       "id": "doca-sdk",
       "path": "contracts/capabilities/doca-sdk.json",
       "source_globs": [
@@ -16,7 +14,7 @@
       ]
     }
   ],
-  "generated_by": "DOCA public package export",
+  "generated_by": "DOCA package export",
   "generated_from": [
     "contracts/capabilities/doca-sdk.json",
     "contracts/tasks/build-sdk-sample.yaml",
@@ -25,7 +23,6 @@
   "schema_version": "1.0",
   "tasks": [
     {
-      "audience": "public",
       "command_kind": "build",
       "id": "build-sdk-sample",
       "path": "contracts/tasks/build-sdk-sample.yaml",
@@ -43,7 +40,6 @@
       ]
     },
     {
-      "audience": "public",
       "command_kind": "discovery",
       "id": "discover-doca-environment",
       "path": "contracts/tasks/discover-doca-environment.yaml",

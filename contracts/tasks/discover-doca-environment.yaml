@@ -1,5 +1,4 @@
 id: discover-doca-environment
-audience: public
 goal: Discover the local DOCA source, package, device, and capability context before selecting runtime commands.
 source_globs:
   - VERSION
@@ -17,7 +16,7 @@ outputs:
   - {"name": "source_version", "type": "string", "description": "Version read from source metadata when present."}
   - {"name": "available_capabilities", "type": "array", "description": "Capability IDs present in the packaged agent manifest."}
   - {"name": "capability_discovery_data", "type": "object", "description": "Device, library, mode, offload, version, and constraint data from matching capability contracts."}
-  - {"name": "experimental_api_summary", "type": "object", "description": "Experimental API count summary when public headers are present."}
+  - {"name": "experimental_api_summary", "type": "object", "description": "Experimental API count summary when SDK headers are present."}
   - {"name": "read_only_environment_sensors", "type": "object", "description": "Read-only package, device, and capability discovery command results, including missing or failed utilities."}
 structured_errors:
   - {"code": "missing_source_metadata", "message": "Expected source metadata is absent from the package view.", "recovery": "Report the reduced source view and avoid guessing package or version facts."}
@@ -26,7 +25,7 @@ structured_errors:
 result_schema: contracts/schemas/task-result.schema.json
 sensors:
   - Read VERSION and package metadata present in the source or installation.
-  - Inspect selected public headers for DOCA_EXPERIMENTAL before using APIs.
+  - Inspect selected SDK headers for DOCA_EXPERIMENTAL before using APIs.
   - Use documented DOCA device or capability discovery utilities when available.
   - Treat sample PCI addresses, IB device names, interface names, and representor names as placeholders until discovered locally.
 actuators:
@@ -48,6 +47,6 @@ recovery:
   - If conflicting source and installed versions are found, ask which environment is authoritative.
   - If a value came from a sample instead of a sensor, discard it and rerun discovery.
 maintenance:
-  - Keep sensors aligned with current DOCA discovery utilities and public device-info APIs.
+  - Keep sensors aligned with current DOCA discovery utilities and SDK device-info APIs.
   - Add source_globs when new top-level SDK metadata becomes authoritative.
-  - Keep this task public so it can ship in public source packages.
+  - Keep this task source-package safe so it can ship in source packages.
