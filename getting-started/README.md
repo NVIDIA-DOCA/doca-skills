@@ -4,7 +4,7 @@ Applies to: DOCA AI guidance and helper tools
 Read when: starting a DOCA source-package task with a coding agent
 Load next: `getting-started/quickstart.md`,
 `getting-started/first-commands.md`, `skills/doca-user-rules/SKILL.md`, `skills/doca-ai-runner/SKILL.md`,
-`guides/capability-map.md`
+`examples/README.md`, `guides/capability-map.md`
 
 This directory contains the starting points for agent-assisted DOCA SDK work. Use this repository for guidance, portable
 skills, and helper tooling. Use the DOCA SDK source package passed with `--repo-root <source-package-root>` for SDK
@@ -24,13 +24,15 @@ gap instead of using this repository as a substitute for SDK facts.
 
 1. Read `quickstart.md`.
 2. Run the safe first commands in `first-commands.md`.
-3. Use `building-samples.md`, `pkg-config.md`, `using-pkg-config.md`, `sdk-development.md`, and `troubleshooting.md` for
+3. Use `../examples/README.md` to see prompt examples and expected agent flow diagrams before adapting a prompt for your
+   source package.
+4. Use `building-samples.md`, `pkg-config.md`, `using-pkg-config.md`, `sdk-development.md`, and `troubleshooting.md` for
    SDK build or dependency questions.
-4. Use `package-install.md` when using this helper repository next to an SDK source package, or when only installed SDK
+5. Use `package-install.md` when using this helper repository next to an SDK source package, or when only installed SDK
    headers are available.
-5. Use `validation.md` to keep source-package facts separate from runtime or device checks.
-6. Use `../troubleshooting/build-issues.md` when a build failure needs a focused troubleshooting entrypoint.
-7. Use `online-docs.md` only as conceptual context; local package evidence remains authoritative for what can be built
+6. Use `validation.md` to keep source-package facts separate from runtime or device checks.
+7. Use `../troubleshooting/build-issues.md` when a build failure needs a focused troubleshooting entrypoint.
+8. Use `online-docs.md` only as conceptual context; local package evidence remains authoritative for what can be built
    now.
 
 ## Safety
