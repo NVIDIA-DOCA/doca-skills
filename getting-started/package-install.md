@@ -47,12 +47,12 @@ packages, edit system paths, or guess device capability.
 
 ## Activation
 
-Coding agents should start from the root entrypoint they already support: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
-`JULES.md`, `SKILLS.md`, `llms.txt`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, or
-`.roo/rules/doca.md`.
+Coding agents should start from `AGENTS.md`. Use `llms.txt` as a compact index when a tool wants a short repository map
+before loading the root instructions.
 
 No command in this repository should edit global agent settings or write into user home directories. If a local owner
-wants editor-specific activation, use the root entrypoint that their tool already supports.
+wants editor-specific activation, use the repository-local `AGENTS.md` entrypoint or copy a short local pointer outside
+this repository.
 
 ## Boundaries
 
