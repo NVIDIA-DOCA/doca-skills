@@ -141,7 +141,7 @@ This executor is limited to repository-root Meson setup and compile commands. Th
 path, derived target directory, build directory, command records, built targets, and unmet prerequisites. It must not
 install packages or run runtime, device, network, credential, or production actions.
 
-Skills packages do not include module patch helpers. If a DOCA source package includees a source-change task in its own
+Skills packages do not include module patch helpers. If a DOCA source package includes a source-change task in its own
 manifest, use that exact task ID and keep any execution under the local source owner's review and approval policy.
 
 Use `package-info.json`, `contracts/agent-manifest.json`, `contracts/capability-catalog.json`, `lookup_capability.py`,

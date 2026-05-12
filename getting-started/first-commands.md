@@ -39,7 +39,7 @@ Use this for manager, sample, application, or package-build questions. The plann
 package-facing build files, dependency files, helper sources, include directories, output directories, approval classes,
 and unmet prerequisites without creating build output.
 
-Source-change planners are not part of the skills repository. If a DOCA source package includees a source-change task in
+Source-change planners are not part of the skills repository. If a DOCA source package includes a source-change task in
 its manifest, use that exact task ID and keep execution under the local package owner's policy.
 
 ## Approval-Gated Local Build
