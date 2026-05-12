@@ -1,63 +1,30 @@
-# Common DOCA Guidance
+# DOCA Reference Guidance
 
-Applies to: whole repository
-Read when: any AI assistant modifies, reviews, or explains DOCA code
-Load next: `reference/c-cpp-style.md` for C/C++ work; `modules/README.md` for path-specific work
+Applies to: DOCA source-package reference and style guidance
+Read when: an agent needs common safety, editing, or C/C++ style rules
+Load next: `reference/c-cpp-style.md`, `guides/persona-routing.md`, `modules/README.md`
 
-DOCA is a Meson-based C/C++ repository with SDK libraries, tools, samples, applications, services, extensions, and
-verification code. Keep edits scoped to the subsystem requested by the user and follow existing local patterns before
-introducing new abstractions.
+This folder contains common rules for agents that work with DOCA SDK source packages or installed DOCA prefixes. Use it
+after choosing the requester type with `guides/persona-routing.md`.
 
-## Repository Map
+## How To Use
 
-- `libs/`: DOCA SDK libraries and their unit tests.
-- `tools/`: installed and developer tools built with the SDK.
-- `samples/`: sample programs intended to demonstrate SDK usage.
-- `applications/`: larger applications built from DOCA components.
-- `services/`: service components that are disabled by default in the SDK build.
-- `extensions/`: optional and add-on libraries, tools, and services.
-- `system_tests/`: integration and system-level test assets.
-- `verification/`: verification frameworks and test suites.
-- `devtools/`: repository automation, coding-style checks, CI helpers, and MCP servers.
-- `configs/`: Meson feature/profile configuration and package metadata.
+- Load `reference/c-cpp-style.md` before writing or reviewing C/C++ examples.
+- Use `modules/README.md` when a library, service, or tool needs focused local guidance.
+- Use `guides/capability-map.md` when the answer must compare libraries, services, tools, setup facts, and safety
+  boundaries.
+- Use helper commands from `tools/` only as documented by the selected skill or task contract.
 
-## Build System
+## Boundaries
 
-The top-level `meson.build` has an intentional subdirectory order: `configs`, `third_party`, `common`, `libs`, `tools`,
-`samples`, `applications`, `extensions`, `services`, `system_tests`, then `verification`. Do not reorder these entries
-unless the change is explicitly about build graph ordering.
+- Treat the current source package or installed prefix as the evidence source.
+- Keep library, service, and tool answers separated unless the user asks for an end-to-end workflow.
+- Report missing headers, packages, helper commands, devices, sensors, or approvals as unmet prerequisites.
+- Do not install packages, mutate devices, change networking, write credentials, alter persistent configuration, run
+  traffic, or execute runtime samples unless the local owner explicitly approves that action class.
 
-Several directories are optional during package builds. `extensions/`, `services/`, `system_tests/`, and `verification/`
-may be absent or disabled in some source layouts, so agents should not assume they are always available in
-release/package contexts.
+## Validation
 
-Meson files in this repository use tabs for indentation. Preserve tabs when editing `meson.build` files.
-
-## Version And Package Metadata
-
-Use local metadata before relying on memory or online documentation:
-
-- `VERSION` is the source-package version visible to local agents.
-- Top-level and module `meson.build` files define source layout, enabled subdirectories, and dependency names.
-- `meson.build` files describe package-facing sample or application builds when they differ from the full repository
-  layout.
-- `configs/` contains build profiles and package metadata for repository builds.
-- `python3 tools/run_agent_task.py --task discover-doca-environment --repo-root .` returns a read-only JSON discovery
-  result that should anchor user-facing environment answers.
-
-If local metadata and online documentation disagree, treat the installed or source package as authoritative for what the
-user can build now. Use online documentation only to enrich context, and call out version differences when they matter.
-
-## Edit Discipline
-
-- Prefer the existing local API, naming style, and error handling pattern.
-- Keep SDK API changes narrow and update all call sites when signatures move.
-- Do not edit vendored code under `third_party/` unless the task explicitly targets that vendor copy.
-- Avoid derived-file churn; update the owning source instead.
-- Keep documentation factual and path-specific; avoid speculative claims about unsupported platforms or package
-  behavior.
-
-## Validation Defaults
-
-For docs-only changes, run `git diff --check`. For code changes, add the smallest meaningful compile, unit, or script
-validation that covers the touched subsystem.
+For documentation changes, prefer `git diff --check` plus the package-local helper checks named by the relevant skill.
+For source or build changes, report the smallest package-local validation command that covers the touched file and state
+any missing prerequisite clearly.
