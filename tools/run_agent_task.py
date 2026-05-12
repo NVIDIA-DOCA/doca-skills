@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+"""Run package-safe DOCA AI task helpers."""
+
 import argparse
 import json
 import sys
@@ -11,6 +13,7 @@ BUILD_TASK_ID = 'build-sdk-sample'
 
 
 def read_json(path):
+    """Load a JSON file, or return an empty mapping when it is absent."""
     if not path.is_file():
         return {}
     with open(path, 'r', encoding='utf-8') as fd:
@@ -18,22 +21,26 @@ def read_json(path):
 
 
 def package_prefix(repo_root):
+    """Return the package layout prefix that contains AI contracts."""
     if (repo_root / 'contracts' / 'agent-manifest.json').is_file():
         return Path('')
     return Path('docs') / 'ai'
 
 
 def prefixed(prefix, *parts):
+    """Join path parts under the prefix unless the prefix is empty."""
     path = Path(*parts)
     return path if not prefix.parts else prefix / path
 
 
 def manifest_payload(repo_root):
+    """Load the task manifest from a package or source checkout."""
     prefix = package_prefix(repo_root)
     return read_json(repo_root / prefixed(prefix, 'contracts/agent-manifest.json'))
 
 
 def task_entries(manifest):
+    """Return task manifest entries keyed by task ID."""
     return {
         task.get('id'): task
         for task in manifest.get('tasks', [])
@@ -42,6 +49,7 @@ def task_entries(manifest):
 
 
 def capability_ids(manifest):
+    """Return sorted capability IDs visible in the manifest."""
     return sorted(
         capability.get('id')
         for capability in manifest.get('capabilities', [])
@@ -50,6 +58,7 @@ def capability_ids(manifest):
 
 
 def base_result(task_id, task=None):
+    """Create the common blocked task-result shape."""
     return {
         'task_id': task_id,
         'status': 'blocked',
@@ -64,6 +73,7 @@ def base_result(task_id, task=None):
 
 
 def add_error(result, code, message, recovery):
+    """Append one structured error and its matching recovery hint."""
     result['errors'].append({
         'code': code,
         'message': message,
@@ -73,6 +83,7 @@ def add_error(result, code, message, recovery):
 
 
 def source_version(repo_root):
+    """Read the package source version when VERSION is present."""
     path = repo_root / 'VERSION'
     if not path.is_file():
         return None
@@ -81,6 +92,7 @@ def source_version(repo_root):
 
 
 def public_header_roots(repo_root):
+    """Return roots that may contain SDK headers in the source view."""
     roots = []
     for rel_path in (
             Path('libs'),
@@ -93,6 +105,7 @@ def public_header_roots(repo_root):
 
 
 def experimental_api_summary(repo_root):
+    """Count DOCA_EXPERIMENTAL markers in visible SDK headers."""
     marker = 'DOCA_EXPERIMENTAL'
     header_count = 0
     marker_count = 0
@@ -122,6 +135,7 @@ def experimental_api_summary(repo_root):
 
 
 def discover(repo_root, task, manifest):
+    """Build a read-only discovery result for source metadata and contracts."""
     result = base_result(DISCOVERY_TASK_ID, task)
     version = source_version(repo_root)
     result['outputs'] = {
@@ -143,6 +157,7 @@ def discover(repo_root, task, manifest):
 
 
 def existing_relpaths(repo_root, relpaths):
+    """Return existing package-relative files from a candidate path list."""
     found = []
     for relpath in relpaths:
         if (repo_root / relpath).is_file():
@@ -151,6 +166,7 @@ def existing_relpaths(repo_root, relpaths):
 
 
 def build_sample(repo_root, task, focus_path):
+    """Plan sample or application build evidence without running a build."""
     result = base_result(BUILD_TASK_ID, task)
     if not focus_path:
         add_error(
@@ -209,12 +225,13 @@ def build_sample(repo_root, task, focus_path):
 
 
 def unsupported(task_id, manifest):
+    """Return a structured error for a task absent from the package."""
     result = base_result(task_id)
     available = sorted(task_entries(manifest))
     add_error(
         result,
         'unsupported_task',
-        'The requested task is not includeed by this package.',
+        'The requested task is not available in this package.',
         'Use one of the task IDs listed in contracts/agent-manifest.json.',
     )
     result['outputs']['available_tasks'] = available
@@ -222,6 +239,7 @@ def unsupported(task_id, manifest):
 
 
 def main(argv):
+    """Parse command-line arguments and print one task result as JSON."""
     parser = argparse.ArgumentParser(description='Run packaged DOCA AI tasks')
     parser.add_argument('--task', required=True)
     parser.add_argument('--repo-root', default='.')

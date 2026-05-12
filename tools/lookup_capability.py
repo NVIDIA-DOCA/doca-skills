@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+"""Inspect DOCA AI capability contracts and source-backed SDK evidence."""
+
 import argparse
 import json
 import re
@@ -19,10 +21,12 @@ DOCA_INCLUDE_RE = re.compile(r"^\s*#\s*include\s+[<\"]([^>\"]*doca[^>\"]*\.h)[>\
 
 
 def load_catalog(repo_root):
+    """Load the capability catalog from a source package or repository root."""
     return read_json(Path(repo_root) / CATALOG_PATH)
 
 
 def _find_capability(catalog, capability_id):
+    """Return the catalog entry for one capability ID."""
     for capability in catalog.get("capabilities", []):
         if capability.get("id") == capability_id:
             return capability
@@ -30,20 +34,24 @@ def _find_capability(catalog, capability_id):
 
 
 def _matches_filter(value, symbol_filter):
+    """Return whether a value should be kept for the optional text filter."""
     if not symbol_filter:
         return True
     return symbol_filter.lower() in value.lower()
 
 
 def _read_text(path):
+    """Read source text while tolerating non-UTF-8 bytes."""
     return path.read_text(encoding="utf-8", errors="ignore")
 
 
 def _unique_sorted(values):
+    """Return a sorted list with duplicate values removed."""
     return sorted(dict.fromkeys(values))
 
 
 def _iter_files_for_capability(repo_root, capability):
+    """Yield package-relative files matched by a capability's source globs."""
     seen = set()
     for pattern in capability.get("source_globs", []):
         matches = sorted(repo_root.glob(pattern))
@@ -63,6 +71,7 @@ def _iter_files_for_capability(repo_root, capability):
 
 
 def _collect_public_headers(repo_root, capability, symbol_filter):
+    """Collect SDK header paths and exported-looking symbols for a capability."""
     headers = []
     for rel_path, path in _iter_files_for_capability(repo_root, capability):
         if path.suffix != ".h" or "/include/public/" not in f"/{rel_path}":
@@ -86,6 +95,7 @@ def _collect_public_headers(repo_root, capability, symbol_filter):
 
 
 def _collect_version_maps(repo_root, capability, symbol_filter):
+    """Collect version-map symbols for ABI-facing SDK evidence."""
     version_maps = []
     for rel_path, path in _iter_files_for_capability(repo_root, capability):
         if path.name != "version.map":
@@ -109,6 +119,7 @@ def _collect_version_maps(repo_root, capability, symbol_filter):
 
 
 def _collect_build_dependencies(repo_root, capability, symbol_filter):
+    """Collect DOCA dependency names from nearby Meson build files."""
     dependencies = []
     for rel_path, path in _iter_files_for_capability(repo_root, capability):
         if path.name not in {"meson.build", "meson.build.public"}:
@@ -132,6 +143,7 @@ def _collect_build_dependencies(repo_root, capability, symbol_filter):
 
 
 def _collect_sample_references(repo_root, capability, symbol_filter):
+    """Collect sample and application includes or symbols for local examples."""
     references = []
     for rel_path, path in _iter_files_for_capability(repo_root, capability):
         if not rel_path.startswith(("samples/", "applications/")):
@@ -161,6 +173,7 @@ def _collect_sample_references(repo_root, capability, symbol_filter):
 
 
 def build_api_index(repo_root, capability, symbol_filter=None):
+    """Build a compact SDK API evidence bundle for one capability."""
     return {
         "id": capability["id"],
         "summary": capability["summary"],
@@ -188,6 +201,7 @@ def build_api_index(repo_root, capability, symbol_filter=None):
 
 
 def build_lookup_payload(catalog, mode, capability_id=None, repo_root=None, symbol_filter=None):
+    """Build the JSON payload for one lookup CLI mode."""
     if mode == "list":
         return {
             "capabilities": [
@@ -217,6 +231,7 @@ def build_lookup_payload(catalog, mode, capability_id=None, repo_root=None, symb
 
 
 def main(argv):
+    """Parse command-line arguments and print one JSON lookup result."""
     parser = argparse.ArgumentParser(description="Lookup DOCA AI capability guidance")
     parser.add_argument("--repo-root", default=".", help="Repository root or packaged source root")
     group = parser.add_mutually_exclusive_group(required=True)
