@@ -25,7 +25,7 @@ and report the exact evidence path used.
 | Path | Purpose |
 | --- | --- |
 | `getting-started/quickstart.md` | First workflow, DOCA knowledge map, troubleshooting, and links. |
-| `skills/` | Three focused skills for docs lookup, discovery, and runner behavior. |
+| `skills/` | Three focused skills for docs lookup, discovery, and task routing. |
 | `contracts/` | Minimal capability and task contracts for source-backed agent work. |
 | `.agents/skills/` | Skill discovery links for agents that scan a standard location. |
 | `package-info.json` | Small package descriptor for the helper payload. |
@@ -36,7 +36,7 @@ and report the exact evidence path used.
 | --- | --- |
 | `skills/doca-programming-guide/SKILL.md` | Answer API, lifecycle, dependency, or DOCA Flow questions. |
 | `skills/doca-discover-environment/SKILL.md` | Measure SDK source, version, package, and tool availability. |
-| `skills/doca-ai-runner/SKILL.md` | Route task contracts and build-planning evidence safely. |
+| `skills/doca-task-router/SKILL.md` | Route task contracts and build-planning evidence safely. |
 
 ## Default Commands
 

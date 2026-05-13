@@ -3,7 +3,7 @@
 Applies to: `NVIDIA-DOCA/doca-skills`
 Read when: starting a first DOCA SDK task with this helper payload
 Load next: `skills/README.md`, `contracts/agent-manifest.json`,
-`skills/doca-ai-runner/SKILL.md`
+`skills/doca-task-router/SKILL.md`
 
 This page keeps the first release small: one workflow, one knowledge map, three skills, and read-only evidence commands.
 
@@ -13,7 +13,7 @@ This page keeps the first release small: one workflow, one knowledge map, three 
 | --- | --- |
 | Programming Guide, API, lifecycle, dependency, or DOCA Flow lookup | `skills/doca-programming-guide/SKILL.md` |
 | Version, source layout, pkg-config, package, device, or topology discovery | `skills/doca-discover-environment/SKILL.md` |
-| Contract routing, safe command selection, or SDK sample build planning | `skills/doca-ai-runner/SKILL.md` |
+| Contract routing, safe command selection, or SDK sample build planning | `skills/doca-task-router/SKILL.md` |
 
 ## Standard Workflow
 

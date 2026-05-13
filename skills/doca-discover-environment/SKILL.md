@@ -17,7 +17,7 @@ environment facts are known.
 
 - `getting-started/quickstart.md`
 - `contracts/tasks/discover-doca-environment.yaml`
-- `skills/doca-ai-runner/SKILL.md`
+- `skills/doca-task-router/SKILL.md`
 
 ## Commands
 

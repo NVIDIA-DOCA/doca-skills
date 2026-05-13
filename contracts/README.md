@@ -5,7 +5,8 @@ Read when: consuming machine-readable DOCA guidance from this source package
 Load next: `contracts/agent-manifest.json`, `contracts/capabilities/`, `contracts/tasks/`
 
 Agent contracts describe package-visible capabilities and task wrappers. They identify source paths, risk class, allowed
-commands, structured outputs, recovery notes, and local checks so agents do not infer missing modules or runtime facts.
+commands, structured outputs, recovery notes, and local checks so agents do not infer missing source areas or runtime
+facts.
 
 ## Contract Files
 

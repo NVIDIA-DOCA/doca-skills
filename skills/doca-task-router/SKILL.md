@@ -1,14 +1,14 @@
 ---
-name: doca-ai-runner
-description: Route DOCA task contracts and build-planning evidence with read-only commands by default.
+name: doca-task-router
+description: Route DOCA task contracts, safe command choices, and build-planning evidence with read-only commands by default.
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: DOCA source evidence, task contracts, discovery, capability lookup, and build planning
+Applies to: DOCA source evidence, task contracts, safe command selection, discovery, capability lookup, and build planning
 Read when: choosing a safe DOCA task flow or planning an SDK sample build
 
-# DOCA AI Runner
+# DOCA Task Router
 
 Use this skill when work needs a contract-backed flow before build, runtime, API, or package claims.
 
