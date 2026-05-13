@@ -1,28 +1,27 @@
 ---
 name: doca-ai-runner
-description: Use DOCA source evidence and source-package tools for capability lookup, source-package discovery, and build planning without mutating user state.
+description: Route DOCA task contracts and build-planning evidence with read-only commands by default.
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: DOCA source evidence, source-package tools, source-package discovery, capability lookup, and build planning
-Read when: a `doca-skills` export needs a short runner skill
+Applies to: DOCA source evidence, task contracts, discovery, capability lookup, and build planning
+Read when: choosing a safe DOCA task flow or planning an SDK sample build
 
 # DOCA AI Runner
 
-Use this skill when work needs source-backed DOCA facts before build, runtime, API, or package claims.
+Use this skill when work needs a contract-backed flow before build, runtime, API, or package claims.
 
 ## Read First
 
 - `getting-started/quickstart.md`
-- `getting-started/first-commands.md`
-- `getting-started/validation.md`
 - `contracts/README.md`
+- `contracts/agent-manifest.json`
 
 ## Commands
 
 ```sh
-find contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print
+find contracts -maxdepth 2 -type f -print
 find <source-package-root> -maxdepth 1 -name VERSION -print
 pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
@@ -35,6 +34,13 @@ pkg-config --modversion <pkg-name>
 pkg-config --cflags --libs <pkg-name>
 ```
 
+For SDK sample/application build planning, inspect metadata only:
+
+```sh
+find <sample-or-application-path> -maxdepth 2 -name meson.build -print
+pkg-config --print-errors --exists <pkg-name>
+```
+
 ## Rules
 
 - Treat contracts, SDK headers, package metadata, and source files as evidence.
@@ -45,5 +51,5 @@ pkg-config --cflags --libs <pkg-name>
 
 ## Return
 
-Include `diagnosis`, `source_inventory`, selected contract or capability ID, commands run, `unmet_prerequisites`, and
-exact next safe command.
+Include `diagnosis`, `source_inventory`, selected contract or capability ID, commands run, `build_plan` when relevant,
+`unmet_prerequisites`, approval gates, and exact next safe command.

@@ -1,39 +1,37 @@
 ---
 name: doca-programming-guide
-description: Route DOCA Programming Guide questions through documentation plus local source-package evidence for APIs, lifecycle, dependencies, and safety.
+description: Use DOCA docs plus source-package evidence for APIs, lifecycle, dependencies, and DOCA Flow.
 ---
 
 License: see repository root `LICENSE.md`.
 
 Applies to: DOCA Programming Guide routing and source-backed API answers
-Read when: a `doca-skills` export needs a short Programming Guide skill
+Read when: an answer needs SDK architecture, API, lifecycle, or dependency facts
 
 # DOCA Programming Guide
 
-Use this skill for SDK architecture, compatibility, API, lifecycle, capability checking, debugging, utility, and driver
-questions.
+Use this skill for SDK architecture, compatibility, API, lifecycle, capability checking, debugging, utility, driver, and
+DOCA Flow questions.
 
 ## Read First
 
-- `getting-started/online-docs.md`
-- `getting-started/first-commands.md`
-- `getting-started/sdk-development.md`
-- `contracts/README.md`
-- `framework/README.md`
+- `getting-started/quickstart.md`
+- `contracts/agent-manifest.json`
+- `contracts/capability-catalog.json`
 
 ## Source Order
 
-1. Inspect `VERSION`, package metadata, SDK headers, Meson/pkg-config files, contracts, samples, and applications in the
-   source package.
-2. Use <https://docs.nvidia.com/doca/sdk/doca-programming-guide/index.html> for conceptual routing.
+1. Inspect `VERSION`, package metadata, SDK headers, Meson files, pkg-config metadata, samples, and applications in
+   `<source-package-root>`.
+2. Use <https://docs.nvidia.com/doca/sdk/doca-programming-guide/index.html> and related DOCA docs for concept routing.
 3. If online docs and local source disagree, report `version_mismatch` and prefer local source for commands, APIs,
    dependencies, and file paths.
 
 ## Commands
 
 ```sh
-find <source-package-root>/contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
 grep -R "<symbol-or-topic>" <source-package-root>/libs/*/include/public 2>/dev/null
+grep -R "<symbol-or-topic>" <source-package-root>/samples <source-package-root>/applications 2>/dev/null
 pkg-config --cflags --libs <pkg-name>
 ```
 

@@ -37,7 +37,7 @@
       "id": "doca-sdk",
       "load_next": [
         "getting-started/sdk-development.md",
-        "framework/README.md",
+        "getting-started/quickstart.md",
         "contracts/capabilities/doca-sdk.json"
       ],
       "persona_routes": {
@@ -64,8 +64,8 @@
           ],
           "start_with": [
             "skills/doca-discover-environment/SKILL.md",
-            "skills/doca-explorer/SKILL.md",
-            "framework/drivers-template.md"
+            "skills/doca-ai-runner/SKILL.md",
+            "getting-started/quickstart.md"
           ]
         },
         "environment_investigator": {
@@ -89,8 +89,7 @@
           ],
           "start_with": [
             "skills/doca-discover-environment/SKILL.md",
-            "getting-started/validation.md",
-            "getting-started/first-commands.md"
+            "getting-started/quickstart.md"
           ]
         },
         "host_installer": {
@@ -114,8 +113,7 @@
             "Host prerequisites and validation commands"
           ],
           "start_with": [
-            "getting-started/package-install.md",
-            "getting-started/validation.md",
+            "getting-started/quickstart.md",
             "skills/doca-ai-runner/SKILL.md"
           ]
         },
@@ -141,8 +139,8 @@
           ],
           "start_with": [
             "skills/doca-programming-guide/SKILL.md",
-            "skills/doca-explorer/SKILL.md",
-            "getting-started/first-commands.md"
+            "skills/doca-ai-runner/SKILL.md",
+            "getting-started/quickstart.md"
           ]
         },
         "sample_builder": {
@@ -167,9 +165,9 @@
             "Build blockers"
           ],
           "start_with": [
-            "skills/doca-build-sdk-sample/SKILL.md",
+            "skills/doca-ai-runner/SKILL.md",
             "contracts/tasks/build-sdk-sample.yaml",
-            "getting-started/first-commands.md"
+            "getting-started/quickstart.md"
           ]
         },
         "service_operator": {
@@ -195,8 +193,8 @@
           ],
           "start_with": [
             "skills/doca-discover-environment/SKILL.md",
-            "skills/doca-explorer/SKILL.md",
-            "framework/services-template.md"
+            "skills/doca-ai-runner/SKILL.md",
+            "getting-started/quickstart.md"
           ]
         },
         "tool_user": {
@@ -221,8 +219,7 @@
           ],
           "start_with": [
             "skills/doca-ai-runner/SKILL.md",
-            "skills/doca-explorer/SKILL.md",
-            "guides/capability-map.md"
+            "contracts/capability-catalog.json"
           ]
         }
       },

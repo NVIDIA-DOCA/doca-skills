@@ -34,7 +34,6 @@ structured_errors:
   - {"code": "build_failed", "message": "The focused target failed to build.", "recovery": "Report the exact command and failing target before broader changes."}
   - {"code": "build_timeout", "message": "A local build command exceeded the executor timeout.", "recovery": "Inspect or remove the local build directory before retrying the focused build."}
   - {"code": "executor_error", "message": "The local build command could not start.", "recovery": "Inspect local filesystem permissions and build tool availability before retrying."}
-result_schema: contracts/schemas/task-result.schema.json
 sensors:
   - Identify the exact sample or application path before choosing a build target.
   - Read the nearest meson.build and dependency file for that target.

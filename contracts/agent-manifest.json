@@ -19,7 +19,6 @@
       "command_kind": "build",
       "id": "build-sdk-sample",
       "path": "contracts/tasks/build-sdk-sample.yaml",
-      "result_schema": "contracts/schemas/task-result.schema.json",
       "risk_class": "local-write",
       "source_globs": [
         "meson.build",
@@ -34,7 +33,6 @@
       "command_kind": "discovery",
       "id": "discover-doca-environment",
       "path": "contracts/tasks/discover-doca-environment.yaml",
-      "result_schema": "contracts/schemas/task-result.schema.json",
       "risk_class": "read-only",
       "source_globs": [
         "VERSION",
@@ -46,8 +44,8 @@
   ],
   "validation": {
     "commands": [
-      "find contracts -maxdepth 2 -type f -name *.json -print",
-      "find examples -maxdepth 1 -type f -print"
+      "find contracts -maxdepth 2 -type f -print",
+      "find skills -maxdepth 2 -name SKILL.md -print"
     ],
     "tool_calls": [
       {
@@ -58,27 +56,25 @@
           "2",
           "-type",
           "f",
-          "-name",
-          "*.json",
           "-print"
         ],
-        "command": "find contracts -maxdepth 2 -type f -name *.json -print",
-        "id": "contract-json-files",
-        "purpose": "List packaged contract JSON files."
+        "command": "find contracts -maxdepth 2 -type f -print",
+        "id": "contract-files",
+        "purpose": "List packaged contract files."
       },
       {
         "argv": [
           "find",
-          "examples",
+          "skills",
           "-maxdepth",
-          "1",
-          "-type",
-          "f",
+          "2",
+          "-name",
+          "SKILL.md",
           "-print"
         ],
-        "command": "find examples -maxdepth 1 -type f -print",
-        "id": "example-files",
-        "purpose": "List packaged example procedures."
+        "command": "find skills -maxdepth 2 -name SKILL.md -print",
+        "id": "skill-files",
+        "purpose": "List packaged Agent Skill files."
       }
     ]
   }

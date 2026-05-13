@@ -13,8 +13,7 @@ commands, structured outputs, recovery notes, and local checks so agents do not 
 - `contracts/capability-catalog.json`: compact capability list for lookup.
 - `contracts/capabilities/`: capability records selected for this source view.
 - `contracts/tasks/`: task runbooks selected for this source view.
-- `contracts/schemas/`: JSON schemas for task results, manifests, and package-owner handoff artifacts such as binary
-  context install maps.
+
 
 The manifest includes only contracts that match files in this package.
 
@@ -24,8 +23,8 @@ Use package-local evidence before suggesting runtime, device, network, credentia
 changes:
 
 ```bash
-find contracts -maxdepth 2 -type f -name *.json -print
-find examples -maxdepth 1 -type f -print
+find contracts -maxdepth 2 -type f -print
+find skills -maxdepth 2 -name SKILL.md -print
 ```
 
 ## Read-Only Tool Calls
@@ -34,8 +33,8 @@ These package-supported calls use standard commands and source evidence only. He
 
 | Call ID | Purpose | Command |
 | --- | --- | --- |
-| `contract-json-files` | List packaged contract JSON files. | `find contracts -maxdepth 2 -type f -name *.json -print` |
-| `example-files` | List packaged example procedures. | `find examples -maxdepth 1 -type f -print` |
+| `contract-files` | List packaged contract files. | `find contracts -maxdepth 2 -type f -print` |
+| `skill-files` | List packaged Agent Skill files. | `find skills -maxdepth 2 -name SKILL.md -print` |
 
 Source-package evidence includes `VERSION`, package metadata, contract JSON, SDK headers, Meson files, installed
 `doca-*.pc` files, and read-only command output from standard tools such as `find`, `grep`, `pkg-config`, Meson, and

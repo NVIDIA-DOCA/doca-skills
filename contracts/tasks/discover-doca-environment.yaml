@@ -22,7 +22,6 @@ structured_errors:
   - {"code": "missing_source_metadata", "message": "Expected source metadata is absent from the package view.", "recovery": "Report the reduced source view and avoid guessing package or version facts."}
   - {"code": "missing_discovery_tool", "message": "A documented discovery utility is unavailable.", "recovery": "Stop at source-backed facts and record the missing utility."}
   - {"code": "ambiguous_environment", "message": "Source and installed package context disagree.", "recovery": "Ask which environment is authoritative before runtime actions."}
-result_schema: contracts/schemas/task-result.schema.json
 sensors:
   - Read VERSION and package metadata present in the source or installation.
   - Inspect selected SDK headers for DOCA_EXPERIMENTAL before using APIs.

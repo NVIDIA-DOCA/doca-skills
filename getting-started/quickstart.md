@@ -1,59 +1,106 @@
 # Quickstart
 
 Applies to: `NVIDIA-DOCA/doca-skills`
-Read when: starting agent-assisted DOCA SDK work from this helper repository
-Load next: `README.md`, `getting-started/README.md`, `getting-started/first-commands.md`, `examples/README.md`, `skills/doca-user-rules/SKILL.md`, `skills/doca-ai-runner/SKILL.md`
+Read when: starting a first DOCA SDK task with this helper payload
+Load next: `skills/README.md`, `contracts/agent-manifest.json`,
+`skills/doca-ai-runner/SKILL.md`
 
-This repository gives agents a small, source-backed starting point for DOCA SDK questions. It is a helper repository,
-not the SDK source tree.
+This page keeps the first release small: one workflow, one knowledge map, three skills, and read-only evidence commands.
 
-## Choose Mode
+## Choose A Skill
 
-Use helper repository mode when checking the guidance and contracts in this repository:
+| Need | Skill |
+| --- | --- |
+| Programming Guide, API, lifecycle, dependency, or DOCA Flow lookup | `skills/doca-programming-guide/SKILL.md` |
+| Version, source layout, pkg-config, package, device, or topology discovery | `skills/doca-discover-environment/SKILL.md` |
+| Contract routing, safe command selection, or SDK sample build planning | `skills/doca-ai-runner/SKILL.md` |
 
-```bash
-find contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print
-```
+## Standard Workflow
 
-Use SDK source package mode when answering SDK version, header, dependency, sample, application, device, or topology
-questions:
+1. Keep this helper repository separate from `<source-package-root>`.
+2. Read `contracts/agent-manifest.json` and choose a listed task or capability.
+3. Run the smallest read-only evidence command that answers the question.
+4. Prefer source-package evidence over online examples for APIs, paths, and build dependencies.
+5. Report missing files, tools, sensors, devices, or approvals as blockers.
+6. Give one exact next command that remains inside the approved action class.
+
+## Install And Dependencies
+
+This payload does not install DOCA. Use it beside a DOCA SDK source package or an already installed DOCA SDK. Before
+answering build or API questions, measure what is present:
 
 ```bash
 find <source-package-root> -maxdepth 1 -name VERSION -print
-grep -R "<symbol-or-topic>" <source-package-root>/libs/*/include/public 2>/dev/null
-pkg-config --modversion <pkg-name>
+find <source-package-root> -name meson.build -print | head
+pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
-Do not treat helper repository facts as SDK facts. If the SDK source package is missing contracts, headers, metadata,
-source-package tools, or sensors, report that gap instead of guessing from this repository.
+If the task requires a build, start with planning. Do not create build directories, install dependencies, or run runtime
+samples unless the user grants that action class.
 
-## First Ten Minutes
+```bash
+find <sample-or-application-path> -maxdepth 2 -name meson.build -print
+pkg-config --print-errors --exists <pkg-name>
+```
 
-1. Read `README.md`, this file, and `skills/doca-user-rules/SKILL.md`.
-2. Read `examples/README.md` if you want prompt shapes and expected agent flow diagrams before running an evidence
-   command.
-3. Run `find contracts -maxdepth 2 -type f -print` to verify the helper repository contract surface.
-4. If the task targets a DOCA SDK source package, rerun discovery against `<source-package-root>`.
-5. For SDK API questions, inspect contracts, SDK headers, Meson files, and `pkg-config` metadata before naming headers,
-   functions, dependencies, or samples.
-6. For sample or application builds, start with planner-only mode:
+## Coding Guidelines
 
-   ```bash
-   find <sample-or-application-path> -maxdepth 2 \( -name meson.build -o -name meson.build \) -print
-   pkg-config --print-errors --exists <pkg-name>
-   ```
+When the answer includes code guidance:
 
-7. Treat package installs, device changes, network changes, persistent configuration, credentials, runtime traffic, and
-   runtime samples as blocked until the local owner approves that action class.
+- Use the SDK headers and sample sources from `<source-package-root>`.
+- Check lifecycle order in local headers, Meson files, samples, and the Programming Guide before writing snippets.
+- Use `doca_error_t` paths and cleanup steps that are visible in local source.
+- Do not invent PCI addresses, representors, interfaces, queue counts, firmware versions, package versions, or topology.
+- Treat runtime, device, network, credential, persistent configuration, traffic, and package-manager changes as
+  approval-gated.
 
-## Expected Answer Shape
+## DOCA Framework Map
 
-Useful answers should name:
+Use this compact map before selecting files:
 
-- Guidance files read from this repository.
-- SDK source package path used, or `not_provided`.
-- Commands run and their structured results.
-- Capability or task ID selected.
-- Source-backed libraries, services, and tools overviews when relevant.
-- Missing files, metadata, sensors, packages, devices, or approvals.
-- Exact next safe command.
+| Area | Evidence To Inspect |
+| --- | --- |
+| Services | Service source, application entrypoints, Meson dependencies, config files, and service logs named by the user. |
+| Libs | `libs/*/include/public`, matching implementation files, samples, pkg-config metadata, and lifecycle docs. |
+| Tools | Tool source, CLI argument parsing, config schema, output examples, and pkg-config metadata. |
+| Samples and applications | The named sample/app directory, nearby `meson.build`, dependency files, common helpers, and README files. |
+
+DOCA Flow work should start with local `doca-flow` headers, Flow samples, Meson dependencies, and pkg-config metadata,
+then use the DOCA Flow documentation only for conceptual checks.
+
+## Troubleshooting
+
+For build failures:
+
+```bash
+pkg-config --print-errors --exists <pkg-name>
+pkg-config --cflags --libs <pkg-name>
+find <source-package-root> -name meson.build -print | grep '<sample-or-lib-name>'
+```
+
+For API or lifecycle confusion:
+
+```bash
+grep -R "<symbol-or-topic>" <source-package-root>/libs/*/include/public 2>/dev/null
+grep -R "<symbol-or-topic>" <source-package-root>/samples <source-package-root>/applications 2>/dev/null
+```
+
+For traces, counters, or logs, report what file or command would provide the evidence and whether approval is needed
+before running it. Do not treat an example trace as a local fact.
+
+## Documentation Links
+
+Use online docs only as secondary context after checking local source evidence:
+
+| Topic | Link |
+| --- | --- |
+| DOCA SDK docs | <https://docs.nvidia.com/doca/sdk/index.html> |
+| DOCA overview | <https://docs.nvidia.com/doca/sdk/doca-overview/index.html> |
+| DOCA Programming Guide | <https://docs.nvidia.com/doca/sdk/doca-programming-guide/index.html> |
+| DOCA SDK architecture | <https://docs.nvidia.com/doca/sdk/doca-sdk-architecture/index.html> |
+| DOCA capability checking | <https://docs.nvidia.com/doca/sdk/capability-checking/index.html> |
+| DOCA debuggability | <https://docs.nvidia.com/doca/sdk/debuggability/index.html> |
+| DOCA Flow | <https://docs.nvidia.com/doca/sdk/doca-flow/index.html> |
+
+If an online doc conflicts with local source, report `version_mismatch` and prefer local source for commands, APIs,
+dependencies, and file paths.

@@ -1,30 +1,29 @@
 ---
 name: doca-discover-environment
-description: Run read-only DOCA source-package discovery and report package, capability, version, and topology facts without hardcoded assumptions.
+description: Run read-only DOCA source-package discovery without hardcoded version, package, device, or topology facts.
 ---
 
 License: see repository root `LICENSE.md`.
 
 Applies to: DOCA source-package and environment discovery
-Read when: a `doca-skills` export needs a short discovery skill
+Read when: measuring what a DOCA source package or installed SDK exposes
 
 # DOCA Discover Environment
 
-Use this skill before answering what a DOCA source package contains, what capabilities are visible, or what environment
-facts are known.
+Use this skill before answering what a DOCA source package contains, which SDK packages are installed, or what
+environment facts are known.
 
 ## Read First
 
-- `getting-started/environment-discovery.md`
-- `getting-started/first-commands.md`
+- `getting-started/quickstart.md`
 - `contracts/tasks/discover-doca-environment.yaml`
 - `skills/doca-ai-runner/SKILL.md`
 
-## Command
+## Commands
 
 ```sh
 find <source-package-root> -maxdepth 1 -name VERSION -print
-find <source-package-root>/contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
+find <source-package-root> -name meson.build -print | head
 pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
