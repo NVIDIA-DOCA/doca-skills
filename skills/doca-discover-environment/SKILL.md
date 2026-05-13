@@ -35,6 +35,21 @@ pkg-config --modversion <pkg-name>
 pkg-config --cflags --libs <pkg-name>
 ```
 
+For local topology inventory, run only commands that exist:
+
+```sh
+lspci -Dnn | grep -Ei "nvidia|mellanox|bluefield|connectx"
+ip -br link
+ip -d link show
+devlink dev show
+devlink port show
+devlink dev eswitch show
+rdma dev show
+rdma link show
+ibv_devinfo -v
+nvidia-smi topo -m
+```
+
 ## Rules
 
 - Do not hardcode PCI addresses, interface names, representors, GPU IDs, package versions, firmware, or topology.
@@ -44,5 +59,5 @@ pkg-config --cflags --libs <pkg-name>
 
 ## Return
 
-Report `source_version`, `available_capabilities`, `experimental_api_summary`, measured sensors, blockers, and next safe
-command.
+Report `source_version`, `available_capabilities`, `experimental_api_summary`, topology coverage, measured sensors,
+blockers, and next safe command.

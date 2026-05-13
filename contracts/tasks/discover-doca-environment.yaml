@@ -26,6 +26,7 @@ sensors:
   - Read VERSION and package metadata present in the source or installation.
   - Inspect selected SDK headers for DOCA_EXPERIMENTAL before using APIs.
   - Use documented DOCA device or capability discovery utilities when available.
+  - Run available read-only topology probes such as lspci -Dnn, ip -br link, ip -d link show, devlink dev show, devlink port show, devlink dev eswitch show, rdma dev show, rdma link show, ibv_devinfo -v, and nvidia-smi topo -m.
   - Treat sample PCI addresses, IB device names, interface names, and representor names as placeholders until discovered locally.
 actuators:
   - Run read-only source inspection commands.

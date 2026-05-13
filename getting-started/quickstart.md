@@ -35,6 +35,21 @@ find <source-package-root> -name meson.build -print | head
 pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
+For device and topology inventory, use available read-only probes:
+
+```bash
+lspci -Dnn | grep -Ei "nvidia|mellanox|bluefield|connectx"
+ip -br link
+ip -d link show
+devlink dev show
+devlink port show
+devlink dev eswitch show
+rdma dev show
+rdma link show
+ibv_devinfo -v
+nvidia-smi topo -m
+```
+
 If the task requires a build, start with planning. Do not create build directories, install dependencies, or run runtime
 samples unless the user grants that action class.
 
