@@ -49,7 +49,6 @@ pkg-config --print-errors --exists <pkg-name>
 | `examples/` | Prompt examples with expected agent flow diagrams. |
 | `skills/` | Portable agent skills. |
 | `.agents/skills/` | Symlinks for tools that discover Agent Skills from a standard location. |
-| `tools/` | Documentation for source-package source-evidence procedures. |
 | `development/`, `environment-setup/`, `troubleshooting/` | Topic routers for common SDK workflows. |
 | `guides/` | Persona routing, capability, and source-package navigation guides. |
 | `framework/` | DOCA Framework guide templates for libs, services, and drivers. |
@@ -65,7 +64,6 @@ flowchart TD
     personas["guides/persona-routing.md<br/>library, service, tool, build, host-install, setup users"]
     skills["skills/ and .agents/skills/<br/>portable workflows"]
     contracts["contracts/<br/>task and capability manifest"]
-    tools["tools/<br/>source-evidence procedures"]
     helper["Helper repo mode<br/>bundled docs and contracts"]
     source["DOCA SDK source package<br/>local files and package metadata"]
     report["Structured answer<br/>facts, blockers, safe next commands"]
@@ -81,9 +79,8 @@ flowchart TD
     examples --> skills
     examples --> contracts
     skills --> contracts
-    contracts --> tools
-    tools --> helper
-    tools --> source
+    contracts --> helper
+    contracts --> source
     source --> report
     helper --> report
 ```
