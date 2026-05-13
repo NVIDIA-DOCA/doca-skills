@@ -1,7 +1,0 @@
-{
-  "description": "AI guidance for the NVIDIA-DOCA/doca-skills repository.",
-  "manifest": "doca-skills",
-  "profile": null,
-  "requires_profile": false,
-  "schema_version": "1.0"
-}
