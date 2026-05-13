@@ -66,30 +66,97 @@ Steps:
 5. Do **not** call the entry-add API yet. The spec is built, not
    programmed. Hand off to `## test` for validation.
 
-**When the user asks for a "first Flow app" specifically:** the right
-approach is the generic *derive a custom first app from a sample*
-pattern in [`doca-setup ## modify`](../doca-setup/TASKS.md#modify), with
-these Flow-specific overrides:
+**When the user asks for a "first Flow app" specifically:** the answer
+depends on the user's language and on whether the user can reach a
+DOCA-installed Linux host. Two preconditions, two language tracks; the
+agent must establish both before recommending any concrete next step.
+
+**Precondition gate.** Both tracks require a DOCA-installed Linux host
+where the agent can read the sample tree and `pkg-config --modversion
+doca-flow` resolves. If the precondition is not met, route to
+[`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install) *before*
+offering any source code. Do **not** author a Flow application from
+documentation prose, in any language, to fill the gap. Ground rule #3
+of [`AGENTS.md`](../../../AGENTS.md), the version-compatibility rule in
+[`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility),
+and [`SKILL.md ## What this skill deliberately does not ship`](SKILL.md#what-this-skill-deliberately-does-not-ship)
+all forbid it; the resulting source would not compile or link against a
+real install.
+
+### Track 1 — C / C++ consumers (the canonical case)
+
+This is the first-app shape for which NVIDIA ships verified reference
+code. The recipe is the generic *derive a custom first app from a
+sample* pattern in [`doca-setup ## modify`](../doca-setup/TASKS.md#modify),
+with these Flow-specific overrides:
 
 - **Source sample.** For the simplest *match-and-forward-to-port*
   shape: `/opt/mellanox/doca/samples/doca_flow/flow_port_fwd/`. For
   *switch mode + representor*: `/opt/mellanox/doca/samples/doca_flow/flow_switch_single/`
-  (use the helpers in `flow_switch_common.{c,h}`).
+  (use the helpers in `flow_switch_common.{c,h}`). The agent must `ls`
+  the directory and read the actual sample contents on the user's
+  install before describing them; sample layouts can change between
+  releases.
 - **Fields the user must swap (the explicit-placeholder list).**
-  Destination MAC for the entry match (`target_mac` constant);
-  representor `port_id` for the forward action; pipe name string. *Keep*
-  all init/teardown boilerplate, the `doca_flow_entries_process()`
-  loop, the per-entry status callback, and the validation flow described
-  in [`## test`](#test).
+  Destination MAC for the entry match (the `target_mac`-shaped
+  constant in the sample's source); representor `port_id` for the
+  forward action; the pipe name string passed to
+  `doca_flow_pipe_cfg_set_name()`. *Keep* all init/teardown
+  boilerplate, the `doca_flow_entries_process()` loop, the per-entry
+  status callback, and the validation flow described in
+  [`## test`](#test). The substance of the file remains the upstream
+  sample's verified code; the agent edits a small set of literals.
 - **Build flavor.** Use the trace flavor for the first run — link with
   `doca-flow-trace` via `pkg-config`, or set `LD_LIBRARY_PATH` per
   [`doca-setup CAPABILITIES.md ## Capabilities and modes`](../doca-setup/CAPABILITIES.md#capabilities-and-modes).
   Switch to release only after the staged run succeeds.
-- **Output.** A *complete buildable file*, not prose-shape. The
-  placeholder rule from [`doca-setup ## modify`](../doca-setup/TASKS.md#modify)
-  step 4 is binding here: do not halt to ask the user for trivia they
-  can paste in themselves; write the value as a `/* TODO */`-marked
-  constant and move on.
+- **Standalone build manifest.** If the user wants to build outside
+  the shipped DOCA samples meson tree, the agent constructs a small
+  standalone build manifest *in the user's project directory* that
+  `pkg-config`s `doca-flow` (the module name is documented in the
+  [DOCA Flow Programming Guide](https://docs.nvidia.com/doca/sdk/doca-flow/index.html)
+  §"Initialization Flow"). For C/C++ projects the canonical choice is
+  meson; cmake or autotools work equivalently against the same
+  `pkg-config` module. The agent does **not** copy a build template
+  out of this skill; the skill ships agent guidance, not artifacts.
+
+### Track 2 — Other languages (Rust, Go, Python, …)
+
+NVIDIA does not ship a verified first-app sample in non-C languages
+inside this repository, and the skill does not ship one either. The
+agent's job for a non-C consumer is therefore *not* to author the
+wrapper from documentation prose — it is to make sure the consumer
+understands the API surface their wrapper will call, and to route the
+language-specific build/FFI work back to the consumer.
+
+- **API surface.** The authoritative API is the public C ABI of the
+  `doca-flow` library. Citations belong against the public
+  [DOCA Flow Programming Guide](https://docs.nvidia.com/doca/sdk/doca-flow/index.html)
+  for behavior and lifecycle; the installed C headers under
+  `/opt/mellanox/doca/infrastructure/include/` (`doca_flow.h`,
+  `doca_flow_*.h`) are the canonical source for symbol signatures.
+  Any non-C wrapper has to honor the same lifecycle, capability gate,
+  and validation rules described in
+  [`CAPABILITIES.md`](CAPABILITIES.md) and [`## test`](#test); these
+  are properties of the library, not of the language.
+- **Bindings.** If the user's chosen language has a community or
+  user-built binding, point them at it (the agent must verify it
+  exists by fetching its repository or package registry — do *not*
+  invent a binding name). If not, the user is doing direct FFI:
+  `bindgen` for Rust, `cgo` for Go, `cffi`/`ctypes` for Python, etc.
+  The agent does not generate the bindings in this conversation; it
+  describes the C-side surface (`*.so` linkage, header path,
+  `pkg-config --cflags --libs doca-flow`) the binding tooling needs.
+- **Reference: read the C samples.** Even a non-C consumer benefits
+  from reading
+  `/opt/mellanox/doca/samples/doca_flow/flow_port_fwd/` to understand
+  the *order* of API calls and which fields matter — that order is
+  the same regardless of the calling language. The wrapper translates
+  it; it does not invent a different shape.
+- **Runtime is the same.** All of [`## test`](#test), [`## run`](#run),
+  and [`## debug`](#debug) below apply unchanged. The validation gate,
+  the staged run, the counters-first debugging order — these are
+  library properties, not language properties.
 
 ## modify
 

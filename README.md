@@ -5,6 +5,13 @@
 
 This repository is intended as a **public, drop-in DOCA skills bundle** for AI coding agents. Any developer who clones it can open it in their AI coding tool of choice — Cursor, Claude Code, Codex, Gemini, custom in-house LLMs — and the agent will know how to help with DOCA without any extra setup, without the developer needing to clone or download anything else.
 
+**Who this is for:** *external developers building applications that **consume** DOCA libraries* — i.e., users who want to call DOCA Flow, DOCA RDMA, DOCA Comch, etc. from their own networking application to offload work onto a NVIDIA BlueField DPU or ConnectX NIC. It is *not* intended for NVIDIA developers contributing to DOCA itself; internal-tooling questions (Gerrit, NVBugs, internal mirrors, kernel-module internals) are explicitly out of scope and forbidden by the ground rules in [`AGENTS.md`](AGENTS.md).
+
+**Language scope:** the skills are language-agnostic about the *consumer* application. DOCA itself is shipped as C libraries with a stable C ABI and `pkg-config` modules, and the only application source code NVIDIA ships in this repository's `samples/` and `applications/` trees is C/C++. So:
+
+- **C / C++ consumers** are the canonical case. The "first app" workflow is *modify a shipped C sample on your DOCA-installed Linux host*; the build manifest is meson + `pkg-config doca-<library>`. Most of the prescriptive examples in the skills assume this path.
+- **Other-language consumers** (Rust, Go, Python, etc.) consume DOCA via FFI / language-specific bindings against the same `*.so` libraries the C samples link against. The skills do not author your wrapper for you and do not claim NVIDIA ships official non-C bindings unless that has been verified at the time the consumer reads this; the skills' contribution in that case is to route you to the public C API surface (which is what your bindings will call) and to keep the install/runtime/safety guidance language-agnostic. Your build system (cargo, go build, setup.py, …) is your concern; DOCA appears to it as a system C library.
+
 The skills layer is currently shipped on the `ai-mvp-with-files` branch; `master` carries the public DOCA samples *without* the skills layer so the two are easy to compare side-by-side.
 
 **Where the agent guidance lives:**

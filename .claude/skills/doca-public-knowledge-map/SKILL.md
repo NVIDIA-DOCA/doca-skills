@@ -42,6 +42,16 @@ install path, and only then answer.
 Start here for any conceptual question. These are the canonical NVIDIA-hosted
 documents.
 
+> **Rule when a URL in this skill returns 404.** NVIDIA periodically renames
+> doc pages and library slugs (the most recent example: *Comm Channel* →
+> *Comch* in DOCA 2.5). If a URL listed here 404s during a real session:
+> (1) tell the user explicitly that the skill's URL is stale; (2) try
+> `https://docs.nvidia.com/doca/sdk/` (the index always works) and look for a
+> renamed link; (3) **do not invent a replacement URL** and do not silently
+> point at an `archive/` URL — those are version-pinned to old releases.
+> File a fix against this skill (see "URL audit" footer for the last
+> verification date and DOCA version).
+
 | Topic | URL | When to use |
 | --- | --- | --- |
 | DOCA SDK documentation index | <https://docs.nvidia.com/doca/sdk/index.html> | The top of the documentation tree. Always start here when the user asks an open-ended "how does DOCA do X?" question. |
@@ -50,9 +60,9 @@ documents.
 | DOCA Programming Guide (index) | <https://docs.nvidia.com/doca/sdk/doca-programming-guide/index.html> | SDK architecture, common patterns, how libraries connect, how to wire up a sample. Read this before drilling into a specific library guide. |
 | DOCA Release Notes | <https://docs.nvidia.com/doca/sdk/doca-release-notes/index.html> | What changed in a release, supported hardware, supported OSes, known issues. Read whenever the user's symptom could be a known issue. |
 | Developer Zone — DOCA landing | <https://developer.nvidia.com/networking/doca> | Marketing-and-onboarding view (videos, tutorials, blog posts). Use only as a fallback when the official SDK docs do not have the topic yet. |
-| DOCA Downloads | <https://developer.nvidia.com/networking/doca-downloads> | Where customers actually download DOCA packages, BFB images, host packages. Use this to answer "which package do I need?". |
+| DOCA Downloads | <https://developer.nvidia.com/doca-downloads> | Where customers actually download DOCA packages, BFB images, host packages. Use this to answer "which package do I need?". |
 | NGC Catalog (containers and resources) | <https://catalog.ngc.nvidia.com> | Find DOCA containers, model artifacts, and DPU images. Search for `doca` to enumerate. |
-| DOCA Developer Forum | <https://forums.developer.nvidia.com/c/infrastructure/doca/362> | Last-resort discovery for undocumented behavior, real customer questions, NVIDIA staff answers. Always include the disclaimer that forum threads can age and may not match the user's installed version. |
+| DOCA Developer Forum | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> | Last-resort discovery for undocumented behavior, real customer questions, NVIDIA staff answers. Always include the disclaimer that forum threads can age and may not match the user's installed version. |
 
 ## Library- and module-specific guides
 
@@ -62,12 +72,20 @@ guide once the user's question is narrow enough to be about a single library.
 | Library | Guide | Typical questions it answers |
 | --- | --- | --- |
 | DOCA Flow | <https://docs.nvidia.com/doca/sdk/doca-flow/index.html> | Port setup, device or representor selection, pipes, actions, actions memory, entry lifecycle. |
+| DOCA RDMA | <https://docs.nvidia.com/doca/sdk/doca-rdma/index.html> | RDMA verbs over BlueField/ConnectX, queue-pair lifecycle, DOCA-RDMA send/recv/write/read patterns. |
 | DOCA DPA | <https://docs.nvidia.com/doca/sdk/doca-dpa/index.html> | DPA host/device split-build flow, DPACC context, DPA annotation conventions. |
 | DOCA GPUNetIO | <https://docs.nvidia.com/doca/sdk/doca-gpunetio/index.html> | GPU-initiated networking, CUDA + DOCA integration patterns. |
-| DOCA Comm Channel | <https://docs.nvidia.com/doca/sdk/doca-comm-channel/index.html> | Host ↔ DPU control-plane messaging. |
+| DOCA Comch (formerly Comm Channel) | <https://docs.nvidia.com/doca/sdk/DOCA-Comch/index.html> | Host ↔ DPU control-plane messaging. **Library was renamed in DOCA 2.5**: the URL slug is `DOCA-Comch`, not `doca-comm-channel`. The `pkg-config` module on installed systems is `doca-comch`. |
 | DOCA Telemetry | <https://docs.nvidia.com/doca/sdk/doca-telemetry/index.html> | Telemetry exporter, schemas, integration with Grafana/Prometheus. |
-| DOCA Apps and Tools | <https://docs.nvidia.com/doca/sdk/doca-applications-overview/index.html> | The shipped reference applications (PCC, DPI, etc.) and the `doca_tools` CLIs. |
-| DOCA Samples Overview | <https://docs.nvidia.com/doca/sdk/doca-samples-overview/index.html> | Catalog of the sample programs the SDK ships per library. |
+| DOCA Reference Applications | <https://docs.nvidia.com/doca/sdk/DOCA-Reference-Applications/index.html> | The shipped reference applications (PCC, DPI, IPsec gateway, file-compression, etc.) — what each one does, where its source lives under `/opt/mellanox/doca/applications/`, and how to recompile with `meson` + `ninja`. |
+
+There is **no current single "DOCA Samples Overview" page** in the v3.x docs.
+Samples are documented per-library inside each library's programming guide
+(see "Sample" sections inside the URLs above) and ship on disk under
+`/opt/mellanox/doca/samples/doca_<library>/`. Earlier (v1.x / v2.x) docs did
+have a single overview page — those URLs are now archived and will return 404
+on `docs.nvidia.com/doca/sdk/`. Do not link the archived page; route the user
+to the per-library "Sample" sections plus the on-disk samples directory.
 
 If the user asks about a DOCA library that is not in this table, do **not**
 guess the URL. Fall back to the SDK index and the user's installed sample
@@ -188,3 +206,17 @@ Flow counters and traces, Flow version compatibility, and debugging
 [`doca-flow`](../doca-flow/SKILL.md). That skill assumes this one is
 available for shared documentation routing and install-layout lookups,
 and `doca-setup` for environment preparation.
+
+## URL audit
+
+| Last full audit | Against DOCA docs version | Outcome |
+| --- | --- | --- |
+| 2026-05-13 | v3.3.0 (current `docs.nvidia.com/doca/sdk/` redirect target) | All URLs in this file fetched successfully. Five URLs fixed in this audit: *DOCA Downloads* dropped `/networking/`; *Forum* moved from category 362 → 370; *Comm Channel* renamed to *Comch* (`DOCA-Comch/index.html`); *DOCA Apps and Tools* renamed to *DOCA Reference Applications* (`DOCA-Reference-Applications/index.html`); *DOCA Samples Overview* row removed (page no longer exists in current sdk; samples are documented per-library inside each library guide). Added: *DOCA RDMA* row (was missing from libraries table). |
+
+How to re-audit: open this file's URL columns in a script that does
+`HEAD` against each URL, fail the check on any non-2xx response. The CI
+hook in [`ci/check-skill.sh`](../../../ci/check-skill.sh) currently lints
+structure only and **does not** verify that the URLs resolve — extending
+it with an opt-in `--check-urls` mode is tracked as a follow-up. Until
+that exists, re-audit this file by hand on every DOCA major release and
+update the row above.

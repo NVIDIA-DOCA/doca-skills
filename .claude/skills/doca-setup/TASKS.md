@@ -52,43 +52,88 @@ Steps the agent should walk the user through:
 
 ## modify
 
-Goal: take a working shipped sample and **derive a custom first application** for the user. This is the verb that fixes the "the agent gave me structure but not a runnable app" failure mode.
+Goal: take a working shipped sample and **derive a custom first application** for the user, by editing a verbatim copy of the sample on the user's own DOCA-installed Linux host. The substance of the modified file is NVIDIA's BSD-3 sample (verified, compiled, shipped) with a small, named set of user-domain values swapped. The agent does **not** author DOCA library source code from scratch.
 
-The generic pattern below is library-agnostic. Library-specific values (which sample, which fields the user must change, which actions to keep) live in the matching library skill — for Flow, see [`doca-flow TASKS.md ## build`](../doca-flow/TASKS.md#build).
+**Language scope of this verb.** The shipped DOCA samples are written in C; this is the only application source code NVIDIA ships in this repository. The "modify a sample" workflow below is therefore the C / C++ first-app track. For consumers writing their first DOCA application in another language (Rust, Go, Python, …), this verb is *not* the right path — those users should still use `## configure` and `## build` (against the shipped C samples) to verify their install is healthy, and then route to the matching library skill's "non-C consumers" guidance for FFI / bindings work (e.g. [`doca-flow TASKS.md ## build` Track 2](../doca-flow/TASKS.md#build)). The agent must not pretend the modify-a-sample workflow produces a Rust crate, a Go module, or a Python package; the workflow's output is a modified copy of NVIDIA's C sample.
 
-Steps the agent should walk the user through:
+The generic pattern below is library-agnostic *across DOCA libraries* (Flow, RDMA, Comch, …) but C-specific *within a library*. Library-specific values (which sample, which fields the user must change, which actions to keep) live in the matching library skill — for Flow, see [`doca-flow TASKS.md ## build`](../doca-flow/TASKS.md#build).
 
-1. **Identify the source sample.** Use the smallest shipped sample that already does something close to what the user asked for. Confirm it builds clean (`## build` above) and runs clean (`## run` below) *before* any modification.
+### Precondition
 
-2. **Copy the sample out of `/opt/mellanox/doca/` into a writable location.**
+This verb requires *all* of:
+
+| Precondition | Check |
+| --- | --- |
+| Linux host the agent can reach (the user's machine, an SSH session, a Cursor remote, a container — any environment where the agent can `ls` the install tree) | shell available |
+| DOCA installed | `ls /opt/mellanox/doca` returns a populated tree |
+| The source sample is present | `ls /opt/mellanox/doca/samples/<library>/<sample_name>/` lists `meson.build` and the source files |
+| `pkg-config` knows DOCA | `pkg-config --modversion doca-<library>` returns a version string |
+
+If any precondition fails, **do not proceed and do not invent a substitute**. Route to [`## no-install`](#no-install) below; that section is what the agent does instead. Authoring application source code in *any* language (C, C++, Rust, Go, Python, …) from documentation prose to "fill the gap" is the failure mode this verb is here to prevent — it violates [`AGENTS.md`](../../../AGENTS.md) ground rule #3 and would ship code that has never been compiled / linked / FFI-loaded against the live DOCA library.
+
+### Steps (preconditions met)
+
+1. **Identify the source sample.** Use the smallest shipped sample that already does something close to what the user asked for. Confirm it builds clean (`## build` above) and runs clean (`## run` below) *before* any modification. The library skill names the right starting sample for common shapes; do not pick from memory.
+
+2. **Read the actual contents of the sample.** Before describing the file, list it (`ls`) and read the `meson.build` plus each `.c`/`.h`. The shape of the sample on the user's installed version is the truth, not what an older release looked like or what a docs page describes.
+
+3. **Copy the sample out of `/opt/mellanox/doca/` into a writable location.**
 
    ```bash
    cp -r /opt/mellanox/doca/samples/<library>/<sample_name>/ ~/dev/my-first-<library>-app/
    cd ~/dev/my-first-<library>-app/
    ```
 
-   Never edit the install tree itself ([CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) item 1).
+   Never edit the install tree itself ([CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) item 1). The copy is the user's source code from this point forward.
 
-3. **Identify the *minimum* set of values to change.** Library-specific list lives in the library skill. For *every* library the recipe is the same shape: keep all init/teardown boilerplate; keep the validation calls; keep the error handling; only swap the small set of user-domain values (target MAC, target port_id, queue depths, packet-size limits, etc.).
+4. **Identify the *minimum* set of values to change in the copy.** Library-specific list lives in the library skill. For *every* library the recipe is the same shape: keep all init/teardown boilerplate; keep the validation calls; keep the error handling; only swap the small set of user-domain values (target MAC, target port_id, queue depths, packet-size limits, etc.). Every byte not changed is a byte not debugged.
 
-4. **Produce a complete buildable file with explicit placeholders, not prose.** This is the rule that fixes the failure mode: when the agent doesn't know the user's exact MAC / port_id / queue depth, it must write the value as a placeholder constant with a `/* TODO: replace with your <thing> */` comment, **not** halt to ask. The user can build, run, and fix the placeholder once. Halting to ask the user for trivia they can paste in themselves is a worse outcome than a one-line placeholder.
+5. **Apply the swap as a minimum-diff edit on the copied file.** Where the user has given you a real value, substitute the literal. Where the user has not yet given you a value but the build would otherwise fail to compile, leave a `/* TODO: replace with your <thing>; see <how-to-find-it> */` comment around a syntactically-valid placeholder constant. The placeholder rule is **only for values that block compilation if absent** (constants, `#define`s the rest of the file references); it is not a license to leave function bodies or DOCA API call sequences unfilled. The init/teardown/validation/error-handling calls all stay verbatim from the upstream sample.
+
+   Example placeholders (note: the *surrounding code* is the upstream sample's, untouched):
 
    ```c
    /* TODO: replace with your destination MAC. Use `ip link show <iface>` on
     * the originating host to obtain the real value. */
    uint8_t target_mac[6] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55 };
 
-   /* TODO: replace REPRESENTOR_PORT_ID with the port_id reported by
-    * doca_flow_port_switch_get(...) for your representor. Use the
-    * `flow_port_fwd` sample's enumeration printout to find it. */
+   /* TODO: replace REPRESENTOR_PORT_ID with the port_id reported by the
+    * sample's enumeration printout for your representor. */
    #define REPRESENTOR_PORT_ID 1
    ```
 
-5. **Update the build manifest minimally.** The simplest correct change to the sample's `meson.build` is to rename the executable; do not refactor build options. If the original sample required `-D enable_<flag>=true`, keep that option in your build invocation.
+6. **Update the build manifest minimally.** The simplest correct change to the sample's `meson.build` is to rename the executable; do not refactor build options. If the original sample required `-D enable_<flag>=true`, keep that option in your build invocation. If the user's project must build *standalone* (outside the DOCA samples meson tree), the `meson.build` becomes a small standalone manifest that depends on `doca-<library>` via `pkg-config` — the canonical pattern is documented in the library skill's `## build`. The agent should construct this `meson.build` inline against the user's project, *not* by copying a template from this skill.
 
-6. **Build and run staged.** Build with `## build`. Run with `## run` against a single representor with controlled traffic ([CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) item 4). Read the output. Only after the staged run succeeds may the user widen the scope (more entries, more representors, real traffic). Library-specific staging discipline lives in the library skill.
+7. **Build and run staged.** Build with `## build`. Run with `## run` against a single representor with controlled traffic ([CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) item 4). Read the output. Only after the staged run succeeds may the user widen the scope (more entries, more representors, real traffic). Library-specific staging discipline lives in the library skill.
 
-7. **Document what was changed.** A two-line `README` next to the modified sample saying *"Derived from `<source-sample>` on `<date>` against DOCA `<version>`. Modified fields: `<list>`."* lets the user re-derive against the next DOCA release without having to re-read the agent's chat history.
+8. **Document what was changed.** A two-line `README` next to the modified sample saying *"Derived from `<source-sample>` on `<date>` against DOCA `<version>`. Modified fields: `<list>`."* lets the user re-derive against the next DOCA release without having to re-read the agent's chat history.
+
+## no-install
+
+Goal: behave correctly when the [`## modify` preconditions](#precondition) are not met — i.e., the user has asked for a "first app" or any other modify-class task on a host where DOCA is not installed (a fresh laptop, a CI runner, a remote machine with no DOCA package, etc.). This applies regardless of the user's chosen language: Python, Rust, Go, and Node consumers all need the DOCA `*.so` to bind against, and a fresh laptop with no install can't provide that any more than it can provide the C samples.
+
+The wrong behavior — and the failure mode that this section exists to prevent — is for the agent to author DOCA application source code from documentation prose (in *any* language: C, C++, Rust, Go, Python wrapper, etc.), mark unknowns with placeholder comments, and present it as a "first app". That output looks complete to the user, won't compile or link against any real DOCA install, and breaks the user's trust in every other answer the skill produces. Don't.
+
+### What the agent does instead
+
+1. **State the limitation explicitly, once.** Tailor the wording to the user's language but keep the substance the same: "DOCA needs a Linux host with the DOCA install tree, a `pkg-config doca-<library>` that resolves, and (for any language other than C/C++) the `*.so` libraries available for FFI / bindings to load. I can't write your first app from this environment because the verified pieces — the shipped C samples in the C/C++ track, or the `*.so` and headers your bindings will link against in any other language — live on a host I can't reach. Here's exactly what I *can* do, and exactly what you do next."
+
+2. **Hand the user the procedure they will execute on the install host.** Library- and language-aware:
+   - **C / C++ track** — the procedure mirrors the `## modify` "Steps" section above, with library-specific values filled in from the matching library skill (e.g. [`doca-flow TASKS.md ## build` Track 1](../doca-flow/TASKS.md#build) for Flow).
+   - **Other-language track** — the procedure is: install DOCA, confirm `pkg-config --cflags --libs doca-<library>` resolves, locate the headers under `/opt/mellanox/doca/infrastructure/include/`, then route to the matching library skill's non-C guidance (e.g. [`doca-flow TASKS.md ## build` Track 2](../doca-flow/TASKS.md#build) for Flow) for the bindings/FFI-side work the user does in their own toolchain.
+   In both cases, *no* application source code is written in this conversation — the procedure is what the user runs against the real install once they reach it.
+
+3. **Walk the user through reaching an install host.** Three honest paths, named in order of cost:
+
+   | Path | When it fits | What to walk the user through |
+   | --- | --- | --- |
+   | **A. Existing Linux+DOCA host** (lab box, dev server, BlueField over `rshim`) | Most common case at NVIDIA | SSH or Cursor-remote into it; rerun `## modify` from there. |
+   | **B. Cloud Linux instance, no NIC** | User wants to build samples, read the API, or experiment with bindings; can't run against hardware | Pick any Linux distro listed under the [DOCA Host Supported OS table](https://docs.nvidia.com/doca/sdk/installation-guide-for-linux/index.html). Install via the Installation Guide; the **build-only** parts of `## modify` (and the bindings-build parts of the non-C track) work; the actual runtime needs hardware (Path C). |
+   | **C. Linux + ConnectX/BlueField hardware** | User wants the real end-to-end runtime | Either user-owned hardware, an internal lab allocation, or the [DOCA Downloads page](https://developer.nvidia.com/doca-downloads) for the BFB image to bring up a BlueField. The agent does *not* recommend specific cloud SKUs by name unless they are listed in the public Supported OS table; cloud GPU/ARM SKUs do not generically include DOCA-eligible NICs and the agent must not pretend otherwise. |
+
+4. **Do not scaffold a project on the un-installed host.** Do not produce `meson.build`, `CMakeLists.txt`, `Cargo.toml`, `setup.py`, `go.mod`, an application source file in any language, project directories, or any artifact that would mislead the user into thinking a build is one command away. The agent's *only* artifacts in this state are: (a) the install/path procedure for the user to run on the install host, and (b) the menu above. The skill's claim is "I'll be useful the moment you reach a real install"; making artifacts now would dilute that claim with files that are not buildable in this environment.
+
+5. **Promise the resumption.** Tell the user: "When you're on the install host, paste me the output of `pkg-config --modversion doca-<library>` and `pkg-config --cflags --libs doca-<library>`, plus (C/C++ track) `ls /opt/mellanox/doca/samples/<library>/<sample_name>/` or (other-language track) the `*.so` filename your bindings will load. I'll resume from `## modify` step 1 (C/C++) or from the matching library skill's bindings guidance (other languages) with the real install in hand."
 
 ## run
 
