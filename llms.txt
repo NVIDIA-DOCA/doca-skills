@@ -17,7 +17,7 @@ skills, and read-only tools that are safe to use before proposing builds, runtim
 - `skills/doca-discover-environment/SKILL.md`: capability and environment discovery without hardcoded topology
   assumptions.
 - `skills/doca-programming-guide/SKILL.md`: DOCA Programming Guide routing enriched with local source evidence.
-- `guides/persona-routing.md`: route library, service, tool, build, and setup prompts to the right skill.
+- `guides/persona-routing.md`: route library, service, tool, build, host-install, and setup prompts to the right skill.
 - `guides/capability-map.md`: samples and applications capability map.
 - `skills/doca-explorer/SKILL.md`: samples and applications exploration workflow and response shape.
 

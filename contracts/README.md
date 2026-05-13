@@ -13,6 +13,8 @@ commands, structured outputs, recovery notes, and local checks so agents do not 
 - `contracts/capability-catalog.json`: compact capability list for lookup.
 - `contracts/capabilities/`: capability records selected for this source view.
 - `contracts/tasks/`: task runbooks selected for this source view.
+- `contracts/schemas/`: JSON schemas for task results, manifests, and package-owner handoff artifacts such as binary
+  context install maps.
 
 The manifest includes only contracts that match files in this package.
 

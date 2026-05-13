@@ -59,7 +59,7 @@ flowchart TD
     entry["Root entrypoints<br/>AGENTS.md, llms.txt, README.md"]
     guide["getting-started/<br/>quickstart and first commands"]
     examples["examples/<br/>prompts and flow diagrams"]
-    personas["guides/persona-routing.md<br/>library, service, tool, build, setup users"]
+    personas["guides/persona-routing.md<br/>library, service, tool, build, host-install, setup users"]
     skills["skills/ and .agents/skills/<br/>portable workflows"]
     contracts["contracts/<br/>task and capability manifest"]
     tools["tools/<br/>read-only helpers"]

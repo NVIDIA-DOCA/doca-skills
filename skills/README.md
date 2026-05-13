@@ -15,6 +15,7 @@ the linked guidance and helper commands.
 | Service or application operator | `doca-discover-environment`, then `doca-explorer` | `services_overview` |
 | Tool workflow user | `doca-ai-runner`, then `doca-explorer` | `tools_overview` |
 | Sample or application builder | `doca-build-sdk-sample` | build plan plus matching overview |
+| Host/package installer | `doca-ai-runner`, then `getting-started/package-install.md` | `host_installation` |
 | Environment/setup investigator | `doca-discover-environment` | measured facts and blockers |
 
 Read `guides/persona-routing.md` when a prompt mixes more than one persona.

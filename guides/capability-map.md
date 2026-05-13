@@ -1,7 +1,7 @@
 # DOCA Agent Capability Map
 
-Applies to: DOCA samples and applications capability, topology, lifecycle,
-schema, observability, and conformance questions
+Applies to: DOCA samples and applications capability, host installation,
+topology, lifecycle, schema, observability, and conformance questions
 Read when: evaluating AI capabilities for samples and applications in the
 current DOCA source package
 Load next: `guides/README.md`,
@@ -15,9 +15,9 @@ facts.
 ## Capability Summary
 
 Start capability audits by classifying the requester with `guides/persona-routing.md`. Library developers,
-service/application operators, tool workflow users, sample/application builders, and setup investigators need different
-evidence and safety boundaries. Keep the three overview sections separate even when one prompt touches more than one
-persona.
+service/application operators, tool workflow users, sample/application builders, host/package installers, and setup
+investigators need different evidence and safety boundaries. Keep the overview sections separate even when one prompt
+touches more than one persona.
 
 | Capability | Source-package behavior |
 | --- | --- |
@@ -27,6 +27,7 @@ persona.
 | Services overview | For service or application operators, build the overview from `services/`, `applications/`, package-facing application Meson files, service/application module guidance, runtime prerequisites, and blocked mutation classes. Keep service startup, traffic, device, network, credential, and persistent configuration actions approval-gated. |
 | Tools overview | For CLI, build, debug, and validation users, build the overview from `tools/`, `tools/`, package helper scripts, validation commands, and tool module guidance. Keep tool output source-backed and separate developer-only tools from package-visible helpers. |
 | Capability discovery | Run `lookup_capability.py --list` and `run_agent_task.py --task discover-doca-environment`. Report capability IDs, source version, package metadata, missing sensors, and available package-facing build files. |
+| DOCA-Host installation | Use source-package install guidance, package metadata, installed-package fallback checks, and validation docs to describe host prerequisites and package-visible commands. Do not install packages, alter system paths, load drivers, configure hugepages, or change persistent host state without explicit approval. |
 | Topology discovery | Use only read-only sensors reported by `discover-doca-environment`, such as package, RDMA, PCI, or devlink probes when available. Host, BlueField, GPU, NIC, PCIe, NUMA, memory-domain, representor, and offload topology must be `not_measured` when sensors are missing or runtime access is not approved. |
 | Standard object lifecycle | Derive create, configure, validate, start, query, stop, and destroy phases from SDK headers when present, package-visible module guidance, and sample/application source. If headers are absent, report sample-observed lifecycle only and mark API completeness as partial. |
 | Machine-readable schemas | Prefer `contracts/agent-manifest.json`, `capability-catalog.json`, task schemas, package metadata, and planner JSON. Library-specific API/config/error/counter schemas are only available when present in the package; do not invent them from sample code. |
@@ -54,6 +55,8 @@ For capability audits, return these keys so source-owner reviews can compare run
   to tool users.
 - `capability_coverage`: devices, libraries, modes, and offloads that were measured, source-visible, or require runtime
   verification.
+- `host_installation`: source-package or installed-package host evidence, missing prerequisites, package-visible
+  validation commands, and blocked host mutation classes.
 - `topology_coverage`: host, BlueField, GPU, NIC, PCIe, NUMA, and memory-domain facts, each marked measured,
   source-visible, or requiring runtime verification.
 - `lifecycle_coverage`: visible object lifecycle phases and the evidence file for each phase.

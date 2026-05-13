@@ -65,6 +65,32 @@
         "tools/run_agent_task.py --task discover-doca-environment"
       ]
     },
+    "host_installer": {
+      "blocked_by_default": [
+        "Package installation",
+        "System path, driver, hugepage, or persistent host configuration changes",
+        "Device, network, credential, or production state changes"
+      ],
+      "expected_outputs": [
+        "host_installation",
+        "source_inventory",
+        "package_metadata",
+        "installed_package_fallback",
+        "blocked_host_mutations",
+        "next_safe_command"
+      ],
+      "needs": [
+        "Source-package install guidance",
+        "Package metadata and pkg-config evidence",
+        "Installed header or prefix evidence when source helpers are absent",
+        "Host prerequisites and validation commands"
+      ],
+      "start_with": [
+        "getting-started/package-install.md",
+        "getting-started/validation.md",
+        "skills/doca-ai-runner/SKILL.md"
+      ]
+    },
     "library_developer": {
       "blocked_by_default": [
         "Invented APIs or dependency names",

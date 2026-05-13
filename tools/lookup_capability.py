@@ -14,6 +14,8 @@ from ai_contracts import CATALOG_PATH, print_json, read_json
 MAX_API_SYMBOLS_PER_FILE = 80
 MAX_API_INDEX_FILES = 80
 MAX_API_INDEX_ITEMS = 40
+SOURCE_CATALOG_PATH = Path("docs") / "ai" / "contracts" / "capability-catalog.json"
+STANDALONE_CATALOG_PATH = Path("contracts/capability-catalog.json")
 DOCA_SYMBOL_RE = re.compile(r"\b(doca_[A-Za-z0-9_]+)\s*\(")
 DOCA_VERSION_SYMBOL_RE = re.compile(r"\b(doca_[A-Za-z0-9_]+)\b")
 DOCA_DEP_RE = re.compile(r"dependency\(\s*['\"]([^'\"]*doca[^'\"]*)['\"]")
@@ -21,8 +23,18 @@ DOCA_INCLUDE_RE = re.compile(r"^\s*#\s*include\s+[<\"]([^>\"]*doca[^>\"]*\.h)[>\
 
 
 def load_catalog(repo_root):
-    """Load the capability catalog from a source package or repository root."""
-    return read_json(Path(repo_root) / CATALOG_PATH)
+    """Load the capability catalog from a source package or helper repository."""
+    repo_root = Path(repo_root)
+    catalog_paths = []
+    for rel_path in (CATALOG_PATH, SOURCE_CATALOG_PATH, STANDALONE_CATALOG_PATH):
+        path = repo_root / rel_path
+        if path in catalog_paths:
+            continue
+        catalog_paths.append(path)
+        if path.is_file():
+            return read_json(path)
+    searched = ", ".join(str(path) for path in catalog_paths)
+    raise FileNotFoundError(f"capability catalog not found; searched: {searched}")
 
 
 def _find_capability(catalog, capability_id):

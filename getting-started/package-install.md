@@ -45,6 +45,15 @@ find "$prefix" -path '*/pkgconfig/doca-*.pc' -print
 Use those results to name available headers and packages. Do not treat missing helper contracts as permission to install
 packages, edit system paths, or guess device capability.
 
+## Binary Context Maps
+
+If a binary package owner provides a passive AI context bundle, use its install map as the path evidence source. The map
+should conform to `contracts/schemas/binary-context-install-map.schema.json` and identify package owned context roots,
+read-only helper tools, adapter templates, validation commands, and blocked mutation classes.
+
+Missing or invalid context maps are blockers. Do not scan arbitrary system paths, write global agent settings, or create
+workspace adapters unless the user explicitly runs an export command for a chosen workspace.
+
 ## Activation
 
 Coding agents should start from `AGENTS.md`. Use `llms.txt` as a compact index when a tool wants a short repository map

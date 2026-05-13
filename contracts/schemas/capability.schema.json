@@ -129,6 +129,9 @@
         "environment_investigator": {
           "$ref": "#/$defs/persona_route"
         },
+        "host_installer": {
+          "$ref": "#/$defs/persona_route"
+        },
         "library_developer": {
           "$ref": "#/$defs/persona_route"
         },
