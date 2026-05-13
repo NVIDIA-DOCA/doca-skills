@@ -1,22 +1,23 @@
-# Tool Catalog
+# Source-package Tool Procedures
 
 Applies to: `NVIDIA-DOCA/doca-skills/tools`
-Read when: choosing a package helper tool
+Read when: choosing a package evidence procedure
 Load next: `contracts/README.md`, `skills/doca-ai-runner/SKILL.md`
 
-These small Python tools help an agent inspect package evidence before changing advice or proposing commands.
+Packages do not ship Python helper code. Use already-installed source-package tools and source files to inspect package
+evidence before changing advice or proposing commands.
 
-| Tool | Purpose |
+| Evidence | Procedure |
 | --- | --- |
-| `lookup_capability.py` | List available capabilities and inspect SDK headers, Meson dependencies, and examples. |
-| `run_agent_task.py` | Run read-only discovery or return planner-only build evidence for a selected target. |
-| `ai_contracts.py` | Provide JSON helpers used by the other tools. |
+| Contracts | Read `contracts/agent-manifest.json`, `contracts/capability-catalog.json`, and matching task YAML. |
+| Source headers | Use `find` and `grep` or `rg` to inspect SDK headers and examples. |
+| Package metadata | Use `pkg-config --modversion`, `pkg-config --cflags --libs`, and installed `doca-*.pc` files. |
+| Build planning | Read Meson files and run Meson/Ninja only after local build-output approval. |
 
 ## Safe Defaults
 
-- Use `python3 tools/lookup_capability.py --repo-root . --list` before choosing a capability.
-- Use `python3 tools/lookup_capability.py --repo-root . --api-index doca-sdk` before naming APIs, headers, or
-  dependencies.
-- Use `python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>` before making
-  version or environment claims.
-- Treat blocked task results as useful evidence. Report the blocker and next safe command instead of guessing.
+- Read the capability catalog before choosing a capability.
+- Use `grep` or `rg` over SDK headers before naming APIs.
+- Use `pkg-config` before naming installed packages or link flags.
+- Treat missing files, tools, or command failures as useful evidence. Report the blocker and next safe command instead
+  of guessing.

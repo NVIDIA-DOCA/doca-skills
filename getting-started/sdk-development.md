@@ -2,7 +2,7 @@
 
 Applies to: SDK-facing C/C++ code, samples, applications, and build snippets
 Read when: changing source that may be used as SDK reference material
-Load next: `getting-started/source-boundaries.md`, `getting-started/pkg-config.md`, `getting-started/troubleshooting.md`, `modules/README.md`
+Load next: `getting-started/source-boundaries.md`, `getting-started/pkg-config.md`, `getting-started/troubleshooting.md`, `framework/README.md`
 
 Prefer examples that teach one DOCA concept at a time. Keep setup, argument parsing, resource creation, and cleanup easy
 to inspect, even when production library code would use denser helper layers.
@@ -29,18 +29,20 @@ Use dependencies already declared by the target module. When a new dependency is
 dependency file and any package metadata that the existing module pattern requires.
 
 For standalone SDK examples, prefer the package's Meson dependency names instead of private include paths or
-repository-only helper libraries. Discover the dependency names from the nearest `meson.build` or the dynamic API
-inventory:
+repository-only helper libraries. Discover the dependency names from the nearest `meson.build` or source/API evidence:
 
 ```bash
-python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
+grep -R "<symbol-or-library-term>" libs/*/include/public 2>/dev/null
+find . -path '*/version.map' -print 2>/dev/null
+pkg-config --modversion <pkg-name>
+pkg-config --cflags --libs <pkg-name>
 ```
 
-For sample and application build planning, also read the `package_build_files` and `package_dependency_files` fields
-returned by the build planner. A nearby `meson.build` is the package-facing staging contract for source package views; a
-sample or application `dependencies/meson.build` records the DOCA and driver packages that the package-facing build
-checks before entering the target directory. Use those files to report required packages, helper sources, and include
-directories before running any local build.
+For sample and application build planning, read the package build files and package dependency files directly from the
+source package. A nearby `meson.build` is the package-facing staging contract for source package views; a sample or
+application `dependencies/meson.build` records the DOCA and driver packages that the package-facing build checks before
+entering the target directory. Use those files to report required packages, helper sources, and include directories
+before running any local build.
 
 Use these common package anchors only as starting points; the selected `meson.build` and dependency files remain
 authoritative:
@@ -69,10 +71,9 @@ If any command fails, keep the exact missing package name and command stderr in 
 
 ## Installed Package Fallback
 
-Some users ask from an installed package tree rather than a source package checkout. When `tools/run_agent_task.py` or
-`tools/lookup_capability.py` is not present, use the installed SDK surface instead of inventing source-package results.
-Start with the install-only discovery fallback in `getting-started/validation.md`, then run pkg-config checks for the
-selected dependency:
+Some users ask from an installed package tree rather than a source package checkout. When source contracts or headers
+are not present, use the installed SDK surface instead of inventing source-package results. Start with the install-only
+discovery fallback in `getting-started/validation.md`, then run pkg-config checks for the selected dependency:
 
 ```bash
 pkg-config --modversion <pkg-name>
@@ -83,7 +84,7 @@ For API lookup, cite the installed SDK header path or the `pkg-config --cflags` 
 For sample and application work, cite installed samples under `<prefix>/samples` or `<prefix>/applications` when
 present. Do not reference repository-only helpers or package-absent paths in an installed-package answer.
 
-Keep structured comparison fields in the response even when source helper tools are missing:
+Keep structured comparison fields in the response even when source evidence is missing:
 
 - `status`
 - `library_name`
@@ -95,10 +96,10 @@ Keep structured comparison fields in the response even when source helper tools 
 - `unmet_prerequisites`
 - `verification_commands`
 
-Populate `unmet_prerequisites` with the missing `tools` path, absent headers, missing `pkg-config` packages, or skipped
+Populate `unmet_prerequisites` with missing contracts, absent headers, missing `pkg-config` packages, or skipped
 build/runtime commands. Mark verification commands that could not run instead of treating them as passed. Set `status`
-to `not_measured`, `blocked`, or `partial` when the answer comes from installed headers but an executable source helper
-could not run.
+to `not_measured`, `blocked`, or `partial` when the answer comes from installed headers but source-package evidence is
+incomplete.
 
 ## Core SDK Object Map
 

@@ -1,39 +1,42 @@
 # DOCA Skills
 
 Applies to: `NVIDIA-DOCA/doca-skills`
-Read when: navigating DOCA AI guidance, portable skills, and helper tools
+Read when: navigating DOCA AI guidance, portable skills, and source-package-tool procedures
 Load next: `getting-started/README.md`, `guides/persona-routing.md`,
 `examples/README.md`, `contracts/agent-manifest.json`, `skills/doca-user-rules/SKILL.md`
 
-This repository stores DOCA AI guidance, portable skills, and helper tools for agents that work with DOCA SDK source
+This repository stores DOCA AI guidance, portable skills, and procedures for agents that work with DOCA SDK source
 packages. It is a standalone helper payload: paths are written for this repository layout, and SDK facts come from the
-source package passed to helper commands.
+source package path named in evidence commands.
 
 ## First Steps
 
 Choose the mode first:
 
-- Helper repository mode: read `getting-started/quickstart.md`, list bundled contracts, and verify the helper tools.
-- SDK source package mode: keep this repository separate from the DOCA SDK source package and pass that source root with
-  `--repo-root`.
+- Helper repository mode: read `getting-started/quickstart.md`, list bundled contracts, and verify the evidence
+  procedures.
+- SDK source package mode: keep this repository separate from the DOCA SDK source package and pass that source path to
+  evidence commands.
 
 For this helper repository:
 
 ```bash
-python3 tools/lookup_capability.py --repo-root . --list
+find contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print
 ```
 
 For source-package discovery:
 
 ```bash
-python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
+find <source-package-root> -maxdepth 1 -name VERSION -print
+find <source-package-root>/contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
+pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
 For sample or application build planning:
 
 ```bash
-python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> \
-    --focus-path <sample-or-application-path>
+find <sample-or-application-path> -maxdepth 2 \( -name meson.build -o -name meson.build \) -print
+pkg-config --print-errors --exists <pkg-name>
 ```
 
 ## Repository Map
@@ -46,10 +49,10 @@ python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-pack
 | `examples/` | Prompt examples with expected agent flow diagrams. |
 | `skills/` | Portable agent skills. |
 | `.agents/skills/` | Symlinks for tools that discover Agent Skills from a standard location. |
-| `tools/` | Small Python helpers for capability lookup, source-package discovery, and build planning. |
+| `tools/` | Documentation for source-package source-evidence procedures. |
 | `development/`, `environment-setup/`, `troubleshooting/` | Topic routers for common SDK workflows. |
 | `guides/` | Persona routing, capability, and source-package navigation guides. |
-| `modules/` | Module guide template and index for SDK areas that need focused context. |
+| `framework/` | DOCA Framework guide templates for libs, services, and drivers. |
 
 ## Architecture
 
@@ -62,7 +65,7 @@ flowchart TD
     personas["guides/persona-routing.md<br/>library, service, tool, build, host-install, setup users"]
     skills["skills/ and .agents/skills/<br/>portable workflows"]
     contracts["contracts/<br/>task and capability manifest"]
-    tools["tools/<br/>read-only helpers"]
+    tools["tools/<br/>source-evidence procedures"]
     helper["Helper repo mode<br/>bundled docs and contracts"]
     source["DOCA SDK source package<br/>local files and package metadata"]
     report["Structured answer<br/>facts, blockers, safe next commands"]
@@ -87,7 +90,7 @@ flowchart TD
 
 ## Boundary
 
-The helper tools are read-only by default. They may inspect source files, package metadata, SDK headers, and local
-discovery utilities. They must not install packages, mutate devices, change networking, write credentials, change
-persistent configuration, run traffic, or execute runtime samples unless a local owner explicitly approves that action
-class outside this repository's default flows.
+The default procedures are read-only. They may inspect source files, package metadata, SDK headers, and local discovery
+utilities. They must not install packages, mutate devices, change networking, write credentials, change persistent
+configuration, run traffic, or execute runtime samples unless a local owner explicitly approves that action class
+outside this repository's default flows.

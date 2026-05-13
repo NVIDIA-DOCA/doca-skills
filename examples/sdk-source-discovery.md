@@ -21,7 +21,7 @@ flowchart TD
     mode["Select SDK source package mode"]
     manifest["Open contracts/agent-manifest.json"]
     skill["Use doca-discover-environment skill"]
-    command["Run discover-doca-environment with --repo-root"]
+    command["Run source evidence commands"]
     facts["Collect version, capabilities, and sensor status"]
     blockers["List missing utilities, metadata, devices, or approvals"]
     answer["Answer with evidence and next safe command"]
@@ -39,7 +39,9 @@ flowchart TD
 ## Command Shape
 
 ```bash
-python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
+find <source-package-root> -maxdepth 1 -name VERSION -print
+find <source-package-root>/contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
+pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
 ## Expected Answer Shape

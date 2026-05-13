@@ -12,7 +12,7 @@ when network access is available.
 | --- | --- | --- |
 | DOCA SDK documentation index | <https://docs.nvidia.com/doca/sdk/index.html> | Start here for the current SDK documentation set and release context. |
 | DOCA overview | <https://docs.nvidia.com/doca/sdk/doca-overview/index.html> | Use for high-level structure: libraries, applications, tools, services, and API references. |
-| DOCA programming guide | <https://docs.nvidia.com/doca/sdk/doca-programming-guide/index.html> | Use with `skills/doca-programming-guide/SKILL.md` for SDK architecture, compatibility, best-practice, library, utility, and driver routing before selecting module-specific docs. |
+| DOCA programming guide | <https://docs.nvidia.com/doca/sdk/doca-programming-guide/index.html> | Use with `skills/doca-programming-guide/SKILL.md` for SDK architecture, compatibility, best-practice, library, utility, and driver routing before selecting framework-specific docs. |
 | DOCA SDK architecture | <https://docs.nvidia.com/doca/sdk/doca-sdk-architecture/index.html> | Use for the device, memory-management, execution, task/event, and progress-engine model; verify local headers and samples before giving API-level guidance. |
 | DOCA compatibility policy | <https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html> | Use for source, binary, behavioral, backward, and forward compatibility context; report local `VERSION` and package metadata before applying it to the current package. |
 | DOCA capability checking | <https://docs.nvidia.com/doca/sdk/capability-checking/index.html> | Use for device, library, and core capability-check patterns; verify matching `doca_*_cap_*` symbols in local SDK headers. |

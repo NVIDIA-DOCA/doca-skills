@@ -25,7 +25,8 @@ failures as `unmet_prerequisites`; do not install packages or hard-code absolute
 Start with:
 
 ```bash
-python3 tools/run_agent_task.py --task build-sdk-sample --repo-root . --focus-path <sample-or-application-path>
+find <sample-or-application-path> -maxdepth 2 \( -name meson.build -o -name meson.build \) -print
+pkg-config --print-errors --exists <pkg-name>
 ```
 
 Run the executor form only when the local owner approves repository-contained build output and supplies the

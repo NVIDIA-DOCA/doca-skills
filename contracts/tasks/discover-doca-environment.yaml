@@ -41,7 +41,7 @@ approval_required_for:
 verifier:
   - Record the exact source paths and read-only commands used for discovery.
   - Confirm every runtime value used later came from a sensor or from explicit user input.
-  - Use run_agent_task.py discovery output before making quantitative experimental-API claims.
+  - Inspect SDK headers for DOCA_EXPERIMENTAL markers before making quantitative experimental-API claims.
 recovery:
   - If discovery fails, stop with the missing prerequisite and avoid runtime actions.
   - If conflicting source and installed versions are found, ask which environment is authoritative.

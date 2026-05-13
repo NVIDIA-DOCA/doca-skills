@@ -23,20 +23,24 @@ facts are known.
 ## Command
 
 ```sh
-python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
+find <source-package-root> -maxdepth 1 -name VERSION -print
+find <source-package-root>/contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
+pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
 For API inventory after discovery:
 
 ```sh
-python3 tools/lookup_capability.py --repo-root <source-package-root> --api-index <capability-id>
+grep -R "<symbol-or-topic>" <source-package-root>/libs/*/include/public 2>/dev/null
+pkg-config --modversion <pkg-name>
+pkg-config --cflags --libs <pkg-name>
 ```
 
 ## Rules
 
 - Do not hardcode PCI addresses, interface names, representors, GPU IDs, package versions, firmware, or topology.
 - Treat source-visible examples as evidence of source coverage, not proof that current runtime hardware is configured.
-- If a sensor or helper is missing, report it as `not_measured` or an unmet prerequisite.
+- If a sensor or evidence source is missing, report it as `not_measured` or an unmet prerequisite.
 - Do not install packages, mutate devices, change networking, or run samples.
 
 ## Return

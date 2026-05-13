@@ -1,6 +1,6 @@
 ---
 name: doca-explorer
-description: Explore DOCA source-package docs, samples, applications, contracts, and module templates with libraries/services/tools overviews.
+description: Explore DOCA source-package docs, samples, applications, contracts, and framework templates with libraries/services/drivers/tools overviews.
 ---
 
 License: see repository root `LICENSE.md`.
@@ -18,17 +18,19 @@ Use this skill when the user asks what an agent can learn or safely do with a DO
 - `getting-started/quickstart.md`
 - `guides/persona-routing.md`
 - `guides/capability-map.md`
-- `modules/README.md`
-- `modules/library-template.md`
-- `modules/service-template.md`
-- `modules/tool-template.md`
+- `framework/README.md`
+- `framework/libs-template.md`
+- `framework/services-template.md`
+- `framework/drivers-template.md`
+- `framework/examples/doca-flow-source-guide.md`
 - `skills/doca-ai-runner/SKILL.md`
 
 ## Commands
 
 ```sh
-python3 tools/lookup_capability.py --repo-root <source-package-root> --list
-python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
+find <source-package-root>/contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
+find <source-package-root>/libs -path '*/include/public/*.h' -print 2>/dev/null
+pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
 ## Return

@@ -1,4 +1,4 @@
-# Service Module Template
+# DOCA Framework Services Template
 
 Applies to: `<service-or-application-source-package-area>`
 Read when: an agent needs operator, service, application, runtime prerequisite, or deployment context for `<service>`
@@ -10,7 +10,8 @@ package metadata, or read-only discovery output.
 
 ## Scope
 
-- `module_id`: `<short-service-id>`
+- `framework_area`: `services`
+- `guide_id`: `<short-service-id>`
 - `primary_persona`: `service or application operator`
 - `service_paths`: `<services, applications, extensions, or configuration paths>`
 - `operator_entrypoints`: `<binaries, service names, config files, deployment files, or docs>`

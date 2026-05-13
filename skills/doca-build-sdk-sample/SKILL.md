@@ -24,7 +24,9 @@ Use this skill for sample or application build requests.
 Start planner-only:
 
 ```sh
-python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> --focus-path <sample-or-application-path>
+find <sample-or-application-path> -maxdepth 2 \( -name meson.build -o -name meson.build \) -print
+find <sample-or-application-path> -path '*/dependencies/meson.build' -print
+pkg-config --print-errors --exists <pkg-name>
 ```
 
 Use output fields `target_path`, `package_build_files`, `package_dependency_files`, `required_packages`,
@@ -35,9 +37,8 @@ Use output fields `target_path`, `package_build_files`, `package_dependency_file
 Run a build only after explicit approval for repository-contained build output:
 
 ```sh
-python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> \
-  --focus-path <sample-or-application-path> --execute --approve local_build_output \
-  --build-dir <planner-reported-build-dir>
+meson setup <build-dir> <source-package-root> --reconfigure
+ninja -C <build-dir> <target>
 ```
 
 Do not install packages, start services, mutate devices, change networking, or run runtime samples as part of build

@@ -12,7 +12,8 @@ paths, or infer package presence from a header that happens to be visible.
 Start from the dependency names declared by the source package:
 
 ```bash
-python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
+find . -path '*/dependencies/meson.build' -print
+grep -R "dependency(" samples applications libs 2>/dev/null
 ```
 
 Then check each required package:

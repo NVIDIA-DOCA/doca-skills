@@ -2,9 +2,9 @@
 
 Applies to: DOCA SDK samples and package-facing sample builds
 Read when: a user asks how to build a DOCA sample
-Load next: `modules/README.md`, `getting-started/validation.md`, `getting-started/pkg-config.md`
+Load next: `framework/README.md`, `getting-started/validation.md`, `getting-started/pkg-config.md`
 
-This topic router provides the sample-build entrypoint. Detailed sample staging rules live in `modules/README.md`.
+This topic router provides the sample-build entrypoint. Detailed sample staging rules live in `framework/README.md`.
 
 ## Prerequisites
 
@@ -18,28 +18,31 @@ This topic router provides the sample-build entrypoint. Detailed sample staging 
 1. Discover available capabilities:
 
    ```bash
-   python3 tools/lookup_capability.py --repo-root . --list
+   sed -n '1p' VERSION 2>/dev/null || true
+   find contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
    ```
 
 2. Inspect the relevant API and dependency inventory:
 
    ```bash
-   python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
+   grep -R "<symbol-or-topic>" libs/*/include/public 2>/dev/null
+   pkg-config --modversion <pkg-name>
+   pkg-config --cflags --libs <pkg-name>
    ```
 
-3. Ask the planner for a build-safe command shape:
+3. Inspect the package-facing build shape:
 
    ```bash
-   python3 tools/run_agent_task.py --task build-sdk-sample --repo-root . --focus-path <sample-path>
+   find <sample-path> -maxdepth 2 \( -name meson.build -o -name meson.build \) -print
+   find <sample-path> -path '*/dependencies/meson.build' -print
    ```
 
-4. Inspect the reported `package_build_files` when present. A `meson.build` file records the package-facing
-   dependencies, helper sources, and include directories for package-facing builds.
+4. Inspect the selected package build files when present. A `meson.build` file records the package-facing dependencies,
+   helper sources, and include directories for package-facing builds.
 
 5. Verify each Meson/pkg-config dependency before executing the build.
 
-6. Run build execution only with local approval for repository-contained build output and the planner-reported build
-   directory.
+6. Run build execution only with local approval for repository-contained build output and an agreed build directory.
 
 If any step fails, report the failing command and `unmet_prerequisites` instead of installing packages or changing
 system state.

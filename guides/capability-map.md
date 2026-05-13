@@ -5,8 +5,8 @@ topology, lifecycle, schema, observability, and conformance questions
 Read when: evaluating AI capabilities for samples and applications in the
 current DOCA source package
 Load next: `guides/README.md`,
-`guides/persona-routing.md`, `getting-started/quickstart.md`, `getting-started/first-commands.md`, `modules/README.md`,
-`reference/c-cpp-style.md`, `skills/doca-explorer/SKILL.md`
+`guides/persona-routing.md`, `getting-started/quickstart.md`, `getting-started/first-commands.md`,
+`framework/README.md`, `reference/c-cpp-style.md`, `skills/doca-explorer/SKILL.md`
 
 Use this map when the user asks what an agent can do with DOCA samples or applications. The answer should report
 source-package evidence, safe read-only commands, and runtime evidence needed for hardware or environment-specific
@@ -21,17 +21,18 @@ touches more than one persona.
 
 | Capability | Source-package behavior |
 | --- | --- |
-| Documentation explorer | Start from `llms.txt`, root entrypoints, this file, quickstart, package-facing SDK docs, module templates and capability-map guidance, and any module guidance present in `modules/`. Return the exact files used. |
-| Coding standards and code review | Use `reference/c-cpp-style.md`, `getting-started/sdk-development.md`, and `modules/README.md` to review sample readability, cleanup, license style, DOCA logging, dependency handling, and runtime-action safety. |
+| Documentation explorer | Start from `llms.txt`, root entrypoints, this file, quickstart, package-facing SDK docs, framework templates and capability-map guidance, and any framework guidance present in `framework/`. Return the exact files used. |
+| Coding standards and code review | Use `reference/c-cpp-style.md`, `getting-started/sdk-development.md`, and `framework/README.md` to review sample readability, cleanup, license style, DOCA logging, dependency handling, and runtime-action safety. |
 | Libraries overview | For SDK and library users, build the overview from package-visible `contracts/capability-catalog.json`, SDK headers, `libs/**/meson.build`, package-facing Meson files, dependency files, and nearby samples. Mark absent headers or unmeasured runtime facts as requiring package-owner or runtime verification. |
-| Services overview | For service or application operators, build the overview from `services/`, `applications/`, package-facing application Meson files, service/application module guidance, runtime prerequisites, and blocked mutation classes. Keep service startup, traffic, device, network, credential, and persistent configuration actions approval-gated. |
-| Tools overview | For CLI, build, debug, and validation users, build the overview from `tools/`, `tools/`, package helper scripts, validation commands, and tool module guidance. Keep tool output source-backed and separate developer-only tools from package-visible helpers. |
-| Capability discovery | Run `lookup_capability.py --list` and `run_agent_task.py --task discover-doca-environment`. Report capability IDs, source version, package metadata, missing sensors, and available package-facing build files. |
+| Services overview | For service or application operators, build the overview from `services/`, `applications/`, package-facing application Meson files, service/application framework guidance, runtime prerequisites, and blocked mutation classes. Keep service startup, traffic, device, network, credential, and persistent configuration actions approval-gated. |
+| Drivers overview | For driver-facing users, build the overview from SDK headers, installed metadata, package evidence, safe support checks, and driver framework guidance. Keep driver reloads, firmware, sysfs/devlink writes, hugepages, package installation, and persistent host changes approval-gated. |
+| Tools overview | For CLI, build, debug, and validation users, build the overview from package-visible tools, evidence procedures, validation commands, and package-local guidance. Keep tool output source-backed and separate developer-only tools from package-visible helpers. |
+| Capability discovery | Read `contracts/agent-manifest.json`, `contracts/capability-catalog.json`, and the first-command discovery procedure. Report capability IDs, source version, package metadata, missing sensors, and available package-facing build files. |
 | DOCA-Host installation | Use source-package install guidance, package metadata, installed-package fallback checks, and validation docs to describe host prerequisites and package-visible commands. Do not install packages, alter system paths, load drivers, configure hugepages, or change persistent host state without explicit approval. |
 | Topology discovery | Use only read-only sensors reported by `discover-doca-environment`, such as package, RDMA, PCI, or devlink probes when available. Host, BlueField, GPU, NIC, PCIe, NUMA, memory-domain, representor, and offload topology must be `not_measured` when sensors are missing or runtime access is not approved. |
-| Standard object lifecycle | Derive create, configure, validate, start, query, stop, and destroy phases from SDK headers when present, package-visible module guidance, and sample/application source. If headers are absent, report sample-observed lifecycle only and mark API completeness as partial. |
+| Standard object lifecycle | Derive create, configure, validate, start, query, stop, and destroy phases from SDK headers when present, package-visible framework guidance, and sample/application source. If headers are absent, report sample-observed lifecycle only and mark API completeness as partial. |
 | Machine-readable schemas | Prefer `contracts/agent-manifest.json`, `capability-catalog.json`, task schemas, package metadata, and planner JSON. Library-specific API/config/error/counter schemas are only available when present in the package; do not invent them from sample code. |
-| Dry-run or validate mode | Use planner-only `run_agent_task.py` commands first. Build and source-change executors require explicit local approvals and repo-contained output paths. Runtime/device validation requires explicit user approval. |
+| Dry-run or validate mode | Use planner-only contract procedures first. Build and source-change executors require explicit local approvals and repo-contained output paths. Runtime/device validation requires explicit user approval. |
 | Unified error taxonomy | Use task `structured_errors`, `doca_error_t` style guidance, observed sample error handling, and recovery hints from validation docs. If a library lacks package-visible error taxonomy, return a gap instead of normalizing undocumented errors. |
 | Structured observability | Report health, counters, traces, resource ownership, telemetry, or queue state only when package-visible samples, online docs, or read-only sensors expose them. Runtime counters and traces require explicit approval and hardware access. |
 | Permission and safety model | Default to read-only source/package inspection. Block package installation, device mutation, network changes, persistent configuration, credentials, runtime traffic, and production actions unless the local owner explicitly approves the action class. |
@@ -74,4 +75,4 @@ sample or application, use the planner-only build or source-change command from 
 source write.
 
 If the package lacks `tools`, switch to the installed-package fallback in `getting-started/validation.md` and report
-missing helper paths in `unmet_prerequisites`.
+missing evidence paths in `unmet_prerequisites`.

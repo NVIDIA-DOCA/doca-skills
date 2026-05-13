@@ -20,22 +20,32 @@ The manifest includes only contracts that match files in this package.
 
 ## Package Checks
 
-Use package-local helpers before suggesting runtime, device, network, credential, package-manager, or persistent system
+Use package-local evidence before suggesting runtime, device, network, credential, package-manager, or persistent system
 changes:
 
 ```bash
-python3 tools/lookup_capability.py --repo-root . --list
+find contracts -maxdepth 2 -type f -name *.json -print
+find examples -maxdepth 1 -type f -print
 ```
 
-`tools/run_agent_task.py` reports source version, visible capabilities, experimental API marker summary, and read-only
-sensor status for `discover-doca-environment` when source metadata is present. Planner tasks return target paths,
-package-facing build files, unmet prerequisites, and approval gates without running builds unless the task contract
-requires explicit local-output approval.
+## Read-Only Tool Calls
+
+These package-supported calls use standard commands and source evidence only. Helper wrappers are not included.
+
+| Call ID | Purpose | Command |
+| --- | --- | --- |
+| `contract-json-files` | List packaged contract JSON files. | `find contracts -maxdepth 2 -type f -name *.json -print` |
+| `example-files` | List packaged example procedures. | `find examples -maxdepth 1 -type f -print` |
+
+Source-package evidence includes `VERSION`, package metadata, contract JSON, SDK headers, Meson files, installed
+`doca-*.pc` files, and read-only command output from standard tools such as `find`, `grep`, `pkg-config`, Meson, and
+Ninja. Planner responses should return target paths, package-facing build files, unmet prerequisites, and approval gates
+without running builds unless the local owner explicitly approves build output.
 
 ## Contract Rules
 
 - Use only capability IDs and task IDs listed in the manifest.
-- Treat missing source paths, helper tools, package metadata, devices, or sensors as blockers to report.
+- Treat missing source paths, package metadata, devices, tools, or sensors as blockers to report.
 - Keep runtime, device, network, credential, package-manager, firmware, hugepage, `devlink`, `sysfs`, and production
   actions approval-gated.
-- Back API-stability or experimental-API claims with package-local helper output or local header evidence.
+- Back API-stability or experimental-API claims with package-local source evidence or local header evidence.

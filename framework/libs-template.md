@@ -1,15 +1,17 @@
-# Library Module Template
+# DOCA Framework Libs Template
 
 Applies to: `<library-source-package-area>`
 Read when: an agent needs SDK library, header, API, dependency, or sample context for `<library-or-sdk-area>`
 Load next: `guides/capability-map.md`, `contracts/agent-manifest.json`
 
 Copy this file when a source package needs focused guidance for SDK library users. Replace placeholders with
-source-backed evidence from headers, Meson files, package metadata, samples, applications, or local helper output.
+source-backed evidence from headers, Meson files, package metadata, samples, applications, and read-only installed tool
+output.
 
 ## Scope
 
-- `module_id`: `<short-library-id>`
+- `framework_area`: `libs`
+- `guide_id`: `<short-library-id>`
 - `primary_persona`: `SDK library developer`
 - `library_paths`: `<libs/<name> paths or installed source-package paths>`
 - `sdk_headers`: `<headers agents may inspect or cite>`
@@ -27,13 +29,13 @@ source-backed evidence from headers, Meson files, package metadata, samples, app
 - `build_evidence`: `<Meson files, package metadata, source commands, and sample references>`
 - `lifecycle_notes`: `<init, configure, submit/progress, callback/error handling, cleanup>`
 - `validation_commands`: `<read-only discovery, lookup, or build-planning commands>`
-- `unmet_prerequisites`: `<headers, packages, helper tools, devices, or build outputs not proven locally>`
+- `unmet_prerequisites`: `<headers, packages, installed tools, devices, or build outputs not proven locally>`
 
 ## Evidence Rules
 
 - Cite package-local headers and Meson/package metadata before online or memory-based facts.
 - Optimize answers for developers writing or reviewing source that calls the SDK APIs.
-- Use `tools/lookup_capability.py --repo-root . --api-index <capability-id>` when the package includes it.
+- Inspect contracts, SDK headers, Meson files, and `pkg-config` metadata before naming APIs or dependencies.
 - Keep source evidence separate from runtime availability; source presence does not prove a device or offload is usable.
 - Do not invent API names, package names, dependency names, sample paths, devices, ports, or topology.
 - If the requested library is absent, report the missing paths and stop before producing pseudo-code with unverified

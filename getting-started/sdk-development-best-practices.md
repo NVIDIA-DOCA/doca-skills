@@ -2,7 +2,7 @@
 
 Applies to: SDK-facing C/C++ code, samples, applications, and build snippets
 Read when: a user asks for general DOCA SDK development best practices
-Load next: `getting-started/sdk-development.md`, `modules/README.md`, `reference/c-cpp-style.md`
+Load next: `getting-started/sdk-development.md`, `framework/README.md`, `reference/c-cpp-style.md`
 
 This topic router points to the canonical SDK development, sample/application, and C/C++ style guidance.
 
@@ -12,7 +12,8 @@ Use package-facing build metadata instead of guessed paths. Check `meson.build` 
 dependency:
 
 ```bash
-python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
+grep -R "<symbol-or-topic>" libs/*/include/public 2>/dev/null
+pkg-config --cflags --libs <pkg-name>
 pkg-config --modversion <pkg-name>
 pkg-config --cflags --libs <pkg-name>
 ```

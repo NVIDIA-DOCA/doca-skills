@@ -126,6 +126,9 @@
     "persona_routes": {
       "additionalProperties": false,
       "properties": {
+        "driver_integrator": {
+          "$ref": "#/$defs/persona_route"
+        },
         "environment_investigator": {
           "$ref": "#/$defs/persona_route"
         },

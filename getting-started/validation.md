@@ -13,8 +13,8 @@ reproduce the result.
 git diff --check
 ```
 
-For AI guidance or helper changes, also run the package-local validation commands named in
-`getting-started/first-commands.md` when those files exist in the source package.
+For AI guidance changes, also run the package-local evidence commands named in `getting-started/first-commands.md` when
+those files exist in the source package.
 
 ## C/C++ Source Changes
 
@@ -58,13 +58,13 @@ platform-specific prerequisites, state them explicitly instead of implying the c
 
 ## Read-Only Agent Discovery
 
-AI docs include capability lookup and a read-only task runner for the first environment discovery step. Use lookup to
-choose the relevant source guidance, then run the baseline source-package discovery commands in
+AI docs include contracts and read-only source-evidence procedures for the first environment discovery step. Use
+contracts to choose the relevant source guidance, then run the baseline source-package discovery commands in
 `getting-started/first-commands.md` before suggesting runtime commands.
 
-The command reports source version, manifest capabilities visible in the current source view, and experimental API
-marker counts. If it reports a blocker, keep the blocker in the final answer instead of guessing local package, device,
-or capability facts.
+The evidence report should include source version, manifest capabilities visible in the current source view, and
+experimental API marker status. If a command is missing or blocked, keep the blocker in the final answer instead of
+guessing local package, device, or capability facts.
 
 For comparable discovery responses, include a structured `outputs` object with `source_version`,
 `available_capabilities`, and `experimental_api_summary`. These names are the package contract for the read-only
@@ -72,8 +72,8 @@ discovery step; do not replace them with a prose-only summary.
 
 ## Install-Only Discovery Fallback
 
-If the user only has a binary or runtime install and the source-package helpers under `tools` are absent, keep the
-response structured and use the installed package surface as a fallback:
+If the user only has a binary or runtime install and source-package contracts or headers are absent, keep the response
+structured and use the installed package surface as a fallback:
 
 ```bash
 prefix=${DOCA_PREFIX:-/opt/mellanox/doca}
@@ -101,7 +101,7 @@ Use this exact fallback shape when the counter script is unavailable and grep wa
   "status": "not_measured",
   "marker": "DOCA_EXPERIMENTAL",
   "fallback_command": "grep -R --include='*.h' -o \"DOCA_EXPERIMENTAL\" <prefix>/include 2>/dev/null | wc -l",
-  "reason": "source-package experimental API counter is unavailable"
+  "reason": "source-package experimental API evidence is unavailable"
 }
 ```
 
@@ -110,19 +110,20 @@ If grep was run, set `status` to `approximate`, include `experimental_marker_cou
 structured results. Add the missing helper path to `unmet_prerequisites`; do not hide the difference between
 source-package discovery and install-only discovery.
 
-For source-backed API lookup or lifecycle answers, use the same capability helper to inspect the package dynamically
-before selecting functions:
+For source-backed API lookup or lifecycle answers, inspect the package dynamically before selecting functions:
 
 ```bash
-python3 tools/lookup_capability.py --repo-root . --api-index <capability-id>
-python3 tools/lookup_capability.py --repo-root . --api-index <capability-id> --symbol-filter <term>
+grep -R "<symbol-or-library-term>" libs/*/include/public 2>/dev/null
+find . -path '*/version.map' -print 2>/dev/null
+pkg-config --modversion <pkg-name>
+pkg-config --cflags --libs <pkg-name>
 ```
 
 The inventory reports SDK headers, exported symbols, Meson dependencies, and sample references present in this source
 view. If it cannot find a symbol or dependency, report the searched capability and filter rather than inventing a
 private or unavailable API.
 
-For build tasks that are not safe to execute automatically, use the sample/application audit command in
+For build tasks that are not safe to execute automatically, use the sample/application audit procedure in
 `getting-started/first-commands.md`. The result names target paths, package-facing build files, sample/application
 dependency files, approval classes, expected local output directories, blocked prerequisites, and next commands without
 creating output directories or running builds.
@@ -137,8 +138,8 @@ install packages or run runtime, device, network, credential, or production acti
 Skills packages do not include module patch helpers. If a DOCA source package includes a source-change task in its own
 manifest, use that exact task ID and keep any execution under the local source owner's review and approval policy.
 
-Use `package-info.json`, `contracts/agent-manifest.json`, `contracts/capability-catalog.json`, `lookup_capability.py`,
-and `run_agent_task.py` when filing a bug report or comparing packages. These package artifacts identify the package
+Use `package-info.json`, `contracts/agent-manifest.json`, `contracts/capability-catalog.json`, source headers, Meson
+files, and `pkg-config` evidence when filing a bug report or comparing packages. These artifacts identify the package
 manifest, visible capabilities, supported task IDs, source version, and discovery blockers.
 
 Measurement definitions, scoring code, result harvesting, and regression gates are not part of the helper payload.

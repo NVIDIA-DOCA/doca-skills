@@ -5,7 +5,7 @@ Read when: selecting a portable DOCA skill
 Load next: the matching `skills/<name>/SKILL.md`
 
 Use these skills as focused runbooks. Pick the smallest skill that matches the task, read its `SKILL.md`, then follow
-the linked guidance and helper commands.
+the linked guidance and source-package commands.
 
 ## By Persona
 
@@ -23,7 +23,7 @@ Read `guides/persona-routing.md` when a prompt mixes more than one persona.
 | Skill | Use When |
 | --- | --- |
 | `doca-user-rules` | Start any DOCA SDK task with safe defaults and concise answer rules. |
-| `doca-ai-runner` | Choose package helper tools and interpret task-result JSON. |
+| `doca-ai-runner` | Choose source evidence and interpret package task contracts. |
 | `doca-discover-environment` | Collect read-only source-package and local environment facts. |
 | `doca-build-sdk-sample` | Plan sample or application builds without running the build. |
 | `doca-explorer` | Inspect source layout, contracts, modules, and package evidence. |

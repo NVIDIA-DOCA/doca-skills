@@ -19,7 +19,7 @@ questions.
 - `getting-started/first-commands.md`
 - `getting-started/sdk-development.md`
 - `contracts/README.md`
-- `modules/README.md`
+- `framework/README.md`
 
 ## Source Order
 
@@ -32,8 +32,9 @@ questions.
 ## Commands
 
 ```sh
-python3 tools/lookup_capability.py --repo-root <source-package-root> --list
-python3 tools/lookup_capability.py --repo-root <source-package-root> --api-index <capability-id>
+find <source-package-root>/contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print 2>/dev/null
+grep -R "<symbol-or-topic>" <source-package-root>/libs/*/include/public 2>/dev/null
+pkg-config --cflags --libs <pkg-name>
 ```
 
 ## Return

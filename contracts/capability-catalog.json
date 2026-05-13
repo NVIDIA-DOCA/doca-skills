@@ -21,7 +21,7 @@
         "modes": [
           "Repository, package, sample, application, and SDK-header views can differ; use source_globs and package manifests to determine the current source view.",
           "Build planning and source edits are local-source actions, while runtime sample execution, device mode changes, firmware actions, and persistent configuration are separate approval classes.",
-          "Host-side, BlueField-side, switch, queue, memory-domain, and offload modes must be discovered through local sensors or module-specific capability checks."
+          "Host-side, BlueField-side, switch, queue, memory-domain, and offload modes must be discovered through local sensors or framework-specific capability checks."
         ],
         "offloads": [
           "The repository-level SDK contract does not prove any runtime offload is available on the current machine.",
@@ -37,10 +37,37 @@
       "id": "doca-sdk",
       "load_next": [
         "getting-started/sdk-development.md",
-        "modules/README.md",
+        "framework/README.md",
         "contracts/capabilities/doca-sdk.json"
       ],
       "persona_routes": {
+        "driver_integrator": {
+          "blocked_by_default": [
+            "Driver reloads, firmware changes, or sysfs/devlink writes",
+            "Package installation, hugepage changes, or persistent host configuration",
+            "Device, network, credential, or runtime state mutation"
+          ],
+          "expected_outputs": [
+            "drivers_overview",
+            "source_evidence",
+            "safe_discovery",
+            "device_capability_checks",
+            "blocked_mutations",
+            "unmet_prerequisites"
+          ],
+          "needs": [
+            "Driver-facing SDK headers",
+            "Installed metadata",
+            "Device support checks",
+            "Host prerequisites",
+            "Blocked state changes"
+          ],
+          "start_with": [
+            "skills/doca-discover-environment/SKILL.md",
+            "skills/doca-explorer/SKILL.md",
+            "framework/drivers-template.md"
+          ]
+        },
         "environment_investigator": {
           "blocked_by_default": [
             "Package installation",
@@ -63,7 +90,7 @@
           "start_with": [
             "skills/doca-discover-environment/SKILL.md",
             "getting-started/validation.md",
-            "tools/run_agent_task.py --task discover-doca-environment"
+            "getting-started/first-commands.md"
           ]
         },
         "host_installer": {
@@ -115,7 +142,7 @@
           "start_with": [
             "skills/doca-programming-guide/SKILL.md",
             "skills/doca-explorer/SKILL.md",
-            "tools/lookup_capability.py --api-index <capability-id>"
+            "getting-started/first-commands.md"
           ]
         },
         "sample_builder": {
@@ -142,7 +169,7 @@
           "start_with": [
             "skills/doca-build-sdk-sample/SKILL.md",
             "contracts/tasks/build-sdk-sample.yaml",
-            "tools/run_agent_task.py --task build-sdk-sample"
+            "getting-started/first-commands.md"
           ]
         },
         "service_operator": {
@@ -169,7 +196,7 @@
           "start_with": [
             "skills/doca-discover-environment/SKILL.md",
             "skills/doca-explorer/SKILL.md",
-            "modules/service-template.md"
+            "framework/services-template.md"
           ]
         },
         "tool_user": {
@@ -195,7 +222,7 @@
           "start_with": [
             "skills/doca-ai-runner/SKILL.md",
             "skills/doca-explorer/SKILL.md",
-            "modules/tool-template.md"
+            "guides/capability-map.md"
           ]
         }
       },

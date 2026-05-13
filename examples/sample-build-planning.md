@@ -37,8 +37,9 @@ flowchart TD
 ## Command Shape
 
 ```bash
-python3 tools/run_agent_task.py --task build-sdk-sample --repo-root <source-package-root> \
-    --focus-path <sample-or-application-path>
+find <sample-or-application-path> -maxdepth 2 \( -name meson.build -o -name meson.build \) -print
+find <sample-or-application-path> -path '*/dependencies/meson.build' -print
+pkg-config --print-errors --exists <pkg-name>
 ```
 
 ## Expected Answer Shape

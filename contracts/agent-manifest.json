@@ -46,7 +46,40 @@
   ],
   "validation": {
     "commands": [
-      "python3 tools/lookup_capability.py --repo-root . --list"
+      "find contracts -maxdepth 2 -type f -name *.json -print",
+      "find examples -maxdepth 1 -type f -print"
+    ],
+    "tool_calls": [
+      {
+        "argv": [
+          "find",
+          "contracts",
+          "-maxdepth",
+          "2",
+          "-type",
+          "f",
+          "-name",
+          "*.json",
+          "-print"
+        ],
+        "command": "find contracts -maxdepth 2 -type f -name *.json -print",
+        "id": "contract-json-files",
+        "purpose": "List packaged contract JSON files."
+      },
+      {
+        "argv": [
+          "find",
+          "examples",
+          "-maxdepth",
+          "1",
+          "-type",
+          "f",
+          "-print"
+        ],
+        "command": "find examples -maxdepth 1 -type f -print",
+        "id": "example-files",
+        "purpose": "List packaged example procedures."
+      }
     ]
   }
 }

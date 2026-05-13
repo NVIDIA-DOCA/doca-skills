@@ -1,6 +1,6 @@
 # Getting Started
 
-Applies to: DOCA AI guidance and helper tools
+Applies to: DOCA AI guidance and source-package-tool procedures
 Read when: starting a DOCA source-package task with a coding agent
 Load next: `getting-started/quickstart.md`,
 `getting-started/first-commands.md`, `skills/doca-user-rules/SKILL.md`, `skills/doca-ai-runner/SKILL.md`,
@@ -13,7 +13,7 @@ version, header, dependency, sample, application, device, and topology facts.
 ## Two Modes
 
 - Helper repository mode: run commands with `--repo-root .` only to inspect the bundled contract surface and verify the
-  helper tools.
+  evidence procedures.
 - SDK source package mode: keep this repository next to the SDK source package and pass the SDK source path with
   `--repo-root <source-package-root>`.
 

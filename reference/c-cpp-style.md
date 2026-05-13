@@ -2,7 +2,7 @@
 
 Applies to: `**/*.c`, `**/*.h`, `**/*.cpp`, `**/*.hpp`, `**/*.cu`, `**/*.cuh`
 Read when: editing C, C++, CUDA, or header files in a DOCA source package
-Load next: `modules/README.md`
+Load next: `framework/README.md`
 
 Use this file for samples, applications, tools, and SDK-facing examples in the current source package. Follow
 `.clang-format` and the surrounding file style. If a requested change depends on code that is absent from the source

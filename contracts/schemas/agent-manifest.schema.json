@@ -57,6 +57,33 @@
         "result_schema"
       ],
       "type": "object"
+    },
+    "validation_tool_call": {
+      "additionalProperties": false,
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "command": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "purpose",
+        "command",
+        "argv"
+      ],
+      "type": "object"
     }
   },
   "$id": "https://docs.nvidia.com/doca/ai/agent-manifest.schema.json",
@@ -84,6 +111,12 @@
         "commands": {
           "items": {
             "type": "string"
+          },
+          "type": "array"
+        },
+        "tool_calls": {
+          "items": {
+            "$ref": "#/$defs/validation_tool_call"
           },
           "type": "array"
         }

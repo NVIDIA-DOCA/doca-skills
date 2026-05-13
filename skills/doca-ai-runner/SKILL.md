@@ -1,11 +1,11 @@
 ---
 name: doca-ai-runner
-description: Use DOCA helper tools for capability lookup, source-package discovery, and build planning without mutating user state.
+description: Use DOCA source evidence and source-package tools for capability lookup, source-package discovery, and build planning without mutating user state.
 ---
 
 License: see repository root `LICENSE.md`.
 
-Applies to: DOCA helper tools, source-package discovery, capability lookup, and build planning
+Applies to: DOCA source evidence, source-package tools, source-package discovery, capability lookup, and build planning
 Read when: a `doca-skills` export needs a short runner skill
 
 # DOCA AI Runner
@@ -22,24 +22,26 @@ Use this skill when work needs source-backed DOCA facts before build, runtime, A
 ## Commands
 
 ```sh
-python3 tools/lookup_capability.py --repo-root . --list
-python3 tools/run_agent_task.py --task discover-doca-environment --repo-root .
+find contracts -maxdepth 2 -type f \( -name '*.json' -o -name '*.yaml' \) -print
+find <source-package-root> -maxdepth 1 -name VERSION -print
+pkg-config --list-all 2>/dev/null | grep '^doca-' || true
 ```
 
 For a separate SDK source package, pass that package path:
 
 ```sh
-python3 tools/run_agent_task.py --task discover-doca-environment --repo-root <source-package-root>
-python3 tools/lookup_capability.py --repo-root <source-package-root> --api-index <capability-id>
+grep -R "<symbol-or-topic>" <source-package-root>/libs/*/include/public 2>/dev/null
+pkg-config --modversion <pkg-name>
+pkg-config --cflags --libs <pkg-name>
 ```
 
 ## Rules
 
-- Treat helper output, SDK headers, package metadata, and source files as evidence.
-- Use planner-only task output before any build or source edit.
+- Treat contracts, SDK headers, package metadata, and source files as evidence.
+- Use planner-only evidence before any build or source edit.
 - Do not install packages, mutate devices, change networking, write credentials, alter persistent config, run traffic,
   or execute runtime samples as a side effect of answering.
-- Report missing helper paths, packages, headers, sensors, or approvals as blockers.
+- Report missing contracts, packages, headers, sensors, or approvals as blockers.
 
 ## Return
 
