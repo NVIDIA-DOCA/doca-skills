@@ -1,0 +1,211 @@
+{
+  "$defs": {
+    "adapter_template": {
+      "additionalProperties": false,
+      "properties": {
+        "activation": {
+          "enum": [
+            "copy",
+            "print",
+            "symlink"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "overwrite_policy": {
+          "enum": [
+            "force-required",
+            "refuse-by-default"
+          ]
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "tool": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "path",
+        "activation",
+        "overwrite_policy"
+      ],
+      "type": "object"
+    },
+    "context_root": {
+      "additionalProperties": false,
+      "properties": {
+        "contains": {
+          "items": {
+            "enum": [
+              "adapters",
+              "contracts",
+              "docs",
+              "metadata",
+              "skills",
+              "tools"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "contains",
+        "required"
+      ],
+      "type": "object"
+    },
+    "safety": {
+      "additionalProperties": false,
+      "properties": {
+        "blocked_actions": {
+          "items": {
+            "enum": [
+              "credential_write",
+              "device_mutation",
+              "global_agent_config_write",
+              "home_directory_write",
+              "network_configuration",
+              "package_install",
+              "persistent_system_configuration",
+              "production_action",
+              "runtime_sample_execution"
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "package_owned_paths_only": {
+          "const": true
+        },
+        "user_activation_required": {
+          "const": true
+        }
+      },
+      "required": [
+        "package_owned_paths_only",
+        "user_activation_required",
+        "blocked_actions"
+      ],
+      "type": "object"
+    },
+    "tool": {
+      "additionalProperties": false,
+      "properties": {
+        "command_kind": {
+          "enum": [
+            "discovery",
+            "export-adapters",
+            "lookup",
+            "print",
+            "status"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "mutates_system_state": {
+          "const": false
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "command_kind",
+        "mutates_system_state"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://docs.nvidia.com/doca/ai/binary-context-install-map.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adapter_templates": {
+      "items": {
+        "$ref": "#/$defs/adapter_template"
+      },
+      "type": "array"
+    },
+    "context_roots": {
+      "items": {
+        "$ref": "#/$defs/context_root"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "install_prefix": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "package_name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "package_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "safety": {
+      "$ref": "#/$defs/safety"
+    },
+    "schema_version": {
+      "const": "binary-context-install-map-0.1"
+    },
+    "tools": {
+      "items": {
+        "$ref": "#/$defs/tool"
+      },
+      "type": "array"
+    },
+    "validation_commands": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "package_name",
+    "install_prefix",
+    "context_roots",
+    "tools",
+    "adapter_templates",
+    "safety"
+  ],
+  "title": "DOCA Binary Context Install Map",
+  "type": "object"
+}

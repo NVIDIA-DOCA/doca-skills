@@ -1,0 +1,66 @@
+{
+  "schema_version": "binary-context-install-map-0.1",
+  "package_name": "doca-ai-context",
+  "package_version": null,
+  "install_prefix": "/opt/mellanox/doca/share/ai",
+  "context_roots": [
+    {
+      "id": "doca-skills",
+      "path": "/opt/mellanox/doca/share/ai/doca-skills",
+      "contains": [
+        "adapters",
+        "contracts",
+        "docs",
+        "metadata",
+        "skills",
+        "tools"
+      ],
+      "required": true,
+      "description": "Package-owned read-only DOCA AI guidance bundle."
+    }
+  ],
+  "tools": [
+    {
+      "id": "context-status",
+      "path": "/opt/mellanox/doca/bin/doca-ai-context",
+      "command_kind": "status",
+      "mutates_system_state": false,
+      "description": "Reports passive bundle health and visible context roots."
+    },
+    {
+      "id": "context-print",
+      "path": "/opt/mellanox/doca/bin/doca-ai-context",
+      "command_kind": "print",
+      "mutates_system_state": false,
+      "description": "Prints adapter text for explicit user copy or review."
+    }
+  ],
+  "adapter_templates": [
+    {
+      "tool": "codex",
+      "path": "AGENTS.md",
+      "activation": "copy",
+      "overwrite_policy": "refuse-by-default",
+      "description": "Optional workspace-local pointer to package-owned context."
+    }
+  ],
+  "validation_commands": [
+    "doca-ai-context status",
+    "doca-ai-context print --tool codex"
+  ],
+  "safety": {
+    "package_owned_paths_only": true,
+    "user_activation_required": true,
+    "blocked_actions": [
+      "credential_write",
+      "device_mutation",
+      "global_agent_config_write",
+      "home_directory_write",
+      "network_configuration",
+      "package_install",
+      "persistent_system_configuration",
+      "production_action",
+      "runtime_sample_execution"
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "error": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "recovery": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://docs.nvidia.com/doca/ai/task-result.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "command_kind": {
+      "type": "string"
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/error"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "observations": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "outputs": {
+      "type": "object"
+    },
+    "recovery": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "risk_class": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "success",
+        "planned",
+        "blocked",
+        "failed",
+        "skipped"
+      ]
+    },
+    "task_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "status",
+    "risk_class",
+    "command_kind",
+    "outputs",
+    "errors"
+  ],
+  "title": "DOCA Agent Task Result",
+  "type": "object"
+}
