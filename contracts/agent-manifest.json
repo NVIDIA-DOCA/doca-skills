@@ -1,0 +1,52 @@
+{
+  "capabilities": [
+    {
+      "id": "doca-sdk",
+      "path": "contracts/capabilities/doca-sdk.json",
+      "source_globs": [
+        "VERSION",
+        "meson.build",
+        "meson_options.txt",
+        "libs/**/include/public/**/*.h",
+        "samples/**/meson.build",
+        "applications/**/meson.build"
+      ]
+    }
+  ],
+  "schema_version": "1.0",
+  "tasks": [
+    {
+      "command_kind": "build",
+      "id": "build-sdk-sample",
+      "path": "contracts/tasks/build-sdk-sample.yaml",
+      "result_schema": "contracts/schemas/task-result.schema.json",
+      "risk_class": "local-write",
+      "source_globs": [
+        "meson.build",
+        "meson_options.txt",
+        "samples/**/meson.build",
+        "samples/**/dependencies/meson.build",
+        "applications/**/meson.build",
+        "applications/**/dependencies/meson.build"
+      ]
+    },
+    {
+      "command_kind": "discovery",
+      "id": "discover-doca-environment",
+      "path": "contracts/tasks/discover-doca-environment.yaml",
+      "result_schema": "contracts/schemas/task-result.schema.json",
+      "risk_class": "read-only",
+      "source_globs": [
+        "VERSION",
+        "meson.build",
+        "meson_options.txt",
+        "libs/**/include/public/**/*.h"
+      ]
+    }
+  ],
+  "validation": {
+    "commands": [
+      "python3 tools/lookup_capability.py --repo-root . --list"
+    ]
+  }
+}

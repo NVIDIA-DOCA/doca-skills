@@ -1,0 +1,64 @@
+id: build-sdk-sample
+goal: Build a focused DOCA sample or application target from the checked-out source tree.
+source_globs:
+  - meson.build
+  - meson_options.txt
+  - samples/**/meson.build
+  - samples/**/dependencies/meson.build
+  - applications/**/meson.build
+  - applications/**/dependencies/meson.build
+capabilities:
+  - doca-sdk
+risk_class: local-write
+command_kind: build
+inputs:
+  - {"name": "target_path", "type": "path", "required": true, "description": "Sample or application path selected from the checked-out source tree."}
+  - {"name": "build_dir", "type": "path", "required": false, "description": "Local build directory under the working tree or another disposable location."}
+  - {"name": "meson_options", "type": "array", "required": false, "description": "Optional package-supported Meson options discovered from source metadata."}
+outputs:
+  - {"name": "target_path", "type": "path", "description": "Repository-relative focus path selected for the build executor."}
+  - {"name": "target_dir", "type": "path", "description": "Repository-relative Meson target directory derived from the focus path."}
+  - {"name": "configured", "type": "boolean", "description": "Whether Meson configuration completed for the selected source view."}
+  - {"name": "built_targets", "type": "array", "description": "Focused targets that were built successfully."}
+  - {"name": "build_dir", "type": "path", "description": "Planner-reported repository-relative local build directory used by the executor."}
+  - {"name": "package_build_files", "type": "array", "description": "Package-facing Meson files near the selected target, such as meson.build, that should be inspected before package sample builds."}
+  - {"name": "package_dependency_files", "type": "array", "description": "Package-facing dependency Meson files near the selected sample or application target, such as samples/<module>/dependencies/meson.build or applications/<app>/dependencies/meson.build, that should be inspected before package builds."}
+  - {"name": "commands", "type": "array", "description": "Repo-root Meson command records with argv, rendered command, exit code, stdout, and stderr."}
+  - {"name": "unmet_prerequisites", "type": "array", "description": "Missing dependencies, toolchains, or package files that blocked validation."}
+structured_errors:
+  - {"code": "missing_approval", "message": "The caller did not grant local_build_output approval.", "recovery": "Run planner-only mode or pass the explicit approval after review."}
+  - {"code": "invalid_focus_path", "message": "The selected focus path is missing, ambiguous, or outside the source tree.", "recovery": "Pass exactly one repository-relative sample or application path."}
+  - {"code": "invalid_build_dir", "message": "The build directory is absent, mismatched, or outside the repository.", "recovery": "Reuse the planner-reported local build directory for the selected focus path."}
+  - {"code": "missing_dependency", "message": "A required build dependency or toolchain is unavailable.", "recovery": "Report the missing dependency instead of editing source around it."}
+  - {"code": "configuration_failed", "message": "Meson configuration failed for the selected package view.", "recovery": "Remove or ignore build output and report the focused failure."}
+  - {"code": "build_failed", "message": "The focused target failed to build.", "recovery": "Report the exact command and failing target before broader changes."}
+  - {"code": "build_timeout", "message": "A local build command exceeded the executor timeout.", "recovery": "Inspect or remove the local build directory before retrying the focused build."}
+  - {"code": "executor_error", "message": "The local build command could not start.", "recovery": "Inspect local filesystem permissions and build tool availability before retrying."}
+result_schema: contracts/schemas/task-result.schema.json
+sensors:
+  - Identify the exact sample or application path before choosing a build target.
+  - Read the nearest meson.build and dependency file for that target.
+  - Check whether the package view has a package-specific Meson layout before assuming full-repo layout.
+  - Inspect edited source files for SDK API or experimental API usage before building.
+actuators:
+  - Configure a local Meson build directory.
+  - Build only the selected target or the smallest enclosing target.
+  - Run package-local validation for edited files.
+constraints:
+  - Do not reorder top-level Meson subdirectories for a local target build.
+  - Do not create global Meson options when an existing option or local dependency pattern exists.
+  - Do not require site-specific infrastructure for a package build.
+  - Reviewed executor runs must use the planner-reported repository-relative local build directory.
+approval_required_for:
+  - Creating or reusing local build output directories.
+  - Installing packages or changing system compilers.
+  - Changing persistent build configuration outside the working tree.
+  - Running runtime commands that mutate devices, networking, hugepages, devlink, sysfs, or credentials.
+verifier:
+  - Meson configuration exits successfully for the selected package view.
+  - Ninja or the equivalent build command exits successfully for the focused target.
+  - The final report includes the selected focus path, derived target directory, exact repo-root commands, and any unmet prerequisites.
+recovery:
+  - Remove or ignore the local build directory if configuration fails.
+  - If dependencies are unavailable, report the missing dependency instead of editing source around it.
+  - If the package view is incomplete, validate only with files present in that package and state the limitation.
