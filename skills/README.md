@@ -11,6 +11,7 @@ the linked guidance and source-package commands.
 
 | Persona | Start With | Main Output |
 | --- | --- | --- |
+| Capability/status browser | `capabilities/README.md`, then the listed skill | ready, partial, or TBD route |
 | SDK library developer | `doca-programming-guide`, then `doca-explorer` | `libraries_overview` |
 | Service or application operator | `doca-discover-environment`, then `doca-explorer` | `services_overview` |
 | Tool workflow user | `doca-ai-runner`, then `doca-explorer` | `tools_overview` |
@@ -18,7 +19,8 @@ the linked guidance and source-package commands.
 | Host/package installer | `doca-ai-runner`, then `getting-started/package-install.md` | `host_installation` |
 | Environment/setup investigator | `doca-discover-environment` | measured facts and blockers |
 
-Read `guides/persona-routing.md` when a prompt mixes more than one persona.
+Read `guides/persona-routing.md` when a prompt mixes more than one persona. Read `capabilities/README.md` when a prompt
+asks what this helper repository supports now or what remains TBD.
 
 | Skill | Use When |
 | --- | --- |

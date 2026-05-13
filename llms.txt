@@ -13,6 +13,7 @@ source edits.
 - `AGENTS.md`: root entrypoint for agent routing.
 - `reference/README.md`: repository-wide source, build, and validation rules.
 - `getting-started/quickstart.md`: package-facing onboarding.
+- `capabilities/README.md`: ready, partial, and TBD capability index for final users.
 - `skills/doca-user-rules/SKILL.md`: base behavior for DOCA source-package agents.
 - `skills/doca-ai-runner/SKILL.md`: read-only source evidence, capability lookup, and package planning procedures.
 - `skills/doca-discover-environment/SKILL.md`: capability and environment discovery without hardcoded topology

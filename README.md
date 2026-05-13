@@ -3,7 +3,7 @@
 Applies to: `NVIDIA-DOCA/doca-skills`
 Read when: navigating DOCA AI guidance, portable skills, and source-package-tool procedures
 Load next: `getting-started/README.md`, `guides/persona-routing.md`,
-`examples/README.md`, `contracts/agent-manifest.json`, `skills/doca-user-rules/SKILL.md`
+`capabilities/README.md`, `examples/README.md`, `contracts/agent-manifest.json`, `skills/doca-user-rules/SKILL.md`
 
 This repository stores DOCA AI guidance, portable skills, and procedures for agents that work with DOCA SDK source
 packages. It is a standalone helper payload: paths are written for this repository layout, and SDK facts come from the
@@ -45,6 +45,7 @@ pkg-config --print-errors --exists <pkg-name>
 | --- | --- |
 | `getting-started/` | Quickstart, first commands, setup, sample builds, SDK development, pkg-config, troubleshooting. |
 | `reference/` | Common agent behavior, safety boundaries, and C/C++ style guidance. |
+| `capabilities/` | Ready, partial, and TBD capability index for final users. |
 | `contracts/` | Machine-readable capability and task contracts. |
 | `examples/` | Prompt examples with expected agent flow diagrams. |
 | `skills/` | Portable agent skills. |
@@ -60,6 +61,7 @@ flowchart TD
     user["User or coding agent"]
     entry["Root entrypoints<br/>AGENTS.md, llms.txt, README.md"]
     guide["getting-started/<br/>quickstart and first commands"]
+    capability_index["capabilities/<br/>ready, partial, and TBD status"]
     examples["examples/<br/>prompts and flow diagrams"]
     personas["guides/persona-routing.md<br/>library, service, tool, build, host-install, setup users"]
     skills["skills/ and .agents/skills/<br/>portable workflows"]
@@ -70,7 +72,10 @@ flowchart TD
 
     user --> entry
     entry --> guide
+    entry --> capability_index
     entry --> examples
+    capability_index --> personas
+    capability_index --> contracts
     guide --> personas
     entry --> skills
     personas --> skills

@@ -5,12 +5,12 @@ topology, lifecycle, schema, observability, and conformance questions
 Read when: evaluating AI capabilities for samples and applications in the
 current DOCA source package
 Load next: `guides/README.md`,
-`guides/persona-routing.md`, `getting-started/quickstart.md`, `getting-started/first-commands.md`,
-`framework/README.md`, `reference/c-cpp-style.md`, `skills/doca-explorer/SKILL.md`
+`guides/persona-routing.md`, `capabilities/README.md`, `getting-started/quickstart.md`,
+`getting-started/first-commands.md`, `framework/README.md`, `reference/c-cpp-style.md`, `skills/doca-explorer/SKILL.md`
 
 Use this map when the user asks what an agent can do with DOCA samples or applications. The answer should report
 source-package evidence, safe read-only commands, and runtime evidence needed for hardware or environment-specific
-facts.
+facts. For GitHub-facing capability status, start with `capabilities/README.md` before this detailed map.
 
 ## Capability Summary
 
@@ -74,5 +74,5 @@ Run the baseline discovery and sample/application audit commands from `getting-s
 sample or application, use the planner-only build or source-change command from that file before any build output or
 source write.
 
-If the package lacks `tools`, switch to the installed-package fallback in `getting-started/validation.md` and report
-missing evidence paths in `unmet_prerequisites`.
+If package task contracts are unavailable, switch to the installed-package fallback in `getting-started/validation.md`
+and report missing evidence paths in `unmet_prerequisites`.
