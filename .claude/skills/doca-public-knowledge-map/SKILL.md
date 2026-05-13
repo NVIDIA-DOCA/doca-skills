@@ -191,12 +191,22 @@ should appear in [SKILLS.md](../../../SKILLS.md) and link back here for the
 
 ## Related skills
 
-For the bridge between *"DOCA is installed"* and *"I have a running first
-program"* — install verification, build environment (`pkg-config`,
-headers, hugepages), building and running shipped samples, and deriving a
-custom first application from a sample — load
-[`doca-setup`](../doca-setup/SKILL.md). That skill is library-agnostic;
-each library skill extends its `## modify` (first-app derivation) with
+For env preparation — install verification, build environment
+(`pkg-config`, headers, hugepages, devlink), env-class debugging, and
+the *I have no install yet* path with the public NGC DOCA container
+(`nvcr.io/nvidia/doca/doca`) as the universal Stage-1 fallback for any
+user on macOS, Windows, or Linux without DOCA — load
+[`doca-setup`](../doca-setup/SKILL.md). That skill stops at *"the
+install is healthy and the env is ready"*.
+
+For general DOCA programming patterns shared across every library —
+the canonical `pkg-config doca-<library>` build pattern (C/C++ direct
+or non-C via FFI), the universal *derive a custom first app from a
+shipped sample* workflow, the universal lifecycle (`cfg-create →
+init → start → use → stop → destroy`), the cross-library
+`DOCA_ERROR_*` taxonomy, and the program-side debug order — load
+[`doca-programming-guide`](../doca-programming-guide/SKILL.md). Each
+library skill extends its `## modify` (first-app derivation) with
 library-specific overrides.
 
 For DOCA Flow internals — port and representor setup, pipe creation,
@@ -205,7 +215,8 @@ Flow counters and traces, Flow version compatibility, and debugging
 `DOCA_ERROR_*` failures from the Flow API — load
 [`doca-flow`](../doca-flow/SKILL.md). That skill assumes this one is
 available for shared documentation routing and install-layout lookups,
-and `doca-setup` for environment preparation.
+`doca-setup` for environment preparation, and `doca-programming-guide`
+for the cross-library programming patterns it layers on top of.
 
 ## URL audit
 
@@ -213,10 +224,12 @@ and `doca-setup` for environment preparation.
 | --- | --- | --- |
 | 2026-05-13 | v3.3.0 (current `docs.nvidia.com/doca/sdk/` redirect target) | All URLs in this file fetched successfully. Five URLs fixed in this audit: *DOCA Downloads* dropped `/networking/`; *Forum* moved from category 362 → 370; *Comm Channel* renamed to *Comch* (`DOCA-Comch/index.html`); *DOCA Apps and Tools* renamed to *DOCA Reference Applications* (`DOCA-Reference-Applications/index.html`); *DOCA Samples Overview* row removed (page no longer exists in current sdk; samples are documented per-library inside each library guide). Added: *DOCA RDMA* row (was missing from libraries table). |
 
-How to re-audit: open this file's URL columns in a script that does
-`HEAD` against each URL, fail the check on any non-2xx response. The CI
-hook in [`ci/check-skill.sh`](../../../ci/check-skill.sh) currently lints
-structure only and **does not** verify that the URLs resolve — extending
-it with an opt-in `--check-urls` mode is tracked as a follow-up. Until
-that exists, re-audit this file by hand on every DOCA major release and
-update the row above.
+How to re-audit: run [`ci/check-skill.sh --all --check-urls`](../../../ci/check-skill.sh)
+from the repo root. It HEADs every URL in every skill file (including
+this one), and fails on any non-`2xx`/`3xx` response. CI should run it
+in URL mode whenever outbound network is available; locally, run it
+before opening a PR that touches a URL or before bumping the row above
+on a DOCA release. The script also enforces the *public-sources only*
+contract from [`AGENTS.md`](../../../AGENTS.md) ground rule #1 by
+allowlisting NVIDIA hosts and rejecting URLs / paths that mention
+internal tooling vocabulary; that part runs without network.

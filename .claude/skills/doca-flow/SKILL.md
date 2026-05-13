@@ -86,10 +86,12 @@ requests should not add:
   the live library on a real install. The verified Flow source code is
   the shipped C sample at `/opt/mellanox/doca/samples/doca_flow/<name>/`;
   the agent's job is to route the user to that file and prescribe a
-  minimum-diff modification on it ([`TASKS.md ## build`](TASKS.md#build)
-  "first Flow app" block) — for C/C++ users — or to route non-C users
-  to the public C ABI surface that their bindings will call, *not* to
-  author the wrapper.
+  minimum-diff modification on it via the universal modify-a-sample
+  workflow in [`doca-programming-guide`](../doca-programming-guide/SKILL.md),
+  layered with the Flow-specific overrides in
+  [`TASKS.md ## build`](TASKS.md#build) "first Flow app" block — for
+  C/C++ users — or to route non-C users to the public C ABI surface
+  that their bindings will call, *not* to author the wrapper.
 - **Standalone build manifests** (`meson.build`, `CMakeLists.txt`,
   `Cargo.toml`, `setup.py`, `go.mod`, …) parked inside the skill. The
   agent constructs the build manifest *in the user's project directory*
@@ -104,7 +106,8 @@ If a contributor ever wants to add a *minimal install smoke-test
 program* (e.g. a 30-line "did my install link cleanly" check that calls
 only the most stable lifecycle entry points, in any language), that is
 a different artifact with a different purpose — it belongs under
-`doca-setup/` or the contributor's own out-of-tree project, not here.
+`doca-setup/` or `doca-programming-guide/` or the contributor's own
+out-of-tree project, not here.
 
 ## Loading order
 
@@ -127,3 +130,16 @@ guidance".
   layout of an installed DOCA package. Always available alongside this
   skill; this skill expects to be able to defer documentation-finding and
   install-layout questions there instead of duplicating them.
+- [`doca-setup`](../doca-setup/SKILL.md) — env preparation, install
+  verification, and the *I have no install yet* path with the public
+  NGC DOCA container (`nvcr.io/nvidia/doca/doca`) as the universal
+  Stage-1 fallback for any user on macOS, Windows, or Linux without
+  DOCA. This skill assumes its preconditions are satisfied.
+- [`doca-programming-guide`](../doca-programming-guide/SKILL.md) —
+  general DOCA programming patterns shared by every library: the
+  canonical `pkg-config` + meson build pattern, the universal
+  modify-a-shipped-sample first-app workflow (which Flow extends with
+  Flow-specific overrides in this skill's `## build` "first Flow app"
+  block), the universal lifecycle, the cross-library `DOCA_ERROR_*`
+  taxonomy, and the program-side debug order. This skill layers Flow
+  specifics on top.

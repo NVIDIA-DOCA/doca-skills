@@ -71,9 +71,12 @@ depends on the user's language and on whether the user can reach a
 DOCA-installed Linux host. Two preconditions, two language tracks; the
 agent must establish both before recommending any concrete next step.
 
-**Precondition gate.** Both tracks require a DOCA-installed Linux host
-where the agent can read the sample tree and `pkg-config --modversion
-doca-flow` resolves. If the precondition is not met, route to
+**Precondition gate.** Both tracks require a DOCA-installed Linux
+environment (bare-metal, VM, or NGC container — see
+[`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install) Path 0
+for the universal NGC fallback) where the agent can read the sample
+tree and `pkg-config --modversion doca-flow` resolves. If the
+precondition is not met, route to
 [`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install) *before*
 offering any source code. Do **not** author a Flow application from
 documentation prose, in any language, to fill the gap. Ground rule #3
@@ -86,9 +89,11 @@ real install.
 ### Track 1 — C / C++ consumers (the canonical case)
 
 This is the first-app shape for which NVIDIA ships verified reference
-code. The recipe is the generic *derive a custom first app from a
-sample* pattern in [`doca-setup ## modify`](../doca-setup/TASKS.md#modify),
-with these Flow-specific overrides:
+code. The recipe is the universal *derive a custom first app from a
+sample* pattern in [`doca-programming-guide ## modify`](../doca-programming-guide/TASKS.md#modify)
+(which is where that workflow lives after the env / program split —
+deriving a first app is a programming verb, not an env verb), with
+these Flow-specific overrides:
 
 - **Source sample.** For the simplest *match-and-forward-to-port*
   shape: `/opt/mellanox/doca/samples/doca_flow/flow_port_fwd/`. For

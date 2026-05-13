@@ -32,6 +32,31 @@ load the matching skill files manually.
 
 ## Conformance
 
-`ci/check-skill.sh` enforces the structural rules every skill in
-`.claude/skills/` must satisfy. Run it locally before opening a PR that
-touches any skill file.
+`ci/check-skill.sh` enforces the rules every skill in
+`.claude/skills/` must satisfy. Three layers, all gating:
+
+1. **Structural.** Frontmatter validity, required H2 anchors in
+   `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, cross-anchor labels in
+   `TASKS.md` resolve, no symlinks. Run by default, no network needed.
+2. **Public-sources.** Any `*.nvidia.com` URL whose host isn't on a
+   small public allowlist (`docs.nvidia.com`, `developer.nvidia.com`,
+   `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
+   `forums.developer.nvidia.com`, `nvcr.io`) fails. Internal-tooling
+   vocabulary in URL or path context (`gerrit`, `nvbugs`,
+   `*.internal.*`, `gitlab-master`, `labhome`, …) fails. This is the
+   automated counterpart to ground rules 1 and 3 above. Run by
+   default, no network needed.
+3. **URL HEAD validity.** Opt-in via `--check-urls`; HEADs every URL
+   in every skill file and fails on non-`2xx`/`3xx`. Use this to
+   catch the *page renamed* / *page deleted* failure mode (e.g. the
+   pre-3.x DOCA Samples Overview URL the agent previously got a 404
+   on). Requires outbound network; CI should run with `--check-urls`
+   when network is available.
+
+Run locally before opening a PR that touches any skill file:
+
+```bash
+ci/check-skill.sh --all                # structural + public-sources
+ci/check-skill.sh --all --check-urls   # also URL HEAD validity
+ci/check-skill.sh --self-test          # confirm every gating check still trips
+```
