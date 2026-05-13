@@ -9,6 +9,7 @@ For the discovery convention and ground rules every agent must follow, see
 | Skill | Source | When to load |
 | --- | --- | --- |
 | `doca-public-knowledge-map` | [.claude/skills/doca-public-knowledge-map/SKILL.md](.claude/skills/doca-public-knowledge-map/SKILL.md) | The user asks anything about DOCA where you need to locate authoritative documentation, installed package paths, downloads, samples, the developer forum, or how to find the installed DOCA version — without access to the DOCA source repository. |
+| `doca-setup` | [.claude/skills/doca-setup/SKILL.md](.claude/skills/doca-setup/SKILL.md) | The user has DOCA installed and needs to verify the install is healthy, prepare the build environment (`pkg-config`, headers, hugepages), build a shipped sample, run it, and derive a custom first application from a sample. The bridge between "DOCA is installed" and "I have a running first program". |
 | `doca-flow` | [.claude/skills/doca-flow/SKILL.md](.claude/skills/doca-flow/SKILL.md) | The user is working with DOCA Flow on BlueField — port and representor setup, pipe creation, match/action specifications, pipe validation before hardware programming, Flow counters and traces, Flow version compatibility, or debugging `DOCA_ERROR_*` failures from the Flow API. |
 
 ## Adding a new skill

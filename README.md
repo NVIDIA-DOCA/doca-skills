@@ -1,9 +1,11 @@
 # NVIDIA DOCA Samples
 ![DOCA software Stack](doca-software.jpg "DOCA Software Stack")
 
-## AI agent skills (this branch)
+## AI agent skills — make this repo agent-ready out of the box
 
-This branch (`ai-mvp-with-files`) ships **Anthropic-style Skills** for AI coding agents on top of the public DOCA samples. Any agent that opens this repository — Cursor, Claude Code, Codex, Gemini, custom in-house LLMs — will discover the skills via the standard cross-tool entry points.
+This repository is intended as a **public, drop-in DOCA skills bundle** for AI coding agents. Any developer who clones it can open it in their AI coding tool of choice — Cursor, Claude Code, Codex, Gemini, custom in-house LLMs — and the agent will know how to help with DOCA without any extra setup, without the developer needing to clone or download anything else.
+
+The skills layer is currently shipped on the `ai-mvp-with-files` branch; `master` carries the public DOCA samples *without* the skills layer so the two are easy to compare side-by-side.
 
 **Where the agent guidance lives:**
 
@@ -12,18 +14,21 @@ This branch (`ai-mvp-with-files`) ships **Anthropic-style Skills** for AI coding
 - [.claude/skills/](.claude/skills/) — the skill source files. The `.claude/` path is Claude Code's auto-discovery location, but the files themselves are vendor-neutral Markdown that any agent can read directly.
 - [CLAUDE.md](CLAUDE.md) — one-line stub routing Claude Code back to `AGENTS.md`.
 
-**What the skills give you:**
+**What the skills give you (three complementary layers):**
 
-| Skill | What it covers |
-| --- | --- |
-| `doca-public-knowledge-map` | Where to find authoritative DOCA information without the source repo: every public docs page, the on-disk layout of an installed `/opt/mellanox/doca`, public GitHub repos, NGC catalog, the developer forum, and how to check the installed DOCA version. |
-| `doca-flow` | DOCA Flow on BlueField — port and representor setup, pipe creation, match/action specifications, pipe validation before hardware programming, counters and traces, version compatibility, and debugging `DOCA_ERROR_*` failures. Loads `CAPABILITIES.md` for the technical surface and `TASKS.md` for step-by-step workflows on demand. |
+| Skill | What it covers | When the agent loads it |
+| --- | --- | --- |
+| `doca-public-knowledge-map` | The routing table for every authoritative DOCA information source: public docs URLs, the on-disk layout of an installed `/opt/mellanox/doca`, public GitHub repos, NGC catalog, the developer forum, and how to check the installed DOCA version. | Any "what / where / which doc" DOCA question. |
+| `doca-setup` | The bridge between *"DOCA is installed"* and *"I have a running first program"*: install verification, build environment (`pkg-config`, headers, meson, hugepages), building and running shipped samples, and deriving a custom first application from a sample. Library-agnostic. | The user has DOCA installed and wants to actually run something — sanity checks, build a sample, modify it into a first app. |
+| `doca-flow` | DOCA Flow on BlueField — port and representor setup, pipe creation, match/action specifications, pipe validation before hardware programming, counters and traces, version compatibility, and debugging `DOCA_ERROR_*` failures. Builds on `doca-setup` for environment preparation. | The user is writing or debugging DOCA Flow code. |
+
+When other DOCA libraries (`doca-rdma`, `doca-comch`, …) ship their own skills, each will plug into the same `doca-setup` bridge — extending it with a library-specific *"first app"* template — without duplicating the install/build/runtime layer.
 
 **Quick start:**
 
-1. Open this repo (on the `ai-mvp-with-files` branch) in your AI coding tool of choice.
-2. Ask any DOCA question. The agent should read `AGENTS.md` automatically and pull the matching skill in.
-3. The `master` branch contains the same DOCA samples without any of the agent-skills layer, so you can compare both side by side and see what the skills add.
+1. Clone this repo (`git clone https://github.com/NVIDIA-DOCA/doca-skills.git`) on the `ai-mvp-with-files` branch and open it in your AI coding tool.
+2. Ask any DOCA question. The agent reads `AGENTS.md` automatically and pulls the matching skill in.
+3. To see the difference the skills layer makes, open the same repo on the `master` branch in a second window and ask the same question.
 
 **Conformance:** [`ci/check-skill.sh`](ci/check-skill.sh) enforces the structural rules every skill in `.claude/skills/` must satisfy (frontmatter validity, required H2 anchors, cross-anchor resolution, no symlinks). Run it locally before opening a PR that touches any skill file.
 

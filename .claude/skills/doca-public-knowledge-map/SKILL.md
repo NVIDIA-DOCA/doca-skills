@@ -173,9 +173,18 @@ should appear in [SKILLS.md](../../../SKILLS.md) and link back here for the
 
 ## Related skills
 
+For the bridge between *"DOCA is installed"* and *"I have a running first
+program"* — install verification, build environment (`pkg-config`,
+headers, hugepages), building and running shipped samples, and deriving a
+custom first application from a sample — load
+[`doca-setup`](../doca-setup/SKILL.md). That skill is library-agnostic;
+each library skill extends its `## modify` (first-app derivation) with
+library-specific overrides.
+
 For DOCA Flow internals — port and representor setup, pipe creation,
 match/action specifications, pipe validation before hardware programming,
 Flow counters and traces, Flow version compatibility, and debugging
 `DOCA_ERROR_*` failures from the Flow API — load
 [`doca-flow`](../doca-flow/SKILL.md). That skill assumes this one is
-available for shared documentation routing and install-layout lookups.
+available for shared documentation routing and install-layout lookups,
+and `doca-setup` for environment preparation.

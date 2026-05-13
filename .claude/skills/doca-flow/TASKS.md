@@ -66,6 +66,31 @@ Steps:
 5. Do **not** call the entry-add API yet. The spec is built, not
    programmed. Hand off to `## test` for validation.
 
+**When the user asks for a "first Flow app" specifically:** the right
+approach is the generic *derive a custom first app from a sample*
+pattern in [`doca-setup ## modify`](../doca-setup/TASKS.md#modify), with
+these Flow-specific overrides:
+
+- **Source sample.** For the simplest *match-and-forward-to-port*
+  shape: `/opt/mellanox/doca/samples/doca_flow/flow_port_fwd/`. For
+  *switch mode + representor*: `/opt/mellanox/doca/samples/doca_flow/flow_switch_single/`
+  (use the helpers in `flow_switch_common.{c,h}`).
+- **Fields the user must swap (the explicit-placeholder list).**
+  Destination MAC for the entry match (`target_mac` constant);
+  representor `port_id` for the forward action; pipe name string. *Keep*
+  all init/teardown boilerplate, the `doca_flow_entries_process()`
+  loop, the per-entry status callback, and the validation flow described
+  in [`## test`](#test).
+- **Build flavor.** Use the trace flavor for the first run — link with
+  `doca-flow-trace` via `pkg-config`, or set `LD_LIBRARY_PATH` per
+  [`doca-setup CAPABILITIES.md ## Capabilities and modes`](../doca-setup/CAPABILITIES.md#capabilities-and-modes).
+  Switch to release only after the staged run succeeds.
+- **Output.** A *complete buildable file*, not prose-shape. The
+  placeholder rule from [`doca-setup ## modify`](../doca-setup/TASKS.md#modify)
+  step 4 is binding here: do not halt to ask the user for trivia they
+  can paste in themselves; write the value as a `/* TODO */`-marked
+  constant and move on.
+
 ## modify
 
 Goal: change an existing pipe — adding, removing, or rewriting entries —
