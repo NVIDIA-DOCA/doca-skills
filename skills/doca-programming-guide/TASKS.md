@@ -139,7 +139,7 @@ Goal: validate the program — and the system context around it — **before** c
 
 ## debug
 
-Goal: when a DOCA program fails *after* the env is known healthy, walk the layered diagnosis tree top-down so the agent does not jump to library-internal code-fix recommendations against a symptom it can explain at a higher layer.
+Goal: when a DOCA program fails *after* the env is known healthy, walk the layered diagnosis tree top-down so the agent does not jump to library-internal code-fix recommendations against a symptom it can explain at a higher layer. This anchor is the **program-class half** of the layered debug ladder. The complementary **env-class half** lives in [`doca-setup ## debug`](../doca-setup/TASKS.md#debug). The **cross-cutting reference both halves escalate to** — the canonical layered ladder spanning install / version / build / link / runtime / program / driver, plus cross-cutting tooling (`gdb`, `valgrind`, `ldd`, `--sdk-log-level`, the `doca-<lib>-trace` build flavor, container introspection, core dumps) and the *Where to ask for help* escalation to the public Developer Forum — lives in [`doca-debug ## debug`](../doca-debug/TASKS.md#debug). Use this anchor for program-side specifics (lifecycle, `DOCA_ERROR_*`, `doca_error_get_descr()`); use `doca-debug ## debug` for the cross-cutting ladder shape and tooling.
 
 Investigation order — **always**:
 

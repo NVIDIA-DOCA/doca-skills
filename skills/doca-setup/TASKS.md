@@ -93,7 +93,7 @@ Steps the agent should walk the user through:
 
 ## debug
 
-Goal: when something does not work, walk the layered diagnosis tree top-down so the agent does not jump to library-internal code-fix recommendations against an env-class symptom. The complementary program-class debug order (lifecycle, capability, error-description, library) lives in [`doca-programming-guide ## debug`](../doca-programming-guide/TASKS.md#debug).
+Goal: when something does not work, walk the layered diagnosis tree top-down so the agent does not jump to library-internal code-fix recommendations against an env-class symptom. This anchor is the **env-class half** of the layered debug ladder. The complementary **program-class half** (lifecycle, capability, error-description, library) lives in [`doca-programming-guide ## debug`](../doca-programming-guide/TASKS.md#debug). The **cross-cutting reference both halves escalate to** — tooling that spans env and program (`gdb`, `valgrind`, `ldd`, `strace`, `dmesg`, container introspection, core dumps, the `--sdk-log-level` and `doca-<lib>-trace` surfaces, the *Where to ask for help* escalation to the public Developer Forum) — lives in [`doca-debug ## debug`](../doca-debug/TASKS.md#debug). After completing layers (1)–(4) below, the natural next stop is `doca-debug ## debug` Layer 5 (Runtime) or `doca-programming-guide ## debug` for program-side errors.
 
 Investigation order — **always**:
 

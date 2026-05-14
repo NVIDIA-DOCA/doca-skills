@@ -39,7 +39,9 @@ The agent must clarify *which* mode the user expects before recommending any por
 
 ## Version compatibility
 
-DOCA uses a single unified version string across host packages, BlueField BFB image, headers, and the libraries the program links against. **All four must match within a release.** Cross-version mixing is the single most common source of *"the program built but does nothing on the wire"* reports for first-time users; the program-side rules that follow from this are in [`doca-programming-guide CAPABILITIES.md ## Version compatibility`](../doca-programming-guide/CAPABILITIES.md#version-compatibility). The env side — *how to detect what's installed* — is here.
+DOCA uses a single unified version string across host packages, BlueField BFB image, headers, and the libraries the program links against. **All four must match within a release.** Cross-version mixing is the single most common source of *"the program built but does nothing on the wire"* reports for first-time users.
+
+**Authoritative upstream source.** NVIDIA's own statement of which version pairings are *intended* to work — quarterly GA cadence, October LTS designation (3-year support), the semver `X.Y.Z` scheme, the three compatibility types (source / binary / behavioral), and the two compatibility directions (backward / forward) — is the [DOCA Compatibility Policy](https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html). Cite this page whenever the user asks "can I run host package X with BFB Y?", "is my LTS still supported?", or "what does the version string mean?". The env-side checks in this skill detect *what is installed*; the Compatibility Policy describes *which installs are supposed to work together*. The program-side rules that follow from a given install are in [`doca-programming-guide CAPABILITIES.md ## Version compatibility`](../doca-programming-guide/CAPABILITIES.md#version-compatibility). The env side — *how to detect what's installed* — is here.
 
 **Detect the installed version, in this order of preference:**
 

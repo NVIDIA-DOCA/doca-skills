@@ -55,6 +55,8 @@ The agent's rule: never recommend a `use`-phase call before confirming the objec
 
 DOCA uses a single unified version string across host packages, BlueField BFB image, headers, and the libraries the program links against. **All four must match within a release.** Cross-version mixing is the single most common source of "the program built but does nothing on the wire" reports for first-time users.
 
+The **authoritative source** for which release pairings NVIDIA actually supports — software release cadence, version-string semantics, host ↔ DPU compatibility windows, and how long a given release is maintained — is the [DOCA Compatibility Policy](https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html). Always cite this page when the user asks "can I run host version X with DPU version Y?", "is release Z still supported?", or "what does the version string actually mean?". The program-side rules below describe how to *behave* given a particular install; the Compatibility Policy describes which installs NVIDIA *intends to work* in the first place.
+
 The env-side procedures for *detecting* the installed version live in [`doca-setup CAPABILITIES.md ## Version compatibility`](../doca-setup/CAPABILITIES.md#version-compatibility) and in [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md). The program-side rules are:
 
 1. **Quote the version you observed, not "latest".** API names, sample filenames, and capability availability all depend on the user's installed version. The headers under `/opt/mellanox/doca/infrastructure/include/` are the *authoritative* statement of which symbols exist on this release; if a public web page mentions a symbol and the header does not, the header wins.
