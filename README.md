@@ -6,7 +6,7 @@ A **public, drop-in DOCA skills bundle for AI coding agents**, on top of the sam
 
 ## AI agent skills — what makes this repo agent-ready out of the box
 
-**Who this is for:** *external developers building applications that **consume** DOCA libraries* — i.e., users who want to call DOCA Flow, DOCA RDMA, DOCA Comch, etc. from their own networking application to offload work onto a NVIDIA BlueField DPU or ConnectX NIC. It is *not* intended for NVIDIA developers contributing to DOCA itself; internal-tooling questions (Gerrit, NVBugs, internal mirrors, kernel-module internals) are explicitly out of scope and forbidden by the ground rules in [`AGENTS.md`](AGENTS.md).
+**Who this is for:** *external developers building applications that **consume** DOCA libraries* — i.e., users who want to call DOCA Flow, DOCA RDMA, DOCA Comch, etc. from their own networking application to offload work onto a NVIDIA BlueField DPU or ConnectX NIC. The bundle scopes itself to NVIDIA's public DOCA documentation surfaces; questions about NVIDIA-internal infrastructure or DOCA contributor workflows are out of scope and enforced by the ground rules in [`AGENTS.md`](AGENTS.md).
 
 **Language scope:** the skills are language-agnostic about the *consumer* application. DOCA itself is shipped as C libraries with a stable C ABI and `pkg-config` modules, and the only application source code NVIDIA ships in this repository's `samples/` and `applications/` trees is C/C++. So:
 
@@ -18,20 +18,22 @@ The skills layer is currently shipped on the `ai-mvp-with-files` branch; `master
 **Where the agent guidance lives:**
 
 - [AGENTS.md](AGENTS.md) — canonical entry point for every AI coding agent. Read this first.
-- [SKILLS.md](SKILLS.md) — index of installed skills with one-line "when to load" triggers.
-- [.claude/skills/](.claude/skills/) — the skill source files. The `.claude/` path is Claude Code's auto-discovery location, but the files themselves are vendor-neutral Markdown that any agent can read directly.
+- [SKILLS.md](SKILLS.md) — index of installed skills with one-line "when to load" triggers, plus the layout convention.
+- [skills/](skills/) — the skill source files, layered: top-level cross-cutting skills, `libs/<library>/`, `services/<service>/`, `tools/<tool>/`. The path is intentionally vendor-neutral (`skills/`, not `.claude/skills/` or any other runtime-specific directory) so the bundle reads naturally to any agent — Cursor, Codex, Gemini, Claude Code, or in-house LLMs. Discovery is driven by [`AGENTS.md`](AGENTS.md) (industry convention); a stub `CLAUDE.md` at repo root exists only to redirect Claude Code's auto-discovery back to `AGENTS.md`.
 - [CLAUDE.md](CLAUDE.md) — one-line stub routing Claude Code back to `AGENTS.md`.
 
-**What the skills give you (four complementary layers):**
+**What the skills give you (three cross-cutting + per-artifact layers):**
 
-| Skill | What it covers | When the agent loads it |
-| --- | --- | --- |
-| `doca-public-knowledge-map` | The routing table for every authoritative DOCA information source: public docs URLs, the on-disk layout of an installed `/opt/mellanox/doca`, public GitHub repos, NGC catalog, the developer forum, and how to check the installed DOCA version. | Any "what / where / which doc" DOCA question. |
-| `doca-setup` | **Env-class only.** Install verification, build environment (`pkg-config`, headers, hugepages, devlink), env-class debugging, and the *I have no install yet* path with the public NGC DOCA container (`nvcr.io/nvidia/doca/doca`) as the universal Stage-1 fallback for any user on macOS, Windows, or Linux without DOCA — alongside lab-host, cloud-Linux, and hardware paths. Stops at *"the install is healthy and the env is ready"*. | The user is installing or troubleshooting DOCA, or has no install at all and needs to reach one. |
-| `doca-programming-guide` | **General DOCA programming patterns shared across every library.** The canonical `pkg-config doca-<library>` + meson build pattern (C/C++ direct or non-C via FFI / bindings), the universal *derive a custom first app from a shipped sample* workflow that every library skill extends, the universal `cfg-create → init → start → use → stop → destroy` lifecycle, the cross-library `DOCA_ERROR_*` taxonomy with `doca_error_get_descr()`, the validate-before-commit rule, the program-side debug order. Library-agnostic; library-specific overlays live in the matching library skill. | The user has a healthy DOCA env and is asking a programming-class question — *how do I structure a build, derive a first app, debug a `DOCA_ERROR_*`* — independent of which library they're using. |
-| `doca-flow` | DOCA Flow on BlueField — port and representor setup, pipe creation, match/action specifications, pipe validation before hardware programming, counters and traces, version compatibility, and debugging `DOCA_ERROR_*` failures. Builds on `doca-setup` (env) and `doca-programming-guide` (cross-library patterns) and layers Flow specifics on top. | The user is writing or debugging DOCA Flow code. |
+| Skill | Slot | What it covers | When the agent loads it |
+| --- | --- | --- | --- |
+| `doca-public-knowledge-map` | top-level | The routing table for every authoritative DOCA information source: public docs URLs, the on-disk layout of an installed `/opt/mellanox/doca`, public GitHub repos, NGC catalog, the developer forum, the DOCA services index, the DOCA tools index, and how to check the installed DOCA version. | Any "what / where / which doc" DOCA question. |
+| `doca-setup` | top-level | **Env-class only.** Install verification, build environment (`pkg-config`, headers, hugepages, devlink), env-class debugging, and the *I have no install yet* path with the public NGC DOCA container (`nvcr.io/nvidia/doca/doca`) as the universal Stage-1 fallback for any user on macOS, Windows, or Linux without DOCA — alongside lab-host, cloud-Linux, and hardware paths. Stops at *"the install is healthy and the env is ready"*. | The user is installing or troubleshooting DOCA, or has no install at all and needs to reach one. |
+| `doca-programming-guide` | top-level | **General DOCA programming patterns shared across every library.** The canonical `pkg-config doca-<library>` + meson build pattern (C/C++ direct or non-C via FFI / bindings), the universal *derive a custom first app from a shipped sample* workflow that every library skill extends, the universal `cfg-create → init → start → use → stop → destroy` lifecycle, the cross-library `DOCA_ERROR_*` taxonomy with `doca_error_get_descr()`, the validate-before-commit rule, the program-side debug order. Library-agnostic; library-specific overlays live in the matching library skill. | The user has a healthy DOCA env and is asking a programming-class question — *how do I structure a build, derive a first app, debug a `DOCA_ERROR_*`* — independent of which library they're using. |
+| `doca-flow` | `libs/` | DOCA Flow on BlueField — port and representor setup, pipe creation, match/action specifications, pipe validation before hardware programming, counters and traces, version compatibility, and debugging `DOCA_ERROR_*` failures. Builds on `doca-setup` (env) and `doca-programming-guide` (cross-library patterns) and layers Flow specifics on top. | The user is writing or debugging DOCA Flow code. |
+| `doca-dms` | `services/` | DOCA Management Service — gRPC-based device management for BlueField / ConnectX. Two-process daemon (`dmsd` frontend + `dmspe` privileged backend), gNMI for config, gNOI for system ops, YANG-modeled paths, four documented auth modes, three deployment shapes, `dmsgroup` authorization, and a layered debug taxonomy from gRPC transport down to underlying-tool failures. Currently beta per the public guide. | The user is deploying or operating DMS. |
+| `doca-caps` | `tools/` | DOCA Capabilities Print Tool (`/opt/mellanox/doca/tools/doca_caps`) — read-only CLI that prints DOCA devices, representors, supported libraries, per-device per-library capabilities, and DOCA logger names. Available since DOCA 2.6.0. The canonical first-step capability snapshot called out from `doca-setup ## test` and `doca-programming-guide ## debug`. | The user — or the agent itself — needs a side-effect-free, documented snapshot of *what DOCA sees on this host* before doing anything that changes state. |
 
-When other DOCA libraries (`doca-rdma`, `doca-comch`, …) ship their own skills, each will plug into the same two foundations — `doca-setup` for env work and `doca-programming-guide` for the cross-library programming patterns — and will only contribute the *library-specific* overrides on top.
+When other DOCA libraries / services / tools ship their own skills (`doca-rdma`, `doca-comch`, `doca-dts`, `doca-bench`, …), each plugs into the same three cross-cutting foundations — `doca-public-knowledge-map` for routing, `doca-setup` for env, `doca-programming-guide` for cross-library programming patterns — and contributes only the *artifact-specific* overrides on top, in its own `libs/` / `services/` / `tools/` slot.
 
 **Quick start:**
 
@@ -39,7 +41,7 @@ When other DOCA libraries (`doca-rdma`, `doca-comch`, …) ship their own skills
 2. Ask any DOCA question. The agent reads `AGENTS.md` automatically and pulls the matching skill in.
 3. To see the difference the skills layer makes, open the same repo on the `master` branch in a second window and ask the same question.
 
-**Conformance:** [`ci/check-skill.sh`](ci/check-skill.sh) enforces the rules every skill in `.claude/skills/` must satisfy. Run it locally before opening a PR that touches any skill file.
+**Conformance:** [`ci/check-skill.sh`](ci/check-skill.sh) enforces the rules every skill in `skills/` must satisfy. Run it locally before opening a PR that touches any skill file.
 
 | Check | Default | Network required |
 | --- | --- | --- |

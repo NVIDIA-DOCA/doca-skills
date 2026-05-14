@@ -5,7 +5,7 @@ Read this file when the loader sent you here from
 capabilities (configure, build, modify, run, test, debug) see
 [TASKS.md](TASKS.md). For where the underlying public documentation and
 installed package paths live, defer to
-[`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md) — do
+[`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) — do
 not duplicate URLs or install paths in this file.
 
 ## Capabilities and modes

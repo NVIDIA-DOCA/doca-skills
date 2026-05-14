@@ -69,7 +69,7 @@ Env-class errors that the agent should recognize and disambiguate before falling
 | Runtime | `representor X not found` | Representors not enabled on the PF (`devlink dev eswitch set ... mode switchdev`), or the application is asking for a representor index that doesn't exist on this hardware. | `devlink dev show`; cross-check requested index against `cat /sys/class/net/*/phys_port_name`. |
 | Runtime | Application starts, exits cleanly, no traffic effect | Often a silent steering-mode mismatch (HWS expected, SWS active) or a switch-mode app run in non-switch mode. | Re-run `doca_caps`; cross-check the steering mode the application requested via library init args. |
 
-The taxonomy above is **env-class only**. Program-internal `DOCA_ERROR_*` codes (`DOCA_ERROR_BAD_STATE`, `DOCA_ERROR_NOT_SUPPORTED`, etc.) live in [`doca-programming-guide CAPABILITIES.md ## Error taxonomy`](../doca-programming-guide/CAPABILITIES.md#error-taxonomy); the library-specific overlay (e.g. Flow's mapping from API call to which `DOCA_ERROR_*` it returns) lives in the matching library skill — for Flow, see [`doca-flow CAPABILITIES.md ## Error taxonomy`](../doca-flow/CAPABILITIES.md#error-taxonomy).
+The taxonomy above is **env-class only**. Program-internal `DOCA_ERROR_*` codes (`DOCA_ERROR_BAD_STATE`, `DOCA_ERROR_NOT_SUPPORTED`, etc.) live in [`doca-programming-guide CAPABILITIES.md ## Error taxonomy`](../doca-programming-guide/CAPABILITIES.md#error-taxonomy); the library-specific overlay (e.g. Flow's mapping from API call to which `DOCA_ERROR_*` it returns) lives in the matching library skill — for Flow, see [`doca-flow CAPABILITIES.md ## Error taxonomy`](../libs/doca-flow/CAPABILITIES.md#error-taxonomy).
 
 ## Observability
 

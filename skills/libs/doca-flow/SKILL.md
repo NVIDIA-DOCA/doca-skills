@@ -50,7 +50,7 @@ language. Concretely:
 
 Do **not** load this skill for general DOCA orientation, "where do I find
 docs", install-layout, or non-Flow library questions. For those, use
-[`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
+[`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 
 ## What this skill provides
 
@@ -87,7 +87,7 @@ requests should not add:
   the shipped C sample at `/opt/mellanox/doca/samples/doca_flow/<name>/`;
   the agent's job is to route the user to that file and prescribe a
   minimum-diff modification on it via the universal modify-a-sample
-  workflow in [`doca-programming-guide`](../doca-programming-guide/SKILL.md),
+  workflow in [`doca-programming-guide`](../../doca-programming-guide/SKILL.md),
   layered with the Flow-specific overrides in
   [`TASKS.md ## build`](TASKS.md#build) "first Flow app" block — for
   C/C++ users — or to route non-C users to the public C ABI surface
@@ -125,17 +125,17 @@ guidance".
 
 ## Related skills
 
-- [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md) — the
+- [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) — the
   routing table for every public DOCA documentation source and the on-disk
   layout of an installed DOCA package. Always available alongside this
   skill; this skill expects to be able to defer documentation-finding and
   install-layout questions there instead of duplicating them.
-- [`doca-setup`](../doca-setup/SKILL.md) — env preparation, install
+- [`doca-setup`](../../doca-setup/SKILL.md) — env preparation, install
   verification, and the *I have no install yet* path with the public
   NGC DOCA container (`nvcr.io/nvidia/doca/doca`) as the universal
   Stage-1 fallback for any user on macOS, Windows, or Linux without
   DOCA. This skill assumes its preconditions are satisfied.
-- [`doca-programming-guide`](../doca-programming-guide/SKILL.md) —
+- [`doca-programming-guide`](../../doca-programming-guide/SKILL.md) —
   general DOCA programming patterns shared by every library: the
   canonical `pkg-config` + meson build pattern, the universal
   modify-a-shipped-sample first-app workflow (which Flow extends with

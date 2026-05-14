@@ -19,7 +19,7 @@ Do **not** load this skill for:
 
 - *"What is DOCA?", "where is the developer guide?", "where is the install layout documented?"* — those are routing questions; use [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 - *"How do I derive a custom first application from a sample?", "how do I structure a DOCA build?", "what does `DOCA_ERROR_BAD_STATE` mean?"* — those are **programming-class** questions and live in [`doca-programming-guide`](../doca-programming-guide/SKILL.md), which owns the universal `## modify` (first-app derivation), the canonical `## build` pattern, the universal lifecycle, and the cross-library `DOCA_ERROR_*` taxonomy.
-- *Library-internal API questions* (Flow pipe construction, RDMA queue setup, etc.) — those belong in the matching library skill (e.g. [`doca-flow`](../doca-flow/SKILL.md)). This skill stops at *"the install is healthy and the env is ready"*; it does not own program semantics.
+- *Library-internal API questions* (Flow pipe construction, RDMA queue setup, etc.) — those belong in the matching library skill (e.g. [`doca-flow`](../libs/doca-flow/SKILL.md)). This skill stops at *"the install is healthy and the env is ready"*; it does not own program semantics.
 
 ## What this skill provides
 
@@ -35,7 +35,7 @@ This skill assumes nothing about whether DOCA is installed — the `## no-instal
 1. Read this `SKILL.md` first to confirm the user's question is env-class, not programming-class or routing-class.
 2. **For install profiles, build-flavor disk locations, env-side version-detection, the env-class error taxonomy, and the env-side safety policy, see [CAPABILITIES.md](CAPABILITIES.md).**
 3. **For env workflows — `configure`, `test`, `debug`, and the critical `no-install` (NGC container path) — see [TASKS.md](TASKS.md).** The `build`, `modify`, and `run` anchors in `TASKS.md` are stubs that route to [`doca-programming-guide`](../doca-programming-guide/SKILL.md); their substance lives there.
-4. Once the env is healthy, hand off to [`doca-programming-guide`](../doca-programming-guide/SKILL.md) for the build pattern, the first-app workflow, and the program-side error / debug order; then to the matching library skill (e.g. [`doca-flow`](../doca-flow/SKILL.md)) for library-specific API guidance.
+4. Once the env is healthy, hand off to [`doca-programming-guide`](../doca-programming-guide/SKILL.md) for the build pattern, the first-app workflow, and the program-side error / debug order; then to the matching library skill (e.g. [`doca-flow`](../libs/doca-flow/SKILL.md)) for library-specific API guidance.
 
 Both companion files cross-link to each other and to `doca-public-knowledge-map` whenever the right answer is *"look it up in the public docs or the installed package layout"* rather than *"setup-specific guidance"*.
 
@@ -43,4 +43,4 @@ Both companion files cross-link to each other and to `doca-public-knowledge-map`
 
 - [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md) — public DOCA documentation routing and the on-disk layout of an installed DOCA package. This skill defers all *"where is X documented"*, *"where on disk is Y"*, and *"how do I check the installed version"* questions to the knowledge-map.
 - [`doca-programming-guide`](../doca-programming-guide/SKILL.md) — general DOCA programming patterns once the env is healthy: the canonical `pkg-config doca-<library>` build pattern, the universal *derive a custom first app from a sample* workflow (with C / C++ + non-C tracks), the universal lifecycle, and the cross-library `DOCA_ERROR_*` taxonomy. Anything beyond *"is the install healthy and the env ready"* lives there.
-- [`doca-flow`](../doca-flow/SKILL.md) — DOCA Flow on BlueField. Builds on this skill for env preparation and on `doca-programming-guide` for the universal first-app derivation, then layers Flow-specific overrides on top.
+- [`doca-flow`](../libs/doca-flow/SKILL.md) — DOCA Flow on BlueField. Builds on this skill for env preparation and on `doca-programming-guide` for the universal first-app derivation, then layers Flow-specific overrides on top.

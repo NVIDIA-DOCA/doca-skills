@@ -49,7 +49,7 @@ DOCA does not ship official bindings in non-C languages inside this repository. 
 
 2. **Pick the binding strategy honestly.** If a community or user-built binding for the user's language exists, point at its repository (the agent **must** verify it exists by fetching its repo or package registry — never invent a binding name). Otherwise the user is doing direct FFI: `bindgen` for Rust, `cgo` for Go, `cffi` / `ctypes` for Python, equivalents for other languages.
 
-3. **Generate or write the binding in the user's own toolchain.** This skill does not author wrappers. The agent describes the C-side surface (header path, `*.so` filename, lifecycle order, error pattern) and lets the user's binding tooling do its job. The library skill (e.g. [`doca-flow`](../doca-flow/SKILL.md)) supplies the API-surface guidance the wrapper has to honor.
+3. **Generate or write the binding in the user's own toolchain.** This skill does not author wrappers. The agent describes the C-side surface (header path, `*.so` filename, lifecycle order, error pattern) and lets the user's binding tooling do its job. The library skill (e.g. [`doca-flow`](../libs/doca-flow/SKILL.md)) supplies the API-surface guidance the wrapper has to honor.
 
 4. **Read the C samples even if you're not writing C.** The order of API calls in `/opt/mellanox/doca/samples/doca_<library>/<sample>/` is the same regardless of the calling language. The wrapper translates the shape; it does not invent a different shape.
 
@@ -59,7 +59,7 @@ Goal: take a working shipped sample and **derive a custom first application** fo
 
 **Language scope of this verb.** The shipped DOCA samples are written in C; this is the only application source code NVIDIA ships in this repository. The modify-a-sample workflow below is therefore the C / C++ first-app track. For consumers writing their first DOCA application in another language (Rust, Go, Python, …), this verb is *not* the right path — those users should still build a shipped sample (Track 1 of [`## build`](#build)) to verify their install is healthy, and then use Track 2 of [`## build`](#build) plus the matching library skill's bindings / FFI guidance for the wrapper-side work the user does in their own toolchain. The agent must not pretend the modify-a-sample workflow produces a Rust crate, a Go module, or a Python package; the workflow's output is a modified copy of NVIDIA's C sample.
 
-The generic pattern below is library-agnostic *across DOCA libraries* (Flow, RDMA, Comch, …) but C-specific *within a library*. Library-specific values (which sample, which fields the user must change, which actions to keep) live in the matching library skill — for Flow, see [`doca-flow ## build`](../doca-flow/TASKS.md#build).
+The generic pattern below is library-agnostic *across DOCA libraries* (Flow, RDMA, Comch, …) but C-specific *within a library*. Library-specific values (which sample, which fields the user must change, which actions to keep) live in the matching library skill — for Flow, see [`doca-flow ## build`](../libs/doca-flow/TASKS.md#build).
 
 ### Precondition
 
@@ -72,7 +72,7 @@ This verb requires *all* of:
 | The source sample is present | `ls /opt/mellanox/doca/samples/<library>/<sample_name>/` lists `meson.build` and the source files |
 | `pkg-config` knows DOCA | `pkg-config --modversion doca-<library>` returns a version string |
 
-If any precondition fails, **do not proceed and do not invent a substitute**. Route to [`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install); that section is what the agent does instead, and its Path 0 (NGC DOCA container, `nvcr.io/nvidia/doca/doca`) is the universal way to satisfy these preconditions on macOS, Windows, or Linux without DOCA. Authoring application source code in *any* language (C, C++, Rust, Go, Python, …) from documentation prose to "fill the gap" is the failure mode this verb is here to prevent — it violates [`AGENTS.md`](../../../AGENTS.md) ground rule #3 and would ship code that has never been compiled / linked / FFI-loaded against the live DOCA library.
+If any precondition fails, **do not proceed and do not invent a substitute**. Route to [`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install); that section is what the agent does instead, and its Path 0 (NGC DOCA container, `nvcr.io/nvidia/doca/doca`) is the universal way to satisfy these preconditions on macOS, Windows, or Linux without DOCA. Authoring application source code in *any* language (C, C++, Rust, Go, Python, …) from documentation prose to "fill the gap" is the failure mode this verb is here to prevent — it violates [`AGENTS.md`](../../AGENTS.md) ground rule #3 and would ship code that has never been compiled / linked / FFI-loaded against the live DOCA library.
 
 ### Steps (preconditions met)
 
@@ -151,7 +151,7 @@ Investigation order — **always**:
 
 4. **Capability layer.** Did the program ask for a feature the active mode does not support? Re-run capability discovery from [`## configure`](#configure) step 4 and cross-check; an unsupported feature returns `DOCA_ERROR_NOT_SUPPORTED`. Code-side workarounds for `NOT_SUPPORTED` are almost always wrong — change intent, switch hardware/mode, or escalate.
 
-5. **Error-description layer.** For any returned `doca_error_t`, call `doca_error_get_descr()` and quote what it actually says — do not paraphrase from memory. The cross-library error meanings are in [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy); the library-specific overlay is in the matching library skill (Flow's `DOCA_ERROR_*` decision tree, for example, lives in [`doca-flow ## debug`](../doca-flow/TASKS.md#debug)).
+5. **Error-description layer.** For any returned `doca_error_t`, call `doca_error_get_descr()` and quote what it actually says — do not paraphrase from memory. The cross-library error meanings are in [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy); the library-specific overlay is in the matching library skill (Flow's `DOCA_ERROR_*` decision tree, for example, lives in [`doca-flow ## debug`](../libs/doca-flow/TASKS.md#debug)).
 
 6. **Library layer.** Only after (1)–(5) are clean: route the conversation to the library skill for library-internal API semantics.
 
@@ -161,5 +161,5 @@ If the agent finds itself recommending a library-internal code change before com
 
 - **`install`.** Installing DOCA on a fresh host, or reaching an install from a no-install host (NGC container fallback at `nvcr.io/nvidia/doca/doca` for macOS / Windows / Linux without DOCA, lab box, cloud Linux without NIC, hardware path) — env scope. Defer to [`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install) and the Installation Guide via [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 - **Env preparation.** `PKG_CONFIG_PATH`, hugepages, devlink, representor enumeration — env scope. Defer to [`doca-setup ## configure`](../doca-setup/TASKS.md#configure).
-- **Library API specifics.** Constructing a Flow pipe, RDMA queue setup, Comch channel construction, etc. — library scope. After this skill's verbs have produced a buildable, runnable program shape, hand off to the matching library skill (e.g. [`doca-flow`](../doca-flow/SKILL.md)) for API-level guidance.
+- **Library API specifics.** Constructing a Flow pipe, RDMA queue setup, Comch channel construction, etc. — library scope. After this skill's verbs have produced a buildable, runnable program shape, hand off to the matching library skill (e.g. [`doca-flow`](../libs/doca-flow/SKILL.md)) for API-level guidance.
 - **`deploy` / `rollback`.** Provisioning multiple BlueFields, coordinated firmware / BFB updates across a fleet, or staged rollback — out of scope. Reserved for a future platform skill (`doca-platform-deploy` or similar). Until that ships, the agent should stop and tell the user this is fleet-orchestration scope and recommend they engage their platform team rather than guess.

@@ -84,7 +84,7 @@ Do **not** load this skill for:
 - *"How do I construct a Flow pipe / set up an RDMA queue / use Comch
   to send a message?"* — library-internal API questions belong in the
   matching library skill (e.g.
-  [`doca-flow`](../doca-flow/SKILL.md)).
+  [`doca-flow`](../libs/doca-flow/SKILL.md)).
 
 ## What this skill provides
 
@@ -156,7 +156,7 @@ It deliberately does not contain — and pull requests should not add:
 If the user is asking for a *first app* in a specific library, walk
 through [`TASKS.md ## modify`](TASKS.md#modify) for the universal
 copy-and-edit pattern, then hand off to the library skill (e.g.
-[`doca-flow`](../doca-flow/SKILL.md)) for the library-specific values
+[`doca-flow`](../libs/doca-flow/SKILL.md)) for the library-specific values
 to swap.
 
 ## Related skills
@@ -172,6 +172,6 @@ to swap.
   the universal Stage-1 fallback for any user on macOS, Windows, or
   Linux without DOCA. This skill assumes `doca-setup`'s preconditions
   are already satisfied.
-- [`doca-flow`](../doca-flow/SKILL.md) — DOCA Flow on BlueField.
+- [`doca-flow`](../libs/doca-flow/SKILL.md) — DOCA Flow on BlueField.
   Extends this skill's `## modify` (universal first-app derivation)
   with the Flow-specific list of fields to swap.

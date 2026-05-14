@@ -1,26 +1,40 @@
 # Agent guidance for doca-skills
 
-This repository ships sample code for the NVIDIA DOCA SDK. Any AI coding agent
-working in this repo — Cursor, Codex, Gemini, Claude Code, custom in-house
-LLMs — should read this file first.
+This repository ships a public, drop-in **skills bundle** for AI coding
+agents working with the NVIDIA DOCA SDK. Any agent working in this repo
+— Cursor, Codex, Gemini, Claude Code, custom in-house LLMs — should
+read this file first.
 
 ## Where the actual guidance lives
 
-- [SKILLS.md](SKILLS.md) — the index of installed skills with one-line "when
-  to load" triggers. Read this to decide which skills are relevant to the
-  user's request.
-- [.claude/skills/](.claude/skills/) — the skill source files. Vendor-neutral
-  Markdown. `.claude/` is Claude Code's auto-discovery path, but the files
-  themselves are plain Markdown that any agent can read directly.
-
-If your runtime supports Anthropic Skills auto-loading, the per-skill
-`SKILL.md` frontmatter is the trigger. If it does not, read `SKILLS.md` and
-load the matching skill files manually.
+- [SKILLS.md](SKILLS.md) — the index of installed skills with one-line
+  "when to load" triggers, plus the layout convention. Read this to
+  decide which skills are relevant to the user's request.
+- [skills/](skills/) — the skill source files, layered:
+    - top-level: cross-cutting skills (`doca-public-knowledge-map`,
+      `doca-setup`, `doca-programming-guide`)
+    - `libs/<library>/` — one skill per DOCA library (e.g. `doca-flow`)
+    - `services/<service>/` — one skill per DOCA service (e.g. `doca-dms`)
+    - `tools/<tool>/` — one skill per DOCA tool (e.g. `doca-caps`)
+  Skill files are plain Markdown that any agent can read directly.
+  The bundle is deliberately vendor-neutral: the entry point is
+  `AGENTS.md` (industry convention), not a runtime-specific
+  directory. A `CLAUDE.md` at repo root exists only as a stub
+  pointing back here for Claude Code's auto-discovery.
+If your runtime supports per-skill `SKILL.md` frontmatter
+auto-loading (Anthropic Skills convention), it works equally well
+under `skills/` as under `.claude/skills/`. If it does not, read
+`SKILLS.md` and load the matching skill files manually. Cross-link
+labels of the form `[<skill-name> ## <anchor>](...)` resolve by
+skill name regardless of where the skill lives in the tree.
 
 ## Ground rules every agent must follow
 
-1. **Public sources only.** Never reference internal NVIDIA hostnames,
-   Gerrit, NVBugs, Confluence, or Jenkins. Customers do not have those.
+1. **Public sources only.** Reference NVIDIA documentation only on these
+   public hosts: `docs.nvidia.com`, `developer.nvidia.com`,
+   `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
+   `forums.developer.nvidia.com`, `nvcr.io`. Anything else is rejected
+   by `ci/check-skill.sh`.
 2. **Prefer the local install over the web.** When DOCA is installed at
    `/opt/mellanox/doca`, those files *are* the release. Web docs describe a
    release.
@@ -33,7 +47,7 @@ load the matching skill files manually.
 ## Conformance
 
 `ci/check-skill.sh` enforces the rules every skill in
-`.claude/skills/` must satisfy. Three layers, all gating:
+`skills/` must satisfy. Three layers, all gating:
 
 1. **Structural.** Frontmatter validity, required H2 anchors in
    `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, cross-anchor labels in
