@@ -1,0 +1,253 @@
+# DOCA Management Service — Capabilities
+
+This file enumerates DMS's documented capabilities, deployment shapes,
+authentication surface, and operational behaviors as described in the
+public DMS guide on `docs.nvidia.com`. Treat it as a *map of what is
+documented*, not a substitute for reading the live page when configuring
+a real deployment.
+
+## Capabilities and modes
+
+### Architecture
+
+DMS uses a **two-process architecture** for least-privilege isolation:
+
+- `dmsd` — **frontend daemon**. Handles client gRPC traffic. Runs with
+  minimal privileges. Translates external requests into a controlled
+  internal interface to the backend.
+- `dmspe` — **privileged backend**. Executes the operations that need
+  privilege (calls into `mlxconfig`, file operations, OS-level system
+  tasks). Reachable only via the controlled interface from the frontend.
+
+The intent of the split is documented: even if `dmsd` is compromised,
+privileged operations remain isolated in `dmspe`. Operational guidance
+must preserve this separation — do not advise running both processes as
+the same uid, do not advise bypassing the controlled interface.
+
+### Management protocols
+
+DMS exposes two gRPC-based interfaces:
+
+| Interface | Purpose | Scope |
+|-----------|---------|-------|
+| **gNMI** (network management) | Data configuration | `Get` / `Set` operations on device parameters (MTU, RoCE, QoS, …) modeled as YANG paths. |
+| **gNOI** (network operations) | System tasks | Operational actions: OS install, reboot, factory-reset, file transfer, `mlxconfig`, `containerz`. |
+
+Documented constraints:
+
+- DMS does **not** support telemetry streaming via gNMI `Subscribe`.
+  Streaming-telemetry questions go to the DOCA Telemetry Service (DTS),
+  not DMS.
+- DMS does **not** seek full OpenConfig alignment; it uses OpenConfig
+  as a framework. Path inventories quoted by the agent must come from
+  the live public guide, not be inferred from generic OpenConfig.
+
+### Configuration model — YANG dictionary
+
+DMS uses **YANG** as its modeling language. Hardware parameters,
+firmware settings, and operational state are mapped into a hierarchical
+tree under predictable paths (e.g. `/interfaces/interface/config/mtu`).
+The model follows the OpenConfig convention of separating
+**Configuration** (desired state) from **State** (observed
+operational data).
+
+Quote concrete paths only when they are in the public guide. Refuse to
+invent paths.
+
+### Deployment shapes
+
+The public guide documents three deployment shapes:
+
+- **Host (non-DPU)** — DMS runs on the x86 host that owns the
+  ConnectX/BlueField device, managing the device through the host
+  toolchain. Use when managing a plain ConnectX or when managing a
+  BlueField from the host side.
+- **DPU (BlueField Arm)** — DMS runs on the BlueField Arm cores,
+  managing the device locally. See the public BlueField *Modes of
+  Operation* page for whether the platform is in DPU mode.
+- **POD (Kubernetes)** — DMS runs in a pod, intended for fleet
+  management deployments.
+
+Each shape has its own prerequisites in the public guide; consult
+those before prescribing setup steps.
+
+### Daemon launch
+
+`dmsd` supports two documented launch paths:
+
+1. **SystemD service** — recommended in the public guide for
+   production. Persistent, restarts cleanly, integrates with system
+   logging.
+2. **Manual launch** — used to choose authentication modes
+   interactively and to walk the documented advanced configurations.
+
+The "DMS Server Flags (`dmsd`)" section of the public guide partitions
+flags into General & Provisioning, Authentication & Security,
+Authentication Method, and Security families. Quote flags from the live
+guide; do not infer flags from generic gRPC knowledge.
+
+### Authentication modes
+
+The public DMS guide documents four authentication modes:
+
+| Method | Security level | Best for | Description |
+|--------|----------------|----------|-------------|
+| Local testing | Low | Development only | No authentication. Server binds to localhost only. |
+| PAM | Medium | Unix user authentication | Uses system user accounts. Requires an `allowed_users` list. |
+| Credentials | per public guide | per public guide | Documented in the public guide; quote, do not paraphrase. |
+| mTLS | per public guide | per public guide | Documented in the public guide; quote, do not paraphrase. |
+
+Authorization is layered orthogonally: only members of the `dmsgroup`
+Unix group are authorized to execute DMS commands, regardless of the
+chosen authentication mode. Any "set DMS up for user X" workflow must
+include `dmsgroup` membership.
+
+### Configuration persistency
+
+DMS provides a documented **state restoration mechanism** so that
+configuration set via gNMI survives daemon restarts. Documented
+properties:
+
+- The state file has a documented location and atomic-write semantics
+  — quote from the public guide rather than inferring.
+- Automatic recording can be disabled by an operator who wants
+  external state management.
+- An execution example is documented; link to it rather than authoring
+  a reproduction.
+
+### gNMI client surface
+
+DMS supports the standard core gNMI commands documented in the public
+guide. Key references in the guide:
+
+- A **supported core commands** list — consult this rather than
+  assuming any client command is supported.
+- A **supported Get/Set paths reference** — look paths up here and
+  refuse to invent.
+
+`Get` and `Set` execution patterns are documented with worked examples;
+link to them rather than paraphrase.
+
+### gNOI client surface
+
+The gNOI surface in DMS covers documented operation families:
+
+- **OS commands** — install, activate, verify.
+- **System** — reboot, ping, time, traceroute.
+- **Factory-reset.**
+- **File** — transfer in / out, stat, remove.
+- **`mlxconfig`** — exposed as a gNOI operation.
+- **`containerz`** — container lifecycle on the managed device.
+
+For any specific gNOI operation, the public guide is the source of
+truth for sub-operations and semantics. Do not invent gNOI operations
+that are not in the documented list.
+
+## Version compatibility
+
+DMS is currently in **beta**, with General Availability scoped to
+SPC-X use cases. Two consequences for an external operator:
+
+1. **The surface is documented to evolve.** Flags, supported paths,
+   and gNOI operation lists can change between DOCA releases. Always
+   verify against the live public guide whose version corresponds to
+   the DOCA release installed on the target.
+2. **Roadmap and GA-scope questions are out of scope here.** Defer to
+   the live public guide rather than guessing.
+
+The cross-cutting DOCA version-compatibility rules (don't infer
+support from version strings, treat the installed `pkg-config`
+metadata as ground truth, …) live in
+[`doca-programming-guide CAPABILITIES.md ## Version compatibility`](../../doca-programming-guide/CAPABILITIES.md#version-compatibility).
+DMS-specific check: read the version of the public DMS guide page
+header and confirm it matches the DOCA install version on the target.
+
+## Error taxonomy
+
+DMS errors fall into five layers, each with its own owner:
+
+1. **Transport / gRPC layer** — gRPC status codes (`UNAUTHENTICATED`,
+   `PERMISSION_DENIED`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`, …). These
+   are standard gRPC, not DMS-specific.
+2. **Authentication / authorization layer** — `dmsd` rejected a
+   request before reaching the backend (wrong credentials, user not in
+   `dmsgroup`, `allowed_users` misconfigured for PAM, certificate
+   issuer not trusted in mTLS mode).
+3. **Path / operation layer** — request reached `dmsd` but the path
+   or operation is not in the supported set, or gNMI Subscribe was
+   attempted (DMS does not support it).
+4. **Backend / underlying-tool layer** — request reached `dmspe` and
+   the underlying tool (e.g. `mlxconfig`, OS installer, file system)
+   returned an error. The underlying tool is the source of truth for
+   that error; DMS is the conduit.
+5. **DOCA-library layer** — if DMS internally calls into a DOCA
+   library that returns `DOCA_ERROR_*`, the cross-library taxonomy in
+   [`doca-programming-guide CAPABILITIES.md ## Error taxonomy`](../../doca-programming-guide/CAPABILITIES.md#error-taxonomy)
+   becomes relevant on the *server* side. The library-specific overlay
+   (e.g. for Flow) lives in the matching `libs/<library>` skill.
+
+DMS does not return `DOCA_ERROR_*` to a gRPC client — its outward
+surface is gRPC. The DOCA error taxonomy is for the operator
+diagnosing why a gNOI operation that called into a DOCA library
+ultimately failed.
+
+## Observability
+
+Documented observability surfaces:
+
+- **Service logs.** DMS logs are split across documented components
+  and locations. The public guide also includes a documented example
+  log-rotation configuration. The agent's role on logging questions
+  is to identify the documented log component the user is reading,
+  quote the documented format expectation if it exists, and route to
+  the documented log-rotation example for retention setup.
+- **gNMI `Get` against State paths** — the documented way to read
+  observed device state, separated from desired-Configuration state by
+  the OpenConfig convention.
+- **gNOI `System`** — `time`, `ping`, etc., documented as health
+  introspection.
+
+DMS does **not** currently provide gNMI Subscribe streaming telemetry.
+For continuous telemetry, route to the **DOCA Telemetry Service
+(DTS)**, listed in
+[`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
+
+## Safety policy
+
+DMS's safety surface is operational, not programmatic. The documented
+posture:
+
+- **Process separation is non-negotiable.** Preserve the documented
+  two-process model (`dmsd` low-priv frontend, `dmspe` privileged
+  backend). Do not advise unifying them, do not advise bypassing the
+  controlled interface.
+- **`dmsgroup` is the authorization boundary.** Any DMS-issuing user
+  must be in `dmsgroup`; any user who should not issue DMS commands
+  must not be.
+- **Localhost-only auth is never safe to expose.** The "Local
+  testing" mode is for development only and binds to localhost. Do
+  not advise binding it to an external interface under any
+  circumstance.
+- **Authentication-mode choice is a security decision.** PAM,
+  Credentials, and mTLS each have documented security positioning;
+  reads of the public guide's *Security Best Practices* subsection
+  are mandatory before prescribing a production deployment.
+- **Network exposure follows documented mitigations.** The public
+  guide's *Network Exposure Risks and Mitigations* subsection
+  enumerates the documented risks (e.g. anonymous binding on a public
+  interface) and the documented mitigations. Do not paraphrase those
+  bullets — route to the live guide.
+- **Underlying-tool destructive operations** (gNOI `OS install`,
+  `Reboot`, `Factory-reset`, file-delete) change managed-device state
+  in non-trivial ways. Operators should know which sub-operation they
+  are invoking before issuing it; the agent's safe default is to
+  state the documented effect and ask the user to confirm.
+
+## Public-source pointer
+
+The single canonical public source for DMS is the **DOCA Management
+Service Guide** on `docs.nvidia.com`, reachable through
+[`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services).
+Verify that the version of the guide matches the DOCA install on the
+target — DMS surface is documented to evolve, so paths and flags can
+change between releases.
