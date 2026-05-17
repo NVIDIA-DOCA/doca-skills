@@ -43,6 +43,15 @@ skill name regardless of where the skill lives in the tree.
    fetched, say so and ask.
 4. **Always check the installed DOCA version** before quoting API names,
    options, or sample filenames. See `doca-public-knowledge-map` for how.
+5. **Never scaffold DOCA code from documentation prose.** Route the user
+   to a real DOCA install first (the NGC container if they have no
+   hardware — `doca-setup ## no-install`); *then* derive their first app
+   by editing a real shipped sample under `/opt/mellanox/doca/samples/`.
+   Inventing `main.c` / `Makefile` / `Dockerfile` from API memory is the
+   single most expensive failure mode for "agent helps me with DOCA"
+   sessions, and the failure mode this bundle exists to prevent. The
+   canonical first-app workflow lives in
+   `doca-programming-guide ## modify`; library skills overlay it.
 
 ## Conformance
 

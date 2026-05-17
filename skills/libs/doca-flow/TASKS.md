@@ -240,6 +240,17 @@ Steps:
 Goal: investigate "traffic is not doing what I asked" and arrive at a
 root cause that is either fixable in the spec or escalatable.
 
+> **Routing summary.** This anchor is the **Flow-specific debug overlay**:
+> counters, pipe statistics, programmed-entry dumps, Flow's `DOCA_ERROR_*`
+> mapping. For the **cross-cutting debug ladder** (install / version /
+> build / link / runtime / program / driver) plus the cross-cutting tooling
+> surface (`gdb`, `valgrind`, `--sdk-log-level`, the `doca-flow-trace`
+> build flavor, container-vs-native debug, core dumps, the Developer Forum
+> escalation), see [`doca-debug ## debug`](../../doca-debug/TASKS.md#debug).
+> The agent should walk the cross-cutting ladder first whenever the symptom
+> layer is not yet known; this Flow overlay layers on top once the symptom
+> is confirmed to be inside the Flow API surface.
+
 Walk in this order — do not skip steps:
 
 1. **Counters first.** Read the entry-level counters (built in `## build`
@@ -251,19 +262,34 @@ Walk in this order — do not skip steps:
    determine whether the pipe itself is healthy.
 3. **Programmed-entry dump third.** Use the Flow trace / diagnostic dump
    to inspect what the hardware actually has programmed. The diff
-   between the user's mental model and the dump is the bug.
+   between the user's mental model and the dump is the bug. The trace
+   build flavor (`pkg-config doca-flow-trace`) is what makes the dump
+   verbose; the runtime mechanics live in
+   [`doca-debug CAPABILITIES.md ## Observability`](../../doca-debug/CAPABILITIES.md#observability).
 4. **Error code mapping.** Any `DOCA_ERROR_*` returned during the
    investigation routes through the taxonomy in
    [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy).
+   The cross-library taxonomy (which family routes to which debug layer)
+   is owned by
+   [`doca-programming-guide CAPABILITIES.md ## Error taxonomy`](../../doca-programming-guide/CAPABILITIES.md#error-taxonomy);
+   this Flow file only adds the Flow-specific overlay.
 5. **Version sanity.** If a previously working spec now fails or behaves
-   differently, confirm the installed DOCA version did not change
-   (procedure lives in `doca-public-knowledge-map`). A library upgrade
-   between sessions is a common and easy-to-miss cause.
+   differently, confirm the installed DOCA version did not change. The
+   four-source version-coherence check (`pkg-config --modversion doca-common`,
+   `cat /opt/mellanox/doca/applications/VERSION`, `doca_caps --version`,
+   BFB version) is owned by
+   [`doca-debug ## debug`](../../doca-debug/TASKS.md#debug) Layer 2; the
+   version-detection mechanics live in
+   [`doca-public-knowledge-map ## Where to find the version`](../../doca-public-knowledge-map/SKILL.md#where-to-find-the-version).
+   A library upgrade between sessions is a common and easy-to-miss cause.
 6. **Escalation criteria.** If counters move correctly but observed
    behavior is still wrong AND the trace dump matches the spec AND the
    version is unchanged, the bug is below the Flow API surface (driver
-   or firmware). Stop attempting Flow-spec changes; capture state and
-   escalate via the platform's diagnostic CLIs.
+   or firmware). Stop attempting Flow-spec changes; capture state per
+   [`doca-debug ## test`](../../doca-debug/TASKS.md#test) (the read-only
+   triple) and escalate via
+   [`doca-debug ## debug` *Where to ask for help*](../../doca-debug/TASKS.md#debug)
+   to the public DOCA Developer Forum.
 
 ## Deferred task verbs
 
