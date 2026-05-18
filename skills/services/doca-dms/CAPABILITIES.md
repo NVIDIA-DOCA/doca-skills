@@ -1,10 +1,41 @@
 # DOCA Management Service — Capabilities
 
+**Where to start:** The pattern overview below names the recurring
+DMS-class operational patterns. Pick the pattern first, then drill
+into the H2 that owns the substance. For the *how* of executing each
+pattern, jump to [TASKS.md](TASKS.md).
+
 This file enumerates DMS's documented capabilities, deployment shapes,
 authentication surface, and operational behaviors as described in the
 public DMS guide on `docs.nvidia.com`. Treat it as a *map of what is
 documented*, not a substitute for reading the live page when configuring
 a real deployment.
+
+## Pattern overview
+
+Every DMS-class question this skill teaches resolves into one of FIVE
+patterns. The patterns are CLASSES — they apply across every
+deployment shape, not just one specific topology.
+
+| DMS pattern | Class shape | Where the substance lives |
+| --- | --- | --- |
+| 1. Pick the deployment shape | Host-non-DPU vs BlueField Arm vs Kubernetes pod; topology drives where `dmsd` lives | [`## Capabilities and modes`](#capabilities-and-modes) Architecture + Deployment Shapes |
+| 2. Pick the auth mode | localhost / PAM / credentials / mTLS — each with a different threat model | [`## Safety policy`](#safety-policy) auth-mode trade-offs |
+| 3. Speak the right protocol for the right action | gNMI Get/Set for config on modeled paths; gNOI for system operations (reboot / OS install / file transfer) | [`## Capabilities and modes`](#capabilities-and-modes) protocol catalogue |
+| 4. Read DMS's observability surface | Frontend logs (`dmsd`) + backend logs (`dmspe`) + gRPC status codes; rotate and persist per policy | [`## Observability`](#observability) |
+| 5. Map an error back to its layer | Frontend-rejected (auth / path) vs backend-executed (tool failure: `mlxconfig`, image install, file IO) | [`## Error taxonomy`](#error-taxonomy) frontend-vs-backend split |
+
+Two cross-cutting rules that apply to *every* pattern above:
+
+- **Operate the documented path; do not invent one.** DMS is in
+  beta with a defined GA scope; quoting flags or paths not in the
+  public guide is the most common hallucination failure for this
+  skill.
+- **Frontend before backend, every time.** When a request fails, the
+  agent must first determine whether the frontend rejected it (auth /
+  unknown path / malformed RPC) or the backend executed it and the
+  underlying tool failed. Conflating the two wastes debug time and
+  blames the wrong layer.
 
 ## Capabilities and modes
 
@@ -145,20 +176,12 @@ that are not in the documented list.
 
 ## Version compatibility
 
-DMS is currently in **beta**, with General Availability scoped to
-SPC-X use cases. Two consequences for an external operator:
+For the canonical DOCA version-detection chain, the four-way match rule, NGC container semantics, and the headers-win-over-docs rule, see [`doca-version`](../../doca-version/SKILL.md). The body lives there; this skill does not duplicate it.
 
-1. **The surface is documented to evolve.** Flags, supported paths,
-   and gNOI operation lists can change between DOCA releases. Always
-   verify against the live public guide whose version corresponds to
-   the DOCA release installed on the target.
-2. **Roadmap and GA-scope questions are out of scope here.** Defer to
-   the live public guide rather than guessing.
+**The DMS-specific overlay** is:
 
-The cross-cutting DOCA version-compatibility rules (don't infer
-support from version strings, treat the installed `pkg-config`
-metadata as ground truth, …) live in
-[`doca-programming-guide CAPABILITIES.md ## Version compatibility`](../../doca-programming-guide/CAPABILITIES.md#version-compatibility).
+- **DMS is currently in beta**, with General Availability scoped to SPC-X use cases. Flags, supported paths, and gNOI operation lists can change between DOCA releases. Always verify against the live public DMS guide whose version corresponds to the DOCA release confirmed by [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure).
+- **DMS container tags lag DOCA host-package versions.** The DMS container shipped from NGC carries its own tag that may not match the host's `pkg-config --modversion doca-common`. When the user is using DMS-as-a-container, the relevant version anchor is the container tag pulled, not the host install — confirm both and route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 if they diverge.
 DMS-specific check: read the version of the public DMS guide page
 header and confirm it matches the DOCA install version on the target.
 

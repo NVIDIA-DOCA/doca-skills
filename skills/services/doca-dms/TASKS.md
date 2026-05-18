@@ -1,5 +1,11 @@
 # DOCA Management Service — Tasks
 
+**Where to start:** The order is `configure → build → modify → run →
+test → debug`. The `## test` verb is an iterative loop, not a
+one-shot pass — see the eval-loop overlay in `## test` below. For DMS,
+`build` and `modify` are about *daemon configuration* (SystemD unit,
+flags, YANG-instance fragments), not about compiling source.
+
 These verbs cover the in-scope DMS operational workflows for an
 external operator deploying and using DMS. Every step assumes the
 operator has consulted the live public DMS guide on `docs.nvidia.com`
@@ -116,6 +122,25 @@ why.
 
 DMS has no "compile and unit-test" workflow — testing is operational.
 
+**`## test` is an iterative loop, not a one-shot pass.** Every
+configuration mutation (auth mode, listener, dmsgroup membership,
+persistency setting) re-opens the smoke sweep. Skipping the re-run
+after a mutation is the failure mode this loop replaces.
+
+The eval-loop overlay (rows apply to every DMS deployment, not just one
+topology):
+
+| Step | Why this is a loop, not a step | Where the substance lives |
+| --- | --- | --- |
+| 1 → 4 → 1 | Capability-snapshot drift (step 4) often reveals an as-deployed gap that needs a configuration change; loop back to step 1 | [`## test`](#test) step 4 |
+| 2 → ## debug | When the auth-mode smoke does NOT reject what it should, the deployment is unsafe — escalate to `## debug` immediately, do not run later steps | [`## debug`](#debug) |
+| 3 → ## configure → 3 | When persistency does not survive restart, the persistency configuration is wrong — loop back to `## configure` and re-run step 3 | [`## configure`](#configure) |
+| 1..4 → ## run | Each loop iteration ends with a documented smoke; if all four pass, hand off to live `## run` traffic | [`## run`](#run) |
+
+The agent's rule: every mutation re-opens the sweep. A
+configuration change followed by "it probably still works" is exactly
+the failure mode the iterative loop is here to prevent.
+
 1. **Smoke-test the daemon.** After launch (`## run` step 3), confirm
    the daemon answers a documented gNMI `Get` and returns expected
    shape.
@@ -180,6 +205,43 @@ without clearing the layer above.
    [`doca-programming-guide CAPABILITIES.md ## Error taxonomy`](../../doca-programming-guide/CAPABILITIES.md#error-taxonomy).
    The library-specific overlay (e.g. for Flow) lives in the
    matching `libs/<library>` skill.
+
+## Command appendix
+
+DMS-specific commands the verbs above reach for, grouped by purpose
+so the agent picks the right family without searching prose. Every
+row is a class — the agent must not invent flags beyond what the row
+names; flag discovery is `--help` on the installed binary or the
+SystemD unit file, not prose recall.
+
+| Purpose | Command (class shape) | Owning step | Reads as healthy when … |
+| --- | --- | --- | --- |
+| Daemon lifecycle (SystemD) | `systemctl status dmsd` / `start` / `stop` / `restart` | [`## run`](#run) | `active (running)` with no recent restart loops. |
+| Daemon launch (manual) | `dmsd --help` first, then the documented flag set | [`## run`](#run) | Daemon binds the documented listener and emits the expected startup banner. |
+| Daemon logs (frontend) | `journalctl -u dmsd --since "5 min ago"` or the documented log file | [`## debug`](#debug) layer Transport/Auth | Lines present for the request window; no auth-rejection storm. |
+| Daemon logs (backend) | The documented `dmspe` log destination | [`## debug`](#debug) layer Backend | Backend execution lines present; tool stderr captured. |
+| Sanity gNMI Get | A gNMI `Get` on a documented path (e.g. `/system/state/hostname`) | [`## test`](#test) step 1 | Returns the expected typed value. |
+| Sanity gNMI Set | A gNMI `Set` on a benign path the user controls | [`## test`](#test) step 1 | Returns success; subsequent `Get` reflects the new value. |
+| gNOI sanity (read-only) | A gNOI `System.Time` (or equivalent read-only op the guide lists) | [`## test`](#test) step 1 | Returns the expected time / status. |
+| Auth-mode negative test | A request *without* credentials | [`## test`](#test) step 2 | Frontend rejects with the documented `PERMISSION_DENIED` / `UNAUTHENTICATED`. |
+| Persistency check | Set a value, restart `dmsd`, re-`Get` | [`## test`](#test) step 3 | The previously set value survives the restart. |
+| Capability snapshot | A documented gNMI `Get` enumerating supported paths / ops | [`## test`](#test) step 4 | Output matches the deployment-shape capability matrix. |
+| Cross-cutting health | `ss -tlnp \| grep dmsd` (port listener), `ps -ef \| grep dmsd` | [`## debug`](#debug) layer Transport | Daemon listens on the documented port; one `dmsd` process. |
+
+Three cross-cutting rules for this appendix:
+
+- **Never invent a DMS flag.** The public guide is the contract;
+  `dmsd --help` against the installed binary is the only secondary
+  source. Prose-derived flags are the most common hallucination
+  failure for this skill.
+- **Frontend logs before backend logs.** When triaging, read
+  `journalctl -u dmsd` (or the documented frontend log) first; only
+  drop to `dmspe` once the frontend confirms the request reached the
+  backend.
+- **Cross-link instead of duplicate.** Cross-cutting commands (the
+  read-only triple, `dmesg`, `mlxconfig -d <pcie> q`) live in
+  [`doca-debug TASKS.md ## Command appendix`](../../doca-debug/TASKS.md#command-appendix);
+  this appendix names only the DMS-specific ones.
 
 ## Deferred task verbs
 

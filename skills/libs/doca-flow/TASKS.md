@@ -1,5 +1,11 @@
 # DOCA Flow workflows
 
+**Where to start:** The verbs run `configure → build → modify → run
+→ test → debug`. Skip ahead only when the user is already past a
+verb. The `## test` verb is an iterative loop (validate → cross-check
+→ counter wiring → negative test → loop back if the spec changed), not
+a one-shot pass — see the eval-loop overlay in `## test` below.
+
 Read this file when the loader sent you here from
 [SKILL.md](SKILL.md). For the underlying capability matrix, version
 compatibility, error taxonomy, observability surface, and safety policy
@@ -213,6 +219,26 @@ Steps:
 Goal: validate a pipe spec — and the system context around it — before
 hardware programming.
 
+**`## test` is an iterative loop, not a one-shot pass.** The agent's
+job is to run the 4 steps below in order, and *loop back to step 1
+whenever the spec is mutated by the cross-check or counter-wiring
+findings*. Treating validate-once as good-enough is the failure mode
+this loop replaces; every spec mutation re-opens validate.
+
+The eval-loop overlay (rows apply to every pipe spec, not just one):
+
+| Step | Why this is a loop, not a step | Where the substance lives |
+| --- | --- | --- |
+| 1 → 4 → 1 | Negative-test discovery (step 4) often surfaces a real spec drift; loop back to step 1 | [`## test`](#test) step 4 |
+| 1 → 2 → 1 | Capability cross-check (step 2) may force a steering-mode or action change; loop back to step 1 | [`## test`](#test) step 2 |
+| 1 → 3 → 1 | Counter-wiring gap (step 3) often reveals a missing per-entry counter the user wanted; loop back to step 1 with the counter added | [`## test`](#test) step 3 |
+| 4 → ## debug | When the negative test does not reject what it should, the Flow library itself is suspect — escalate to the Flow `## debug` overlay | [`## debug`](#debug) |
+
+The agent's rule: every mutation between steps re-opens validate.
+Skipping the re-validate after a mutation is exactly the failure mode
+[`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
+validate-before-commit exists to prevent.
+
 Steps:
 
 1. **Pipe spec validation.** Use the Flow pipe-validate API for the
@@ -290,6 +316,40 @@ Walk in this order — do not skip steps:
    triple) and escalate via
    [`doca-debug ## debug` *Where to ask for help*](../../doca-debug/TASKS.md#debug)
    to the public DOCA Developer Forum.
+
+## Command appendix
+
+Flow-specific commands the verbs above reach for, grouped by purpose
+so the agent picks the right family without searching prose. Every row
+is a class — the agent must not invent flags beyond what the row
+names; the *flag-discovery* rule is `--help` against the installed
+binary or `pkg-config` against the installed `.pc`, not prose recall.
+
+| Purpose | Command | Owning step | Reads as healthy when … |
+| --- | --- | --- | --- |
+| Discover installed Flow version | `pkg-config --modversion doca-flow` | [`## configure`](#configure) step 1 | Matches the version pinned in other places (`doca_caps --version`, `applications/VERSION`). |
+| Discover Flow link flags (release flavor) | `pkg-config --libs doca-flow` | [`## build`](#build) | Returns the canonical `-l` list. Hand-typed `-l` lines are the failure mode. |
+| Discover Flow link flags (trace flavor) | `pkg-config --libs doca-flow-trace` | [`## debug`](#debug) step 3 + [doca-debug ## configure](../../doca-debug/TASKS.md#configure) step 3 | Selects the trace `.so` that emits per-pipe / per-entry trace output. |
+| Discover device + steering-mode capabilities | `doca_caps --list-devs` | [`## configure`](#configure) step 2 + [doca-caps](../../tools/doca-caps/SKILL.md) | Lists every device DOCA sees with the active steering mode and supported match / action kinds. |
+| Enumerate ports / representors | `devlink dev show` + the installed Flow port-enumeration sample | [`## configure`](#configure) step 3 | Shows the BlueField port and every representor the user expects to forward to. |
+| Validate a pipe spec (read-only) | `doca_flow_pipe_validate` (or the dry-run sample on versions where validate is not exposed) | [`## test`](#test) step 1 | Returns success; failure means the spec is internally inconsistent — do not call `pipe_create`. |
+| Raise log verbosity for a Flow run | `--sdk-log-level 70` on the program command line | [`## run`](#run) + [doca-debug CAPABILITIES.md ## Observability](../../doca-debug/CAPABILITIES.md#observability) | TRACE / DEBUG lines appear in stderr; the Flow lifecycle calls are visible. |
+| Read per-entry / per-pipe counters | The Flow counter API (Flow API reference) | [`## debug`](#debug) step 1 | Counter for the suspected entry is non-zero under expected traffic. |
+| Dump the programmed-entry table | `doca-flow-inspector` (or the trace flavor's dump path) | [`## debug`](#debug) step 3 | Output matches the user's mental model of the pipe. Diff = bug. |
+
+Three cross-cutting rules for this appendix:
+
+- **Never invent Flow flags.** The Flow API is large and version-gated;
+  `--help` on the installed binary and `pkg-config --list-all | grep
+  doca` are the only safe sources.
+- **Never paraphrase a Flow `DOCA_ERROR_*`.** Quote
+  `doca_error_get_descr()` verbatim — the layer-classifier in
+  [`doca-debug ## debug`](../../doca-debug/TASKS.md#debug) layer 5
+  needs the exact text.
+- **Cross-link instead of duplicate.** Cross-cutting commands (the
+  read-only triple, `dmesg`, `mlxconfig -d <pcie> q`) live in
+  [`doca-debug TASKS.md ## Command appendix`](../../doca-debug/TASKS.md#command-appendix);
+  this appendix names only the Flow-specific ones.
 
 ## Deferred task verbs
 

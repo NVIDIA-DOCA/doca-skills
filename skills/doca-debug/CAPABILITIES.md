@@ -1,8 +1,42 @@
 # DOCA debug — capabilities, version compatibility, errors, observability, safety
 
+**Where to start:** The 7-layer table in
+[`## Capabilities and modes`](#capabilities-and-modes) is the load-bearing
+content of this file. Identify the layer first, then drill into the
+matching section. The pattern overview below names the recurring debug
+families across all 7 layers.
+
 Read this file when the loader sent you here from [SKILL.md](SKILL.md). For the step-by-step workflows that *use* the surface described here, see [TASKS.md](TASKS.md). For env-class equivalents (install / build prerequisites, env-class errors, env observability), see [`doca-setup`](../doca-setup/SKILL.md). For program-class equivalents (the cross-library `DOCA_ERROR_*` taxonomy, `doca_error_get_descr()`, the universal lifecycle), see [`doca-programming-guide`](../doca-programming-guide/SKILL.md). For where to find official documentation or the on-disk install layout, route through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 
 This file describes the **shape of every DOCA debug surface** — which kinds of debug exist, which version of DOCA exposes which surface, how DOCA reports errors that the agent must interpret, what DOCA emits that the agent can observe, and what safety constraints the agent must respect *while* debugging. Library-specific overlays (Flow pipe traces, RDMA queue-pair stats, Comch channel statistics, etc.) live in the matching library skill; this file is the cross-cutting reference they all build on.
+
+## Pattern overview
+
+Every cross-cutting debug task this skill teaches resolves into one
+of FIVE patterns. Reach for the pattern first; the H2 below it carries
+the substance. The patterns are CLASSES — they apply across every
+DOCA library, service, and tool, regardless of which layer triggered.
+
+| Pattern | Class shape | Where it lives |
+| --- | --- | --- |
+| 1. Layer identification | Symptom → which of the 7 layers (install / version / build / link / runtime / program / driver) | [`## Capabilities and modes`](#capabilities-and-modes) 7-layer table |
+| 2. Read-only-first capture | Capture the *current* state with no side effects before any mutation (gdb attach, mod reload, eswitch change, …) | [`## Capabilities and modes`](#capabilities-and-modes) read-only stance |
+| 3. Verbosity escalation | Raise log levels / switch to trace flavor to make hidden state observable | [`## Observability`](#observability) trace-flavor + `--sdk-log-level` |
+| 4. Reproducer assembly | Package state + steps + versions so someone else (forum / colleague) can repro | [TASKS.md ## test](TASKS.md#test) capture-a-reproducible-state |
+| 5. Hand-off / escalation | When the symptom is library-internal, env-class, or needs upstream, route to the right next skill / channel | [TASKS.md ## debug](TASKS.md#debug) "Where to ask for help" + cross-skill routing |
+
+Two cross-cutting rules:
+
+- **Identify the layer before the tool.** Running `gdb` on a process
+  that won't link, or `dmesg` on a `pkg-config` failure, is the most
+  common waste of debug effort. The 7-layer table below is the
+  layer-classifier the agent must consult first.
+- **Read-only before state-changing.** Every layer has at least one
+  read-only entry point (`doca_caps --list-devs`,
+  `pkg-config --modversion`, `cat /proc/meminfo | grep Huge`,
+  `ip link show`). The state-changing actions (gdb attach, module
+  reload, eswitch flip) come *after* the read-only picture is
+  captured, never as the first move.
 
 ## Capabilities and modes
 
@@ -26,7 +60,9 @@ The agent's rule: **always start at the lowest layer the symptom is consistent w
 
 ## Version compatibility
 
-Debug tooling in DOCA is **versioned**. A capability the agent expects to be there may not exist on the user's installed train. Always quote the user's installed `pkg-config --modversion doca-common` (or `doca_caps --version` if installed) before recommending any version-specific tool.
+For the canonical DOCA version-detection chain, the four-way match rule, NGC container semantics, the headers-win-over-docs rule, and the routing to the DOCA Compatibility Policy, see [`doca-version`](../doca-version/SKILL.md). The body lives there; this skill does not duplicate it.
+
+**The debug-side overlay** is that debug tooling itself is *versioned* — a capability the agent reaches for may not exist on the user's installed train. The agent must quote the verified installed version (from [`doca-version TASKS.md ## configure`](../doca-version/TASKS.md#configure)) BEFORE recommending any debug surface below:
 
 | Debug surface | First DOCA version it shipped in | Verification |
 | --- | --- | --- |
@@ -37,7 +73,7 @@ Debug tooling in DOCA is **versioned**. A capability the agent expects to be the
 | `doca-bench` (performance evaluation) | Listed in the public DOCA tools index. | See [`doca-public-knowledge-map ## DOCA tools`](../doca-public-knowledge-map/SKILL.md#doca-tools). |
 | `DOCA_VERSION_MAJOR / MINOR / PATCH` macros (in `doca_version.h`) | Header has been part of the public surface across recent trains. Use these macros in user code rather than parsing version strings. | `grep -RH 'DOCA_VERSION_' /opt/mellanox/doca/infrastructure/include/` to confirm presence on the user's install. |
 
-The agent's rule: **the version string is descriptive, not predictive**. Do not infer downstream patch lineage from the shape of a version string (e.g. *"3.3.0 must be newer than 3.1.0-LTS"* — LTS trains backport bug fixes on their own cadence and may release later than a numerically-higher GA). Always check the [DOCA Compatibility Policy](https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html) (cross-link via [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)) when the user is mixing GA and LTS trains.
+**The version string is descriptive, not predictive.** Do not infer downstream patch lineage from the shape of a version string (e.g. *"3.3.0 must be newer than 3.1.0-LTS"* — LTS trains backport bug fixes on their own cadence and may release later than a numerically-higher GA). Mixing GA and LTS trains is a [`doca-version TASKS.md ## debug`](../doca-version/TASKS.md#debug) layer-2 diagnosis, not a debug-tooling question.
 
 ## Error taxonomy
 

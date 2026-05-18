@@ -1,5 +1,11 @@
 # DOCA debug workflows
 
+**Where to start:** [`## debug`](#debug) is the canonical layered
+ladder every per-library `## debug` redirects to. Reach for
+[`## configure`](#configure) first only if the env needs verbosity
+turned up; otherwise the order is `## test` (capture a reproducible
+state) → `## debug` (walk the ladder).
+
 Read this file when the loader sent you here from [SKILL.md](SKILL.md). For the underlying debug surface (the layered debug model, version-availability of debug tools, the cross-library error taxonomy, the observability primitives, the debug-side safety constraints), see [CAPABILITIES.md](CAPABILITIES.md). For the env-class debug ladder (install / build prerequisites), see [`doca-setup ## debug`](../doca-setup/TASKS.md#debug). For the program-class debug ladder (lifecycle order, `DOCA_ERROR_*` interpretation), see [`doca-programming-guide ## debug`](../doca-programming-guide/TASKS.md#debug). For where to find official documentation or the on-disk install layout, route through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 
 Each verb below describes the **shape of the workflow**, not a copy-paste recipe. The agent's job is to walk the user through the steps in order, verifying preconditions before recommending the next call.
@@ -30,13 +36,65 @@ The anti-pattern to refuse: silently raising the log level in the user's persist
 
 > **Anchor exists for lint compliance.** Substantive build content for cross-cutting debug (build flags that aid debugging — `-g`, `-O0`, `-DALLOW_EXPERIMENTAL_API`, the `doca-<library>-trace` `pkg-config` module) lives at [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build). Read that section directly. The trace flavor specifically is documented in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes).
 
+Debug-specific build overlay (a CLASS of build mutations, not a recipe
+— each row applies to every DOCA library, not just one):
+
+| Debug-time build change | Why | Where the mechanics live |
+| --- | --- | --- |
+| `-g -O0` | Symbols + no inlining so `gdb` / `valgrind` show real call sites | [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) |
+| Swap `pkg-config doca-<library>` → `pkg-config doca-<library>-trace` | Selects the trace `.so`; emits TRACE/DEBUG lines the release `.so` never emits | [`## configure`](#configure) step 3 + [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability) |
+| Keep `-DALLOW_EXPERIMENTAL_API` (when applicable) | Some debug-relevant APIs live behind the experimental gate; dropping the flag in a debug build re-introduces the build failure the user is debugging | [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) |
+| Use `pkg-config --libs` output verbatim | The single most common link-failure class (layer 4) is a hand-typed `-l` line that omits one of DOCA Flow's 5 split `.so`s | [`## debug`](#debug) layer 4 |
+| Rebuild against the *currently installed* DOCA, not a cached one | Mixed-version `*.so` is the second most common cross-cutting bug; ensure the build sees the *runtime* DOCA install | [`## debug`](#debug) layer 2 (version coherence) |
+
+The agent's rule for the *build* verb in a debug context: every row
+above is a class. Library-specific build flags (Flow's pipe-trace
+build option, RDMA-specific build defines) live in the matching
+library skill; this overlay names only the cross-cutting changes.
+
 ## modify
 
 > **Anchor exists for lint compliance.** Substantive *modify* content (the universal "derive a custom first app from a shipped sample" workflow, the canonical sample-edit pattern) lives at [`doca-programming-guide ## modify`](../doca-programming-guide/TASKS.md#modify). The debug-specific overlay — *adding diagnostics to a sample without rewriting it* — is captured under that section as a special case (instrument the sample's lifecycle calls, log the `doca_error_t` from each, capture state at the moment of failure). The agent should walk the user through `doca-programming-guide ## modify` and emphasize the diagnostics overlay rather than re-deriving the workflow here.
 
+Debug-specific modify overlay (a CLASS of sample mutations — the rows
+apply when the user is using a shipped sample as the carrier for a
+debug session, not when authoring a new app):
+
+| Diagnostic modification | Why | Where the mechanics live |
+| --- | --- | --- |
+| Log `doca_error_t` from every lifecycle call | The layer-classifier ([`## debug`](#debug) layer 5) needs the *exact* `doca_error_get_descr()` text; samples often silently propagate the error and lose it | [`## debug`](#debug) layer 5 + [`doca-programming-guide CAPABILITIES.md ## Error taxonomy`](../doca-programming-guide/CAPABILITIES.md#error-taxonomy) |
+| Print `cfg → init → start` call order before each | `DOCA_ERROR_BAD_STATE` is almost always lifecycle out of order; logging the order is the cheapest way to confirm or refute the hypothesis | [`## debug`](#debug) layer 6 + [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes) |
+| Insert read-only capability dumps before commit | Confirms hardware/firmware actually exposes what the program is about to ask for (`doca_caps` cross-check); turns layer 5 / 7 ambiguity into layer 7 evidence | [doca-caps](../tools/doca-caps/SKILL.md) + [`## debug`](#debug) layer 5 |
+| Reduce scope to one unit of damage (one rep, one QP, one channel, one device) | Per [`## test`](#test) step 1: a symptom that disappears at scope=1 is a contention bug, not per-unit | [`## test`](#test) step 1 |
+| Add a hash / sequence number to per-packet / per-event logs | Timing-dependent symptoms need ordering evidence the unprefixed log does not preserve | [`## test`](#test) step 4 |
+
+The agent's rule for the *modify* verb in a debug context: every row
+above instruments the sample without rewriting it. Re-deriving the
+sample from prose is the [`doca-programming-guide ## modify`](../doca-programming-guide/TASKS.md#modify)
+*modify-from-sample schema*'s job; this overlay is purely diagnostic,
+not generative.
+
 ## run
 
 > **Anchor exists for lint compliance.** Substantive *run* content (how to run a built DOCA program: env vars, command-line conventions, the program-side observability the program is expected to emit) lives at [`doca-programming-guide ## run`](../doca-programming-guide/TASKS.md#run). The debug-specific runtime overlay — *capture stdout, stderr, and the system's view of the program in parallel; reproduce the symptom on the smallest possible scope first* — is the *test* and *debug* verbs below.
+
+Debug-specific run overlay (a CLASS, not a recipe — the rows apply to
+every DOCA program, not just one library):
+
+| Debug-time run modification | Why | Where the mechanics live |
+| --- | --- | --- |
+| `--sdk-log-level 70` (TRACE) on first run | Default INFO hides the lifecycle calls and pipe-construction details a debug session needs | [`## configure`](#configure) step 2 + [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability) |
+| Link against `doca-<library>-trace` (trace flavor) | Trace `.so` emits TRACE/DEBUG lines the release `.so` does not, regardless of log level | [`## configure`](#configure) step 3 |
+| Run on the smallest unit of damage first | A symptom that disappears at scope=1 is a contention bug, not a per-unit bug | [`## test`](#test) step 1 |
+| Restart between attempts | DOCA programs accumulate state (handles, pools, registered loggers); reuse hides repro flakiness | [`## test`](#test) step 2 |
+| Capture stdout / stderr / system / DOCA view in parallel | One-channel capture is incomplete; the agent must not theorize from a partial picture | [`## test`](#test) step 3 |
+| Time-stamp every captured line | Timing-dependent symptoms require ordering evidence the unprefixed log does not preserve | [`## test`](#test) step 4 |
+
+The agent's rule for the *run* verb in a debug context: every row
+above is a class — Flow-specific overlays of these rows live in
+[`doca-flow ## run`](../libs/doca-flow/TASKS.md#run); the cross-cutting
+shape lives here and nothing in this overlay names a specific library
+feature.
 
 ## test
 
@@ -64,6 +122,31 @@ The anti-pattern to refuse: declaring a fix without first reproducing the sympto
 ## debug
 
 The canonical layered debug ladder for **any DOCA symptom**. Every per-library `## debug` redirects to this ladder for cross-cutting steps and then layers its library-specific overlay on top.
+
+**The ladder is an iterative loop, not a one-shot walk.** The agent
+walks the 7 layers bottom-up, captures the picture at each layer, and
+loops back when the picture changes the hypothesis. Treating the
+ladder as a one-shot sequence ("if it's not layer 1, it's layer 2,
+…") misses the most common case: a fix at layer 3 (build) unmasks a
+layer 5 (runtime) symptom that was hidden before; the agent must
+restart from layer 1 to confirm the new picture, not assume the
+earlier layers are still clean.
+
+The loop shape:
+
+```
+   .--> 1. Identify lowest layer the symptom is consistent with (1–7)
+   |
+   |    2. Capture the read-only picture at that layer (## test step 3 triple)
+   |
+   |    3. Read the picture: hypothesis or escalation?
+   |
+   |    4. If hypothesis: apply ONE change; back to (1) and re-capture
+   |       If symptom unchanged: layer was wrong; back to (1) at next layer
+   |       If symptom changed: hypothesis correct; back to (1) to confirm new state
+   |       If ladder exhausted at layer 7: escalate to Developer Forum
+   '----- (single-trip walks are the failure mode this loop replaces)
+```
 
 The agent's rule: walk the layers in order, top to bottom (which is bottom-of-stack first). Skipping a layer because *"it can't be that"* is the most common debugging mistake. *Most* of the time, *most* of the symptoms in the bundle's audience are install / version / build / link problems wearing the costume of a runtime error.
 
@@ -121,6 +204,49 @@ If any disagree, the install is partial / mixed — route to [`doca-setup ## deb
 - See also the Developer Forum row in [`doca-public-knowledge-map ## Public documentation entry points`](../doca-public-knowledge-map/SKILL.md).
 
 The anti-pattern to refuse: posting on the forum *first* (before walking the ladder). The forum is for symptoms the public, layered process cannot resolve, not for symptoms the agent has not yet investigated.
+
+## Command appendix
+
+The cross-cutting debug commands the verbs above reach for, grouped by
+layer so the agent picks the right family without searching prose.
+Library-specific debug tools (Flow's `doca-flow-tune`,
+`doca-flow-inspector`, RDMA QP-state dumps, …) overlay in the matching
+library skill; this appendix lists only the cross-cutting ones.
+
+| Layer | Command | Owning step | Reads as healthy when … |
+| --- | --- | --- | --- |
+| Install | `dpkg -l \| grep -i doca` / `rpm -qa \| grep -i doca` | [`## debug`](#debug) layer 1 | Lists the expected package set for the install profile. |
+| Install | `ls /opt/mellanox/doca/` | [`## debug`](#debug) layer 1 | Returns a populated tree (samples / lib / include / applications). |
+| Version | `pkg-config --modversion doca-common` | [`## debug`](#debug) layer 2 | Matches `doca_caps --version` and `cat /opt/mellanox/doca/applications/VERSION`. |
+| Version | `doca_caps --version` | [`## debug`](#debug) layer 2 | Matches `pkg-config --modversion`. |
+| Version | `cat /opt/mellanox/doca/applications/VERSION` | [`## debug`](#debug) layer 2 | Matches the other two. Disagreement = partial install. |
+| Build | `pkg-config --list-all \| grep -i doca` | [`## debug`](#debug) layer 3 | Lists the libraries expected for the install profile. |
+| Build | `pkg-config --cflags doca-<library>` | [`## debug`](#debug) layer 3 | Returns valid `-I` flags rooted at the install include dir. |
+| Link | `pkg-config --libs doca-<library>` | [`## debug`](#debug) layer 4 | Returns the canonical `-l` list. Hand-typed `-l` lines are the anti-pattern. |
+| Link | `ldd /path/to/binary` | [`## debug`](#debug) layer 4 | All `*.so` entries resolved; no "not found" lines. |
+| Runtime | `--sdk-log-level 70` on first run | [`## configure`](#configure) step 2 / [`## run`](#run) overlay | TRACE output appears in stderr; failure path produces named lifecycle calls. |
+| Runtime | `doca_caps --list-devs` | [`## debug`](#debug) layer 5 + [doca-caps](../tools/doca-caps/SKILL.md) | Lists every device DOCA can see; capabilities present per device. |
+| Runtime | `doca_error_get_descr(<rc>)` (called from program) | [`## debug`](#debug) layer 5 | Returns the canonical description; quote it verbatim, do not paraphrase. |
+| Capture | `dmesg \| tail -200` | [`## test`](#test) step 3 | Kernel-side device events; `mlx5_core` messages around the failure window. |
+| Capture | `journalctl --since "5 min ago"` | [`## test`](#test) step 3 | Service-level logs for the failure window. |
+| Driver / FW | `mlxconfig -d <pcie> q` | [`## debug`](#debug) layer 7 | Firmware capability snapshot matches the user's expected configuration. |
+| Driver / FW | `devlink dev show` | [`## debug`](#debug) layer 7 | Devices visible at the kernel-driver layer. |
+
+Three cross-cutting rules for the appendix:
+
+- **Never paraphrase `doca_error_get_descr()`.** The text is the
+  contract; paraphrasing loses the disambiguation cues the layer
+  classifier ([`## debug`](#debug) layer 5) needs.
+- **Never invent a `-l` link line.** `pkg-config --libs doca-<library>`
+  is the source of truth, especially for libraries (DOCA Flow on recent
+  versions) that ship as multiple `*.so` files.
+- **Cross-link instead of duplicate.** Most rows above are also in the
+  [`doca-setup`](../doca-setup/SKILL.md) or
+  [`doca-programming-guide`](../doca-programming-guide/SKILL.md)
+  command appendices for the same reason: they are cross-cutting. This
+  appendix names them with their *debug-context* purpose; the other
+  appendices name them with their setup-context / program-context
+  purpose. Same commands, different framing.
 
 ## Deferred task verbs
 

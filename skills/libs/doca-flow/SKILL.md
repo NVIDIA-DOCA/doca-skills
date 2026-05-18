@@ -6,6 +6,59 @@ kind: library
 
 # DOCA Flow
 
+**Where to start:** This skill assumes DOCA is already installed and
+the user is doing **hands-on Flow work** on a BlueField / ConnectX
+host. Open [`TASKS.md`](TASKS.md) if the user wants to *do* something
+(configure / build / modify / run / test / debug); open
+[`CAPABILITIES.md`](CAPABILITIES.md) when the question is *what can
+Flow express* on this version. If the user has not installed DOCA
+yet, route to [`doca-setup`](../../doca-setup/SKILL.md) first.
+
+## Example questions this skill answers well
+
+The CLASSES of Flow questions this skill is built to answer, each
+with one worked example. The agent should treat the *class* as the
+load-bearing piece — the worked example is a single instance.
+
+- **"How do I bring up a Flow port on a representor?"** — worked
+  example: *"port-init order for `pf0vf0` on the DPU"*. Answered by
+  the port/representor verb sequence in
+  [`TASKS.md ## configure`](TASKS.md#configure) +
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  steering-mode selection.
+- **"How do I express *<match X, do Y>* as a Flow pipe?"** — worked
+  example: *"match outer IPv4 dst, push VLAN, fwd to rep"*. Answered
+  by the match/action schema in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the pipe-creation workflow in
+  [`TASKS.md ## modify`](TASKS.md#modify).
+- **"Will this pipe spec actually program the HW, or will commit
+  fail?"** — worked example: *"my pipe validates but commit returns
+  `DOCA_ERROR_NOT_SUPPORTED`"*. Answered by the validate-before-commit
+  rule in [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
+  + the validate→commit step in
+  [`TASKS.md ## test`](TASKS.md#test).
+- **"How do I read Flow counters / traces to investigate observed
+  traffic?"** — worked example: *"per-pipe hit count and per-entry
+  counter for entry N"*. Answered by the counter/observability surface
+  in [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability)
+  + the inspector workflow in
+  [`TASKS.md ## debug`](TASKS.md#debug).
+- **"Is this Flow feature available on my installed DOCA
+  version?"** — worked example: *"is the symmetric-RSS hash mode in
+  2.6.0?"*. Answered by the version-compatibility section in
+  [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility)
+  + the version-discovery rule (`pkg-config --modversion doca-flow`)
+  pinned in [`TASKS.md ## configure`](TASKS.md#configure).
+- **"What does this `DOCA_ERROR_*` from a Flow call mean and which
+  layer caused it?"** — worked example: *"`DOCA_ERROR_BAD_STATE` from
+  `doca_flow_port_start`"*. Answered by the Flow overlay on the
+  cross-library taxonomy in
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  + the layered ladder in
+  [`TASKS.md ## debug`](TASKS.md#debug) that escalates to
+  [`doca-debug`](../../doca-debug/SKILL.md).
+
 ## Audience
 
 This skill serves **external developers building applications that consume

@@ -6,6 +6,58 @@ kind: library
 
 # DOCA Capabilities Print Tool (`doca_caps`)
 
+**Where to start:** This is a tool skill for invoking `doca_caps`,
+a side-effect-free CLI. Open [`TASKS.md`](TASKS.md) and start at
+[`## run`](TASKS.md#run) for the documented invocations, or
+[`## test`](TASKS.md#test) when using `doca_caps` as an install
+smoke-test. Open [`CAPABILITIES.md`](CAPABILITIES.md) when the
+question is *what kinds of capability families `doca_caps` reports*.
+If DOCA is not installed yet, route to
+[`doca-setup`](../../doca-setup/SKILL.md) first.
+
+## Example questions this skill answers well
+
+The CLASSES of `doca_caps` questions this skill is built to answer,
+each with one worked example. The class is the load-bearing piece;
+the worked example is one instance.
+
+- **"What DOCA devices does this host see?"** — worked example: *"is
+  my BlueField PF visible to DOCA"*. Answered by the device
+  enumeration in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the `--list-devs` invocation in
+  [`TASKS.md ## run`](TASKS.md#run).
+- **"Which DOCA libraries are available on this OS?"** — worked
+  example: *"is Flow available on my RHEL host"*. Answered by the
+  library-availability surface in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the library-listing invocation in
+  [`TASKS.md ## run`](TASKS.md#run).
+- **"Does this device support library X capability Y?"** — worked
+  example: *"does this device support Flow hairpin?"*. Answered by
+  the per-device per-library capability matrix in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the `--pci-addr`-scoped invocation in
+  [`TASKS.md ## run`](TASKS.md#run).
+- **"What representors are visible to DOCA?"** — worked example:
+  *"enumerate VF representors for pf0"*. Answered by the representor
+  enumeration in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the `--list-rep-devs` invocation in
+  [`TASKS.md ## run`](TASKS.md#run).
+- **"I want a snapshot of state to attach to my debug session."** —
+  worked example: *"save device + library + capability output to a
+  file"*. Answered by the snapshot workflow in
+  [`TASKS.md ## test`](TASKS.md#test) and consumed by
+  [`doca-debug ## test`](../../doca-debug/TASKS.md#test) step 3
+  (read-only triple) and
+  [`doca-programming-guide ## debug`](../../doca-programming-guide/TASKS.md#debug).
+- **"`doca_caps` returned nothing for capability Y — what does that
+  mean?"** — worked example: *"empty output for RDMA"*. Answered by
+  the empty-output interpretation rules in
+  [`TASKS.md ## debug`](TASKS.md#debug) +
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy).
+
 ## Audience
 
 This skill serves **external operators, developers, and AI agents who

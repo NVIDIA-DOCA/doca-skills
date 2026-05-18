@@ -6,6 +6,53 @@ kind: library
 
 # DOCA setup
 
+**Where to start:** If the user does not have DOCA installed yet, jump
+straight to [`TASKS.md ## no-install`](TASKS.md#no-install) for the NGC
+container path. Otherwise read [`## When to load this skill`](#when-to-load-this-skill)
+to confirm the question is env-class, then route to the section below
+that matches the user's intent.
+
+## Example questions this skill answers well
+
+The CLASSES this skill is built to handle, each with one worked example.
+The skill must answer the *class*; the worked example is illustrative.
+
+- **"Verify DOCA is installed and healthy."** — worked example:
+  *"Is DOCA Flow actually available on this box?"* Resolved by the
+  install-health snapshot in [`TASKS.md ## test`](TASKS.md#test) plus the
+  version-detection rules in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
+- **"I do not have DOCA installed — what now?"** — worked example: *"I'm
+  on macOS and want to learn DOCA before I get a BlueField."* Resolved
+  by [`TASKS.md ## no-install`](TASKS.md#no-install) (NGC DOCA container
+  as universal Stage-1).
+- **"Prepare the build environment for any DOCA library."** — worked
+  example: *"`pkg-config --cflags doca-flow` returns nothing — what's
+  missing?"* Resolved by the build-prep workflow in
+  [`TASKS.md ## configure`](TASKS.md#configure) and the build-class
+  error taxonomy in
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy).
+- **"Prepare the runtime preconditions on a real DPU box."** — worked
+  example: *"hugepages / representors / devlink — what's the minimum set
+  before I run my first DOCA Flow program?"* Resolved by
+  [`TASKS.md ## configure`](TASKS.md#configure) and the runtime
+  observability rules in
+  [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability).
+- **"Diagnose an env-class failure (install / build / runtime)."** —
+  worked example: *"My DOCA Flow program built fine but says
+  `pkg-config` cannot find it at runtime."* Resolved by the layered
+  env-class debug workflow in [`TASKS.md ## debug`](TASKS.md#debug).
+- **"Change something about the environment safely."** — worked
+  example: *"I want to switch eswitch mode from legacy to switchdev."*
+  Resolved by the safety constraints in
+  [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
+
+If the question is library-API-shaped (Flow pipe construction, RDMA
+queue setup, …) or program-shaped (how to build, modify a sample, debug
+the program itself), route to
+[`doca-programming-guide`](../doca-programming-guide/SKILL.md) or the
+matching library skill instead — env-class only lives here.
+
 ## When to load this skill
 
 Load this skill when the user is dealing with the **environment around DOCA** — installing it, verifying the install is healthy, preparing the build / runtime preconditions, debugging env-class failures, or figuring out *how to reach an install* from a host that doesn't have one yet. Concretely:

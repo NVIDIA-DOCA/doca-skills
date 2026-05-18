@@ -6,6 +6,50 @@ kind: knowledge
 
 # DOCA Public Knowledge Map
 
+**Where to start:** Reach for this skill whenever the question is "where does
+the authoritative answer live?" — a docs page, the on-disk install layout, a
+sample, or an NGC catalog entry. Read [`## Public documentation entry points`](#public-documentation-entry-points)
+first; then jump to the routing-table section that matches the user's intent.
+
+## Example questions this skill answers well
+
+These are the question SHAPES this skill is designed to route, with one worked
+example each. A productive A/B test against this skill probes the *shape*, not
+the literal wording.
+
+- **"Where can I read about DOCA &lt;library/service/tool/concept&gt;?"** —
+  worked example: *"Where can I read about DOCA Flow Connection Tracking?"*
+  Answered by walking the `## Library- and module-specific guides`,
+  `## DOCA services`, or `## DOCA tools` routing tables to the matching
+  `docs.nvidia.com/doca/sdk/...` entry.
+- **"Which DOCA libraries do I have installed and at what version?"** —
+  worked example: *"How do I confirm the box has DOCA Flow 3.3 installed?"*
+  Answered by combining `## Layout of an installed DOCA package` and
+  `## Where to find the version`, with cross-link to the layered
+  version-detection rules in
+  [doca-setup ## Capabilities and modes](../../doca-setup/CAPABILITIES.md).
+- **"Where is sample &lt;X&gt; on disk and where is its source on GitHub?"** —
+  worked example: *"Where is the doca_flow sample that exercises ACL pipes?"*
+  Answered by combining `## Layout of an installed DOCA package` (local)
+  with `## Public source code: GitHub` (remote) — both sections name the
+  canonical paths.
+- **"What does this on-disk path mean, what should I cite from it?"** —
+  worked example: *"What's in `/opt/mellanox/doca/applications/` that the
+  customer can actually run?"* Answered by `## Layout of an installed DOCA package`,
+  plus the "no source-tree paths" ground rule above.
+- **"This URL I have 404s — what's the new one?"** — worked example: *"The
+  Comm Channel page is gone in DOCA 2.5+."* Answered by the URL-rename rule
+  at the top of `## Public documentation entry points`, plus the
+  `## URL audit` footer at the bottom of this file.
+- **"Where is the customer-facing place to ask for help on this?"** —
+  worked example: *"What's the developer forum's DOCA category?"* Answered
+  from the developer-forum entry in `## Public documentation entry points`,
+  never internal NVIDIA channels (see ground rule above).
+
+If the question fits a different shape (how to write code, how to set up an
+env, how to debug a crash), route to the matching skill instead — see
+[`AGENTS.md`](../../AGENTS.md) for the routing table.
+
 ## When to load this skill
 
 Load this skill whenever the user asks anything about NVIDIA DOCA where the
@@ -37,6 +81,19 @@ install path, and only then answer.
 5. **No source-tree paths.** Do not reference `devtools/...`, `docs/ai/...`,
    or any path that only exists inside the DOCA repository. Customers do not
    have those.
+
+> **Hardware-safety meta-policy.** Every per-artifact `## Safety policy`
+> in this bundle overlays the cross-cutting hardware-safety
+> meta-policy. When the user's question touches a change to live DPU /
+> NIC hardware state (`mlxconfig` writes, firmware burn, BlueField
+> mode flip, BAR window change, IOMMU / hugepages kernel boot
+> parameter, BFB reflash), load
+> [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) alongside
+> the per-artifact skill. Cross-cutting meta-policy lives there
+> (pre-flight inventory, out-of-band access requirement, maintenance
+> window, replica-first validation, rollback discipline,
+> observability-before-workload, refuse-and-escalate when no rollback
+> exists). Per-artifact overlays MUST NOT redefine it.
 
 ## Public documentation entry points
 
@@ -88,33 +145,34 @@ guide once the user's question is narrow enough to be about a single library.
 | DOCA Core (umbrella) | <https://docs.nvidia.com/doca/sdk/DOCA-Core/index.html> | The shared object-model every DOCA library is built on: `doca_dev`, `doca_devinfo`, `doca_pe` (progress engine), `doca_buf` / `doca_mmap`, `doca_ctx` lifecycle, the cross-library `DOCA_ERROR_*` taxonomy. Read this whenever the user is touching more than one library or asking *"how does DOCA in general work?"*. |
 | DOCA Common | <https://docs.nvidia.com/doca/sdk/DOCA-Common/index.html> | The base utility library every DOCA program links against (`doca-common` `pkg-config` module). Pulled in transitively when you depend on any other DOCA library. |
 | DOCA Flow | <https://docs.nvidia.com/doca/sdk/DOCA-Flow/index.html> | Port setup, device or representor selection, pipes, actions, actions memory, entry lifecycle. |
-| DOCA Flow Connection Tracking | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Connection-Tracking/index.html> | Stateful CT layer on top of DOCA Flow — connection-aware pipes, aging, NAT/SNAT/DNAT patterns. Load alongside `DOCA Flow` when the user asks about CT, conntrack, or stateful firewall offload. |
-| DOCA Ethernet | <https://docs.nvidia.com/doca/sdk/DOCA-Ethernet/index.html> | RX/TX queues, packet I/O, `eth_rxq` / `eth_txq` lifecycle. Underpins the GPU Packet Processing app and most line-rate examples. |
-| DOCA RDMA | <https://docs.nvidia.com/doca/sdk/DOCA-RDMA/index.html> | RDMA verbs over BlueField / ConnectX, queue-pair lifecycle, DOCA-RDMA send / recv / write / read patterns. |
-| DOCA RDMA Verbs | <https://docs.nvidia.com/doca/sdk/DOCA-RDMA-Verbs/index.html> | The lower-level Verbs surface beneath DOCA RDMA. Load this only when the user explicitly needs raw verbs semantics (rare; DOCA RDMA is the canonical entry). |
-| DOCA DPA | <https://docs.nvidia.com/doca/sdk/DOCA-DPA/index.html> | DPA host / device split-build flow, DPACC context, DPA annotation conventions. |
-| DOCA DPA Comms | <https://docs.nvidia.com/doca/sdk/DOCA-DPA-Comms/index.html> | DPA-side communication primitives. Load alongside `DOCA DPA` when the user is wiring DPA kernels into the network. |
-| DOCA DPA Verbs | <https://docs.nvidia.com/doca/sdk/DOCA-DPA-Verbs/index.html> | DPA-side verbs surface. Load alongside `DOCA DPA` when the user needs verbs from inside a DPA kernel. |
-| DOCA GPUNetIO | <https://docs.nvidia.com/doca/sdk/DOCA-GPUNetIO/index.html> | GPU-initiated networking, CUDA + DOCA integration patterns. |
-| DOCA Comch (formerly Comm Channel) | <https://docs.nvidia.com/doca/sdk/DOCA-Comch/index.html> | Host ↔ DPU control-plane messaging. **Library was renamed in DOCA 2.5**: the URL slug is `DOCA-Comch`, not `doca-comm-channel`. The `pkg-config` module on installed systems is `doca-comch`. |
-| DOCA Telemetry | <https://docs.nvidia.com/doca/sdk/DOCA-Telemetry/index.html> | DOCA's telemetry collection surface — schemas, sampling, integration with the DOCA Telemetry Service (DTS). |
-| DOCA Telemetry Exporter | <https://docs.nvidia.com/doca/sdk/DOCA-Telemetry-Exporter/index.html> | Application-side library used to *publish* telemetry from a DOCA program (distinct from `DOCA Telemetry`, which is the collection / consumption surface). |
-| DOCA DMA | <https://docs.nvidia.com/doca/sdk/DOCA-DMA/index.html> | Host ↔ DPU memory copy via the BlueField DMA engine. The DMA Copy reference application is the canonical example. |
-| DOCA Compress | <https://docs.nvidia.com/doca/sdk/DOCA-Compress/index.html> | Hardware-accelerated compression / decompression. Pairs with the File Compression reference application. |
-| DOCA AES-GCM | <https://docs.nvidia.com/doca/sdk/DOCA-AES-GCM/index.html> | Hardware-accelerated AES-GCM encryption / decryption. Member of the DOCA Crypto Acceleration family. |
-| DOCA SHA | <https://docs.nvidia.com/doca/sdk/DOCA-SHA/index.html> | Hardware-accelerated SHA hashing. Pairs with the File Integrity reference application. |
-| DOCA Erasure Coding | <https://docs.nvidia.com/doca/sdk/DOCA-Erasure-Coding/index.html> | Hardware-accelerated erasure coding (RS / similar). Used in storage workloads. |
-| DOCA App Shield (library) | <https://docs.nvidia.com/doca/sdk/DOCA-App-Shield/index.html> | Process-introspection primitives the App Shield Agent application is built on. Distinct from the App Shield Agent reference application page. |
-| DOCA PCC (library) | <https://docs.nvidia.com/doca/sdk/DOCA-PCC/index.html> | Programmable congestion control library (DPA-hosted). Distinct from the PCC reference application and the `doca_pcc_counter` tool. |
-| DOCA UROM (library) | <https://docs.nvidia.com/doca/sdk/DOCA-UROM/index.html> | Unified Communication Remote Memory Operations library. Distinct from the DOCA UROM Service. |
-| DOCA Arg Parser | <https://docs.nvidia.com/doca/sdk/DOCA-Arg-Parser/index.html> | Argument parser used by every shipped DOCA sample and reference application. Worth knowing when the user adapts a sample's CLI surface. |
-| DOCA Log | <https://docs.nvidia.com/doca/sdk/DOCA-Log/index.html> | DOCA's logging primitive — log registries, log levels, integration with `DOCA_LOG_LEVEL` and `--sdk-log-level`. Cross-references [`doca-debug`](../doca-debug/SKILL.md) for the runtime-debug story. |
-| DOCA Device Emulation (umbrella) | <https://docs.nvidia.com/doca/sdk/DOCA-Device-Emulation/index.html> | Umbrella for the device-emulation libraries (PCI Generic, virtio, virtio-fs). Start here if the user is building emulated PCIe devices on BlueField. |
-| DOCA Switching | <https://docs.nvidia.com/doca/sdk/DOCA-Switching/index.html> | DOCA's switching abstraction (BlueField switch dataplane). |
-| DOCA Pipeline Language | <https://docs.nvidia.com/doca/sdk/DOCA-Pipeline-Language-Services-Guide/index.html> | DPL (Pipeline Language) — declarative pipeline definition. Load this when the user mentions "DPL" or asks about declarative dataplane programming. |
-| DOCA Storage Applications | <https://docs.nvidia.com/doca/sdk/DOCA-Storage-Applications/index.html> | Index of DOCA's storage-focused reference applications (Comch-to-RDMA zero-copy, GGA offload, SBC generator, initiator, target). Use this entry when the user's question is *"how do I move storage I/O across the BlueField?"* before drilling into a specific app guide. |
-| DOCA Rivermax | <https://docs.nvidia.com/doca/sdk/DOCA-Rivermax/index.html> | DOCA's Rivermax integration (media / streaming workloads). |
-| DOCA STA | <https://docs.nvidia.com/doca/sdk/DOCA-STA/index.html> | Storage Transport Acceleration library. |
+| DOCA Flow Connection Tracking | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Connection-Tracking/index.html> | Stateful CT layer on top of DOCA Flow — connection-aware pipes, aging, NAT/SNAT/DNAT patterns. Load alongside `DOCA Flow` when the user asks about CT, conntrack, or stateful firewall offload. Covered by the [`doca-flow-ct`](../libs/doca-flow-ct/SKILL.md) skill. |
+| DOCA Ethernet | <https://docs.nvidia.com/doca/sdk/DOCA-Ethernet/index.html> | RX/TX queues, packet I/O, `eth_rxq` / `eth_txq` lifecycle. Underpins the GPU Packet Processing app and most line-rate examples. Covered by the [`doca-eth`](../libs/doca-eth/SKILL.md) skill. |
+| DOCA RDMA | <https://docs.nvidia.com/doca/sdk/DOCA-RDMA/index.html> | RDMA verbs over BlueField / ConnectX, queue-pair lifecycle, DOCA-RDMA send / recv / write / read patterns. Covered by the [`doca-rdma`](../libs/doca-rdma/SKILL.md) skill. |
+| DOCA RDMA Verbs | <https://docs.nvidia.com/doca/sdk/DOCA-RDMA-Verbs/index.html> | The lower-level Verbs surface beneath DOCA RDMA. Load this only when the user explicitly needs raw verbs semantics (rare; DOCA RDMA is the canonical entry). Covered by the [`doca-rdma-verbs`](../libs/doca-rdma-verbs/SKILL.md) skill. |
+| DOCA DPA | <https://docs.nvidia.com/doca/sdk/DOCA-DPA/index.html> | DPA host / device split-build flow, DPACC context, DPA annotation conventions. Covered by the [`doca-dpa`](../libs/doca-dpa/SKILL.md) skill. |
+| DOCA DPA Comms | <https://docs.nvidia.com/doca/sdk/DOCA-DPA-Comms/index.html> | DPA-side communication primitives. Load alongside `DOCA DPA` when the user is wiring DPA kernels into the network. Covered by the [`doca-dpa-comms`](../libs/doca-dpa-comms/SKILL.md) skill. |
+| DOCA DPA Verbs | <https://docs.nvidia.com/doca/sdk/DOCA-DPA-Verbs/index.html> | DPA-side verbs surface. Load alongside `DOCA DPA` when the user needs verbs from inside a DPA kernel. Covered by the [`doca-dpa-verbs`](../libs/doca-dpa-verbs/SKILL.md) skill. |
+| DOCA GPUNetIO | <https://docs.nvidia.com/doca/sdk/DOCA-GPUNetIO/index.html> | GPU-initiated networking, CUDA + DOCA integration patterns. Covered by the [`doca-gpunetio`](../libs/doca-gpunetio/SKILL.md) skill. |
+| DOCA Comch (formerly Comm Channel) | <https://docs.nvidia.com/doca/sdk/DOCA-Comch/index.html> | Host ↔ DPU control-plane messaging. **Library was renamed in DOCA 2.5**: the URL slug is `DOCA-Comch`, not `doca-comm-channel`. The `pkg-config` module on installed systems is `doca-comch`. Covered by the [`doca-comch`](../libs/doca-comch/SKILL.md) skill. |
+| DOCA Telemetry | <https://docs.nvidia.com/doca/sdk/DOCA-Telemetry/index.html> | DOCA's telemetry collection surface — schemas, sampling, integration with the DOCA Telemetry Service (DTS). Covered by the [`doca-telemetry`](../libs/doca-telemetry/SKILL.md) skill. |
+| DOCA Telemetry Exporter | <https://docs.nvidia.com/doca/sdk/DOCA-Telemetry-Exporter/index.html> | Application-side library used to *publish* telemetry from a DOCA program (distinct from `DOCA Telemetry`, which is the collection / consumption surface). Covered by the [`doca-telemetry-exporter`](../libs/doca-telemetry-exporter/SKILL.md) skill. |
+| DOCA DMA | <https://docs.nvidia.com/doca/sdk/DOCA-DMA/index.html> | Host ↔ DPU memory copy via the BlueField DMA engine. The DMA Copy reference application is the canonical example. Covered by the [`doca-dma`](../libs/doca-dma/SKILL.md) skill. |
+| DOCA Compress | <https://docs.nvidia.com/doca/sdk/DOCA-Compress/index.html> | Hardware-accelerated compression / decompression. Pairs with the File Compression reference application. Covered by the [`doca-compress`](../libs/doca-compress/SKILL.md) skill. |
+| DOCA AES-GCM | <https://docs.nvidia.com/doca/sdk/DOCA-AES-GCM/index.html> | Hardware-accelerated AES-GCM encryption / decryption. Member of the DOCA Crypto Acceleration family. Covered by the [`doca-aes-gcm`](../libs/doca-aes-gcm/SKILL.md) skill. |
+| DOCA SHA | <https://docs.nvidia.com/doca/sdk/DOCA-SHA/index.html> | Hardware-accelerated SHA hashing. Pairs with the File Integrity reference application. Covered by the [`doca-sha`](../libs/doca-sha/SKILL.md) skill. |
+| DOCA Erasure Coding | <https://docs.nvidia.com/doca/sdk/DOCA-Erasure-Coding/index.html> | Hardware-accelerated erasure coding (RS / similar). Used in storage workloads. Covered by the [`doca-erasure-coding`](../libs/doca-erasure-coding/SKILL.md) skill. |
+| DOCA App Shield (library) | <https://docs.nvidia.com/doca/sdk/DOCA-App-Shield/index.html> | Process-introspection primitives the App Shield Agent application is built on. Distinct from the App Shield Agent reference application page. Covered by the [`doca-apsh`](../libs/doca-apsh/SKILL.md) skill. |
+| DOCA PCC (library) | <https://docs.nvidia.com/doca/sdk/DOCA-PCC/index.html> | Programmable congestion control library (DPA-hosted). Distinct from the PCC reference application and the `doca_pcc_counter` tool. Covered by the [`doca-pcc`](../libs/doca-pcc/SKILL.md) skill. |
+| DOCA UROM (library) | <https://docs.nvidia.com/doca/sdk/DOCA-UROM/index.html> | Unified Communication Remote Memory Operations library. Distinct from the DOCA UROM Service. Covered by the [`doca-urom`](../libs/doca-urom/SKILL.md) skill. |
+| DOCA Arg Parser | <https://docs.nvidia.com/doca/sdk/DOCA-Arg-Parser/index.html> | Argument parser used by every shipped DOCA sample and reference application. Worth knowing when the user adapts a sample's CLI surface. Covered by the [`doca-argp`](../libs/doca-argp/SKILL.md) skill. |
+| DOCA Log | <https://docs.nvidia.com/doca/sdk/DOCA-Log/index.html> | DOCA's logging primitive — log registries, log levels, integration with `DOCA_LOG_LEVEL` and `--sdk-log-level`. Cross-references [`doca-debug`](../doca-debug/SKILL.md) for the runtime-debug story. Covered by the [`doca-log`](../libs/doca-log/SKILL.md) skill. |
+| DOCA Device Emulation (umbrella) | <https://docs.nvidia.com/doca/sdk/DOCA-Device-Emulation/index.html> | Umbrella for the device-emulation libraries (PCI Generic, virtio, virtio-fs). Start here if the user is building emulated PCIe devices on BlueField. Covered by the [`doca-device-emulation`](../libs/doca-device-emulation/SKILL.md) skill. |
+| DOCA Switching | <https://docs.nvidia.com/doca/sdk/DOCA-Switching/index.html> | DOCA's switching abstraction (BlueField switch dataplane). Covered by the [`doca-switching`](../libs/doca-switching/SKILL.md) skill. |
+| DOCA Pipeline Language | <https://docs.nvidia.com/doca/sdk/DOCA-Pipeline-Language-Services-Guide/index.html> | DPL (Pipeline Language) — declarative pipeline definition. Load this when the user mentions "DPL" or asks about declarative dataplane programming. Covered by the [`doca-dpl`](../libs/doca-dpl/SKILL.md) skill. |
+| DOCA Storage Applications | <https://docs.nvidia.com/doca/sdk/DOCA-Storage-Applications/index.html> | Index of DOCA's storage-focused reference applications (Comch-to-RDMA zero-copy, GGA offload, SBC generator, initiator, target). Use this entry when the user's question is *"how do I move storage I/O across the BlueField?"* before drilling into a specific app guide. Covered by the [`doca-sta`](../libs/doca-sta/SKILL.md) skill. |
+| DOCA Rivermax | <https://docs.nvidia.com/doca/sdk/DOCA-Rivermax/index.html> | DOCA's Rivermax integration (media / streaming workloads). Covered by the [`doca-rivermax`](../libs/doca-rivermax/SKILL.md) skill. |
+| DOCA STA | <https://docs.nvidia.com/doca/sdk/DOCA-STA/index.html> | Storage Transport Acceleration library. Covered by the [`doca-sta`](../libs/doca-sta/SKILL.md) skill. |
+| DOCA DPDK Bridge (API-only) | <https://docs.nvidia.com/doca/api/3.1.0/doca-libraries-api/modules.html#group__DOCA__DPDK__BRIDGE> | The interop layer that lets an existing DPDK application reach DOCA libraries (most commonly DOCA Flow) without rewriting its data-plane. **No standalone SDK doc page today** — documented as an API-reference module under DOCA Libraries API. Covered by the [`doca-dpdk-bridge`](../libs/doca-dpdk-bridge/SKILL.md) skill. |
 | DOCA Reference Applications | <https://docs.nvidia.com/doca/sdk/DOCA-Reference-Applications/index.html> | The shipped reference applications (PCC, DPI, IPsec gateway, file-compression, etc.) — what each one does, where its source lives under `/opt/mellanox/doca/applications/`, and how to recompile with `meson` + `ninja`. |
 
 There is **no current single "DOCA Samples Overview" page** in the v3.x docs.
@@ -149,20 +207,24 @@ the public guides in `docs.nvidia.com/doca/sdk/`.
 | --- | --- | --- |
 | **DOCA Services** (umbrella index) | <https://docs.nvidia.com/doca/sdk/DOCA-Services/index.html> | Canonical list of every public DOCA service with its purpose and guide link. Always check here first when a service is not in the table below. |
 | DOCA Management Service (DMS) | <https://docs.nvidia.com/doca/sdk/DOCA-Management-Service-Guide/index.html> | Centralized configuration / operation of BlueField and ConnectX devices via gRPC (gNMI for config, gNOI for system ops). Covered by the `doca-dms` skill. |
-| DOCA Telemetry Service (DTS) | <https://docs.nvidia.com/doca/sdk/DOCA-Telemetry-Service-Guide/index.html> | Telemetry collection container on BlueField. Use this for streaming telemetry (DMS does *not* support gNMI Subscribe). |
-| DOCA BlueMan Service | <https://docs.nvidia.com/doca/sdk/DOCA-BlueMan-Service-Guide/index.html> | BlueField management dashboard service. |
-| DOCA Firefly Service | <https://docs.nvidia.com/doca/sdk/DOCA-Firefly-Service-Guide/index.html> | PTP / time synchronization service. |
-| DOCA Flow Inspector Service | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Inspector-Service-Guide/index.html> | Mirrored-flow inspection service. |
-| DOCA HBN Service | <https://docs.nvidia.com/doca/sdk/DOCA-HBN-Service-Guide/index.html> | Host-Based Networking (BGP/EVPN/VXLAN) service. |
-| DOCA SNAP Service | <https://docs.nvidia.com/doca/sdk/DOCA-SNAP-Services/index.html> | NVMe / virtio-blk SNAP storage service (BlueField-3). The umbrella; specific generations live at *DOCA-SNAP-3-User-Guide* and *DOCA-SNAP-4-Service-Guide*. |
-| DOCA UROM Service | <https://docs.nvidia.com/doca/sdk/DOCA-UROM-Service-Guide/index.html> | Unified Communication Remote Memory Operations service. |
-| DOCA Argus Service | <https://docs.nvidia.com/doca/sdk/DOCA-Argus-Service-Guide/index.html> | DOCA's runtime-security / monitoring service for BlueField. |
-| DOCA Virtio-net Service | <https://docs.nvidia.com/doca/sdk/DOCA-Virtio-net-Service-Guide/index.html> | Virtio-net device emulation service. |
+| DOCA Telemetry Service (DTS) | <https://docs.nvidia.com/doca/sdk/DOCA-Telemetry-Service-Guide/index.html> | Telemetry collection container on BlueField. Use this for streaming telemetry (DMS does *not* support gNMI Subscribe). Covered by the [`doca-dts`](../services/doca-dts/SKILL.md) skill. |
+| DOCA BlueMan Service | <https://docs.nvidia.com/doca/sdk/DOCA-BlueMan-Service-Guide/index.html> | BlueField management dashboard service. Covered by the [`doca-blueman`](../services/doca-blueman/SKILL.md) skill. |
+| DOCA Firefly Service | <https://docs.nvidia.com/doca/sdk/DOCA-Firefly-Service-Guide/index.html> | PTP / time synchronization service. Covered by the [`doca-firefly`](../services/doca-firefly/SKILL.md) skill. |
+| DOCA Flow Inspector Service | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Inspector-Service-Guide/index.html> | Mirrored-flow inspection service. Covered by the [`doca-flow-inspector`](../services/doca-flow-inspector/SKILL.md) skill. |
+| DOCA HBN Service | <https://docs.nvidia.com/doca/sdk/DOCA-HBN-Service-Guide/index.html> | Host-Based Networking (BGP/EVPN/VXLAN) service. Covered by the [`doca-hbn`](../services/doca-hbn/SKILL.md) skill. |
+| DOCA SNAP Service | <https://docs.nvidia.com/doca/sdk/DOCA-SNAP-Services/index.html> | NVMe / virtio-blk SNAP storage service (BlueField-3). The umbrella; specific generations live at *DOCA-SNAP-3-User-Guide* and *DOCA-SNAP-4-Service-Guide*. Covered by the [`doca-snap`](../services/doca-snap/SKILL.md) skill. |
+| DOCA UROM Service | <https://docs.nvidia.com/doca/sdk/DOCA-UROM-Service-Guide/index.html> | Unified Communication Remote Memory Operations service. Covered by the [`doca-urom-svc`](../services/doca-urom-svc/SKILL.md) skill. |
+| DOCA Argus Service | <https://docs.nvidia.com/doca/sdk/DOCA-Argus-Service-Guide/index.html> | DOCA's runtime-security / monitoring service for BlueField. Covered by the [`doca-argus`](../services/doca-argus/SKILL.md) skill. |
+| DOCA Virtio-net Service | <https://docs.nvidia.com/doca/sdk/DOCA-Virtio-net-Service-Guide/index.html> | Virtio-net device emulation service. Covered by the [`doca-virtio-net`](../services/doca-virtio-net/SKILL.md) skill. |
 
 The **Container Deployment Guide**
 (<https://docs.nvidia.com/doca/sdk/DOCA-Container-Deployment-Guide/index.html>)
 is the cross-service reference for how DOCA service containers are
-deployed on BlueField.
+deployed on BlueField. Covered cross-cuttingly by the
+[`doca-container-deployment`](../services/doca-container-deployment/SKILL.md)
+skill — every per-service skill above hands off to it for the
+kubelet-standalone static-pod manifests directory, image pull, and
+pod-spec drop pattern.
 
 If the user asks about a DOCA service that is not in this table, open the
 [**DOCA Services** umbrella page](https://docs.nvidia.com/doca/sdk/DOCA-Services/index.html)
@@ -184,17 +246,17 @@ own public page. Per-tool skills (where they exist) live under
 | --- | --- | --- |
 | **DOCA Tools** (umbrella index) | <https://docs.nvidia.com/doca/sdk/DOCA-Tools/index.html> | Canonical list of every public DOCA tool with its purpose and guide link. Always check here first when a tool is not in the table below. |
 | Capabilities Print Tool (`doca_caps`) | <https://docs.nvidia.com/doca/sdk/DOCA-Capabilities-Print-Tool/index.html> | Prints DOCA devices and the per-library capabilities they support. Side-effect-free; safe to call early. Covered by the `doca-caps` skill. |
-| DOCA Bench | <https://docs.nvidia.com/doca/sdk/DOCA-Bench/index.html> | Performance evaluation harness for DOCA applications. |
-| Comm Channel Admin Tool | <https://docs.nvidia.com/doca/sdk/DOCA-Comm-Channel-Admin-Tool/index.html> | Admin CLI for Comch channels. |
-| DPA Tools (umbrella) | <https://docs.nvidia.com/doca/sdk/DPA+Tools> | DPA developer / admin CLIs. The umbrella; per-tool guides live at *DOCA-DPA-GDB-Server-Tool*, *DOCA-DPA-PS-Tool*, and *DOCA-DPA-Statistics-Tool*. |
-| DPACC Compiler | <https://docs.nvidia.com/doca/sdk/DOCA-DPACC-Compiler/index.html> | The DPA host/device split-build compiler. Not strictly a runtime tool — but every DPA developer needs its options reference, so it lives in the tools surface. |
-| DOCA DPU CLI | <https://docs.nvidia.com/doca/sdk/DOCA-DPU-CLI/index.html> | Administrative CLI for the BlueField DPU itself. |
-| Flow Tune Tool | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Tune-Tool/index.html> | Visibility / analysis CLI for DOCA Flow programs. |
-| Flow Tune Server | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Tune-Server/index.html> | The long-running server side of Flow Tune. Distinct from the *Tool* row above; load both when the user asks about end-to-end Flow Tune. |
-| PCC Counter | <https://docs.nvidia.com/doca/sdk/DOCA-PCC-Counter-Tool/index.html> | PCC counter inspection. |
-| Socket Relay | <https://docs.nvidia.com/doca/sdk/DOCA-Socket-Relay/index.html> | Socket relay between host and DPU. |
-| DOCA Ngauge | <https://docs.nvidia.com/doca/sdk/DOCA-Ngauge/index.html> | Diagnostic / measurement tool. |
-| `doca-hugepages` Tool | <https://docs.nvidia.com/doca/sdk/DOCA-doca-hugepages-Tool/index.html> | Helper to set up huge-page reservations expected by some DOCA workloads. Cite this whenever the user hits hugepage-allocation failures during init. |
+| DOCA Bench | <https://docs.nvidia.com/doca/sdk/DOCA-Bench/index.html> | Performance evaluation harness for DOCA applications. Covered by the [`doca-bench`](../tools/doca-bench/SKILL.md) skill. |
+| Comm Channel Admin Tool | <https://docs.nvidia.com/doca/sdk/DOCA-Comm-Channel-Admin-Tool/index.html> | Admin CLI for Comch channels. Covered by the [`doca-comm-channel-admin`](../tools/doca-comm-channel-admin/SKILL.md) skill. |
+| DPA Tools (umbrella) | <https://docs.nvidia.com/doca/sdk/DPA+Tools/index.html> | DPA developer / admin CLIs. The umbrella; per-tool guides live at *DOCA-DPA-GDB-Server-Tool*, *DOCA-DPA-PS-Tool*, and *DOCA-DPA-Statistics-Tool*. Covered by the [`doca-dpa-tools`](../tools/doca-dpa-tools/SKILL.md) skill. |
+| DPACC Compiler | <https://docs.nvidia.com/doca/sdk/DOCA-DPACC-Compiler/index.html> | The DPA host/device split-build compiler. Not strictly a runtime tool — but every DPA developer needs its options reference, so it lives in the tools surface. Covered by the [`doca-dpacc-compiler`](../tools/doca-dpacc-compiler/SKILL.md) skill. |
+| DOCA DPU CLI | <https://docs.nvidia.com/doca/sdk/DOCA-DPU-CLI/index.html> | Administrative CLI for the BlueField DPU itself. Covered by the [`doca-dpu-cli`](../tools/doca-dpu-cli/SKILL.md) skill. |
+| Flow Tune Tool | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Tune-Tool/index.html> | Visibility / analysis CLI for DOCA Flow programs. Covered by the [`doca-flow-tune-tool`](../tools/doca-flow-tune-tool/SKILL.md) skill. |
+| Flow Tune Server | <https://docs.nvidia.com/doca/sdk/DOCA-Flow-Tune-Server/index.html> | The long-running server side of Flow Tune. Distinct from the *Tool* row above; load both when the user asks about end-to-end Flow Tune. Covered by the [`doca-flow-tune-server`](../tools/doca-flow-tune-server/SKILL.md) skill. |
+| PCC Counter | <https://docs.nvidia.com/doca/sdk/DOCA-PCC-Counter-Tool/index.html> | PCC counter inspection. Covered by the [`doca-pcc-counter`](../tools/doca-pcc-counter/SKILL.md) skill. |
+| Socket Relay | <https://docs.nvidia.com/doca/sdk/DOCA-Socket-Relay/index.html> | Socket relay between host and DPU. Covered by the [`doca-socket-relay`](../tools/doca-socket-relay/SKILL.md) skill. |
+| DOCA Ngauge | <https://docs.nvidia.com/doca/sdk/DOCA-Ngauge/index.html> | Diagnostic / measurement tool. Covered by the [`doca-ngauge`](../tools/doca-ngauge/SKILL.md) skill. |
+| `doca-hugepages` Tool | <https://docs.nvidia.com/doca/sdk/DOCA-doca-hugepages-Tool/index.html> | Helper to set up huge-page reservations expected by some DOCA workloads. Cite this whenever the user hits hugepage-allocation failures during init. Covered by the [`doca-hugepages`](../tools/doca-hugepages/SKILL.md) skill. |
 
 If the user asks about a DOCA tool that is not in this table, open the
 [**DOCA Tools** umbrella page](https://docs.nvidia.com/doca/sdk/DOCA-Tools/index.html)
@@ -366,6 +428,7 @@ for the cross-library programming patterns it layers on top of.
 | 2026-05-14 (round 2 sharpening, batch 2) | **v3.1.0** observed on the live `docs.nvidia.com/doca/sdk/index.html` (the prior audit row's "v3.3.0 redirect target" claim had drifted within ~24h — NVIDIA appears to have rolled the SDK index default redirect back to v3.1.0). | Five fixes surfaced by a fresh-agent orientation smoke test (the lint did not catch any of these — the URLs were 200, the failures were content-correctness, content-coverage, or routing-completeness): (1) **Added** *DOCA Developer Quick Start Guide* (`docs.nvidia.com/doca/sdk/doca-developer-quick-start-guide/index.html`) to the "Public documentation entry points" table — the literal "how do I start?" page on the live SDK index, previously missing; (2) **Tightened** the *Compatibility Policy* row description to match the page's actual content (source / binary / behavioral compatibility, quarterly GA + October LTS, semver) instead of the looser "upgrade and downgrade paths" phrasing; (3) **Added** a new top-level *First-contact discovery* section with the four canonical questions an agent must ask (OS / hardware / goal / language) before recommending any path — surfaced because a fresh agent had to re-derive this question set from scratch; (4) **Added** a *Quick Start vs no-install* routing row and a *hardware selection* routing row to the "Topic to where to look first" table — both predictable beginner intents previously absorbed implicitly; (5) **Recorded** the v3.1.0 vs v3.3.0 redirect-target drift here so the next audit re-checks the live page rather than relying on the prior row's claim. |
 | 2026-05-14 (round 2 merge gate \u2014 baseline-vs-skills A/B + upstream validator) | v3.3.0 (per `/doca/sdk/DOCA-Libraries/index.html`) | **Merge-gate addendum to the sign-off row below.** Two further validations the user asked for explicitly before merge: (a) Replicated the round-1 demo's baseline-vs-skills A/B model on the round-2 state. Two fresh baseline subagents with no access to the bundle (and no access to `devops/` or any demo file) answered prompt 1 (orientation) and prompt 4 (link-error debug). Strict-grade against the prompt-YAML criteria: prompt 1 baseline 5/6 vs skills 6/6 (decisive criterion: umbrella URLs surfaced); prompt 4 baseline 4/6 vs skills 6/6 (decisive criteria: canonical 7-layer ladder + Flow multi-`*.so` split as confirmed fact). Aggregate: baseline 9/12 vs skills 12/12 (+3, +25 pp). **Honest narrative shift:** 2026 baseline is meaningfully stronger than 2025 baseline \u2014 it no longer fabricates `doca_version()` / `-ldoca_common` etc. The bundle's value proposition has moved from *prevent hallucination* to *deliver the canonical answer shape consistently*. The second is more durable because it does not depend on baseline staying weak. (b) Ran the upstream Anthropic-ecosystem validator (`claude-skill-check` 0.1.0; the package the user described as "skills-ref" doesn't exist as an installable name, but `claude-skill-check` is the actual community-validator equivalent) on every `SKILL.md`. Result: **0 errors per file, 1 warning per file** (`W900 unknown field 'kind'`) \u2014 expected and by design (`kind:` is the bundle's own routing contract). Updated the Jenkinsfile *Validate frontmatter* stage to invoke `claude-skill-check` (was a placeholder `agentskills validate` before). |
 | 2026-05-14 (round 2 quality gate sign-off) | v3.3.0 (`/doca/sdk/DOCA-Libraries/index.html`); v3.1.0 (SDK index landing) | **Round-2 quality gate validations 1–6 PASSED.** Validation 1 (coverage rebalance): batch 3 below. Validation 4 (per-skill data audit): one missing cross-link found and fixed (`doca-setup CAPABILITIES.md ## Version compatibility` now anchors to the Compatibility Policy as the upstream rulebook). Validation 5 (separation audit): confirmed clean ownership — `doca-setup` owns env layers (1–4); `doca-programming-guide` owns program layers (lifecycle / error / library); `doca-debug` owns the cross-cutting ladder + tooling + forum escalation; bidirectional cross-links across all three; `libs/doca-flow ## debug` extended with cross-link to `doca-debug` for cross-cutting parts. Validation 2 (debug-prompt addition): new `devops/runner/prompts/04_link_error_debug.yaml` with explicit `co_loads_three_skills` criterion. Validation 3 (CI coverage check): new `devops/ci/check-coverage.sh` wired into `Jenkinsfile.skills.ci` and `ab_runner.py`. Bundle currently at 100% catalog coverage (57/57). Validation 6 (two-agent self-consistency test): two fresh subagents (`24c100ff-…` on prompt 4, `4020eb09-…` on prompt 1) both passed all 6 of their respective criteria; Agent B explicitly cited all three new umbrella URLs (Libraries / Services / Tools). The bundle is sign-off-ready for Wave-3 expansion. |
+| 2026-05-15 (Wave 2.5 — classes-over-instances + gates expansion) | v3.3.0 (`/doca/sdk/DOCA-Libraries/index.html`); v3.1.0 (SDK index landing) | **Markdown-only wave; URL set unchanged.** Adopted six general-quality improvements derived from CUDA agentic-readiness feedback (NOT as instance fixes; as classes-over-instances design invariant in `devops/AUTHORING.md § 1a`): (1) *Where to start* header on every `SKILL.md` / `CAPABILITIES.md` / `TASKS.md` + top-level docs (`AGENTS.md`, `README.md`, `SKILLS.md`); (2) *Example questions this skill answers well* — 6 question SHAPES per skill with one worked example each; (3) *Pattern overview* table — 5–6 patterns per `CAPABILITIES.md` naming the recurring class-shapes; (4) canonical *Modify-from-sample schema* (5-slot table) added to `doca-programming-guide/TASKS.md ## modify`; (5) *Command appendix* added to each `TASKS.md` listing the commands the agent reaches for, with owning step and healthy-output rule; (6) iterative *eval-loop* overlay added to `## test` (and to `doca-debug ## debug`). **New CI gates landed:** class-shape filename gate (HARD), anchor-density gate (HARD), per-artifact PROMPT coverage (HARD), per-artifact SKILL coverage (SOFT @ 10% floor), markdownlint (SOFT), lychee (SOFT). **A/B harness:** runner promoted to 3-way (baseline / main / pr); `devops/runner/select_prompts.py` for dynamic diff-driven prompt selection; two new class-shaped prompts (`05_deploy_doca_service.yaml`, `06_run_doca_tool.yaml`) close the per-artifact prompt-coverage gate at 3/3. **Deferred work** captured in `future-plan/cuda-executables-analysis.md`: discovery shims, `example_prompts/`, helper scripts, declarative templates, `full_compile` eval — markdown-only rule remains in force until that document is re-derived in a future round. URL set, audit footer, and per-page URL counts unchanged. |
 | 2026-05-14 (round 2 sharpening, batch 3 — coverage) | v3.3.0 (`/doca/sdk/DOCA-Libraries/index.html` shows v3.3.0; the SDK index `index.html` is still v3.1.0 — the per-page version differs from the index landing) | **Coverage rebalance.** Surfaced because a fresh-agent test flagged that the bundle's library table had only 7 of the 25+ public DOCA libraries, which biases the agent toward the listed subset (the "agent focuses on what it knows" failure mode). Diff against the live `DOCA-Libraries/index.html` listing yielded 19 missing library rows; against `DOCA-Services/index.html` yielded 2 missing service rows (Argus, Virtio-net); against `DOCA-Tools/index.html` yielded 5 missing tool rows (DPACC Compiler, DPU CLI, Flow Tune Server, Ngauge, doca-hugepages). All 36 candidate URLs HEAD-checked 200 before being added. **Also added** an "umbrella index" row at the top of each of the three tables pointing at `DOCA-Libraries`, `DOCA-Services`, `DOCA-Tools` respectively — these are the canonical "I don't know — show me everything" escape hatches the agent should hit *before* declining to answer or guessing a URL. The umbrella rows close the structural gap that allowed the original 7-row table to feel complete. **URL hygiene fix included:** moved DMS / DTS / BlueMan / Firefly / Flow Inspector / HBN / SNAP / UROM rows from the legacy `DOCA+Foo+Service+Guide` URL form to the canonical `DOCA-Foo-Service-Guide/index.html` slug to match the new rows; same for tools (`DOCA+Capabilities+Print+Tool` → `DOCA-Capabilities-Print-Tool/index.html`, etc.). The legacy URLs still 302-redirect, so this is hygiene, not a functional fix. |
 
 How to re-audit: run [`ci/check-skill.sh --all --check-urls`](../../ci/check-skill.sh)

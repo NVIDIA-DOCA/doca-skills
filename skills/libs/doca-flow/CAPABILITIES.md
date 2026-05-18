@@ -1,5 +1,10 @@
 # DOCA Flow capabilities, version compatibility, errors, observability, safety
 
+**Where to start:** The pattern overview below names the recurring
+Flow-class patterns. Pick the pattern first, then drill into the H2
+that owns the substance. For the *how* of executing each pattern, jump
+to [TASKS.md](TASKS.md).
+
 Read this file when the loader sent you here from
 [SKILL.md](SKILL.md). For step-by-step workflows that *use* these
 capabilities (configure, build, modify, run, test, debug) see
@@ -7,6 +12,33 @@ capabilities (configure, build, modify, run, test, debug) see
 installed package paths live, defer to
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) — do
 not duplicate URLs or install paths in this file.
+
+## Pattern overview
+
+Every Flow-class question this skill teaches resolves into one of
+SIX patterns. The patterns are CLASSES — they apply across every
+pipe spec, not just the worked example shown.
+
+| Flow pattern | Class shape | Where the substance lives |
+| --- | --- | --- |
+| 1. Pick the steering mode | HWS vs SWS, decide before quoting any feature | [`## Capabilities and modes`](#capabilities-and-modes) steering-mode bullet |
+| 2. Bring up port + representor | Port-init, representor binding, lifecycle order | [TASKS.md ## configure](TASKS.md#configure) |
+| 3. Express *<match X, do Y>* as a pipe | Match-criteria + action set + pipe-type pick (basic / hairpin / control / ordered) | [`## Capabilities and modes`](#capabilities-and-modes) pipe-type table + [TASKS.md ## modify](TASKS.md#modify) |
+| 4. Validate the spec before commit | `doca_flow_pipe_validate` → `doca_flow_pipe_create`; never the reverse | [`## Safety policy`](#safety-policy) validate-before-commit rule + [TASKS.md ## test](TASKS.md#test) |
+| 5. Observe what the HW actually did | Per-pipe / per-entry counters + Flow inspector trace | [`## Observability`](#observability) + [TASKS.md ## debug](TASKS.md#debug) |
+| 6. Interpret a `DOCA_ERROR_*` from a Flow call | Map the error to a layer (env / build / link / runtime / program), then route | [`## Error taxonomy`](#error-taxonomy) Flow overlay + [TASKS.md ## debug](TASKS.md#debug) |
+
+Two cross-cutting rules that apply to *every* pattern above:
+
+- **Discover the version-installed surface, do not assume.** Every
+  pattern above gates on `pkg-config --modversion doca-flow` and on
+  the `doca_caps` capability snapshot of the active device. Quoting
+  a feature without checking is the most common hallucination
+  failure mode.
+- **Validate before commit, every time.** `validate` is a separate
+  read-only call; skipping it produces runtime symptoms that look
+  like hardware bugs and waste debug time. See
+  [`## Safety policy`](#safety-policy).
 
 ## Capabilities and modes
 
@@ -43,25 +75,12 @@ spec.
 
 ## Version compatibility
 
-DOCA Flow API surface and feature support evolve per release. The agent
-should treat the installed DOCA version as the **authoritative source of
-truth** for which symbols and features exist:
+For the canonical DOCA version-detection chain, the four-way match rule, NGC container semantics, and the headers-win-over-docs rule, see [`doca-version`](../../doca-version/SKILL.md). The body lives there; this skill does not duplicate it.
 
-- For how to find the installed DOCA version (general DOCA — `pkg-config`,
-  `doca_caps --version`, the install-root `VERSION` file, release notes),
-  use the procedure in `doca-public-knowledge-map`. Do not reinvent it
-  here.
-- Flow-specific addition: the set of `doca_flow_*` symbols available on a
-  given install is observable from the Flow header set under the
-  installed DOCA infrastructure tree (look up the path in the
-  knowledge-map's "Layout of an installed DOCA package" section). When in
-  doubt about a symbol's availability, prefer reading the installed header
-  to quoting documentation from a different release.
-- When the user reports an `undefined reference` or "function not found"
-  for a `doca_flow_*` symbol, the first hypothesis is **wrong-version
-  documentation**. Confirm the installed version, then verify the symbol
-  exists in the installed headers, then look at the Flow programming guide
-  for that release.
+**The Flow-specific overlay** is:
+
+- The set of `doca_flow_*` symbols available on a given install is observable from the Flow header set under the installed DOCA infrastructure tree (look up the path in [`doca-public-knowledge-map ## Layout of an installed DOCA package`](../../doca-public-knowledge-map/SKILL.md#layout-of-an-installed-doca-package)). When the user reports an `undefined reference` or "function not found" for a `doca_flow_*` symbol, the first hypothesis is **wrong-version documentation** — confirm the installed version per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure), then verify the symbol exists in the installed headers, then read the Flow programming guide for *that* release.
+- Per-Flow-capability availability uses the version-matrix lookup procedure in [`doca-version TASKS.md ## test`](../../doca-version/TASKS.md#test) step 2, with `pkg-config --modversion doca-flow` as the build-time anchor.
 - The release notes for the installed version are the canonical source for
   Flow features added, deprecated, or behavior-changed in that release.
   Route through the knowledge-map for the release-notes URL pattern.

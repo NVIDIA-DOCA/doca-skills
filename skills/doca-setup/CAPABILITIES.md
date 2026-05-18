@@ -1,10 +1,40 @@
 # DOCA setup — capabilities, version compatibility, errors, observability, safety
 
+**Where to start:** Pick the H2 anchor that matches your question
+(modes / version / errors / observability / safety) and read that
+section end-to-end before issuing a command. Tables in each section
+are the load-bearing content; the prose around them is interpretation.
+
 Read this file when the loader sent you here from [SKILL.md](SKILL.md). For the env workflows that *use* the surface described here, see [TASKS.md](TASKS.md). For the program-side counterparts (build flavor selection rationale, the universal lifecycle, the cross-library `DOCA_ERROR_*` taxonomy, the program-side safety policy), see [`doca-programming-guide`](../doca-programming-guide/SKILL.md). For where to find official documentation, the on-disk layout of an installed DOCA package, or the official Installation Guide, route through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 
 This file describes the **install / build / runtime *environment*** that any DOCA program assumes has been verified before its own workflows begin. It is deliberately library-agnostic and program-agnostic; everything here is about the host the program runs on, not about the program itself.
 
 > Lint note: this file references `/opt/mellanox/doca` and `docs.nvidia.com` paths several times. For most library skills the lint flags this and asks for cross-links to `doca-public-knowledge-map` instead, since URL/path duplication is normally drift waiting to happen. For `doca-setup` specifically the references are *intrinsic* — the skill's whole job is to operate on the install tree and verify it. The repeated paths are intentional; do not refactor them out.
+
+## Pattern overview
+
+Every env-class concern this skill teaches resolves into one of FIVE
+patterns. Reach for the pattern first, then drill into the matching
+H2 anchor; the patterns are CLASSES, not use cases.
+
+| Pattern | When it applies (class shape)                              | Where it lives                                          |
+|---------|------------------------------------------------------------|---------------------------------------------------------|
+| 1. Reach an install | User has no DOCA reachable from where they are now | [TASKS.md ## no-install](TASKS.md#no-install) (NGC Path 0) |
+| 2. Detect an install | User has *something* installed and must figure out what | [`## Version compatibility`](#version-compatibility) + [TASKS.md ## test](TASKS.md#test) |
+| 3. Wire the build to the install | Headers / `*.pc` / `LD_LIBRARY_PATH` / build flavor | [`## Capabilities and modes`](#capabilities-and-modes) + [TASKS.md ## configure](TASKS.md#configure) |
+| 4. Wire the runtime to the device | Hugepages / representors / devlink / kernel modules | [`## Observability`](#observability) + [TASKS.md ## configure](TASKS.md#configure) |
+| 5. Diagnose env vs program | Symptom looks like a bug; agent must rule env out first | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
+
+Two principles cut across all five patterns:
+
+- **Env layers run in order: install → capability → runtime.** A
+  hugepages question with an unreachable install is the install
+  question. Skipping a layer is the single most common
+  failure mode the env-debug ladder catches.
+- **Env-class only.** The instant the answer becomes "rewrite the
+  program", hand off to
+  [`doca-programming-guide`](../doca-programming-guide/SKILL.md). The
+  patterns above never tell the user to change their code.
 
 ## Capabilities and modes
 
@@ -39,21 +69,13 @@ The agent must clarify *which* mode the user expects before recommending any por
 
 ## Version compatibility
 
-DOCA uses a single unified version string across host packages, BlueField BFB image, headers, and the libraries the program links against. **All four must match within a release.** Cross-version mixing is the single most common source of *"the program built but does nothing on the wire"* reports for first-time users.
+For the canonical DOCA version-detection chain (`pkg-config --modversion doca-common` → `cat applications/VERSION` → `doca_caps --version` → BFB version on BlueField), the four-way match rule, NGC container semantics, the headers-win-over-docs rule, and the routing to the DOCA Compatibility Policy, see [`doca-version`](../doca-version/SKILL.md). The body lives there; this skill does not duplicate it.
 
-**Authoritative upstream source.** NVIDIA's own statement of which version pairings are *intended* to work — quarterly GA cadence, October LTS designation (3-year support), the semver `X.Y.Z` scheme, the three compatibility types (source / binary / behavioral), and the two compatibility directions (backward / forward) — is the [DOCA Compatibility Policy](https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html). Cite this page whenever the user asks "can I run host package X with BFB Y?", "is my LTS still supported?", or "what does the version string mean?". The env-side checks in this skill detect *what is installed*; the Compatibility Policy describes *which installs are supposed to work together*. The program-side rules that follow from a given install are in [`doca-programming-guide CAPABILITIES.md ## Version compatibility`](../doca-programming-guide/CAPABILITIES.md#version-compatibility). The env side — *how to detect what's installed* — is here.
+**The env-side overlay** is responsible for making the detection chain *work* on this host before any version question can be answered:
 
-**Detect the installed version, in this order of preference:**
-
-1. `pkg-config --modversion doca-common` — the build-time version. This is what your application will link against. Always quote *this* version when answering API-availability questions.
-2. `cat /opt/mellanox/doca/applications/VERSION` — fallback if `pkg-config` is missing or `PKG_CONFIG_PATH` is not configured (which itself is a setup problem the agent should fix first; see [`TASKS.md ## configure`](TASKS.md#configure)).
-3. `doca_caps --version` — the runtime view; should match #1. A mismatch between #1 and #3 means headers and the runtime library on disk are from different DOCA installs (e.g. partial upgrade). The fix is to reinstall consistently — not a code change.
-
-**On a BlueField host specifically**, the BFB image carries its own DOCA version. If the host package is at version *X* and the BlueField BFB is at version *Y* with *X ≠ Y*, communication paths that span the two (control channel, RDMA across PCIe) can fail in confusing ways. Verify with `mlxprivhost` or `bfb-info` (Installation Guide section *Verifying the BFB image* via `doca-public-knowledge-map`).
-
-**Inside the NGC DOCA container**, the four-way match is *of the container*: the headers, `*.so`, samples, and `doca_caps` are all from the same container tag. Mixing container artifacts with a host install creates the same partial-upgrade trap as mixing host packages.
-
-**Headers vs. runtime.** The headers under `/opt/mellanox/doca/infrastructure/include/` are the *authoritative* statement of what API symbols exist on this release. If a public web page mentions a symbol and the header does not, the header wins — it is the release; the web page describes a release.
+- `PKG_CONFIG_PATH` must include `/opt/mellanox/doca/infrastructure/lib/pkgconfig` so that `pkg-config --modversion doca-<library>` resolves at all. The env-setup procedure in [`TASKS.md ## configure`](TASKS.md#configure) verifies this; partial-install diagnosis lives in [`doca-version TASKS.md ## debug`](../doca-version/TASKS.md#debug) layer 2.
+- The on-disk paths the detection chain reads (`/opt/mellanox/doca/applications/VERSION`, `/opt/mellanox/doca/infrastructure/include/doca_version.h`, the `*.pc` directory) are env-side artifacts — see [`## Capabilities and modes`](#capabilities-and-modes) for the install-tree layout that places them where the chain expects.
+- On the *no-install* path (NGC container, per [`TASKS.md ## no-install`](TASKS.md#no-install) Path 0), the env-side overlay is that the four-way match is *of the container tag* the user pulled; the container's headers, `*.so`, samples, and `doca_caps` are guaranteed consistent by construction. The agent must still report which path was used so the user knows which install they verified.
 
 ## Error taxonomy
 

@@ -6,6 +6,56 @@ kind: library
 
 # DOCA Management Service (DMS)
 
+**Where to start:** This skill is for *operating* DMS, not for
+*linking against* a library. If the user wants to *deploy* or *run*
+the daemon, open [`TASKS.md`](TASKS.md) and start at
+[`## configure`](TASKS.md#configure). If the question is *what shape
+of service is DMS and what protocols does it speak*, start at
+[`CAPABILITIES.md`](CAPABILITIES.md). If DOCA is not installed on the
+management endpoint yet, route to
+[`doca-setup`](../../doca-setup/SKILL.md) first.
+
+## Example questions this skill answers well
+
+The CLASSES of DMS questions this skill is built to answer, each with
+one worked example. The class is the load-bearing piece; the worked
+example is one instance.
+
+- **"Where should DMS run for my target topology?"** — worked example:
+  *"I have a host without a DPU; can I still manage a remote
+  ConnectX?"*. Answered by the deployment-shape decision in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + [`TASKS.md ## configure`](TASKS.md#configure).
+- **"Which authentication mode should I pick for my security
+  posture?"** — worked example: *"a multi-tenant production env vs a
+  single-tenant lab"*. Answered by the auth-mode trade-off table in
+  [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
+  + the auth-wiring step in
+  [`TASKS.md ## configure`](TASKS.md#configure).
+- **"How do I issue a gNMI `Get` / `Set` against a modeled path?"** —
+  worked example: *"set `/interfaces/interface/config/mtu` on a remote
+  interface"*. Answered by the gNMI/gNOI surface in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the request-shape workflow in
+  [`TASKS.md ## run`](TASKS.md#run).
+- **"How do I run a gNOI operation (reboot, OS install, file
+  transfer)?"** — worked example: *"trigger a clean reboot of the
+  target via gNOI"*. Answered by the gNOI catalog in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the run workflow in [`TASKS.md ## run`](TASKS.md#run).
+- **"My DMS request returned an error — was it the frontend or the
+  backend?"** — worked example: *"`mlxconfig` failed under DMS but
+  works on the shell"*. Answered by the frontend-vs-backend split in
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  + the layered ladder in
+  [`TASKS.md ## debug`](TASKS.md#debug).
+- **"Where do I read DMS logs and how do I rotate them?"** — worked
+  example: *"persistent log directory + journald + log-rotation
+  policy"*. Answered by the logging surface in
+  [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability)
+  + the log-rotation step in
+  [`TASKS.md ## configure`](TASKS.md#configure).
+
 ## Audience
 
 This skill serves **external operators and platform teams who deploy and

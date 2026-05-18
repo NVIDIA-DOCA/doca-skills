@@ -1,5 +1,12 @@
 # DOCA Capabilities Print Tool — Tasks
 
+**Where to start:** The verbs that carry real workflow content are
+`## run`, `## test`, and `## debug`. The other three (`configure`,
+`build`, `modify`) are documented routing stubs that exist because
+the bundle's verb contract is uniform. The `## test` verb is an
+iterative loop, not a one-shot pass — see the eval-loop overlay in
+`## test` below.
+
 This file is loaded by [`SKILL.md`](SKILL.md) after
 [`CAPABILITIES.md`](CAPABILITIES.md). It walks the agent through the
 six task verbs every artifact in this bundle exposes
@@ -135,8 +142,31 @@ and the full unredacted output. The downstream `## test` and
 ## test
 
 `doca_caps` is **the canonical install smoke-test** prescribed by
-[`doca-setup ## test`](../../doca-setup/TASKS.md#test). The pattern
-the rest of the bundle expects:
+[`doca-setup ## test`](../../doca-setup/TASKS.md#test).
+
+**`## test` is an iterative loop, not a one-shot pass.** The agent
+re-runs `doca_caps` after every state-changing action that
+*should* have affected DOCA's view of the host (driver reload,
+firmware change, BlueField mode flip, container `--device` change).
+Treating the smoke as a one-shot pass is the failure mode this loop
+replaces.
+
+The eval-loop overlay (rows apply to every DOCA install, not just
+one):
+
+| Step | Why this is a loop, not a step | Where the substance lives |
+| --- | --- | --- |
+| 1 → ## debug | Empty / unexpected output is a finding, not a tool failure; the agent must walk the debug ladder, then re-run step 1 | [`## debug`](#debug) |
+| 1 → driver reload → 1 | After `modprobe` / driver reload, re-run step 1 to confirm DOCA's view caught up | [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) layer Driver |
+| 1 → firmware / mode change → 1 | After `mlxconfig` or BlueField mode change, re-run step 1 to confirm the new capability surface | [`doca-setup ## configure`](../../doca-setup/TASKS.md#configure) |
+| 1 → container `--device` change → 1 | After remounting / `--device`-mapping a container, re-run step 1 inside the container | [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install) |
+| 1 (clean) → save → debug session | Once clean, the snapshot is saved and consumed by `doca-debug ## test` step 3 (read-only triple) | [`doca-debug ## test`](../../doca-debug/TASKS.md#test) |
+
+The agent's rule: every state-changing action that *could* affect
+DOCA's view re-opens the smoke. Saving a stale snapshot from before a
+mutation is exactly the failure mode this loop is here to prevent.
+
+The pattern the rest of the bundle expects:
 
 1. Run `doca_caps --list-devs`.
 2. **Exit code 0 + at least one DOCA device listed** ⇒ the install
@@ -222,6 +252,36 @@ In every case: **quote what the tool said.** Do not paraphrase the
 output, do not reorder fields, do not "summarize" capability lines
 into prose. The whole point of `doca_caps` in a debug context is to
 break the agent out of the inference-from-model-number trap.
+
+## Command appendix
+
+`doca_caps`-specific invocations the verbs above reach for. Every
+row is a class — the agent must not invent flags beyond `--help`
+on the installed binary. The four-family symmetry below is the
+load-bearing piece; one worked example per family is shown.
+
+| Purpose (class) | Invocation (shape) | Owning step | Reads as healthy when … |
+| --- | --- | --- | --- |
+| Discover available flags | `doca_caps --help` | [`## run`](#run) | Prints the documented flag inventory; the agent uses this as the only source of truth for flag names. |
+| Enumerate DOCA devices | `doca_caps --list-devs` | [`## run`](#run) + [`## test`](#test) step 1 | Exit 0 and at least one device row, with the expected PCIe addresses present. |
+| Enumerate representor devices | `doca_caps --list-rep-devs` | [`## run`](#run) | Exit 0; the representor topology matches what `devlink dev show` reports. |
+| Scope to one PCIe address | `doca_caps --pci-addr <bdf>` | [`## run`](#run) + [`## debug`](#debug) layer "Library-capability mismatch" | The output is restricted to one device; rules out scope as the cause of an unexpectedly empty answer. |
+| Scope to one DOCA library | The documented per-library flag (see `--help`) | [`## run`](#run) | Returns the library's supported capabilities; empty output = *not supported on this device/version*. |
+| Save a snapshot for debug | `doca_caps --list-devs > caps.txt` (and equivalents for the families above) | [`## test`](#test) step 4 + [`doca-debug ## test`](../../doca-debug/TASKS.md#test) step 3 | The saved file is consumed by the debug session's read-only triple. |
+| Re-confirm after a state change | Any of the above, re-run after driver / firmware / mode / container change | [`## test`](#test) eval loop | The post-change output reflects the change; a stale snapshot is the failure mode. |
+
+Three cross-cutting rules for this appendix:
+
+- **Never invent a `doca_caps` flag.** `--help` is the contract;
+  prose-derived flags are the most common hallucination failure for
+  this skill.
+- **Empty output is an answer.** Re-running the same invocation
+  hoping for different output is the wrong move; route to
+  [`## debug`](#debug) and walk the layers instead.
+- **Cross-link instead of duplicate.** Cross-cutting commands
+  (`pkg-config --modversion`, `dmesg`, `mlxconfig -d <bdf> q`) live
+  in [`doca-debug TASKS.md ## Command appendix`](../../doca-debug/TASKS.md#command-appendix);
+  this appendix names only `doca_caps`-specific invocations.
 
 ## Deferred task verbs
 

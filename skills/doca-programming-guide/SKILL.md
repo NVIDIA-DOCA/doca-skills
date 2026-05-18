@@ -6,6 +6,57 @@ kind: library
 
 # DOCA programming guide
 
+**Where to start:** Read [`## Audience`](#audience) to confirm the user
+is *consuming* DOCA, not *contributing* to it. Then jump to the H2
+that matches the verb (`## modify` for first-app derivation,
+`## build` for the canonical build pattern, `## test` for the test
+loop, `## debug` for the program-class debug ladder).
+
+## Example questions this skill answers well
+
+These are the CLASSES of program-class questions the skill is built
+to answer, each with one worked example. Library-specific overlays
+(Flow / DMS / Caps / …) live in the matching library skill; this
+skill answers the library-agnostic shape.
+
+- **"How do I write my first DOCA program for &lt;any library&gt;?"** —
+  worked example: *"I want to write my first DOCA Flow application."*
+  Answered by the modify-a-shipped-sample workflow in
+  [`TASKS.md ## modify`](TASKS.md#modify) plus the canonical build
+  pattern in [`TASKS.md ## build`](TASKS.md#build).
+- **"What's the right build line for any DOCA library?"** — worked
+  example: *"How do I compile a program that calls `doca_rdma_*`?"*
+  Answered by the `pkg-config doca-<library>` pattern in
+  [`TASKS.md ## build`](TASKS.md#build) (C/C++ Track 1) and the
+  FFI/bindings pattern in Track 2.
+- **"What's the lifecycle every DOCA object follows?"** — worked
+  example: *"What's the right order of `doca_flow_pipe_*` calls in my
+  program?"* Answered by the cfg-create / init / start / use / stop /
+  destroy template in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
+- **"`DOCA_ERROR_*` came back — what does it mean and what do I do?"**
+  — worked example: *"My code got `DOCA_ERROR_BAD_STATE`."* Answered
+  by the cross-library `doca_error_get_descr()` rule in
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  + the program-class debug order in
+  [`TASKS.md ## debug`](TASKS.md#debug).
+- **"My program built and started, but does nothing on the wire."** —
+  worked example: *"My Flow program runs cleanly but no traffic is
+  matched."* Answered by the validate-before-commit rule in
+  [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
+  and the layered program-class debug ladder in
+  [`TASKS.md ## debug`](TASKS.md#debug).
+- **"What does &lt;language&gt; consumer of DOCA look like (FFI /
+  bindings)?"** — worked example: *"How do I call DOCA Comch from Rust
+  without writing C?"* Answered by Track 2 of
+  [`TASKS.md ## build`](TASKS.md#build) (FFI against the public C
+  ABI) and the language-neutral lifecycle in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
+
+If the question is env-class (install / build env / hugepages /
+devices), route to [`doca-setup`](../doca-setup/SKILL.md). If it is
+library-specific (Flow pipe topology, RDMA QP setup, DMS service
+deploy), layer the matching library skill on top.
+
 ## Audience
 
 This skill serves **external developers building applications that

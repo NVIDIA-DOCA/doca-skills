@@ -5,6 +5,13 @@ agents working with the NVIDIA DOCA SDK. Any agent working in this repo
 — Cursor, Codex, Gemini, Claude Code, custom in-house LLMs — should
 read this file first.
 
+**Where to start:** Read this file end-to-end (ground rules + entry
+points + non-goals), then open [SKILLS.md](SKILLS.md) to pick the
+right skill(s) for the user's request. Every `SKILL.md` in
+[skills/](skills/) opens with its own *Where to start* header that
+tells the agent which companion file (`CAPABILITIES.md` for
+"what can it do", `TASKS.md` for "how do I do it") to load next.
+
 ## Where the actual guidance lives
 
 - [SKILLS.md](SKILLS.md) — the index of installed skills with one-line
