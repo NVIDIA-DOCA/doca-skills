@@ -1,10 +1,41 @@
 # DOCA programming guide — capabilities, version compatibility, errors, observability, safety
 
+**Where to start:** Read [`## Pattern overview`](#pattern-overview)
+first to pick the family; then drill into the matching H2. Every
+prescriptive section below stays library-agnostic — overlays for a
+specific library live in that library's `CAPABILITIES.md`.
+
 Read this file when the loader sent you here from [SKILL.md](SKILL.md). For the step-by-step workflows that *use* the surface described here, see [TASKS.md](TASKS.md). For env-class equivalents (install profiles, env-class errors, env observability), see [`doca-setup`](../doca-setup/SKILL.md). For where to find official documentation, the on-disk install layout, or the Installation Guide, route through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 
 This file describes the **shape every DOCA program shares** — the architecture every library plugs into, the lifecycle every library follows, the error pattern every library returns, the observability surface every library emits into, and the safety rules every program must respect. Library-specific overlays live in the matching library skill.
 
 > Lint note: this file references `/opt/mellanox/doca` and `docs.nvidia.com` paths several times. The lint warns about that for most library skills and asks for cross-links to `doca-public-knowledge-map` instead. For `doca-programming-guide` specifically the references are *intrinsic*: the skill's whole job is to describe how a DOCA program is shaped on disk and on the wire, and the canonical install tree (`/opt/mellanox/doca`) plus the canonical docs tree (`docs.nvidia.com/doca/sdk/`) are the two coordinate systems every prescription is anchored against. The repeated paths are intentional; do not refactor them out.
+
+## Pattern overview
+
+Every program-class question this skill teaches reduces to one of FIVE
+patterns. Reach for the pattern first; the H2 below it carries the
+substance.
+
+| Pattern | Class shape | Where it lives |
+| --- | --- | --- |
+| 1. Plug into the right slot | Host / DPU / Switch; library / app / service / tool — orient the program | [`## Capabilities and modes`](#capabilities-and-modes) |
+| 2. Follow the universal lifecycle | cfg → create → init → start → use → stop → destroy for every DOCA object | [`## Capabilities and modes`](#capabilities-and-modes) lifecycle subsection |
+| 3. Build / link the program | `pkg-config doca-<library>` (C/C++ direct) OR FFI/bindings against the public C ABI | [TASKS.md ## build](TASKS.md#build) |
+| 4. Handle `DOCA_ERROR_*` correctly | `doca_error_get_descr()` first; never paper over | [`## Error taxonomy`](#error-taxonomy) |
+| 5. Validate before commit, observe before "fixing" | Pre-commit validation, log levels, sample-counter discipline | [`## Safety policy`](#safety-policy) + [`## Observability`](#observability) |
+
+Two principles cut across all five:
+
+- **Library-agnostic shape, library-specific overlay.** This skill
+  prescribes the shape; the matching library skill (e.g.
+  [`doca-flow`](../libs/doca-flow/SKILL.md)) overlays the
+  library-specific specifics (Flow pipe topology, RDMA QP semantics,
+  …). Both must be loaded for a complete answer.
+- **Programs run *with* DOCA, not *of* DOCA.** Everything below
+  assumes the user is calling `doca_*` from their own code. Patches
+  to DOCA itself are out of scope and belong in the DOCA contributor
+  repo, not this bundle.
 
 ## Capabilities and modes
 
@@ -53,16 +84,13 @@ The agent's rule: never recommend a `use`-phase call before confirming the objec
 
 ## Version compatibility
 
-DOCA uses a single unified version string across host packages, BlueField BFB image, headers, and the libraries the program links against. **All four must match within a release.** Cross-version mixing is the single most common source of "the program built but does nothing on the wire" reports for first-time users.
+For the canonical DOCA version-detection chain, the four-way match rule, NGC container semantics, the headers-win-over-docs rule, and the routing to the DOCA Compatibility Policy, see [`doca-version`](../doca-version/SKILL.md). The body lives there; this skill does not duplicate it.
 
-The **authoritative source** for which release pairings NVIDIA actually supports — software release cadence, version-string semantics, host ↔ DPU compatibility windows, and how long a given release is maintained — is the [DOCA Compatibility Policy](https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html). Always cite this page when the user asks "can I run host version X with DPU version Y?", "is release Z still supported?", or "what does the version string actually mean?". The program-side rules below describe how to *behave* given a particular install; the Compatibility Policy describes which installs NVIDIA *intends to work* in the first place.
+**The program-side overlay** layers on top of the verified version:
 
-The env-side procedures for *detecting* the installed version live in [`doca-setup CAPABILITIES.md ## Version compatibility`](../doca-setup/CAPABILITIES.md#version-compatibility) and in [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md). The program-side rules are:
-
-1. **Quote the version you observed, not "latest".** API names, sample filenames, and capability availability all depend on the user's installed version. The headers under `/opt/mellanox/doca/infrastructure/include/` are the *authoritative* statement of which symbols exist on this release; if a public web page mentions a symbol and the header does not, the header wins.
-2. **A program built against version *X* must run against runtime version *X*.** Cross-version `*.so` loading is not supported. If `pkg-config --modversion doca-<library>` differs from `doca_caps --version`, the install is inconsistent (partial upgrade); fix the install via [`doca-setup ## debug`](../doca-setup/TASKS.md#debug), do not work around it in code.
-3. **For non-C consumers (FFI / bindings).** The binding tooling generates declarations from the headers at build time. Re-generate after any DOCA upgrade — bindings pinned to a stale header will compile but call into the new `*.so` with mismatched signatures, returning `DOCA_ERROR_INVALID_VALUE` or, worse, silent corruption.
-4. **For NGC-container users.** When the user reached an install via the NGC DOCA container ([`doca-setup TASKS.md ## no-install`](../doca-setup/TASKS.md#no-install) Path 0), the four-way version match is *of the container*: the container's headers, `*.so`, samples, and `doca_caps` are all built and shipped together at the tag the user pulled. Mixing artifacts built inside the container with a `*.so` taken from a different DOCA install on the host is the same partial-upgrade trap as case (2).
+- **Quote the version observed, never "latest" and never agent memory.** API names, sample filenames, and capability availability all depend on the user's installed version. Per the safety policy in [`doca-version CAPABILITIES.md ## Safety policy`](../doca-version/CAPABILITIES.md#safety-policy), a recommendation that quotes a version-pinned URL or invents a feature based on agent memory is the bundle's primary hallucination failure mode.
+- **For non-C consumers (FFI / bindings).** The binding tooling generates declarations from the headers at build time. Re-generate after any DOCA upgrade — bindings pinned to a stale header will compile but call into the new `*.so` with mismatched signatures, returning `DOCA_ERROR_INVALID_VALUE` or, worse, silent corruption.
+- **Use the per-library `doca_<library>_cap_*` query family at runtime** as the authoritative answer for *"is this capability supported on this device + this install"*. The version-matrix is the *promise*; the cap query is the *reality*. When they disagree, the cap query wins — see [`doca-version TASKS.md ## test`](../doca-version/TASKS.md#test) step 3.
 
 ## Error taxonomy
 

@@ -2,6 +2,12 @@
 
 ![DOCA software Stack](doca-software.jpg "DOCA Software Stack")
 
+**Where to start (humans):** Read this README for context, then if
+you are an AI agent (or running one), open [AGENTS.md](AGENTS.md) for
+the ground rules and [SKILLS.md](SKILLS.md) for the skill index. Each
+skill under [skills/](skills/) opens with its own *Where to start*
+header pointing at the right next file inside it.
+
 A **public, drop-in DOCA skills bundle for AI coding agents**, on top of the same NVIDIA DOCA samples and reference applications shipped here. Any developer who clones this repo can open it in their AI coding tool of choice — Cursor, Claude Code, Codex, Gemini, custom in-house LLMs — and the agent will know how to help with DOCA without any extra setup, without the developer needing to clone or download anything else.
 
 ## AI agent skills — what makes this repo agent-ready out of the box
@@ -33,13 +39,81 @@ The skills layer is currently shipped on the `ai-mvp-with-files` branch; `master
 | `doca-dms` | `services/` | DOCA Management Service — gRPC-based device management for BlueField / ConnectX. Two-process daemon (`dmsd` frontend + `dmspe` privileged backend), gNMI for config, gNOI for system ops, YANG-modeled paths, four documented auth modes, three deployment shapes, `dmsgroup` authorization, and a layered debug taxonomy from gRPC transport down to underlying-tool failures. Currently beta per the public guide. | The user is deploying or operating DMS. |
 | `doca-caps` | `tools/` | DOCA Capabilities Print Tool (`/opt/mellanox/doca/tools/doca_caps`) — read-only CLI that prints DOCA devices, representors, supported libraries, per-device per-library capabilities, and DOCA logger names. Available since DOCA 2.6.0. The canonical first-step capability snapshot called out from `doca-setup ## test` and `doca-programming-guide ## debug`. | The user — or the agent itself — needs a side-effect-free, documented snapshot of *what DOCA sees on this host* before doing anything that changes state. |
 
-When other DOCA libraries / services / tools ship their own skills (`doca-rdma`, `doca-comch`, `doca-dts`, `doca-bench`, …), each plugs into the same three cross-cutting foundations — `doca-public-knowledge-map` for routing, `doca-setup` for env, `doca-programming-guide` for cross-library programming patterns — and contributes only the *artifact-specific* overrides on top, in its own `libs/` / `services/` / `tools/` slot.
+When other DOCA libraries / services / tools ship their own skills (`doca-rdma`, `doca-comch`, `doca-dms`, `doca-bench`, …), each plugs into the same three cross-cutting foundations — `doca-public-knowledge-map` for routing, `doca-setup` for env, `doca-programming-guide` for cross-library programming patterns — and contributes only the *artifact-specific* overrides on top, in its own `libs/` / `services/` / `tools/` slot.
 
 **Quick start:**
 
 1. Clone this repo (`git clone https://github.com/NVIDIA-DOCA/doca-skills.git`) on the `ai-mvp-with-files` branch and open it in your AI coding tool.
 2. Ask any DOCA question. The agent reads `AGENTS.md` automatically and pulls the matching skill in.
 3. To see the difference the skills layer makes, open the same repo on the `master` branch in a second window and ask the same question.
+
+## Install — three deployment shapes
+
+The bundle is **markdown-only**: there is no `pip install`, no `npm
+install`, no daemon, no MCP server to launch. You make the skills
+available to an AI agent in whichever way that agent discovers
+contributor docs. Three shapes are documented and CI-verified:
+
+### Shape 1 — clone alongside your DOCA work (the canonical case)
+
+```bash
+# Clone next to wherever you keep your DOCA work.
+git clone https://github.com/NVIDIA-DOCA/doca-skills.git
+cd doca-skills
+git checkout ai-mvp-with-files
+```
+
+Open the cloned folder in your AI coding tool. The tool's agent
+discovers `AGENTS.md`, walks to `SKILLS.md`, and loads the matching
+per-skill `SKILL.md` (plus `CAPABILITIES.md` / `TASKS.md`) when your
+question matches a *When to load* trigger. No further wiring is
+required.
+
+### Shape 2 — bring the skills into an existing workspace
+
+If you already work in another repo and want the DOCA skills loaded
+alongside it, add this repo as a git submodule (or a sibling clone)
+and either symlink `doca-skills/AGENTS.md` into your workspace root,
+or copy its contents into your existing `AGENTS.md`. Agents resolve
+`AGENTS.md` at workspace root by convention.
+
+### Shape 3 — vet the bundle in CI before merging a skill change
+
+The CI gates live in `devops/ci/` (sibling repo). To validate a skill
+change locally before opening a PR, run:
+
+```bash
+# Structural lint + non-public-info check + symlink ban.
+bash devops/ci/check-skill.sh --all
+
+# Live URL HEAD check (network required; takes ~30s).
+bash devops/ci/check-skill.sh --all --check-urls
+
+# Anchor density floor.
+bash devops/ci/check-anchor-density.sh --all
+
+# Per-artifact SKILL + PROMPT + KMAP coverage + routing discoverability
+# (all HARD-FAIL).
+bash devops/ci/check-coverage.sh \
+  --routing-discoverability-hard-fail \
+  --prompt-coverage-hard-fail \
+  --skill-coverage-hard-fail-below=100 \
+  --hard-fail-below=100
+
+# Anthropic SKILL.md frontmatter validator (one-time setup; see
+# devops/AUTHORING.md § 11).
+claude-skill-check skills/<slot>/<your-skill>/SKILL.md
+```
+
+A passing local run mirrors what Jenkins will gate on the PR.
+
+For deeper contributor rules and the security-reporting path, read
+`devops/CONTRIBUTING.md`, `devops/SECURITY.md`, and
+`devops/AUTHORING.md` in the sibling `devops/` working tree before
+opening a PR. (Those three files are staged in `devops/` today and
+will land at `doca-skills/` bundle root when the working tree merges
+into the public repo — see `devops/round2-backlog.md` for migration
+status.)
 
 **Conformance:** [`ci/check-skill.sh`](ci/check-skill.sh) enforces the rules every skill in `skills/` must satisfy. Run it locally before opening a PR that touches any skill file.
 

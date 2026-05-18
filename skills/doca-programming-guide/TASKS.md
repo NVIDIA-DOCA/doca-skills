@@ -1,5 +1,12 @@
 # DOCA programming guide workflows
 
+**Where to start:** Read [`## configure`](#configure) → [`## modify`](#modify)
+for the first-app path, or [`## debug`](#debug) for an in-flight
+program-class problem. The two cross-cutting reads every prescriptive
+section assumes are the lifecycle table in
+[`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+and the modify-schema in [`## modify`](#modify) below.
+
 Read this file when the loader sent you here from [SKILL.md](SKILL.md). For the underlying surface — the shape of DOCA, the universal lifecycle, the cross-library version-compat rule, the `DOCA_ERROR_*` taxonomy, the program-side observability surface, and the program-side safety policy — see [CAPABILITIES.md](CAPABILITIES.md). For env-class workflows (install verification, `pkg-config` wiring, hugepages, the *I have no install yet* procedure with the NGC container fallback), see [`doca-setup`](../doca-setup/SKILL.md). For routing, docs URLs, the on-disk install layout, and how to check the installed DOCA version, see [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 
 Each verb describes the **shape of the workflow**, not a copy-paste recipe. Library-specific overrides (which sample to start from, which fields to swap, which capabilities to check, which errors to expect) live in the matching library skill — never here.
@@ -74,6 +81,41 @@ This verb requires *all* of:
 
 If any precondition fails, **do not proceed and do not invent a substitute**. Route to [`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install); that section is what the agent does instead, and its Path 0 (NGC DOCA container, `nvcr.io/nvidia/doca/doca`) is the universal way to satisfy these preconditions on macOS, Windows, or Linux without DOCA. Authoring application source code in *any* language (C, C++, Rust, Go, Python, …) from documentation prose to "fill the gap" is the failure mode this verb is here to prevent — it violates [`AGENTS.md`](../../AGENTS.md) ground rule #3 and would ship code that has never been compiled / linked / FFI-loaded against the live DOCA library.
 
+### Modify-from-sample schema (the mental model)
+
+Before any of the steps below, the agent fills in a **modify-schema**
+for the user — a small table that names *what is being changed and why*.
+The schema is the load-bearing artifact of this verb; the file edits are
+the mechanical consequence of the schema. Without the schema, the agent
+ends up swapping arbitrary fields and the result is a broken
+hybrid of "what the user wanted" and "what the sample happened to be";
+with the schema, every edit is traceable.
+
+The schema has FIVE slots. Every modify-from-sample run fills all five
+— in this order — before issuing any `sed`/edit command. Library skills
+overlay library-specific values for each slot; this skill prescribes
+the slots themselves.
+
+| Slot | What goes here | Class of value | Where it comes from |
+| --- | --- | --- | --- |
+| 1. Source sample | Identifier of the shipped sample being copied from (path under `/opt/mellanox/doca/samples/<library>/`) | filesystem path | The library skill's `## build` overlay (it names the smallest viable sample for each shape). |
+| 2. Sample contract (what it already does) | One-sentence summary of the sample's behavior verbatim from its source / README | textual | Reading the sample's `meson.build` and `*.c` files in the user's install. |
+| 3. Deltas from user intent | The minimum set of user-domain values that differ between the sample and what the user asked for. Each row: field name, what the sample has, what the user wants, where the user-side value comes from. | enumerated | The library skill's modify overlay (it lists which fields are typically the deltas for each sample shape); the user supplies the new values. |
+| 4. Boundaries (what stays verbatim) | The init / teardown / validate / error-handling calls and any DOCA-API call sequences kept untouched from the sample | enumerated | Always: every DOCA library call sequence. The library skill names which additional library-specific helpers are also "boundaries". |
+| 5. Verification plan | The validate-before-commit calls + the smallest meaningful runtime probe that proves the modification is correct on this hardware | procedure | [`## test`](#test) below + library-specific overlay. |
+
+The agent fills slots 1, 2, 4, 5 from the skill content (this skill +
+the library skill); slot 3 comes from the conversation with the user.
+If slot 3 is empty after the conversation, the user has not actually
+asked for a custom app — they want to *run* the shipped sample, which
+is [`## run`](#run) below, not [`## modify`](#modify).
+
+The schema is also the artifact the agent writes into the README at
+step 8 below (the "Modified fields:" line is literally slot 3
+serialized). Library skills reference this schema by slot number when
+their modify overlays prescribe which values are typically in slot 3
+for a given sample shape.
+
 ### Steps (preconditions met)
 
 1. **Identify the source sample.** Use the smallest shipped sample that already does something close to what the user asked for. Confirm it builds clean ([`## build`](#build) above) and runs clean ([`## run`](#run) below) *before* any modification. The library skill names the right starting sample for common shapes; do not pick from memory.
@@ -129,13 +171,51 @@ Goal: launch a built DOCA program (shipped sample or derived custom app) and rea
 
 Goal: validate the program — and the system context around it — **before** committing to hardware / runtime side-effects.
 
-1. **Validate the spec / configuration before commit.** Every DOCA library that programs hardware (Flow in particular) exposes a *validate* call separate from the *commit / start / program* call. Use validate first; never enter a commit path with an un-validated spec. This is the cross-library validate-before-commit rule from [CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy). Library skills extend it with library-specific *what to validate*.
+**Program-class `## test` is an iterative loop, not a one-shot check.** The
+agent runs the smallest meaningful validation, reads its output, picks the
+next narrowest probe based on what's revealed, and only declares the program
+"ready to commit" when every loop iteration is observed clean against the
+*current* spec. A snapshot proves nothing about a spec that changes between
+runs; the loop is what makes the validate-before-commit guarantee real.
 
-2. **Capability cross-check.** Re-confirm that every feature your program intends to use is supported by the active mode and version on this host. Validation answers *"is the spec internally consistent"*; capability cross-check answers *"will this hardware / library actually accept it"*.
+The loop, library-agnostic:
 
-3. **Smoke-test by building and running one shipped sample first.** A *known-good* sample built and run cleanly is the cheapest end-to-end check that the install + your build env + your runtime preconditions are all healthy. Pick the smallest sample that exists for the library family the user cares about — the library skill names it. Inside an NGC container the build half is the meaningful check; the runtime half is reserved for a hardware path.
+```
+   .--> 1. Spec validate (library's validate call against current spec)
+   |
+   |    2. Capability cross-check (does the hardware/version accept it?)
+   |
+   |    3. Known-good smoke (one shipped sample builds + runs clean)
+   |
+   |    4. Negative test (one deliberately wrong input rejected with the right DOCA_ERROR_*)
+   |
+   |    5. Read symptoms; classify:
+   '----- spec changed since (1)?         -> back to (1) with the new spec
+          env regression detected?        -> route to doca-setup ## test loop
+          program-class fault remains?    -> route to ## debug below
+          all four iterations clean?      -> declare program ready to commit
+```
 
-4. **Negative test.** Construct one deliberately failing input and confirm the library rejects it with the expected `DOCA_ERROR_*`. This is the cheapest way to detect a stale or wrong-version library before going live.
+The four-step variant of the loop, in detail:
+
+1. **Validate the spec / configuration before commit.** Every DOCA library that programs hardware (Flow in particular) exposes a *validate* call separate from the *commit / start / program* call. Use validate first; never enter a commit path with an un-validated spec. This is the cross-library validate-before-commit rule from [CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy). Library skills extend it with library-specific *what to validate*. **Loop:** if validate rejects, fix the spec and re-run *this step*; do not move to step 2 with a failing validate.
+
+2. **Capability cross-check.** Re-confirm that every feature your program intends to use is supported by the active mode and version on this host. Validation answers *"is the spec internally consistent"*; capability cross-check answers *"will this hardware / library actually accept it"*. **Loop:** if a capability is missing, do *not* code around it — back up to [`## configure`](#configure) step 4 (or to [`doca-setup`](../doca-setup/SKILL.md) if firmware / version is the gap) and re-enter the loop only after the capability is present or the program intent has changed to accommodate.
+
+3. **Smoke-test by building and running one shipped sample first.** A *known-good* sample built and run cleanly is the cheapest end-to-end check that the install + your build env + your runtime preconditions are all healthy. Pick the smallest sample that exists for the library family the user cares about — the library skill names it. Inside an NGC container the build half is the meaningful check; the runtime half is reserved for a hardware path. **Loop:** if the shipped sample fails, the failure is almost certainly env-class — route to [`doca-setup ## test`](../doca-setup/TASKS.md#test); do not assume the library is broken until the canonical sample for that library runs cleanly.
+
+4. **Negative test.** Construct one deliberately failing input and confirm the library rejects it with the expected `DOCA_ERROR_*`. This is the cheapest way to detect a stale or wrong-version library before going live. **Loop:** if the negative test is *accepted* (library returns success on a known-bad input), that is a library-version / install bug — re-run version detection ([CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility)) before believing any successful positive test from this session.
+
+The loop terminates when one of:
+
+- All four iterations are clean in the same session against the same
+  spec ⇒ declare the program ready to commit; record the
+  validate/capability/sample/negative outputs as evidence.
+- An env regression is detected at any iteration ⇒ hand off to
+  [`doca-setup ## test`](../doca-setup/TASKS.md#test); restart this
+  loop from the iteration that broke after the env is clean again.
+- A program-class fault remains after the env is ruled clean ⇒ route
+  to [`## debug`](#debug) with the captured iteration outputs.
 
 ## debug
 
@@ -156,6 +236,41 @@ Investigation order — **always**:
 6. **Library layer.** Only after (1)–(5) are clean: route the conversation to the library skill for library-internal API semantics.
 
 If the agent finds itself recommending a library-internal code change before completing (1)–(5), it is jumping layers — back up.
+
+## Command appendix
+
+The commands the verbs above expect the agent to issue, grouped by
+class so the agent reaches for the right family without searching prose.
+Library-specific commands (Flow's per-pipe APIs, RDMA's QP APIs, …)
+overlay in the matching library skill; this appendix lists only the
+library-agnostic ones.
+
+| Class | Command | Owning verb / anchor | Reads as healthy when … |
+| --- | --- | --- | --- |
+| Detect program version | `pkg-config --modversion doca-<library>` | [`## configure`](#configure) step 2 | Returns a version string identical to `doca_caps --version`. |
+| Detect program version | `pkg-config --modversion doca-common` | [`## configure`](#configure) step 2 | Returns the unified DOCA version; quote *this* for API-availability answers. |
+| Wire build (C/C++ Track 1) | `pkg-config --cflags doca-<library>` | [`## build`](#build) Track 1 step 2 | Returns `-I` flags rooted at `/opt/mellanox/doca/infrastructure/include`. |
+| Wire build (C/C++ Track 1) | `pkg-config --libs doca-<library>` | [`## build`](#build) Track 1 step 2 | Returns `-L /opt/mellanox/doca/lib/<arch>-linux-gnu -ldoca_<library>` (plus deps). |
+| Wire build (Track 2 FFI) | `pkg-config --cflags --libs doca-<library>` | [`## build`](#build) Track 2 step 1 | Same as above; binding tooling consumes both. |
+| Find samples on disk | `ls /opt/mellanox/doca/samples/<library>/` | [`## modify`](#modify) precondition table | Lists `meson.build` plus the sample subdirectories. |
+| Copy a sample | `cp -r /opt/mellanox/doca/samples/<library>/<sample>/ <writable>/` | [`## modify`](#modify) step 3 | Yields a writable copy outside the install tree. |
+| Build the copy | `meson /tmp/build-<project> && ninja -C /tmp/build-<project>` | [`## build`](#build) Track 1 step 1 | Build succeeds; binary lives in `/tmp/build-<project>/`. |
+| Run the program | `./<built-binary> --sdk-log-level 70 -h` | [`## run`](#run) steps 2-3 | `-h` lists the program's own CLI flags; trace logging in stderr for the first run. |
+| Inspect `DOCA_ERROR_*` | `doca_error_get_descr(<rc>)` (called from program code) | [`## debug`](#debug) step 5 | Returns a string description; quote it verbatim. |
+
+Two cross-cutting rules:
+
+- **Never invent a `pkg-config` module name or a CLI flag.** Every
+  command above comes from a public source (the DOCA SDK index in
+  [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md),
+  the library's own `--help`, or the sample's `README`). Agent-invented
+  flags are the failure mode [AUTHORING.md § 3](../../../devops/AUTHORING.md)
+  forbids; they break trust in every other command in the same answer.
+- **Cite the version the user is on, not "latest".** Every command
+  whose output is version-dependent (the API surface, the available
+  pipe types, the supported capability bits) is answered against the
+  observed `pkg-config --modversion doca-common`, not against an
+  assumed release.
 
 ## Deferred task verbs
 

@@ -1,11 +1,43 @@
 # DOCA Capabilities Print Tool — Capabilities
 
+**Where to start:** `doca_caps` is a single CLI binary; the pattern
+overview below names the recurring `doca_caps`-class questions. Pick
+the pattern first, then drill into the H2 that owns the substance.
+For the *how* of executing each pattern, jump to
+[TASKS.md](TASKS.md).
+
 This file is loaded by [`SKILL.md`](SKILL.md). It documents *what
 `doca_caps` is*, *what it reports*, *what versions it ships in*, *what
 its narrow error and observability surfaces look like*, and *the
 read-only safety posture* that makes it the canonical first step in
 other skills' workflows. For step-by-step invocations and the
 capability-snapshot workflow, see [`TASKS.md`](TASKS.md).
+
+## Pattern overview
+
+Every `doca_caps`-class question this skill teaches resolves into one
+of FIVE patterns. The patterns are CLASSES — they apply across every
+DOCA install, not just one specific platform.
+
+| `doca_caps` pattern | Class shape | Where the substance lives |
+| --- | --- | --- |
+| 1. Enumerate (devices / representors) | List what DOCA sees so the agent can refer to real PCIe addresses, not made-up ones | [`## Capabilities and modes`](#capabilities-and-modes) device + representor families + [TASKS.md ## run](TASKS.md#run) |
+| 2. Library availability snapshot | Confirm a specific DOCA library is available on this OS before recommending its skill | [`## Capabilities and modes`](#capabilities-and-modes) library family + [TASKS.md ## run](TASKS.md#run) |
+| 3. Per-device capability lookup | Confirm a specific feature is supported on a specific device before instructing the user to program it | [`## Capabilities and modes`](#capabilities-and-modes) per-device per-library family + [TASKS.md ## run](TASKS.md#run) scoped invocation |
+| 4. Side-effect-free smoke-test | Use `doca_caps` as the first step of an install smoke-test; no state changes, no risk | [TASKS.md ## test](TASKS.md#test) + [`## Safety policy`](#safety-policy) read-only stance |
+| 5. Interpret empty / missing output | Empty output means *not supported on this device / version*, not *the tool is broken* | [TASKS.md ## debug](TASKS.md#debug) + [`## Error taxonomy`](#error-taxonomy) |
+
+Two cross-cutting rules that apply to *every* pattern above:
+
+- **Read-only always; never recommend a state-changing alternative.**
+  `doca_caps` is uniquely safe to run early in any DOCA workflow.
+  The agent must not propose a state-changing workaround when
+  `doca_caps` answers the question.
+- **Empty output is an answer, not a failure.** When `doca_caps`
+  prints nothing for a capability the user asked about, the answer
+  is *"this device on this DOCA version does not expose that
+  capability"*. The agent must report that conclusion, not retry the
+  invocation hoping for different output.
 
 ## Capabilities and modes
 
@@ -54,26 +86,14 @@ not assume legacy generic-CLI flags work.
 
 ## Version compatibility
 
-- **Available since:** DOCA 2.6.0. On older DOCA installs the binary
-  is not present; the right answer for "I can't find `doca_caps`" is
-  to check the install version (e.g. via `pkg-config --modversion
-  doca-common` or `cat /opt/mellanox/doca/applications/VERSION`) and
-  route to [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
-  if the version is < 2.6.0 or the install is missing.
-- **Where it runs:** on the x86 / Arm host that has DOCA installed,
-  *or* on the BlueField Arm side. Same binary, same flags; the set
-  of devices it sees differs by execution context.
-- **Output format stability:** the documented capability families
-  (the five listed above) are stable across the recent DOCA train.
-  The exact textual / column layout of the output is **not**
-  contractually frozen and may evolve with releases — do not assume
-  field positions or whitespace patterns survive a DOCA bump. If an
-  agent needs to consume the output programmatically, the right move
-  is to re-verify against the user's installed version, not to rely
-  on a parser pinned to the version this skill was written against.
-- **Per-OS library support:** capability family 3 ("DOCA library
-  list") explicitly varies with the OS the install runs on; do not
-  copy a library-availability claim from one host to another.
+For the canonical DOCA version-detection chain, the four-way match rule, NGC container semantics, and the headers-win-over-docs rule, see [`doca-version`](../../doca-version/SKILL.md). The body lives there; this skill does not duplicate it.
+
+**The doca_caps-specific overlay** is:
+
+- **`doca_caps` is available since DOCA 2.6.0.** On older installs the binary is not present; the right answer for *"I can't find doca_caps"* is to confirm the installed version per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure) and, if `< 2.6.0`, route to [`doca-setup`](../../doca-setup/SKILL.md) for an upgrade rather than recommending alternative tools.
+- **Where it runs:** on the x86 / Arm host that has DOCA installed, *or* on the BlueField Arm side. Same binary, same flags; the set of devices it sees differs by execution context.
+- **Output format stability:** the documented capability families (the five listed in [`## Capabilities and modes`](#capabilities-and-modes)) are stable across the recent DOCA train. The exact textual / column layout of the output is **not** contractually frozen — agents that need to consume the output programmatically should prefer the structured `doca-capability-snapshot` helper per [`doca-structured-tools-contract`](../../doca-structured-tools-contract/SKILL.md#schemas) when present, and re-verify the textual layout against the user's installed version when absent.
+- **Per-OS library support:** capability family 3 ("DOCA library list") explicitly varies with the OS the install runs on; do not copy a library-availability claim from one host to another.
 
 ## Error taxonomy
 
@@ -84,7 +104,7 @@ the agent should distinguish, in escalating order:
 1. **Tool-not-installed.** `doca_caps` does not exist at
    `/opt/mellanox/doca/tools/doca_caps`. Cause: DOCA is not installed
    on this host, the install is < 2.6.0, or the path was changed by
-   the operator. Routing: [`doca-setup ## install`](../../doca-setup/TASKS.md#install).
+   the operator. Routing: [`doca-setup ## install`](../../doca-setup/TASKS.md#configure).
 2. **Permission / driver layer.** Tool runs but cannot enumerate
    devices because the underlying driver stack (`mlx5_core`, IB
    stack, etc.) is not loaded, the user lacks the privileges the
@@ -140,6 +160,8 @@ log levels, `doca_log_*`, `DOCA_LOGGER_*` env vars) see
 [`doca-programming-guide CAPABILITIES.md ## Observability`](../../doca-programming-guide/CAPABILITIES.md#observability).
 
 ## Safety policy
+
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
 
 `doca_caps` is the **safest tool the bundle prescribes**:
 

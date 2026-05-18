@@ -6,6 +6,73 @@ kind: library
 
 # DOCA Flow
 
+**Where to start:** This skill assumes DOCA is already installed and
+the user is doing **hands-on Flow work** on a BlueField / ConnectX
+host. Open [`TASKS.md`](TASKS.md) if the user wants to *do* something
+(configure / build / modify / run / test / debug); open
+[`CAPABILITIES.md`](CAPABILITIES.md) when the question is *what can
+Flow express* on this version. If the user has not installed DOCA
+yet, route to [`doca-setup`](../../doca-setup/SKILL.md) first.
+
+## Example questions this skill answers well
+
+The CLASSES of Flow questions this skill is built to answer, each
+with one worked example. The agent should treat the *class* as the
+load-bearing piece — the worked example is a single instance.
+
+- **"How do I bring up a Flow port on a representor?"** — worked
+  example: *"port-init order for `pf0vf0` on the DPU"*. Answered by
+  the port/representor verb sequence in
+  [`TASKS.md ## configure`](TASKS.md#configure) +
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  steering-mode selection.
+- **"How do I express *<match X, do Y>* as a Flow pipe?"** — worked
+  example: *"match outer IPv4 dst, push VLAN, fwd to rep"*. Answered
+  by the match/action schema in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the pipe-creation workflow in
+  [`TASKS.md ## modify`](TASKS.md#modify).
+- **"Will this pipe spec actually program the HW, or will commit
+  fail?"** — worked example: *"my pipe validates but commit returns
+  `DOCA_ERROR_NOT_SUPPORTED`"*. Answered by the validate-before-commit
+  rule in [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
+  + the validate→commit step in
+  [`TASKS.md ## test`](TASKS.md#test).
+- **"How do I read Flow counters / traces to investigate observed
+  traffic?"** — worked example: *"per-pipe hit count and per-entry
+  counter for entry N"*. Answered by the counter/observability surface
+  in [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability)
+  + the inspector workflow in
+  [`TASKS.md ## debug`](TASKS.md#debug).
+- **"Is this Flow feature available on my installed DOCA
+  version?"** — worked example: *"is the symmetric-RSS hash mode in
+  2.6.0?"*. Answered by the version-compatibility section in
+  [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility)
+  + the version-discovery rule (`pkg-config --modversion doca-flow`)
+  pinned in [`TASKS.md ## configure`](TASKS.md#configure).
+- **"What does this `DOCA_ERROR_*` from a Flow call mean and which
+  layer caused it?"** — worked example: *"`DOCA_ERROR_BAD_STATE` from
+  `doca_flow_port_start`"*. Answered by the Flow overlay on the
+  cross-library taxonomy in
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  + the layered ladder in
+  [`TASKS.md ## debug`](TASKS.md#debug) that escalates to
+  [`doca-debug`](../../doca-debug/SKILL.md).
+- **"How do I add hardware-accelerated stateful 5-tuple connection
+  tracking (with aging timers and NAT-aware actions) on top of my
+  existing doca-flow setup?"** — worked example: *"I have a
+  working doca-flow port and pipes; I want to add a `doca_flow_ct`
+  context that tracks TCP / UDP connections, ages out idle entries
+  after 30s, and applies SNAT on outbound traffic"*. Answered by
+  the CT layering rule, multi-axis `doca_flow_ct_cap_*` discovery,
+  per-port `doca_flow_ct` context model, 5-tuple match shape,
+  CT-specific error overlay (`_BAD_STATE` on layering violations,
+  `_FULL` on table saturation, `_INVALID_VALUE` on NAT conflicts),
+  and CT version pairing (`doca-flow-ct` rides `doca-flow`) in
+  [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct) +
+  the configure / build / modify / run / test / debug overlay in
+  [`TASKS.md ## flow-ct`](TASKS.md#flow-ct).
+
 ## Audience
 
 This skill serves **external developers building applications that consume
@@ -47,6 +114,19 @@ language. Concretely:
 - Designing or extending non-C bindings (Rust, Go, Python, …) that wrap
   the Flow C ABI — for the API-surface, lifecycle, and version-compat
   guidance the wrapper has to honor.
+- Adding hardware-accelerated stateful 5-tuple connection
+  tracking, aging-timer-driven entry eviction, or NAT-aware
+  actions (SNAT / DNAT / combined) on top of an existing
+  doca-flow port via the companion library **`doca-flow-ct`**.
+  The CT layering rule (CT extends doca-flow; it does not
+  replace it), the multi-axis `doca_flow_ct_cap_*` discovery,
+  the per-port `doca_flow_ct` context model, the 5-tuple match
+  shape (with VRF / VNI for overlays), the CT-specific error
+  overlay, and the configure / build / modify / run / test /
+  debug workflow live in
+  [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct) and
+  [`TASKS.md ## flow-ct`](TASKS.md#flow-ct) under this same
+  skill.
 
 Do **not** load this skill for general DOCA orientation, "where do I find
 docs", install-layout, or non-Flow library questions. For those, use

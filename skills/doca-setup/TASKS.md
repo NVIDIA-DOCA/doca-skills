@@ -1,10 +1,59 @@
 # DOCA setup workflows
 
+**Where to start:** Before anything else, walk
+[`## recognize`](#recognize) — that is the **front door**. It detects
+the user's system shape (host x86 / BlueField Arm bare-metal /
+DPU-only / fresh laptop with no hardware), asks the developer the
+minimal set of questions needed to disambiguate, and routes to the
+correct downstream skill: the container deployment path
+([`doca-container-deployment`](../doca-container-deployment/SKILL.md)),
+the bare-metal hardware deployment path
+([`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)),
+or the no-hardware fallback ([`## no-install`](#no-install)). If you
+already know the deployment shape and only need env prep, the verb
+order from there is `configure` → `test` → `debug`; each section's
+first paragraph names the precondition the previous one must have
+satisfied.
+
 Read this file when the loader sent you here from [SKILL.md](SKILL.md). For the underlying env surface (install profiles, build-flavor disk locations, version-detection commands, error taxonomy, observability cues, env-side safety constraints), see [CAPABILITIES.md](CAPABILITIES.md). For the *programming-class* counterparts (the canonical build pattern, the universal modify-a-shipped-sample first-app workflow, the universal lifecycle, the cross-library `DOCA_ERROR_*` debug order), see [`doca-programming-guide`](../doca-programming-guide/SKILL.md). For where to find official documentation, the on-disk install layout, or release notes, route through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 
 Each verb below describes the **shape of the workflow**, not a copy-paste recipe. The agent's job is to walk the user through the steps in order, verifying preconditions before recommending the next call.
 
-This skill scopes itself to **env work**. Three of the six lint-required task verbs (`## build`, `## modify`, `## run`) describe their own substance in [`doca-programming-guide`](../doca-programming-guide/SKILL.md) after the env / program split — the anchors here exist for lint compliance and route there. The verbs this skill *owns* are `## configure`, `## test`, `## debug`, and the critical `## no-install` (the NGC container path included).
+This skill scopes itself to **env work and the front-door routing decision**. Three of the six lint-required task verbs (`## build`, `## modify`, `## run`) describe their own substance in [`doca-programming-guide`](../doca-programming-guide/SKILL.md) after the env / program split — the anchors here exist for lint compliance and route there. The verbs this skill *owns* are `## recognize` (the front door), `## configure`, `## test`, `## debug`, and the critical `## no-install` (the NGC container path included).
+
+## recognize
+
+Goal: detect the user's **system shape and deployment target** before any other env work begins, so the agent can route the user to the correct downstream skill instead of guessing. This is the **front door**. The agent MUST walk this before answering any deployment-shaped question (*"how do I deploy"*, *"how do I run my DOCA app"*, *"how do I get my DOCA service up"*, *"I just got a BlueField, what now"*, *"my code is built, what next"*).
+
+**Why this exists.** The bundle today supports four distinct system shapes — host x86 + remote BlueField NIC, BlueField Arm bare-metal, DPU-only / converged-accelerator, and fresh-laptop-with-no-hardware — and **two parallel deployment paths** on top: containers (kubelet-standalone with a YAML pod-spec drop, owned by [`doca-container-deployment`](../doca-container-deployment/SKILL.md)) and bare-metal binaries (direct/tmux/systemd launch, owned by [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)). The wrong failure mode is to silently push every developer onto the container path because the agent loaded that skill first. The right behavior is to recognize the system, confirm with the developer, and route. This is what `## recognize` enforces.
+
+**The decision tree the agent walks.** The agent asks the **minimum** number of questions needed to land on one of the four leaves below. Do not ask all of them; stop as soon as the leaf is unambiguous. The system-shape × deployment-shape matrix the bundle covers lives in [CAPABILITIES.md ## Capabilities and modes](CAPABILITIES.md#capabilities-and-modes); this anchor is the *interactive* walk of that matrix.
+
+1. **Detect first; ask only the residual.** Before any question, the agent attempts a non-destructive auto-detect against what is already on the wire:
+   - `uname -m` (x86_64 vs aarch64 — the BlueField Arm side is aarch64).
+   - `lspci -d 15b3:` (BlueField NIC PCIe visibility — non-empty output proves a BlueField is reachable from this host).
+   - `pkg-config --modversion doca-common` (DOCA install presence + version; honor [`doca-structured-tools-contract`](../doca-structured-tools-contract/SKILL.md) — prefer the structured output and fall back to the manual command). If the install is absent, this leg lands on `## no-install`.
+   - `cat /etc/nvidia/bf-release` *if it exists* (BlueField OS image marker — present only on BlueField Arm bare-metal).
+   - `cat /proc/cpuinfo | grep -m1 'model name'` (host CPU model — distinguishes a developer laptop / x86 workstation from a server with a BlueField installed).
+   The agent **quotes the observed output back to the user** and uses it as the prior; it does NOT infer the system shape from the user's phrasing alone.
+
+2. **Ask up to three residual questions, in this priority order.** Each question is *closed-form* — multiple choice or yes/no — so the developer can answer in one word and the agent can route without ambiguity.
+   - **Q1 (target):** *"Where will the DOCA workload run — on the host CPU talking to a BlueField NIC over PCIe, on the BlueField Arm cores directly, on a DPU-only / converged-accelerator card (e.g. SuperNIC-class), or you are not sure yet?"* The four answers map 1:1 to leaves 2-5 below. Skip if `uname -m` + `lspci -d 15b3:` already pinned this.
+   - **Q2 (packaging):** *"Will the workload be deployed as a kubelet-standalone container (YAML pod-spec drop on the BlueField), as a bare-metal binary you launch directly (CLI / tmux / systemd), or you do not know yet?"* Two answers route to the two deployment paths; the *"do not know"* answer triggers the brief explainer in step 3 below. Skip if the developer has already produced a binary or a pod-spec YAML.
+   - **Q3 (workload kind):** *"Is the workload a DOCA-linked **application** you wrote (or are about to write), or a packaged DOCA **service** from NVIDIA (Argus / DMS / Firefly / Flow-Inspector / OS-Inspector / UROM-svc)?"* Application + bare-metal is the most common mismatch the question catches; service + container is the canonical NVIDIA-packaged path. Skip if the matching artifact already exists on disk.
+
+3. **If the developer answers "do not know" to Q2, give them the one-paragraph decision rule, then re-ask Q2.** The rule: *"Containers are the canonical way to deploy a packaged NVIDIA DOCA service (the BlueField OS image already ships kubelet-standalone + the runtime); the operator drops a YAML pod-spec into a documented directory and the pod starts. Bare-metal is the canonical way to run a DOCA-linked application you wrote yourself; you launch the binary directly and you own the lifecycle (CPU pinning, hugepages, systemd unit). The two paths are equally supported; the right answer depends on the workload, not on which path is 'better'."* Then re-ask Q2.
+
+4. **Route to the matching leaf** (the agent states the routing explicitly: *"Based on what you said and what I detected, the right next skill is …"*). The four leaves:
+   - **Leaf A — fresh laptop / no DOCA install / no BlueField reachable from this host:** route to [`## no-install`](#no-install). The NGC DOCA container is the universal Stage-1.
+   - **Leaf B — host x86 with a reachable BlueField, application workload, bare-metal launch:** route to [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md) for the launch contract, after completing [`## configure`](#configure) for the env prep on this host.
+   - **Leaf C — host x86 (or BlueField Arm bare-metal) with a reachable BlueField, service workload, container launch:** route to [`doca-container-deployment`](../doca-container-deployment/SKILL.md) for the pod-spec drop, after completing [`## configure`](#configure) for the env prep.
+   - **Leaf D — BlueField Arm bare-metal (DPU-side), application workload, bare-metal launch:** route to [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md). Cross-link the BlueField-Arm-specific overlay there.
+   - **Leaf E — DPU-only / converged-accelerator card (e.g. SuperNIC-class) with no host CPU available for DOCA:** today this is a constrained subset of Leaf D — route to [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md) with the explicit caveat that some host-side env steps in [`## configure`](#configure) do not apply (e.g. the host-side `LD_LIBRARY_PATH`). The agent should ALSO load [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) early on this leaf because device-only systems are higher-stakes (no escape hatch on a host CPU).
+
+5. **Stop and confirm before proceeding.** Before handing off to the routed skill, the agent restates the routing decision in one line — *"You are on a `<system shape>`, deploying a `<workload kind>` via the `<deployment path>` path; I'll continue with `<routed skill>`. Speak up now if any of that is wrong."* — and waits for the developer's acknowledgment. Routing failures are far cheaper to fix here than after the deployment is half-built.
+
+**What this verb deliberately does NOT do.** It does not install DOCA (that's `## configure` after `## no-install` for the install-absent leaf). It does not bind hardware resources (that's [`doca-bare-metal-deployment ## run`](../doca-bare-metal-deployment/TASKS.md#run) or, for containers, the pod-spec mount in [`doca-container-deployment ## modify`](../doca-container-deployment/TASKS.md#modify)). It does not pick a DOCA version (that's [`doca-version`](../doca-version/SKILL.md)). It does not author the workload (that's [`doca-programming-guide`](../doca-programming-guide/SKILL.md)). It does not change device state (that's a [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) meta-policy concern). The verb is **exactly** *"detect, ask the minimum, route, confirm"* — nothing more.
 
 ## configure
 
@@ -35,18 +84,60 @@ Steps the agent should walk the user through:
 ## build
 
 > **Anchor exists for lint compliance.** The substance of this verb — the canonical `pkg-config doca-<library>` + meson build pattern, in two language tracks (C/C++ direct, non-C via FFI) — moved to [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) when the env / program split happened. *Building a DOCA application is a programming verb, not an env verb.*
->
-> If the user is asking *"how do I build a DOCA application?"*, route them there. If the user is asking *"why does my build fail with `pkg-config not finding doca-flow`?"* (an env-class symptom), the answer is in this skill — see [`## debug`](#debug) layer 3 and [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy).
+
+The env / program distinction is a CLASS distinction the agent must
+make before it picks an answer. Route by which side of the line the
+question sits on:
+
+| The user asks ... | Route to ... | Reason |
+| --- | --- | --- |
+| "How do I build a DOCA application?" | [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) | Programming verb. The canonical pattern + language tracks live there. |
+| "How do I build a DOCA Flow app?" | Same. Then layer [`doca-flow ## build`](../libs/doca-flow/TASKS.md#build). | Programming verb with library-specific overlay. |
+| "Why does my build fail with `pkg-config` not finding `doca-flow`?" | [`## debug`](#debug) layer 3 + [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy) | Env-class symptom (PKG_CONFIG_PATH / install profile). |
+| "My build worked but `ld` says `cannot find -ldoca_flow`." | [`## debug`](#debug) layer 3 first; if env is clean, [`doca-debug ## debug`](../doca-debug/TASKS.md#debug) layer 4 (Link). | Could be either layer; rule env out first. |
+
+The agent should never run an env-class build diagnosis against a
+programming question, and vice versa. The four rows above are the
+CLASSES; specific symptoms are instances.
 
 ## modify
 
 > **Anchor exists for lint compliance.** The substance of this verb — the universal *derive a custom first application from a shipped sample* workflow, with C/C++ + non-C language tracks and an explicit precondition gate — moved to [`doca-programming-guide ## modify`](../doca-programming-guide/TASKS.md#modify) when the env / program split happened. *Deriving a first app from a sample is a programming verb, not an env verb.*
->
-> If the user is asking *"how do I derive a custom first app from a sample?"*, route them there (it's the meaty version with the precondition table, the C/C++ track steps, and the non-C track routing). The env-side preconditions that workflow assumes — install reachable, `pkg-config` resolves, samples present — are owned here; if the preconditions aren't met (e.g. the user has no DOCA install yet), [`## no-install`](#no-install) below is the right next step.
+
+Route here only when the modify-class question is actually an env
+question in disguise:
+
+| The user asks ... | Route to ... | Reason |
+| --- | --- | --- |
+| "How do I derive a custom first app from a sample?" | [`doca-programming-guide ## modify`](../doca-programming-guide/TASKS.md#modify) | Programming verb. Owns the precondition table, the C/C++ + non-C tracks, the language-agnostic schema. |
+| "I have no DOCA install — how do I even reach a sample to modify?" | [`## no-install`](#no-install) below | Env-class prerequisite to the modify workflow. |
+| "I can't find any samples on disk." | [`doca-public-knowledge-map ## Layout of an installed DOCA package`](../doca-public-knowledge-map/SKILL.md#layout-of-an-installed-doca-package) | Routing-class question — where does the install put samples on disk. |
+| "Samples are there but the build fails." | [`## debug`](#debug) layers 1–3 first | Likely env-class; rule out before assuming sample-content bug. |
+
+The modify-from-sample workflow lives in programming-guide because it
+generalizes across every DOCA library; this skill only owns the env
+preconditions that workflow assumes are already true.
 
 ## run
 
 > **Anchor exists for lint compliance.** The substance of this verb — running a built DOCA program, picking the right `--sdk-log-level`, mapping startup failures to env-class vs program-class — moved to [`doca-programming-guide ## run`](../doca-programming-guide/TASKS.md#run) when the env / program split happened. *Running a DOCA program is a programming verb; the env-class pre-run checklist (hugepages, devices, representors) is what this skill owns and what `## test` below verifies.*
+
+The env-class pre-run checklist, listed here so an agent answering a
+"my program won't start" question has the canonical sequence before
+escalating to programming-guide:
+
+| Pre-run check | Where it lives | What clean output looks like |
+| --- | --- | --- |
+| Hugepages mounted and reserved | [`## configure`](#configure) step 4 | `mount \| grep huge` shows hugetlbfs; `/proc/meminfo` shows non-zero free hugepages. |
+| Network devices visible | [`## configure`](#configure) step 5 | `devlink dev show` lists the BlueField PCIe device. |
+| Representors visible (Flow / Switching) | [`## configure`](#configure) step 5 | `/sys/class/net/*/phys_port_name` lists the expected representor indices. |
+| Kernel modules loaded | [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy) | `lsmod \| grep mlx5` shows `mlx5_core`, `mlx5_ib`. |
+| Mode set (host / DPU / switch) | [CAPABILITIES.md ## Capabilities and modes](CAPABILITIES.md#capabilities-and-modes) | `mlxconfig -d <pcie> q INTERNAL_CPU_MODEL` matches the mode the program expects. |
+
+All five must be green before the program's own startup can be
+debugged. A failure in any row is env-class; route to [`## debug`](#debug).
+A clean checklist with a still-failing program is programming-class;
+route to [`doca-programming-guide ## run`](../doca-programming-guide/TASKS.md#run).
 
 ## no-install
 
@@ -81,15 +172,46 @@ The wrong behavior — and the failure mode this section exists to prevent — i
 
 Goal: verify the install is healthy enough that *any* program-level work is meaningful. Catch problems at the lowest layer before they propagate up.
 
-Steps the agent should walk the user through:
+**Env-class `## test` is an iterative loop, not a one-shot check.** The agent
+runs the smallest meaningful probe at each layer, reads its output, picks the
+next narrowest probe based on what's revealed, and only declares the env
+"healthy" when every layer is observed clean in the same session. A snapshot
+proves nothing about the next moment; the loop is what gives the install
+durability claims.
 
-1. **Install health check.** Run the [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability) install-layer commands. Empty output where output is expected = install is wrong; do not proceed. If no install is reachable at all, this is a [`## no-install`](#no-install) situation.
+The loop:
 
-2. **Capability snapshot.** `doca_caps` and (for Flow) the Flow capability-query API. Save the output. Library-internal capability cross-checks live in the library skill — for Flow, [`doca-flow CAPABILITIES.md ## Capabilities and modes`](../libs/doca-flow/CAPABILITIES.md#capabilities-and-modes).
+```
+   .--> 1. Install layer probes
+   |       (pkg-config / ls /opt/mellanox/doca / version)
+   |
+   |    2. Capability layer probes
+   |       (doca_caps / library-specific cap APIs)
+   |
+   |    3. End-to-end smoke probe
+   |       (build + run one known-good sample)
+   |
+   |    4. Read symptoms; classify:
+   '----- env regression?   -> back to layer that broke; re-run that layer's probe
+          program-class?    -> route to doca-programming-guide ## test
+          clean across all? -> declare env healthy; record observed versions
+```
 
-3. **Smoke-test by building and running one shipped sample.** A *known-good* sample built and run cleanly is the cheapest possible end-to-end install validation. Use the canonical build pattern in [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) (Track 1 for C/C++) and the run pattern in [`doca-programming-guide ## run`](../doca-programming-guide/TASKS.md#run). Inside an NGC container, the build half is the meaningful smoke test; the run half against real traffic requires a hardware path.
+The four-step variant of the loop, in detail:
 
-4. **Loopback / no-traffic run first.** Run the sample once with no real traffic offered to it. Successful start, clean shutdown, and zero counter increments is the expected baseline. Only then introduce traffic.
+1. **Install health check.** Run the [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability) install-layer commands. Empty output where output is expected = install is wrong; do not proceed. If no install is reachable at all, this is a [`## no-install`](#no-install) situation. **Loop:** if any probe is unexpectedly empty, re-run after fixing (PKG_CONFIG_PATH set, profile reinstalled, etc.); do not skip ahead with one layer broken.
+
+2. **Capability snapshot.** `doca_caps` and (for Flow) the Flow capability-query API. Save the output. Library-internal capability cross-checks live in the library skill — for Flow, [`doca-flow CAPABILITIES.md ## Capabilities and modes`](../libs/doca-flow/CAPABILITIES.md#capabilities-and-modes). **Loop:** if a capability the user's program will need is missing, do *not* recommend code changes — back up to layer 1 and check that the version / firmware actually exposes it; the env may need adjusting first.
+
+3. **Smoke-test by building and running one shipped sample.** A *known-good* sample built and run cleanly is the cheapest possible end-to-end install validation. Use the canonical build pattern in [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) (Track 1 for C/C++) and the run pattern in [`doca-programming-guide ## run`](../doca-programming-guide/TASKS.md#run). Inside an NGC container, the build half is the meaningful smoke test; the run half against real traffic requires a hardware path. **Loop:** if the build fails, the layer-1 / layer-2 probes either missed something or the env has drifted between probes — re-run them in this session, do not assume yesterday's output.
+
+4. **Loopback / no-traffic run first, then introduce traffic.** Run the sample once with no real traffic offered to it. Successful start, clean shutdown, and zero counter increments is the expected baseline. **Loop:** if the no-traffic run is clean but the with-traffic run is not, the failure is almost certainly *program-class* now (the env passed every probe) — route to [`doca-programming-guide ## test`](../doca-programming-guide/TASKS.md#test) and stop drilling at the env layer.
+
+The loop terminates when one of:
+
+- Every layer is observed clean in the same session ⇒ env healthy; record the observed `pkg-config --modversion doca-common` and `doca_caps --version` strings so any later regression has a baseline.
+- An env-class failure is found and fixed ⇒ restart the loop from the layer that broke (NOT from the top; you've already validated everything above).
+- The failure is reproducibly *not* env-class ⇒ hand off to [`doca-programming-guide ## test`](../doca-programming-guide/TASKS.md#test) with the captured probe outputs as evidence.
 
 ## debug
 
@@ -104,6 +226,38 @@ Investigation order — **always**:
 5. **Program / library layer.** Only after (1)–(4) are clean: route the conversation to [`doca-programming-guide ## debug`](../doca-programming-guide/TASKS.md#debug) for the universal lifecycle / capability / error-description / library order, and from there to the matching library skill (e.g. [`doca-flow ## debug`](../libs/doca-flow/TASKS.md#debug)) for library-specific overlays.
 
 If the agent finds itself recommending a code change before completing (1)–(4), it is jumping layers — back up.
+
+## Command appendix
+
+The commands the verbs above expect the agent to issue or have the user
+issue, grouped by class so the agent reaches for the right family
+without searching prose. Each command appears with the verb it belongs
+to and the H2 anchor in this file or in
+[CAPABILITIES.md](CAPABILITIES.md) that explains the expected output.
+
+| Class | Command | Owning verb / anchor | Reads as healthy when … |
+| --- | --- | --- | --- |
+| Detect install | `pkg-config --modversion doca-common` | [`## test`](#test) step 1 / [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) | Returns a single version string. Empty / "not found" ⇒ install or `PKG_CONFIG_PATH` is wrong. |
+| Detect install | `pkg-config --list-all \| grep -i doca` | [`## configure`](#configure) step 2 | Lists at least one `doca-*` module. Empty ⇒ install profile probably wrong. |
+| Detect install | `doca_caps --version` | [`## test`](#test) step 2 | Matches `pkg-config --modversion doca-common`. Mismatch ⇒ partial upgrade. |
+| Detect install | `cat /opt/mellanox/doca/applications/VERSION` | [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) | Fallback when `pkg-config` is broken. Returns the same string. |
+| Wire build | `pkg-config --cflags doca-<library>` | [`## configure`](#configure) step 2 | Returns `-I/opt/mellanox/doca/infrastructure/include` (or trace-flavor equivalent). |
+| Wire build | `pkg-config --libs doca-<library>` | [`## configure`](#configure) step 2 / [`## run`](#run) checklist | Returns `-L/opt/mellanox/doca/lib/<arch>-linux-gnu -ldoca_<library>` plus deps. |
+| Wire runtime | `mount \| grep huge` | [`## configure`](#configure) step 4 / [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability) | Shows a `hugetlbfs` mount. Empty ⇒ no hugepages reserved. |
+| Wire runtime | `cat /proc/meminfo \| grep -i huge` | [`## configure`](#configure) step 4 | Shows `HugePages_Total` > 0 and `HugePages_Free` > 0. |
+| Wire runtime | `devlink dev show` | [`## configure`](#configure) step 5 | Lists the expected BlueField / ConnectX PCIe BDF. |
+| Wire runtime | `cat /sys/class/net/*/phys_port_name` | [`## configure`](#configure) step 5 | Shows the representor port names for the device. |
+| Wire runtime | `lsmod \| grep mlx5` | [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy) | Shows `mlx5_core`, `mlx5_ib` loaded. |
+| Detect mode | `mlxconfig -d <pcie> q INTERNAL_CPU_MODEL` | [CAPABILITIES.md ## Capabilities and modes](CAPABILITIES.md#capabilities-and-modes) | Matches the mode the program expects (`EMBEDDED_CPU(1)` for switch mode). |
+| Reach an install | `docker pull nvcr.io/nvidia/doca/doca:<tag>` | [`## no-install`](#no-install) Path 0 | Pull succeeds; tag exists on NGC. |
+| Reach an install | `docker run -it --rm -v $HOME/dev:/work nvcr.io/nvidia/doca/doca:<tag> bash` | [`## no-install`](#no-install) Path 0 | Shell starts; `/opt/mellanox/doca` is populated inside. |
+
+The appendix lists the *families* of commands; the verbs above describe
+the *when* and *why*. New commands must come from a public NVIDIA source
+(documented in [CAPABILITIES.md ## Capabilities and modes](CAPABILITIES.md#capabilities-and-modes)
+or [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md));
+agent-invented flags fail the bundle's anti-hallucination contract in
+[AUTHORING.md § 3](../../../devops/AUTHORING.md).
 
 ## Deferred task verbs
 
