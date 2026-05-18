@@ -18,7 +18,7 @@ lifecycle, the cross-library `DOCA_ERROR_*` taxonomy, the
 modify-a-shipped-sample workflow), see
 [`doca-programming-guide`](../../doca-programming-guide/SKILL.md).
 For the steering side that decides which packets land on which
-RX queue, see [`doca-flow`](../../doca-flow/SKILL.md).
+RX queue, see [`doca-flow`](../doca-flow/SKILL.md).
 
 Each verb below describes the **shape of the workflow**, not a
 copy-paste recipe. The agent's job is to walk the user through
@@ -44,7 +44,7 @@ Steps the agent should walk the user through:
    `ip link` shows the device `UP,LOWER_UP`); and the user has
    a steering plan for inbound traffic — either a DOCA Flow
    rule that will steer matching packets to this queue (route
-   to [`doca-flow`](../../doca-flow/SKILL.md)), or kernel-side
+   to [`doca-flow`](../doca-flow/SKILL.md)), or kernel-side
    promiscuous mode on the underlying interface (expedient
    first-run only). If any of the three is missing, fix it
    FIRST; an empty RX queue without these is silent, not a
@@ -131,7 +131,7 @@ recommending any code-level edit:
 | 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_eth/`? | Pick the closest in *queue side* (RX vs TX vs both) and *RX type* (regular vs cyclic vs managed-recv) to the user's intent. Do NOT bridge across both axes — a smaller diff is always safer than a re-architecture |
 | 2. RX type change | Switching regular → cyclic or → managed-recv? | Re-run `doca_eth_rxq_cap_is_type_supported(devinfo, type)` for the new type; types are device-conditional |
 | 3. Queue sizing | Changing burst size, scatter-gather depth, ring length? | Each one re-runs the matching `_cap_get_max_*` query; the device cap is the only authority. Quote the queried value, not a value the user remembered from another host |
-| 4. Steering / promisc | Adding a flow rule, or moving from promiscuous mode to a real Flow rule? | This is a steering change, not an Ethernet change. Route to [`doca-flow`](../../doca-flow/SKILL.md) for the rule body and back here only after the rule programs cleanly |
+| 4. Steering / promisc | Adding a flow rule, or moving from promiscuous mode to a real Flow rule? | This is a steering change, not an Ethernet change. Route to [`doca-flow`](../doca-flow/SKILL.md) for the rule body and back here only after the rule programs cleanly |
 | 5. Offload flags | Enabling L3 checksum offload or other TX features? | Each gates on the matching `doca_eth_txq_cap_*` query; the cap is the answer if it says false |
 
 Keep the build manifest unchanged: the sample's existing
@@ -261,7 +261,7 @@ overlay at the *runtime* and *program* layers.
   an Ethernet code issue. Confirm the env-side preconditions
   per [`## configure`](#configure) step 1 before any code
   change. Route the steering side to
-  [`doca-flow`](../../doca-flow/SKILL.md).
+  [`doca-flow`](../doca-flow/SKILL.md).
 - `DOCA_ERROR_AGAIN` on TX submit is *always* a missing
   `doca_pe_progress()` (or insufficient drain rate vs submit
   rate). Do not recommend a retry loop; recommend a progress
@@ -295,7 +295,7 @@ on the matching skill: install / build / link / driver to
 to
 [`doca-version ## debug`](../../doca-version/TASKS.md#debug);
 steering to
-[`doca-flow ## debug`](../../doca-flow/TASKS.md#debug);
+[`doca-flow ## debug`](../doca-flow/TASKS.md#debug);
 cross-cutting runtime to
 [`doca-debug ## debug`](../../doca-debug/TASKS.md#debug);
 program-layer Core-context patterns to
@@ -317,7 +317,7 @@ so the agent does not invent guidance:
 - **steer.** Programming the steering rules that decide which
   packets reach which RX queue (Flow pipes, RSS, hairpin,
   mirroring, conntrack) — owned by
-  [`doca-flow`](../../doca-flow/SKILL.md). This skill *consumes*
+  [`doca-flow`](../doca-flow/SKILL.md). This skill *consumes*
   Flow's steering output; it does not program it.
 - **deploy.** Deploying DOCA-Ethernet-using applications at
   scale across many hosts / DPUs, Kubernetes operator workflows

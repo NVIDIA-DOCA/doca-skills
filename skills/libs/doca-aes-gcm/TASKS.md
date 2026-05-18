@@ -187,6 +187,18 @@ correct ciphertexts (on encrypt) and verify + recover plaintexts
 (on decrypt) at the user's intended throughput, on the user's
 hardware, and that the key size and buffer sizing were right.
 
+> **Performance harness routing.** For *throughput / latency
+> measurement* on the configured AES-GCM context (or for cross-library
+> comparison against the other DOCA crypto primitives), route the
+> user to [`doca-bench TASKS.md ## test`](../../tools/doca-bench/TASKS.md#test)
+> — `doca-bench` is the cross-library performance harness with
+> documented warm-up / steady-state / outlier semantics, and it
+> explicitly supports AES-GCM. The iteration loop below stays the
+> *correctness* harness; `doca-bench` is the *performance* harness.
+> Hand-rolling a benchmark loop inside this skill's `## test`
+> would re-invent what `doca-bench` already does and would not be
+> reviewable against published accelerator headroom.
+
 This is **a loop, not a one-shot pass.** Each iteration narrows
 either the task type, the key size, the buffer sizing, the AAD
 shape, or the permission set. The loop terminates when either (a)

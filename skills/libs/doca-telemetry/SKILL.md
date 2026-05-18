@@ -158,7 +158,7 @@ collection / consumption work, in any language. Concretely:
 - Choosing between DOCA Telemetry and an adjacent option
   ([`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
   when the user actually wanted to PUBLISH, not consume;
-  [`doca-log`](../doca-log/SKILL.md) when plain structured
+  `doca-log` when plain structured
   stdout logging is enough; a Prometheus or OpenTelemetry
   client / collector when the source is a non-DOCA program).
 - Designing or extending non-C bindings (Rust, Go, Python, …)
@@ -197,7 +197,7 @@ collector-specific material lives in two companion files:
   binding) and the publisher-up-or-collector-up staging, and
   the path-selection rule against
   [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md),
-  [`doca-log`](../doca-log/SKILL.md), and standalone
+  `doca-log`, and standalone
   Prometheus / OTLP collectors.
 - `TASKS.md` — step-by-step workflows for the six in-scope
   collector verbs: `configure`, `build`, `modify`, `run`,
@@ -325,7 +325,7 @@ guidance".
   universal lifecycle, the cross-library `DOCA_ERROR_*`
   taxonomy, and the program-side debug order. This skill
   layers collector specifics on top.
-- [`doca-log`](../doca-log/SKILL.md) — the right primitive
+- `doca-log` — the right primitive
   when the user actually wanted plain structured stdout
   logging from their own program rather than a structured
   event-consumption surface. The collector's schema-aware

@@ -82,6 +82,31 @@ instance.
   + the layered ladder in
   [`TASKS.md ## debug`](TASKS.md#debug) that escalates to
   [`doca-debug`](../../doca-debug/SKILL.md).
+- **"How does my DPA kernel send a small message to another
+  DPA thread on the same DPA processor?"** — worked example:
+  *"two DPA threads in the same loaded `doca_dpa_app`; thread A
+  sends a counter value to thread B over a DPA-side comms
+  endpoint and thread B signals the host through
+  `doca_dpa_completion`"*. Answered by the DPA-Comms routing
+  rule, primitive families, host-side capability-budget rule,
+  and DPA-Comms error overlay in
+  [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms) plus the
+  configure / build / modify / run / test / debug overlay in
+  [`TASKS.md ## comms`](TASKS.md#comms). Disambiguates DPA-side
+  `doca-dpa-comms` from host-side `doca-comch` and host-side
+  `doca-rdma`.
+- **"How do I do RDMA directly from inside my DPA kernel to a
+  remote peer, without round-tripping to the host?"** — worked
+  example: *"my DPA kernel needs to fetch the next 4 KiB input
+  buffer from a remote node via RDMA read before continuing
+  compute; the host round-trip is the measured bottleneck"*.
+  Answered by the 4-way RDMA matrix, the host-configures-QP /
+  DPA-uses-QP coupling rule, the host-side cap-query rule for
+  the specific verb, and the DPA-Verbs error overlay in
+  [`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs) plus the
+  workflow overlay in [`TASKS.md ## verbs`](TASKS.md#verbs).
+  Includes the climb-back rule for when the latency-tuning
+  premise stops holding.
 
 ## Audience
 
@@ -145,6 +170,27 @@ translation unit built by `dpacc`. Concretely:
   a DPA application image they built separately with `dpacc` —
   the env-precondition and capability-discovery rules in this
   skill still apply.
+- Writing DPA-side kernel code that calls the DPA-side
+  companion library **`doca-dpa-comms`** — for inter-DPA-thread
+  messaging or coordination signals between DPA threads on the
+  same `doca_dpa_app`. The DPA-Comms routing rule, primitive
+  families, host-side capability-budget rule (committed at
+  app-load time via `doca_dpa_comms_cap_*`), error overlay
+  (`_AGAIN` → kernel must yield; `_BAD_STATE` disambiguation
+  from the parent's host-side `_BAD_STATE`), and the
+  configure / build / modify / run / test / debug overlay live
+  in [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms) and
+  [`TASKS.md ## comms`](TASKS.md#comms) under this same skill.
+- Writing DPA-side kernel code that calls the DPA-side
+  companion library **`doca-dpa-verbs`** — for RDMA from inside
+  the DPA kernel to a remote peer when the host round-trip is
+  the measured latency bottleneck. The 4-way RDMA matrix, the
+  host-configures-QP / DPA-uses-QP coupling rule, the host-side
+  `doca_dpa_verbs_cap_*` rule (cap-query for the SPECIFIC verb
+  from host code BEFORE launch), the IO_FAILED → CQE-inspection
+  overlay, and the climb-back rule live in
+  [`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs) and
+  [`TASKS.md ## verbs`](TASKS.md#verbs) under this same skill.
 
 Do **not** load this skill for general DOCA orientation,
 install of DOCA or the DPACC compiler, the DPA-side

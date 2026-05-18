@@ -38,7 +38,7 @@ Steps the agent should walk the user through, in order:
    not, route to
    [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure)
    for the detection chain and
-   [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+   [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
    for the upgrade path. Do not propose alternative tools; on
    `< 2.7.0` installs the bench is genuinely not there.
 2. **Probe the install's granular build first.** Use the
@@ -48,7 +48,7 @@ Steps the agent should walk the user through, in order:
    this install before committing to a target. An empty
    enumeration for the user's target library means the
    granular build did not include it — route to
-   [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+   [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
    for the install profile, not to a bench invocation.
 3. **Axis 1 — pick the target library.** Per the cross-library
    table in
@@ -107,7 +107,7 @@ Routing for nearby "build" questions:
 
 - *"The binary isn't there — do I need to build it?"* → no.
   Route to
-  [`doca-setup ## install`](../../doca-setup/TASKS.md#install).
+  [`doca-setup ## install`](../../doca-setup/TASKS.md#configure).
   The fix is to install (or re-install) DOCA at ≥ 2.7.0, or
   use the public NGC DOCA container per
   [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install)
@@ -356,7 +356,7 @@ The four verbs below are not `doca_bench` work and should be
 routed out before the agent does any of them under this skill's
 name.
 
-- **install** ⇒ [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+- **install** ⇒ [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
   (and [`## no-install`](../../doca-setup/TASKS.md#no-install)
   for the public NGC DOCA container path). The bench is
   shipped by the install at ≥ 2.7.0; this skill does not own

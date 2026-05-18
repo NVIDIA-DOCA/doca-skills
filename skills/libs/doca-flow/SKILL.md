@@ -58,6 +58,20 @@ load-bearing piece — the worked example is a single instance.
   + the layered ladder in
   [`TASKS.md ## debug`](TASKS.md#debug) that escalates to
   [`doca-debug`](../../doca-debug/SKILL.md).
+- **"How do I add hardware-accelerated stateful 5-tuple connection
+  tracking (with aging timers and NAT-aware actions) on top of my
+  existing doca-flow setup?"** — worked example: *"I have a
+  working doca-flow port and pipes; I want to add a `doca_flow_ct`
+  context that tracks TCP / UDP connections, ages out idle entries
+  after 30s, and applies SNAT on outbound traffic"*. Answered by
+  the CT layering rule, multi-axis `doca_flow_ct_cap_*` discovery,
+  per-port `doca_flow_ct` context model, 5-tuple match shape,
+  CT-specific error overlay (`_BAD_STATE` on layering violations,
+  `_FULL` on table saturation, `_INVALID_VALUE` on NAT conflicts),
+  and CT version pairing (`doca-flow-ct` rides `doca-flow`) in
+  [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct) +
+  the configure / build / modify / run / test / debug overlay in
+  [`TASKS.md ## flow-ct`](TASKS.md#flow-ct).
 
 ## Audience
 
@@ -100,6 +114,19 @@ language. Concretely:
 - Designing or extending non-C bindings (Rust, Go, Python, …) that wrap
   the Flow C ABI — for the API-surface, lifecycle, and version-compat
   guidance the wrapper has to honor.
+- Adding hardware-accelerated stateful 5-tuple connection
+  tracking, aging-timer-driven entry eviction, or NAT-aware
+  actions (SNAT / DNAT / combined) on top of an existing
+  doca-flow port via the companion library **`doca-flow-ct`**.
+  The CT layering rule (CT extends doca-flow; it does not
+  replace it), the multi-axis `doca_flow_ct_cap_*` discovery,
+  the per-port `doca_flow_ct` context model, the 5-tuple match
+  shape (with VRF / VNI for overlays), the CT-specific error
+  overlay, and the configure / build / modify / run / test /
+  debug workflow live in
+  [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct) and
+  [`TASKS.md ## flow-ct`](TASKS.md#flow-ct) under this same
+  skill.
 
 Do **not** load this skill for general DOCA orientation, "where do I find
 docs", install-layout, or non-Flow library questions. For those, use

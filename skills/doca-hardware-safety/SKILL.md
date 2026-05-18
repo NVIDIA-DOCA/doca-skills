@@ -176,7 +176,7 @@ companion files:
   structured form of this skill's pre-flight inventory; the agent
   uses them as the one-shot answer when the host has the helpers
   installed.
-- [`doca-container-deployment`](../services/doca-container-deployment/SKILL.md) —
+- [`doca-container-deployment`](../doca-container-deployment/SKILL.md) —
   the canonical container-deployment recipe shared across DOCA
   services. Several hardware-touching changes (BlueField cold
   reboot, BFB reflash) interrupt every hosted service container on
@@ -190,11 +190,11 @@ companion files:
   workload moves.
 - Per-artifact `## Safety policy` anchors (e.g. the firmware-slot
   precondition in
-  [`doca-virtio-net`](../services/doca-virtio-net/SKILL.md), the
+  `doca-virtio-net`, the
   storage-side equivalent in
-  [`doca-snap`](../services/doca-snap/SKILL.md), the HIGH-STAKES
+  `doca-snap`, the HIGH-STAKES
   control-plane-ownership rule in
-  [`doca-hbn`](../services/doca-hbn/SKILL.md)) — every per-artifact
+  `doca-hbn`) — every per-artifact
   skill's `## Safety policy` overlays this meta-policy with
   artifact-specific safety. The cross-link is intentionally
   bidirectional: per-artifact skills link here for the meta-policy;

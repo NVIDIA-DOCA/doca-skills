@@ -19,9 +19,9 @@ universal Core lifecycle, the cross-library `DOCA_ERROR_*`
 taxonomy, the modify-a-shipped-sample workflow), see
 [`doca-programming-guide`](../../doca-programming-guide/SKILL.md).
 For the RDMA substrate that NVMe-over-RDMA transport lands on,
-see [`doca-rdma`](../../doca-rdma/SKILL.md). For the steering
+see [`doca-rdma`](../doca-rdma/SKILL.md). For the steering
 side that decides which NVMe-oF packets reach STA-managed
-queues, see [`doca-flow`](../../doca-flow/SKILL.md).
+queues, see [`doca-flow`](../doca-flow/SKILL.md).
 
 Each verb below describes the **shape of the workflow**, not a
 copy-paste recipe. The agent's job is to walk the user through
@@ -49,10 +49,10 @@ Steps the agent should walk the user through:
    NVMe-over-RDMA path, `pkg-config --modversion doca-rdma`
    resolves AND `doca_rdma_cap_*` on the chosen device reports a
    non-empty surface per
-   [`doca-rdma CAPABILITIES.md ## Capabilities and modes`](../../doca-rdma/CAPABILITIES.md#capabilities-and-modes);
+   [`doca-rdma CAPABILITIES.md ## Capabilities and modes`](../doca-rdma/CAPABILITIES.md#capabilities-and-modes);
    (c) the user has a plan for how NVMe-oF traffic will reach
    the STA-managed queue — either a DOCA Flow rule programmed
-   per [`doca-flow TASKS.md ## configure`](../../doca-flow/TASKS.md#configure),
+   per [`doca-flow TASKS.md ## configure`](../doca-flow/TASKS.md#configure),
    or the env-side equivalent on the user's setup. If any of
    the three is missing, route to the owning skill (the env
    side to [`doca-setup TASKS.md ## configure`](../../doca-setup/TASKS.md#configure))
@@ -202,7 +202,7 @@ Steps the agent should walk the user through:
    an initiator; initiator if the user built a target) the
    Connect handshake never completes and the program hangs.
    For NVMe-over-RDMA both sides must route IB / RoCE to each
-   other per [`doca-rdma TASKS.md ## run`](../../doca-rdma/TASKS.md#run);
+   other per [`doca-rdma TASKS.md ## run`](../doca-rdma/TASKS.md#run);
    for NVMe-over-TCP both sides must be on a routable IP path.
    This is a fabric / env precondition, NOT a code problem.
 2. **Confirm the steering side is in place.** Per the
@@ -214,7 +214,7 @@ Steps the agent should walk the user through:
    that the Connect handshake never completes and the program
    blocks indefinitely — do NOT recommend retrying the
    `doca_ctx_start()` until the Flow rule is confirmed per
-   [`doca-flow TASKS.md ## run`](../../doca-flow/TASKS.md#run).
+   [`doca-flow TASKS.md ## run`](../doca-flow/TASKS.md#run).
 3. **Start the side that LISTENS first.** When the user built
    a target, start it before the initiator side starts
    connecting. When the user built an initiator that talks to
@@ -322,7 +322,7 @@ Eval-loop overlay — why this is a loop, not a one-shot pass:
 | --- | --- | --- |
 | Connect handshake never completes | `doca_ctx_start()` returns success but the per-queue state never transitions past CREATED, OR the SPDK / kernel-nvme stack on top reports the NVMe-oF Connect timed out | Re-walk the substrate + steering precondition matrix in [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) BEFORE re-checking STA code — this is almost never a STA bug |
 | `DOCA_ERROR_NOT_SUPPORTED` on transport set | The agent picked NVMe-over-RDMA (or NVMe-over-TCP) on a device whose cap query says the transport is unavailable | Re-run the `doca_sta_cap_*` query against the active `doca_devinfo`; switch to the supported transport OR pick a device that advertises the desired one |
-| Single I/O fails with `DOCA_ERROR_IO_FAILED` after admin command succeeded | The admin queue worked but the I/O queue path is broken — transport-layer error, peer-side controller reset, or the substrate (e.g. RDMA queue-pair) hit a fault | Capture `dmesg | tail` per [`doca-setup TASKS.md ## debug`](../../doca-setup/TASKS.md#debug) and the matching substrate-skill error taxonomy in [`doca-rdma CAPABILITIES.md ## Error taxonomy`](../../doca-rdma/CAPABILITIES.md#error-taxonomy); do NOT retry blindly |
+| Single I/O fails with `DOCA_ERROR_IO_FAILED` after admin command succeeded | The admin queue worked but the I/O queue path is broken — transport-layer error, peer-side controller reset, or the substrate (e.g. RDMA queue-pair) hit a fault | Capture `dmesg | tail` per [`doca-setup TASKS.md ## debug`](../../doca-setup/TASKS.md#debug) and the matching substrate-skill error taxonomy in [`doca-rdma CAPABILITIES.md ## Error taxonomy`](../doca-rdma/CAPABILITIES.md#error-taxonomy); do NOT retry blindly |
 | `DOCA_ERROR_AGAIN` on submit during the sustained-run loop | The per-queue in-flight budget is full | This is the cross-library *"would-block, retry after progress"* pattern — drain completions via `doca_pe_progress()` before re-submitting, or raise the queue depth / in-flight budget within the device cap per [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) |
 | Same code passes on host A, fails on host B | Different DOCA version, different substrate version, or different device cap surface | Re-run the version chain per [`doca-version TASKS.md ## test`](../../doca-version/TASKS.md#test) four-way match on host B; re-run the STA cap queries on host B against the active `doca_devinfo`; re-walk the substrate-library version-match rule in [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
 
@@ -373,7 +373,7 @@ manifestation at layers 5 (runtime), 6 (program), and 7
   device access, steering rule in place) BEFORE any code
   change. The most common cause is a missing or wrong DOCA
   Flow rule for the NVMe-oF 5-tuple, owned by
-  [`doca-flow TASKS.md ## debug`](../../doca-flow/TASKS.md#debug).
+  [`doca-flow TASKS.md ## debug`](../doca-flow/TASKS.md#debug).
 
 **Layer 6 (program) — STA overlay.**
 
@@ -409,7 +409,7 @@ manifestation at layers 5 (runtime), 6 (program), and 7
   [`doca-setup TASKS.md ## debug`](../../doca-setup/TASKS.md#debug)
   layer 5 (driver); for the NVMe-over-RDMA path overlay the
   substrate-side error taxonomy in
-  [`doca-rdma CAPABILITIES.md ## Error taxonomy`](../../doca-rdma/CAPABILITIES.md#error-taxonomy).
+  [`doca-rdma CAPABILITIES.md ## Error taxonomy`](../doca-rdma/CAPABILITIES.md#error-taxonomy).
   Do NOT retry blindly in the STA code.
 - `DOCA_ERROR_DRIVER` from any STA call is the layer below
   DOCA reporting failure. Capture
@@ -438,9 +438,9 @@ cross-cutting runtime to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug);
 substrate (RDMA) to
-[`doca-rdma TASKS.md ## debug`](../../doca-rdma/TASKS.md#debug);
+[`doca-rdma TASKS.md ## debug`](../doca-rdma/TASKS.md#debug);
 steering to
-[`doca-flow TASKS.md ## debug`](../../doca-flow/TASKS.md#debug).
+[`doca-flow TASKS.md ## debug`](../doca-flow/TASKS.md#debug).
 
 ## Deferred task verbs
 
@@ -535,5 +535,5 @@ For commands shared across libraries (`pkg-config --modversion`,
 this table adds the STA-specific rows on top. The substrate-
 library commands (RDMA-side cap queries, `ibv_devinfo`,
 RDMA-side trace) live in
-[`doca-rdma TASKS.md ## Command appendix`](../../doca-rdma/TASKS.md#command-appendix)
+[`doca-rdma TASKS.md ## Command appendix`](../doca-rdma/TASKS.md#command-appendix)
 and are referenced from there, not duplicated here.

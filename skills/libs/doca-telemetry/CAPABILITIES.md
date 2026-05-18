@@ -128,7 +128,7 @@ rule before recommending collector setup.
 | Use DOCA Telemetry (this skill) when … | Use a different primitive when … |
 | --- | --- |
 | The user is building a local collector / aggregator / monitoring agent that **consumes** DOCA telemetry events from one or more publishers (typically [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)-using applications), or attaching to the DOCA Telemetry Service (DTS) as the canonical aggregator on BlueField | The user actually wants to **PUBLISH** telemetry from their app — that is [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md), the sibling publisher library. Wiring this collector library into a publishing application is the load-bearing first-app failure |
-| The user is building a custom downstream consumer of DOCA telemetry (NetFlow / IPFIX ingest into a custom analyzer, Prometheus-style scrape endpoint backed by DOCA-sourced events) | The user wants plain structured stdout / per-line logging from their own program — use [`doca-log`](../doca-log/SKILL.md); the collector's schema-aware discipline is overhead the user does not need |
+| The user is building a custom downstream consumer of DOCA telemetry (NetFlow / IPFIX ingest into a custom analyzer, Prometheus-style scrape endpoint backed by DOCA-sourced events) | The user wants plain structured stdout / per-line logging from their own program — use `doca-log`; the collector's schema-aware discipline is overhead the user does not need |
 | The DOCA telemetry ecosystem is the SOURCE the user is consuming from | The source is a **non-DOCA** program (a regular Linux daemon, a Kubernetes pod's instrumentation surface) — use a Prometheus client library, an OpenTelemetry collector, or another non-DOCA-aware ingest tool directly; this collector library only understands DOCA-shape telemetry |
 
 **Configuration shape.** *Mandatory* configurations before
@@ -239,6 +239,8 @@ layout) defer to
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 The collector's safety surface is **transport-endpoint
 permissions + publisher-up-or-collector-up staging + consumer-
 queue back-pressure policy**. Each one is the source of a
@@ -307,7 +309,7 @@ route elsewhere:
   Prometheus / Grafana, OpenTelemetry pipeline) are governed
   by their own ecosystems.
 - **Plain structured logging from the collector's own
-  program** — use [`doca-log`](../doca-log/SKILL.md); the
+  program** — use `doca-log`; the
   collector's schema-aware discipline is overhead the user
   does not need for plain logs.
 - **Non-DOCA telemetry sources** — a regular Linux daemon's

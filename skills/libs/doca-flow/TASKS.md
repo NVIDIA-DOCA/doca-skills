@@ -317,6 +317,155 @@ Walk in this order — do not skip steps:
    [`doca-debug ## debug` *Where to ask for help*](../../doca-debug/TASKS.md#debug)
    to the public DOCA Developer Forum.
 
+## flow-ct
+
+The DOCA-Flow-CT-specific overlay on the parent verbs. Use AFTER
+the parent's [`## configure`](#configure) → [`## debug`](#debug)
+sequence has been walked for the stateless doca-flow port; this
+section adds only what CT changes on top. For the capability
+surface, layering rule, multi-axis cap discovery, CT-specific
+error overlay, and safety policy, see
+[`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct).
+
+**configure overlay.**
+
+1. **Confirm doca-flow is up on the target port.** Per the
+   layering rule in
+   [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct), CT
+   attaches on top of an already-up doca-flow port. If the
+   port has not been initialized through [`## configure`](#configure),
+   route the user back there FIRST — do NOT propose CT against
+   an un-started port, and do NOT recommend rewiring the
+   doca-flow setup *"to add CT"*. CT extends; it does not
+   replace.
+2. **Multi-axis cap-discovery for CT.** Call the matching
+   `doca_flow_ct_cap_*` queries against the active
+   `doca_devinfo` for EACH axis the workload uses: max
+   concurrent flows, aging-timer range AND granularity, NAT
+   variants (SNAT / DNAT / combined — separate checks), and
+   per-overlay CT support (do NOT promote a single overlay
+   cap-yes to *"all overlays supported"*). Surface ALL queried
+   axes back to the user — quoting only the flow ceiling is a
+   misroute.
+3. **Size the aging table to the user's expected peak, not
+   average.** CT entries persist until aging evicts them or
+   policy removes them. Confirm peak concurrent-flow estimate
+   against the cap-advertised max BEFORE creating the context;
+   if the estimate exceeds the ceiling, surface the device-fit
+   gap — do not over-commit.
+4. **Create the per-port `doca_flow_ct` context.** Per
+   [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct) one
+   context per tracked port. Configure aging-timer-base in the
+   cap-advertised range and at a supported granularity; set the
+   table size from step 3.
+5. **Configure NAT actions only if the cap-query said yes** for
+   the specific variant (SNAT, DNAT, combined). Do NOT propose
+   double-NAT (SNAT + DNAT on the same connection) before
+   confirming the combined-NAT axis explicitly.
+6. **Start the context, then attach CT-aware pipe builders.**
+   `doca_ctx_start` on the `doca_flow_ct` per the Core lifecycle
+   in [`doca-programming-guide`](../../doca-programming-guide/SKILL.md);
+   wrap existing doca-flow pipes via the CT pipe-builder API to
+   produce CT-aware versions. The original stateless pipes
+   remain valid; CT-aware pipes are added on top.
+
+**build overlay.**
+
+| Slot | Value |
+| --- | --- |
+| pkg-config modules | BOTH `doca-flow-ct` AND `doca-flow` — quote both `--cflags` and both `--libs` separately. Mixing one `.pc` with the other's headers / libraries is the canonical "I link, but my first `doca_flow_ct_*` call returns `_DRIVER`" |
+| Version anchors | `pkg-config --modversion doca-flow-ct` MUST equal `pkg-config --modversion doca-flow`, AND both MUST equal `doca_caps --version`. Mismatch → escalate to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 BEFORE diagnosing the CT layer itself |
+| Header includes | The CT-only headers add to (not replace) the doca-flow headers the parent [`## build`](#build) prescribes; both header trees are required |
+| `.pc` discovery | `pkg-config --list-all | grep doca-flow` confirms BOTH `.pc` files are visible to the build; missing `doca-flow-ct.pc` is the *"include resolved, link failed"* shape |
+
+**modify overlay.** Take the closest shipped CT sample (an
+installed CT sample in the public DOCA samples bundle whose 5-
+tuple shape, NAT requirement, and overlay encapsulation match
+the user's workload), apply a minimum-diff onto the user's
+existing doca-flow setup:
+
+- Do NOT recreate the user's pipe scheme from scratch — port the
+  sample's CT bookkeeping (context creation, aging-table sizing,
+  CT pipe-builder wrap calls) onto the existing flow.
+- Each NAT variant added (SNAT, DNAT, combined) requires its own
+  pre-modify cap-query.
+- A 5-tuple shape change (e.g. adding overlay-aware CT to a
+  previously plain CT setup) requires a new per-overlay cap-query.
+- After modify: validate the wrapped pipe via
+  `doca_flow_pipe_validate` BEFORE attempting `pipe_create`, per
+  the parent's pipe-validate rule.
+
+**run / test overlay.** Per
+[`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct):
+
+1. **Single-flow CT smoke.** ONE 5-tuple, ONE CT entry add, ONE
+   matching traffic flow, ONE counter increment. The parent's
+   stateless smoke from [`## test`](#test) step 1 MUST already
+   pass first.
+2. **Multi-flow smoke** ONLY after single-flow is green: a small
+   set of distinct 5-tuples (e.g. 16), one entry per flow,
+   confirm per-CT-entry counters increment in lockstep with the
+   matching traffic.
+3. **Aging smoke** with a deliberately short aging timer
+   (within the cap-advertised range): add a CT entry, send one
+   matching packet, stop traffic, wait at least the aging
+   period plus granularity, confirm the entry is evicted via
+   the CT-entry counter API or programmed-entry dump.
+4. **NAT-aware smoke** (per supported NAT variant — separate
+   tests for SNAT, DNAT, combined): add an entry whose action
+   rewrites the variant the cap-query reported as supported,
+   confirm the outbound traffic carries the rewritten 5-tuple,
+   confirm reverse traffic is matched on the original tuple.
+5. **Negative tests** the agent should propose explicitly:
+   add an entry with an out-of-range aging timer (expect
+   `_INVALID_VALUE` — confirms the cap-range is the runtime
+   authority); add entries past the cap-advertised max
+   concurrent flows (expect `_FULL` — confirms table sizing
+   was honest); attempt a NAT variant the cap-query reported
+   as unsupported (expect `_NOT_SUPPORTED` — confirms the
+   cap-query is the right gate).
+6. **Sustained-run loop** ONLY after all four smokes are green:
+   stream traffic that exercises CT entry add / aging eviction
+   in a continuous loop while watching per-CT-entry counters,
+   per-entry aging timestamps, and connection-state transitions
+   per [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct).
+   This is the only stage where the agent should propose
+   running the user's full workload.
+
+**debug overlay.** Layered on the parent's [`## debug`](#debug)
+ladder:
+
+- `DOCA_ERROR_BAD_STATE` from a CT-layer call is *always* a
+  layering / lifecycle violation: doca-flow port not started,
+  OR `doca_flow_ct` context not started before CT entry add,
+  OR port stop before CT context stop. Walk the lifecycle in
+  this order — port-start → ct-context-create → ct-context-start
+  → ct-entry-add → … → ct-context-stop → port-stop — BEFORE
+  inspecting any individual CT call.
+- `DOCA_ERROR_FULL` on entry add is *always* a table-sizing /
+  aging-pressure mismatch with the workload. Read the per-CT-
+  entry counters to identify stale entries; either wait for
+  aging eviction, evict explicitly, or — if the workload truly
+  needs more flows than the device supports — surface the
+  device-fit gap honestly.
+- Traffic not matching a freshly-added CT entry is *almost
+  always* a 5-tuple-shape disagreement between the entry add
+  and the traffic on the wire. Read both sides verbatim — the
+  cap-query is NOT the right diagnostic here; the entry shape
+  vs traffic shape comparison is. Same shape as the parent
+  *"pipe matches nothing"* diag in [`## debug`](#debug), with
+  CT's 5-tuple match instead of an arbitrary pipe match.
+- NAT translation conflicts surface as `DOCA_ERROR_INVALID_VALUE`
+  on entry add. Per
+  [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct), do
+  NOT invent a translation to resolve the conflict — surface
+  the policy conflict to the user.
+- Aging timer outside the cap-range surfaces as
+  `DOCA_ERROR_INVALID_VALUE` at context configure (NOT at
+  entry add). Re-quote the cap-advertised range AND
+  granularity; the cap query is the runtime authority over any
+  prose recall of supported ranges.
+
 ## Command appendix
 
 Flow-specific commands the verbs above reach for, grouped by purpose

@@ -238,7 +238,7 @@ does not contain — and pull requests should not add:
   alongside this skill, because every Flow Inspector workflow
   starts from a working doca-flow setup that someone has decided
   to instrument.
-- [`doca-flow-ct`](../../libs/doca-flow-ct/SKILL.md) — the **CT
+- `doca-flow-ct` — the **CT
   companion** library that Flow Inspector is also commonly used
   to debug. Mirror actions on CT-wrapped pipes carry per-
   connection state plus 5-tuple match information; inspecting

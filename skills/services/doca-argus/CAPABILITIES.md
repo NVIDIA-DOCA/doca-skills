@@ -278,6 +278,8 @@ calls into a DOCA library that emits structured logs), see
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 Argus's safety surface is **path-selection first**, then the
 END-TO-END discipline, then the calibration-period rule, then
 the never-silently-disable rule, then the smoke-before-bulk rule.

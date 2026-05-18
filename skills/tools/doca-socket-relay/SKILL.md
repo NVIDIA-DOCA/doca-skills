@@ -97,7 +97,7 @@ programming surface**. Concretely:
   rewrite reserved for a later phase.
 - An SRE / platform operator deploying the relay as a service
   container on the BlueField via the runtime contract documented
-  in [`doca-container-deployment`](../../services/doca-container-deployment/SKILL.md).
+  in [`doca-container-deployment`](../../doca-container-deployment/SKILL.md).
 - An AI agent answering *"my host app cannot reach the DPU on the
   socket I configured — what do I check"* with the relay's layered
   error surface as the diagnosis ladder.
@@ -114,7 +114,7 @@ installs that include it; depending on the operator's deployment
 shape, it can be invoked as a CLI on the host or BlueField Arm, or
 deployed as a service container on the BlueField via the
 documented kubelet-standalone runtime in
-[`doca-container-deployment`](../../services/doca-container-deployment/SKILL.md).
+[`doca-container-deployment`](../../doca-container-deployment/SKILL.md).
 The skill uses the same `kind: library` three-file shape as the
 rest of the bundle so the agent's task-verb contract
 (`configure / build / modify / run / test / debug`) is uniform
@@ -244,7 +244,7 @@ pull requests should not add:
   the application can be rewritten to operate on packets directly
   rather than sockets, and when the throughput / latency profile
   the relay achieves is no longer sufficient.
-- [`doca-container-deployment`](../../services/doca-container-deployment/SKILL.md)
+- [`doca-container-deployment`](../../doca-container-deployment/SKILL.md)
   — the BlueField service-runtime contract (kubelet standalone +
   static-pod manifests + per-service config-file mount). Load this
   alongside the present skill when the operator's chosen

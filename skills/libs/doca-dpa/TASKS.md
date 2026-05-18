@@ -386,6 +386,273 @@ cross-cutting runtime to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug).
 
+## comms
+
+The DPA-Comms-specific overlay on the parent verbs. Use AFTER the
+parent's [`## configure`](#configure) → [`## debug`](#debug)
+sequence has been walked for the host-side `doca-dpa` flow; this
+section adds only what the DPA-side comms layer changes. For the
+capability surface, routing rule, error overlay, and safety
+matrix, see [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms).
+
+**configure overlay.**
+
+1. **Confirm DPA-side scope, not host-side.** The user is writing
+   the DPA-side translation unit `dpacc` compiles into the
+   `doca_dpa_app`. If the user wanted host ↔ DPU messaging, that
+   is [`doca-comch`](../doca-comch/SKILL.md); if they wanted
+   host-to-remote RDMA, that is
+   [`doca-rdma`](../doca-rdma/SKILL.md). Route there before any
+   DPA-Comms code per the routing rule in
+   [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms).
+2. **Parent host-side flow must be green first.** A trivial DPA
+   kernel (no DPA-Comms calls) must already launch and complete
+   on this host + image per [`## test`](#test) step 1 — the
+   parent smoke. A broken parent flow surfaces as a broken
+   DPA-Comms launch later. Fix via [`## configure`](#configure)
+   first; do NOT start DPA-side comms code on a broken parent.
+3. **Commit the DPA-Comms cap-budget from host code.** Per the
+   host-side capability-budget rule in
+   [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms), call the
+   matching `doca_dpa_comms_cap_*` family from host code against
+   the active `doca_devinfo` BEFORE the host loads the DPA app
+   into the `doca_dpa` context per [`## configure`](#configure)
+   step 5. Cross-check `pkg-config --modversion doca-dpa-comms`
+   agrees with `pkg-config --modversion doca-dpa` and with the
+   installed `dpacc`; quote both back to the user.
+4. **Read the matching shipped sample first.** The verified
+   two-side-program baseline lives under
+   `/opt/mellanox/doca/samples/doca_dpa_comms/`. Read it on disk
+   BEFORE writing any DPA-side comms code; do NOT re-derive the
+   kernel-side initialization order from memory.
+
+**build overlay.**
+
+| Slot | Value |
+| --- | --- |
+| pkg-config module (DPA side) | `doca-dpa-comms` — passed through `dpacc` for the DPA-side translation unit |
+| Host link line | **No `-ldoca-dpa-comms`**. The host link line stays as the parent [`## build`](#build) prescribes (`-ldoca-dpa -ldoca-common`). Host code may include the DPA-Comms header for the `doca_dpa_comms_cap_*` family used purely for the cap-budget commit, but the substantive send / receive / signal calls live DPA-side |
+| Version anchors | `pkg-config --modversion doca-dpa-comms` MUST agree with `pkg-config --modversion doca-dpa` AND the installed `dpacc` per the DOCA Compatibility Policy |
+
+**modify overlay.** Take the closest-fitting sample under
+`/opt/mellanox/doca/samples/doca_dpa_comms/` and apply a minimum
+diff. Slot fill on top of the parent's [`## modify`](#modify):
+
+- Pick the DPA-Comms primitive family the kernel uses
+  (send / receive vs signal / event — separate setups; do NOT
+  mix without re-reading the sample's setup).
+- The host-side launch argument shape carries the DPA-Comms
+  endpoint handles; the host launch call and the DPA-side
+  kernel signature MUST agree per the parent's two-side-program
+  coupling rule.
+- Re-run the host-side `doca_dpa_comms_cap_*` if the modify
+  introduces a new primitive; otherwise the first kernel launch
+  surfaces `DOCA_ERROR_NOT_SUPPORTED` on the host completion.
+- Kernel-side cooperative back-off on `DOCA_ERROR_AGAIN`: the
+  kernel must yield (return from the launch, let the host drain
+  via `doca_pe_progress`, re-submit on the next launch) OR
+  cooperatively back off if the kernel is persistent. A tight
+  in-kernel retry loop pins the DPA processor and starves the
+  host drain.
+- Rebuild BOTH sides: DPA-side image via `dpacc` AND the host
+  executable that embeds it.
+
+**run / test overlay.** Per the safety matrix in
+[`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms):
+
+1. **One-send-one-receive smoke** between two DPA threads in the
+   same loaded `doca_dpa_app`. Thread A issues ONE DPA-Comms
+   send on an endpoint handle, thread B issues a matching
+   receive on the same handle, the host observes the launch's
+   completion through `doca_dpa_completion` with no error. The
+   parent smoke (a trivial kernel with NO DPA-Comms calls) MUST
+   already pass first — if it does not, fix the parent skill,
+   not the DPA-Comms code.
+2. **Multi-message loop** once the smoke is green: 100 sends,
+   confirm the host sees all matching completions without
+   losing any. Catches `_AGAIN`-handling bugs — if the kernel
+   does not yield correctly on a full DPA-side comms queue,
+   throughput collapses or the host completion stream stalls.
+3. **Capability-budget negative test**: write a kernel that
+   calls a primitive the host-side `doca_dpa_comms_cap_*`
+   reported as NOT supported, confirm `DOCA_ERROR_NOT_SUPPORTED`
+   cleanly on the launch's completion — validates the agent's
+   cap-budget commit is the runtime authority.
+
+**debug overlay.** Layered on the parent's [`## debug`](#debug)
+ladder:
+
+- `DOCA_ERROR_AGAIN` on a `doca_dpa_completion` for a
+  DPA-Comms-calling kernel is *always* the DPA-side comms queue
+  full. Recommend the cooperative back-off per the modify
+  overlay above; confirm the host is draining the parent's
+  progress engine. Do NOT recommend a tight in-kernel retry.
+- `DOCA_ERROR_NOT_SUPPORTED` is *always* a cap-budget /
+  hardware-generation mismatch. Re-run `doca_dpa_comms_cap_*`
+  from host code; if the query was never run, that is the bug.
+- `DOCA_ERROR_BAD_STATE` from a DPA-Comms call must be
+  disambiguated from the parent's `_BAD_STATE`. The parent
+  meaning is *host-side `doca_dpa` lifecycle violated*; the
+  DPA-Comms meaning is *the DPA kernel called a comms
+  primitive before its in-kernel comms surface was usable, or
+  after kernel-side teardown*. Walk the kernel-side
+  initialization order in the shipped sample first.
+- A DPA-Comms receive with no matching sender — or a
+  signal-wait with no signaler — pins the kernel and the host
+  sees no completion. Same shape as the parent's missing-
+  kernel-exit case in [`## modify`](#modify) slot 6, layered
+  with DPA-Comms semantics.
+
+## verbs
+
+The DPA-Verbs-specific overlay on the parent verbs. EVERY workflow
+below begins by re-confirming two things from
+[`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs): (a) the
+4-way-matrix decision places the user in this corner (DPA-side,
+raw verbs, latency-bound) AND (b) the parent host-side `doca-dpa`
+flow is in scope. If either fails, stop and route back — do not
+walk these overlays.
+
+**configure overlay.**
+
+1. **Re-confirm the 4-way-matrix decision.** Ask the user to name
+   the specific RDMA op (RDMA read of a remote buffer, send to a
+   peer, atomic CmpSwap, …) the DPA kernel will issue. This is
+   the cheapest place to catch the *"recommended DPA-side verbs
+   unnecessarily"* failure mode. If the user has not walked the
+   matrix in
+   [`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs), route
+   back there before continuing.
+2. **Confirm the host round-trip is the measured bottleneck.**
+   Ask for the latency data (profile, histogram, or per-op
+   cost). If the user cannot point at a measurement, ask them
+   to take one BEFORE writing any DPA-side code. A guess does
+   not count. If the bottleneck is NOT the host round-trip,
+   climb back up to [`doca-rdma`](../doca-rdma/SKILL.md) (or
+   [`doca-verbs`](../doca-verbs/SKILL.md) for the host-side
+   raw-verbs escape hatch when `doca-rdma` does not expose the
+   verb the user needs).
+3. **Run the host-side cap-query for the SPECIFIC verb.** From
+   host code, BEFORE any DPA kernel launch, run the matching
+   `doca_dpa_verbs_cap_*` against the active `doca_devinfo` for
+   the BlueField the host is driving. The cap-query lives on
+   the host; the DPA-side translation unit cannot cap-query
+   from inside the kernel. If the query returns false, that is
+   the answer — the hardware does not expose the verb. Climb
+   back up if a host-side alternative covers the case.
+4. **Bring up the parent flow AND configure the RDMA QP(s) on
+   the host.** Per the host-configures-QP / DPA-uses-QP rule in
+   [`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs), the QPs
+   the DPA kernel posts against are created and configured by
+   host code through [`## configure`](#configure). Layer the QP
+   create + configure on top per the transport the user picked
+   (IB / RoCE). The DPA kernel receives QP handles as launch
+   arguments or via DPA-visible memory; the agent must name the
+   mechanism explicitly per the parent's two-side-program rule.
+5. **Read the DPA-side verbs symbols from the user's install.**
+   `doca_dpa_verbs_*` symbols are install-bound on the DPA
+   side; the agent must NOT quote them from memory. Direct the
+   user to the DPA-side header path DPACC uses (per the DPACC
+   guide via
+   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md))
+   and to `/opt/mellanox/doca/samples/doca_dpa_verbs/`. Headers
+   win over docs.
+6. **Pick the completion topology.** Host-side CQE inspection
+   (default — the parent's `doca_dpa_completion` surfaces it)
+   OR in-kernel completion polling on the DPA side (when the
+   kernel must react to its own completions before exiting).
+   Pick one per use case explicitly; do NOT mix them on the
+   same CQ.
+
+**build overlay.**
+
+| Slot | Value |
+| --- | --- |
+| pkg-config module (DPA side) | `doca-dpa-verbs` — passed through `dpacc` for the DPA-side translation unit |
+| Host link line | **No `-ldoca-dpa-verbs`**. The host link line stays as the parent [`## build`](#build) prescribes (`-ldoca-dpa -ldoca-common`). Adding `-ldoca-dpa-verbs` to the host link line is the *"link line built, but my host program does not call any DPA-Verbs function"* dead weight |
+| DPACC step | The DPA-side translation unit calling `doca_dpa_verbs_*` is compiled by `dpacc` into the binary embedded as the `doca_dpa_app`. The host system compiler is NOT a substitute |
+| Version anchors | `pkg-config --modversion doca-dpa-verbs` MUST agree with `pkg-config --modversion doca-dpa`, `doca_caps --version`, and the installed `dpacc` per the DOCA Compatibility Policy |
+
+**modify overlay.** Pick a sample under
+`/opt/mellanox/doca/samples/doca_dpa_verbs/` whose shape matches
+the user's intent (same DPA-side WR opcode pattern; same
+completion topology; same host-configured QP transport). Slot
+fill on top of the parent's [`## modify`](#modify):
+
+- Host-side QP configuration changes live in the host-side
+  translation unit. Each added opcode / WR flag needs its own
+  `doca_dpa_verbs_cap_*` query BEFORE the kernel is rebuilt.
+- DPA-side WR construction changes (opcode, target QP handle,
+  memory region, flags, payload size) live in the DPA-side
+  translation unit. Do NOT propose moving the WR construction
+  to the host to "simplify" — that defeats the entire reason
+  to use DPA-side verbs. Keep the post in the kernel.
+- The host launch call and the DPA-side kernel signature MUST
+  agree on count, size, and type of QP handles / buffer
+  addresses / peer info. Track any change as a single edit
+  across both sides, not two.
+- Rebuild BOTH sides via `dpacc` + host build per the parent's
+  *do not partial-rebuild one side* rule. Rebuilding only one
+  side is the canonical way to introduce `DOCA_ERROR_DRIVER`
+  at launch or `DOCA_ERROR_INVALID_VALUE` at the first
+  DPA-side WR post.
+
+**run / test overlay.** Per
+[`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs):
+
+1. **One DPA kernel launch, one DPA-side WR post, one
+   completion.** Host configures ONE QP, launches the kernel
+   ONCE, the kernel posts exactly ONE WR (e.g. an RDMA read of
+   a small buffer; matched on the peer when two-sided), the
+   host drains exactly ONE completion through the chosen
+   completion surface. If this fails, do NOT scale — narrow.
+2. **Re-confirm the host-side cap-query passed for THIS device.**
+   Re-run `doca_dpa_verbs_cap_*` for the specific verb / opcode
+   the kernel posts. If false, climb back up.
+3. **Verify host-configures-QP / DPA-uses-QP coupling.** If the
+   kernel constructs a WR whose opcode / flag / payload size
+   the host-configured QP cannot honor,
+   `DOCA_ERROR_INVALID_VALUE` is the result; fix the side that
+   does not match and rebuild BOTH.
+4. **On `DOCA_ERROR_IO_FAILED`, inspect the CQE.** The DPA-side
+   post return value is NOT the answer; the CQE error field on
+   the chosen completion surface IS.
+5. **Streaming-launch loop ONLY after smoke is green**, layering
+   the parent's streaming-launch pattern from [`## test`](#test)
+   step 2 with the DPA-side WR repetition.
+
+**debug overlay.** Layered on the parent's [`## debug`](#debug)
+ladder:
+
+- A DPA kernel launched, the kernel posts a `doca_dpa_verbs_*`
+  WR, and no completion ever surfaces: (a) the host is not
+  progressing the PE / draining the completion (parent's
+  [`## run`](#run) step 3); (b) the kernel is stuck mid-post
+  or mid-poll with no termination condition; (c) the
+  host-configured QP silently dropped the WR. Confirm the
+  preconditions BEFORE assuming the DPA-side verbs surface
+  itself is broken.
+- On `DOCA_ERROR_IO_FAILED` surfaced through the completion,
+  the DPA-side post return value is not the answer. Direct
+  the user to the CQE error field — same shape as the host-side
+  raw-verbs [`doca-verbs`](../doca-verbs/SKILL.md) IO_FAILED.
+- **Two-side-program signature mismatch** is the single
+  highest-frequency DPA-Verbs program bug. The host configured
+  a QP that cannot honor the WR the kernel posts (opcode not
+  in the QP feature set, payload past the QP's max message
+  size, flag not supported by the transport). Walk both sides
+  together; rebuild BOTH.
+- **DPA-side post against an unready QP** returns `_BAD_STATE`.
+  The host-side `doca-dpa` setup created the QP but has not
+  transitioned it through the state machine required to accept
+  WRs. The DPA side cannot manufacture readiness — fix on the
+  host.
+- **Climb-back check.** Before exhausting a layer-6 debug
+  session, ask: did the latency-bottleneck premise actually
+  hold? Sometimes the cheapest fix is to retire the DPA-side
+  RDMA path entirely for the affected subset and route the
+  work back to host-side [`doca-rdma`](../doca-rdma/SKILL.md).
+
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are

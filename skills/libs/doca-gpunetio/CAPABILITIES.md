@@ -192,6 +192,8 @@ layout, sample tree) defer to
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 GPUNetIO's safety surface is **env-precondition-driven**. Unlike
 RDMA (permission-driven) or Comch (representor-visibility-driven),
 the single most common GPUNetIO first-app failure is that the

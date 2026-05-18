@@ -1,16 +1,59 @@
 # DOCA setup workflows
 
-**Where to start:** If DOCA is not installed yet, jump to
-[`## no-install`](#no-install) — that is the universal Stage-1
-fallback. Otherwise the verb order is `configure` → `test` → `debug`;
-each section's first paragraph names the precondition the previous one
-must have satisfied.
+**Where to start:** Before anything else, walk
+[`## recognize`](#recognize) — that is the **front door**. It detects
+the user's system shape (host x86 / BlueField Arm bare-metal /
+DPU-only / fresh laptop with no hardware), asks the developer the
+minimal set of questions needed to disambiguate, and routes to the
+correct downstream skill: the container deployment path
+([`doca-container-deployment`](../doca-container-deployment/SKILL.md)),
+the bare-metal hardware deployment path
+([`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)),
+or the no-hardware fallback ([`## no-install`](#no-install)). If you
+already know the deployment shape and only need env prep, the verb
+order from there is `configure` → `test` → `debug`; each section's
+first paragraph names the precondition the previous one must have
+satisfied.
 
 Read this file when the loader sent you here from [SKILL.md](SKILL.md). For the underlying env surface (install profiles, build-flavor disk locations, version-detection commands, error taxonomy, observability cues, env-side safety constraints), see [CAPABILITIES.md](CAPABILITIES.md). For the *programming-class* counterparts (the canonical build pattern, the universal modify-a-shipped-sample first-app workflow, the universal lifecycle, the cross-library `DOCA_ERROR_*` debug order), see [`doca-programming-guide`](../doca-programming-guide/SKILL.md). For where to find official documentation, the on-disk install layout, or release notes, route through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
 
 Each verb below describes the **shape of the workflow**, not a copy-paste recipe. The agent's job is to walk the user through the steps in order, verifying preconditions before recommending the next call.
 
-This skill scopes itself to **env work**. Three of the six lint-required task verbs (`## build`, `## modify`, `## run`) describe their own substance in [`doca-programming-guide`](../doca-programming-guide/SKILL.md) after the env / program split — the anchors here exist for lint compliance and route there. The verbs this skill *owns* are `## configure`, `## test`, `## debug`, and the critical `## no-install` (the NGC container path included).
+This skill scopes itself to **env work and the front-door routing decision**. Three of the six lint-required task verbs (`## build`, `## modify`, `## run`) describe their own substance in [`doca-programming-guide`](../doca-programming-guide/SKILL.md) after the env / program split — the anchors here exist for lint compliance and route there. The verbs this skill *owns* are `## recognize` (the front door), `## configure`, `## test`, `## debug`, and the critical `## no-install` (the NGC container path included).
+
+## recognize
+
+Goal: detect the user's **system shape and deployment target** before any other env work begins, so the agent can route the user to the correct downstream skill instead of guessing. This is the **front door**. The agent MUST walk this before answering any deployment-shaped question (*"how do I deploy"*, *"how do I run my DOCA app"*, *"how do I get my DOCA service up"*, *"I just got a BlueField, what now"*, *"my code is built, what next"*).
+
+**Why this exists.** The bundle today supports four distinct system shapes — host x86 + remote BlueField NIC, BlueField Arm bare-metal, DPU-only / converged-accelerator, and fresh-laptop-with-no-hardware — and **two parallel deployment paths** on top: containers (kubelet-standalone with a YAML pod-spec drop, owned by [`doca-container-deployment`](../doca-container-deployment/SKILL.md)) and bare-metal binaries (direct/tmux/systemd launch, owned by [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)). The wrong failure mode is to silently push every developer onto the container path because the agent loaded that skill first. The right behavior is to recognize the system, confirm with the developer, and route. This is what `## recognize` enforces.
+
+**The decision tree the agent walks.** The agent asks the **minimum** number of questions needed to land on one of the four leaves below. Do not ask all of them; stop as soon as the leaf is unambiguous. The system-shape × deployment-shape matrix the bundle covers lives in [CAPABILITIES.md ## Capabilities and modes](CAPABILITIES.md#capabilities-and-modes); this anchor is the *interactive* walk of that matrix.
+
+1. **Detect first; ask only the residual.** Before any question, the agent attempts a non-destructive auto-detect against what is already on the wire:
+   - `uname -m` (x86_64 vs aarch64 — the BlueField Arm side is aarch64).
+   - `lspci -d 15b3:` (BlueField NIC PCIe visibility — non-empty output proves a BlueField is reachable from this host).
+   - `pkg-config --modversion doca-common` (DOCA install presence + version; honor [`doca-structured-tools-contract`](../doca-structured-tools-contract/SKILL.md) — prefer the structured output and fall back to the manual command). If the install is absent, this leg lands on `## no-install`.
+   - `cat /etc/nvidia/bf-release` *if it exists* (BlueField OS image marker — present only on BlueField Arm bare-metal).
+   - `cat /proc/cpuinfo | grep -m1 'model name'` (host CPU model — distinguishes a developer laptop / x86 workstation from a server with a BlueField installed).
+   The agent **quotes the observed output back to the user** and uses it as the prior; it does NOT infer the system shape from the user's phrasing alone.
+
+2. **Ask up to three residual questions, in this priority order.** Each question is *closed-form* — multiple choice or yes/no — so the developer can answer in one word and the agent can route without ambiguity.
+   - **Q1 (target):** *"Where will the DOCA workload run — on the host CPU talking to a BlueField NIC over PCIe, on the BlueField Arm cores directly, on a DPU-only / converged-accelerator card (e.g. SuperNIC-class), or you are not sure yet?"* The four answers map 1:1 to leaves 2-5 below. Skip if `uname -m` + `lspci -d 15b3:` already pinned this.
+   - **Q2 (packaging):** *"Will the workload be deployed as a kubelet-standalone container (YAML pod-spec drop on the BlueField), as a bare-metal binary you launch directly (CLI / tmux / systemd), or you do not know yet?"* Two answers route to the two deployment paths; the *"do not know"* answer triggers the brief explainer in step 3 below. Skip if the developer has already produced a binary or a pod-spec YAML.
+   - **Q3 (workload kind):** *"Is the workload a DOCA-linked **application** you wrote (or are about to write), or a packaged DOCA **service** from NVIDIA (Argus / DMS / Firefly / Flow-Inspector / OS-Inspector / UROM-svc)?"* Application + bare-metal is the most common mismatch the question catches; service + container is the canonical NVIDIA-packaged path. Skip if the matching artifact already exists on disk.
+
+3. **If the developer answers "do not know" to Q2, give them the one-paragraph decision rule, then re-ask Q2.** The rule: *"Containers are the canonical way to deploy a packaged NVIDIA DOCA service (the BlueField OS image already ships kubelet-standalone + the runtime); the operator drops a YAML pod-spec into a documented directory and the pod starts. Bare-metal is the canonical way to run a DOCA-linked application you wrote yourself; you launch the binary directly and you own the lifecycle (CPU pinning, hugepages, systemd unit). The two paths are equally supported; the right answer depends on the workload, not on which path is 'better'."* Then re-ask Q2.
+
+4. **Route to the matching leaf** (the agent states the routing explicitly: *"Based on what you said and what I detected, the right next skill is …"*). The four leaves:
+   - **Leaf A — fresh laptop / no DOCA install / no BlueField reachable from this host:** route to [`## no-install`](#no-install). The NGC DOCA container is the universal Stage-1.
+   - **Leaf B — host x86 with a reachable BlueField, application workload, bare-metal launch:** route to [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md) for the launch contract, after completing [`## configure`](#configure) for the env prep on this host.
+   - **Leaf C — host x86 (or BlueField Arm bare-metal) with a reachable BlueField, service workload, container launch:** route to [`doca-container-deployment`](../doca-container-deployment/SKILL.md) for the pod-spec drop, after completing [`## configure`](#configure) for the env prep.
+   - **Leaf D — BlueField Arm bare-metal (DPU-side), application workload, bare-metal launch:** route to [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md). Cross-link the BlueField-Arm-specific overlay there.
+   - **Leaf E — DPU-only / converged-accelerator card (e.g. SuperNIC-class) with no host CPU available for DOCA:** today this is a constrained subset of Leaf D — route to [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md) with the explicit caveat that some host-side env steps in [`## configure`](#configure) do not apply (e.g. the host-side `LD_LIBRARY_PATH`). The agent should ALSO load [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) early on this leaf because device-only systems are higher-stakes (no escape hatch on a host CPU).
+
+5. **Stop and confirm before proceeding.** Before handing off to the routed skill, the agent restates the routing decision in one line — *"You are on a `<system shape>`, deploying a `<workload kind>` via the `<deployment path>` path; I'll continue with `<routed skill>`. Speak up now if any of that is wrong."* — and waits for the developer's acknowledgment. Routing failures are far cheaper to fix here than after the deployment is half-built.
+
+**What this verb deliberately does NOT do.** It does not install DOCA (that's `## configure` after `## no-install` for the install-absent leaf). It does not bind hardware resources (that's [`doca-bare-metal-deployment ## run`](../doca-bare-metal-deployment/TASKS.md#run) or, for containers, the pod-spec mount in [`doca-container-deployment ## modify`](../doca-container-deployment/TASKS.md#modify)). It does not pick a DOCA version (that's [`doca-version`](../doca-version/SKILL.md)). It does not author the workload (that's [`doca-programming-guide`](../doca-programming-guide/SKILL.md)). It does not change device state (that's a [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) meta-policy concern). The verb is **exactly** *"detect, ask the minimum, route, confirm"* — nothing more.
 
 ## configure
 

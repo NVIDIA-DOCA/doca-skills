@@ -180,6 +180,8 @@ defer to
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 RDMA's safety surface is **permission-driven**. The library sits
 on top of memory exposed directly to a remote peer; an incorrect
 permission allows the peer to read or write memory the user did

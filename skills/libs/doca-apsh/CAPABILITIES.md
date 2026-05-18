@@ -178,6 +178,8 @@ defer to
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 App Shield's safety surface is **DPU-side-privilege + symbol-map**.
 The library introspects host kernel memory over PCIe from the DPU
 side; an incorrect privilege state silently fails the enumerator,

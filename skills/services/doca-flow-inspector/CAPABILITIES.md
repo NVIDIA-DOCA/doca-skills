@@ -296,6 +296,8 @@ that goes in — see
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 Flow Inspector's safety surface is **mirror-overhead-driven**
 and **payload-sensitive**. The documented posture:
 
@@ -377,7 +379,7 @@ elsewhere:
   (port bring-up, pipe spec, validate-before-commit, the
   mirror action's mechanics on the pipeline side). Owned by
   [`doca-flow`](../../libs/doca-flow/SKILL.md) and
-  [`doca-flow-ct`](../../libs/doca-flow-ct/SKILL.md). This skill
+  `doca-flow-ct`. This skill
   assumes a pipeline exists (or is about to) and prescribes how
   to wire it to the inspector; it does not redefine pipe-spec
   rules.

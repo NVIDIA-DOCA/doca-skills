@@ -58,8 +58,8 @@ instance.
   + the env-prep checklist in
   [`TASKS.md ## configure`](TASKS.md#configure) step 1, which
   routes the steering side to
-  [`doca-flow`](../../doca-flow/SKILL.md) and the RDMA substrate
-  to [`doca-rdma`](../../doca-rdma/SKILL.md).
+  [`doca-flow`](../doca-flow/SKILL.md) and the RDMA substrate
+  to [`doca-rdma`](../doca-rdma/SKILL.md).
 - **"Is this STA capability available on my installed DOCA?"** —
   worked example: *"is NVMe-over-TCP transport supported on this
   BlueField + DOCA version?"*. Answered by the version-and-device
@@ -139,9 +139,9 @@ in any language. Concretely:
 
 Do **not** load this skill for general DOCA orientation, install
 of DOCA itself, raw RDMA data movement (use
-[`doca-rdma`](../../doca-rdma/SKILL.md)), raw packet I/O on
-Ethernet queues (use [`doca-eth`](../../doca-eth/SKILL.md)),
-flow-rule programming (use [`doca-flow`](../../doca-flow/SKILL.md)),
+[`doca-rdma`](../doca-rdma/SKILL.md)), raw packet I/O on
+Ethernet queues (use [`doca-eth`](../doca-eth/SKILL.md)),
+flow-rule programming (use [`doca-flow`](../doca-flow/SKILL.md)),
 or NVMe protocol-stack development above the transport layer
 (SPDK or kernel-nvme own that, not this skill). For DOCA
 documentation orientation, use
@@ -224,9 +224,9 @@ contain — and pull requests should not add:
 Both companion files cross-link to each other,
 [`doca-version`](../../doca-version/SKILL.md) for the canonical
 version-handling rules,
-[`doca-rdma`](../../doca-rdma/SKILL.md) for the RDMA substrate
+[`doca-rdma`](../doca-rdma/SKILL.md) for the RDMA substrate
 that NVMe-over-RDMA transport lands on,
-[`doca-flow`](../../doca-flow/SKILL.md) for the steering rules
+[`doca-flow`](../doca-flow/SKILL.md) for the steering rules
 that direct NVMe traffic to STA-managed queues, and
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
 whenever the right answer is "look it up in the public docs or
@@ -260,18 +260,18 @@ guidance".
   universal lifecycle, the cross-library `DOCA_ERROR_*`
   taxonomy, and the program-side debug order. This skill
   layers STA specifics on top.
-- [`doca-rdma`](../../doca-rdma/SKILL.md) — the RDMA substrate
+- [`doca-rdma`](../doca-rdma/SKILL.md) — the RDMA substrate
   that NVMe-over-RDMA transport lands on. STA hides most of
   the RDMA queue-pair details from the consumer, but the user
   still needs `doca-rdma` linked in and the device's RDMA
   capabilities discoverable for the NVMe-over-RDMA path to
   work.
-- [`doca-eth`](../../doca-eth/SKILL.md) — the queue-pair
+- [`doca-eth`](../doca-eth/SKILL.md) — the queue-pair
   shape that STA's per-connection queue model echoes. Reach
   here if the user is asking general questions about how
   DOCA exposes queue-pairs that don't have an STA-specific
   answer.
-- [`doca-flow`](../../doca-flow/SKILL.md) — the steering
+- [`doca-flow`](../doca-flow/SKILL.md) — the steering
   surface that decides which NVMe-oF packets land on which
   STA-managed queue. DOCA STA does *not* program steering
   itself; an NVMe-oF target whose connections never come up

@@ -312,6 +312,8 @@ For the program-side observability surface (DOCA log levels,
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 `doca_bench` is a measurement tool and a more powerful surface
 than `doca_caps`; it *does* allocate buffers, bind devices, and
 drive hardware, including remote-memory operations over an

@@ -166,6 +166,15 @@ Goal: prove the configured SHA context can actually produce correct
 digests at the user's intended throughput, on the user's hardware,
 and that the algorithm and buffer sizing were right.
 
+> **Performance harness routing.** For *throughput / latency
+> measurement* on the configured SHA context (or for cross-library
+> comparison against the other DOCA crypto primitives), route the
+> user to [`doca-bench TASKS.md ## test`](../../tools/doca-bench/TASKS.md#test)
+> — `doca-bench` is the cross-library performance harness with
+> documented warm-up / steady-state / outlier semantics, and it
+> explicitly supports SHA. The iteration loop below stays the
+> *correctness* harness; `doca-bench` is the *performance* harness.
+
 This is **a loop, not a one-shot pass.** Each iteration narrows
 either the algorithm, the buffer sizing, the task type, or the
 permission set. The loop terminates when either (a) the user's

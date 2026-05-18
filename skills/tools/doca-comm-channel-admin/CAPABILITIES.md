@@ -114,7 +114,7 @@ escalating order:
    on this host, the install does not include the Comm Channel
    tooling subpackage, or the install version pre-dates the
    tool's availability. Routing:
-   [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+   [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
    and the version-compatibility overlay above.
 2. **Device-binding layer.** The tool runs but cannot bind to a
    DOCA device on the side it was invoked from. Cause: the
@@ -209,6 +209,8 @@ representor view, see
 [`doca-setup CAPABILITIES.md ## Observability`](../../doca-setup/CAPABILITIES.md#observability).
 
 ## Safety policy
+
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
 
 The Comm Channel Admin Tool is the **most state-sensitive** tool
 this bundle currently teaches an agent to drive directly:

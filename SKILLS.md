@@ -26,14 +26,26 @@ skills/
 ├── doca-public-knowledge-map/   # cross-cutting routing skill (knowledge)
 ├── doca-setup/                   # cross-cutting env skill        (library-shape)
 ├── doca-programming-guide/       # cross-cutting programming skill (library-shape)
-├── libs/<library>/               # one skill per DOCA library
-├── services/<service>/           # one skill per DOCA service
-└── tools/<tool>/                 # one skill per DOCA tool
+├── doca-debug/                   # cross-cutting debug skill      (library-shape)
+├── doca-version/                 # cross-cutting version skill    (library-shape)
+├── doca-structured-tools-contract/ # cross-cutting JSON-contract skill
+├── doca-hardware-safety/         # cross-cutting hardware-safety meta-policy
+├── doca-container-deployment/    # cross-cutting service-container deployment path
+├── doca-bare-metal-deployment/   # cross-cutting bare-metal-binary deployment path (sibling of container-deployment)
+├── libs/<library>/               # one skill per doca/libs/<library>
+├── services/<service>/           # one skill per doca/services/<service>
+└── tools/<tool>/                 # one skill per doca/tools/<tool>
 ```
 
-The three cross-cutting skills (knowledge map, setup, programming guide)
-sit at the top level because they apply *across* libraries / services /
-tools. Per-artifact skills live under the matching subdirectory.
+The cross-cutting skills sit at the top level because they apply *across*
+libraries / services / tools. Per-artifact skills live under the matching
+subdirectory, **strictly 1:1 with `doca/{libs,services,tools}`** at the
+DOCA release the bundle is aligned to. The
+[`devops/ci/check-doca-inventory.sh`](../devops/ci/check-doca-inventory.sh)
+HARD gate enforces 1:1 alignment; the gate clones `@doca` at the
+`DOCA_BRANCH` parameter (default `master`), reads `doca/VERSION`, and
+fails the build on any MISSING (in `doca/` but not in `skills/`) or EXTRA
+(in `skills/` but not in `doca/`) artifact.
 
 This is a *physical* convention only — agents discover skills by their
 `name:` (declared in each `SKILL.md`'s YAML frontmatter), and cross-link
@@ -43,52 +55,49 @@ break agent discovery.
 
 ## Index
 
+### Top-level cross-cutting skills (9)
+
 | Skill | Source | When to load |
 | --- | --- | --- |
 | `doca-public-knowledge-map` | [skills/doca-public-knowledge-map/SKILL.md](skills/doca-public-knowledge-map/SKILL.md) | The user asks anything about DOCA where you need to locate authoritative documentation, installed package paths, downloads, samples, the developer forum, the public DOCA services / tools index, or how to find the installed DOCA version — without access to the DOCA source repository. |
-| `doca-setup` | [skills/doca-setup/SKILL.md](skills/doca-setup/SKILL.md) | Env-class only. The user is installing DOCA, verifying the install, preparing the build env (`pkg-config`, headers, hugepages, devlink), debugging an env-class failure, or asking *I'm on macOS / Windows / Linux without DOCA — how do I reach an install?* (the canonical Stage-1 answer is the public NGC DOCA container `nvcr.io/nvidia/doca/doca`, alongside lab-host, cloud-Linux, and hardware paths). Hands off to `doca-programming-guide` once the env is healthy. **Headline contract: never scaffold DOCA code (`main.c` / `Makefile` / `Dockerfile`) for the user before they have an install — this skill's `## no-install` is the canonical pre-install routing.** |
+| `doca-setup` | [skills/doca-setup/SKILL.md](skills/doca-setup/SKILL.md) | Env-class + deployment-routing front door. The user is installing DOCA, verifying the install, preparing the build env (`pkg-config`, headers, hugepages, devlink), debugging an env-class failure, OR asking a deployment-shaped question (*"how do I deploy"*, *"my code is built, how do I run it"*, *"I just got a BlueField, what now"*) — the `## recognize` anchor here is the bundle's **front-door routing decision** that detects the system shape, asks the minimum residual dev-Q, and routes to either `doca-container-deployment` or `doca-bare-metal-deployment`. Also owns the *I'm on macOS / Windows / Linux without DOCA* path (canonical Stage-1: the public NGC DOCA container `nvcr.io/nvidia/doca/doca`). Hands off to `doca-programming-guide` once env is healthy. **Headline contract: never scaffold DOCA code (`main.c` / `Makefile` / `Dockerfile`) for the user before they have an install — this skill's `## no-install` is the canonical pre-install routing.** |
 | `doca-programming-guide` | [skills/doca-programming-guide/SKILL.md](skills/doca-programming-guide/SKILL.md) | The user has a healthy DOCA env and is asking a general DOCA programming question — the canonical `pkg-config doca-<library>` build pattern (C/C++ direct or non-C via FFI / bindings), the universal *derive a custom first app from a shipped sample* workflow that every library extends, the universal `cfg-create → init → start → use → stop → destroy` lifecycle, the cross-library `DOCA_ERROR_*` taxonomy with `doca_error_get_descr()`, the validate-before-commit rule, or the program-side debug order. Library-agnostic; library-specific overlays live in the matching library skill. |
-| `doca-debug` | [skills/doca-debug/SKILL.md](skills/doca-debug/SKILL.md) | The user is debugging anything DOCA-related across layers — a build that won't compile, a link step that can't resolve a `doca_*` symbol, a runtime call that returns `DOCA_ERROR_*`, a packet not appearing on the wire, a service that won't start, or "how do I get more logs?". Provides the canonical layered debug ladder (install → version → build → link → runtime → program → driver), the cross-cutting tooling reference (`gdb`, `valgrind`, `ldd`, `strace`, `dmesg`, `--sdk-log-level`, the `doca-<lib>-trace` build flavor, container introspection, core dumps), and the *Where to ask for help* escalation to the public Developer Forum. `doca-setup ## debug` (env-class half) and `doca-programming-guide ## debug` (program-class half) both escalate here for cross-cutting tooling and ladder shape; library skills overlay their library-specific debug on top. |
-| `doca-flow` | [skills/libs/doca-flow/SKILL.md](skills/libs/doca-flow/SKILL.md) | The user is working with DOCA Flow on BlueField — port and representor setup, pipe creation, match/action specifications, pipe validation before hardware programming, Flow counters and traces, Flow version compatibility, or debugging `DOCA_ERROR_*` failures from the Flow API. Builds on `doca-setup` (env) and `doca-programming-guide` (cross-library patterns) and layers Flow specifics on top. |
-| `doca-dms` | [skills/services/doca-dms/SKILL.md](skills/services/doca-dms/SKILL.md) | The user is deploying or operating the DOCA Management Service — choosing a deployment shape (host non-DPU / BlueField Arm / Kubernetes pod), launching `dmsd` (SystemD or manual), choosing an authentication mode (localhost / PAM / credentials / mTLS), wiring `dmsgroup` authorization, issuing gNMI Get/Set against modeled YANG paths, issuing gNOI system operations (reboot, OS install, file transfer, `mlxconfig`, `containerz`), or debugging a DMS request layered through transport / auth / path / backend / library failures. Currently beta per the public guide. |
-| `doca-caps` | [skills/tools/doca-caps/SKILL.md](skills/tools/doca-caps/SKILL.md) | The user — or the agent itself — needs a side-effect-free, documented snapshot of *what DOCA sees on this host*: enumerating DOCA devices and representors (`--list-devs`, `--list-rep-devs`, `--pci-addr`), listing the DOCA libraries supported on the running OS, listing per-device per-library capabilities, listing DOCA logger names. Available since DOCA 2.6.0; runs on host or BlueField Arm. The canonical first-step capability snapshot called out from `doca-setup ## test` and `doca-programming-guide ## debug`. |
+| `doca-debug` | [skills/doca-debug/SKILL.md](skills/doca-debug/SKILL.md) | The user is debugging anything DOCA-related across layers — build → link → runtime → program → driver. Provides the canonical layered debug ladder, the cross-cutting tooling reference (`gdb`, `valgrind`, `ldd`, `strace`, `dmesg`, `--sdk-log-level`, the `doca-<lib>-trace` build flavor, container introspection, core dumps), and the escalation to the public Developer Forum. Library skills overlay their library-specific debug on top. |
+| `doca-version` | [skills/doca-version/SKILL.md](skills/doca-version/SKILL.md) | Any question that depends on a DOCA version, BFB version, container tag, or host↔DPU↔container pairing. Every per-artifact skill's `## Version compatibility` anchor redirects here so the rule is stated once and reused. |
+| `doca-structured-tools-contract` | [skills/doca-structured-tools-contract/SKILL.md](skills/doca-structured-tools-contract/SKILL.md) | The agent is about to emit JSON for any infra step (env probe, hardware probe, version detect, NGC promote, build flags). This skill ships the JSON schemas the future infra tools will validate against. |
+| `doca-hardware-safety` | [skills/doca-hardware-safety/SKILL.md](skills/doca-hardware-safety/SKILL.md) | The agent is about to recommend a change that touches DPU / NIC hardware state (`mlxconfig`, firmware burn, BlueField mode flip, BAR change, IOMMU mode, hugepages, BFB reflash). Meta-policy: pre-flight inventory, OOB requirement, maintenance window, rollback discipline, replica-first validation. Every per-artifact `## Safety policy` cross-links here. |
+| `doca-container-deployment` | [skills/doca-container-deployment/SKILL.md](skills/doca-container-deployment/SKILL.md) | The user is deploying any DOCA service container on BlueField (kubelet-standalone + pod-spec drop). The CONTAINER half of the two-path deployment landscape; the bare-metal half lives in `doca-bare-metal-deployment`. Every in-bundle per-service skill cross-links here. If the developer has NOT yet decided container vs. bare-metal, route them back to `doca-setup ## recognize` first. |
+| `doca-bare-metal-deployment` | [skills/doca-bare-metal-deployment/SKILL.md](skills/doca-bare-metal-deployment/SKILL.md) | The user is deploying a DOCA-linked **application binary** directly on hardware — no container — on host x86 (DOCA host install talking to a remote BlueField NIC over PCIe) OR on BlueField Arm bare-metal (DOCA app on the DPU cores). Owns the launch contract (direct / tmux / systemd), hardware-resource binding (PF/VF/representor + NUMA + CPU pinning + IRQ affinity), per-tenant isolation (cgroup-v2 + namespaces + numactl), the bare-metal error taxonomy, observability (stdout / journald / devlink / sysfs), and the restart-loop-is-HIGH-STAKES rule. The BARE-METAL half of the two-path deployment landscape; the container half lives in `doca-container-deployment`. Routed to from `doca-setup ## recognize`. |
 
-### Cross-cutting top-level skills (added in PR1)
+### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` at doca/VERSION=3.5.0019)
 
-| Skill | Source | When to load |
-| --- | --- | --- |
-| `doca-version` | [skills/doca-version/SKILL.md](skills/doca-version/SKILL.md) | Any question that depends on a DOCA version, BFB version, container tag, or host↔DPU↔container pairing. Every per-artifact skill's `## Version compatibility` anchor redirects here so the rule is stated once and reused. Cross-link from `doca-setup`, `doca-debug`, every `libs/`/`services/`/`tools/` skill. |
-| `doca-structured-tools-contract` | [skills/doca-structured-tools-contract/SKILL.md](skills/doca-structured-tools-contract/SKILL.md) | The agent is about to emit JSON for any infra step (env probe, hardware probe, version detect, NGC promote, build flags). This skill ships the JSON schemas the future infra tools will validate against; today the agent uses them to shape its own structured output. |
-| `doca-hardware-safety` | [skills/doca-hardware-safety/SKILL.md](skills/doca-hardware-safety/SKILL.md) | The agent is about to recommend a change that touches DPU / NIC hardware state (`mlxconfig`, firmware burn, BlueField mode flip, BAR change, IOMMU mode, hugepages, BFB reflash). This skill is the meta-policy — pre-flight inventory, OOB requirement, maintenance window, rollback discipline, replica-first validation. Every per-artifact `## Safety policy` anchor cross-links here. |
-
-### Per-artifact skills (51 — one per public DOCA library / service / tool)
-
-This bundle ships one skill per artifact on the public NVIDIA DOCA
-SDK index (`https://docs.nvidia.com/doca/sdk/`). The agent loads the
-matching skill when the user's question is narrow enough to be about
-that one artifact. Every row also appears in the
+This bundle ships one skill per artifact in the DOCA monorepo at the
+DOCA release the bundle is aligned to. The agent loads the matching
+skill when the user's question is narrow enough to be about that one
+artifact. Every row also appears in the
 [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md)
 routing tables so the agent can reach the skill from either entry point.
 
-The complete mapping (skill dir → public SDK page → naming rationale)
+The complete mapping (skill dir → `doca/` source path → naming rationale)
 is audited in `devops/SKILL-PROVENANCE.md`. The compact triple table
-below is the discovery surface every fresh agent walks.
+below is the discovery surface every fresh agent walks. Strict 1:1
+alignment is enforced by `devops/ci/check-doca-inventory.sh`.
 
-**Libraries (28) — `skills/libs/<name>/`**
+**Libraries (28) — `skills/libs/<name>/`, 1:1 with `doca/libs/`** (excluding the internal-only `doca_gpunetio_internal`)
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
-| `doca-flow` | [skills/libs/doca-flow/SKILL.md](skills/libs/doca-flow/SKILL.md) | DOCA Flow — port + representor setup, pipes, actions, action memory, entry lifecycle, validation, counters, traces. |
-| `doca-flow-ct` | [skills/libs/doca-flow-ct/SKILL.md](skills/libs/doca-flow-ct/SKILL.md) | DOCA Flow Connection Tracking — stateful CT layer on DOCA Flow. |
+| `doca-common` | [skills/libs/doca-common/SKILL.md](skills/libs/doca-common/SKILL.md) | DOCA Common — the foundation library every other DOCA library depends on: `doca_buf` / `doca_mmap` (zero-copy data plane), `doca_ctx` (universal context lifecycle), `doca_dev` / `doca_dev_rep` (device + representor discovery), `doca_pe` (universal progress engine), `doca_log` (logging primitive). Teaches the primitives ONCE so per-library skills cross-link here. |
+| `doca-flow` | [skills/libs/doca-flow/SKILL.md](skills/libs/doca-flow/SKILL.md) | DOCA Flow — port + representor setup, pipes, actions, action memory, entry lifecycle, validation, counters, traces. Folds Flow Connection Tracking as `## flow-ct`. |
 | `doca-eth` | [skills/libs/doca-eth/SKILL.md](skills/libs/doca-eth/SKILL.md) | DOCA Ethernet — RX/TX queues, packet I/O. |
 | `doca-rdma` | [skills/libs/doca-rdma/SKILL.md](skills/libs/doca-rdma/SKILL.md) | DOCA RDMA — DOCA's RDMA surface (send/recv/write/read patterns). |
-| `doca-rdma-verbs` | [skills/libs/doca-rdma-verbs/SKILL.md](skills/libs/doca-rdma-verbs/SKILL.md) | DOCA RDMA Verbs — lower-level verbs surface beneath DOCA RDMA. |
-| `doca-dpa` | [skills/libs/doca-dpa/SKILL.md](skills/libs/doca-dpa/SKILL.md) | DOCA DPA — host/device split-build, DPACC context, DPA annotation. |
-| `doca-dpa-comms` | [skills/libs/doca-dpa-comms/SKILL.md](skills/libs/doca-dpa-comms/SKILL.md) | DOCA DPA Comms — DPA-side communication primitives. |
-| `doca-dpa-verbs` | [skills/libs/doca-dpa-verbs/SKILL.md](skills/libs/doca-dpa-verbs/SKILL.md) | DOCA DPA Verbs — DPA-side verbs surface. |
+| `doca-verbs` | [skills/libs/doca-verbs/SKILL.md](skills/libs/doca-verbs/SKILL.md) | DOCA Verbs — lower-level ibverbs-style API beneath DOCA RDMA / DOCA Eth, exposing raw QP / CQ / PD / MR / SRQ / Address-Handle primitives. Primary job is to ROUTE back to the matching higher-level library; only takes the conversation when the higher-level library does not expose the specific verb / opcode the user needs. |
+| `doca-dpa` | [skills/libs/doca-dpa/SKILL.md](skills/libs/doca-dpa/SKILL.md) | DOCA DPA — host/device split-build, DPACC context, DPA annotation. Folds DPA Comms as `## comms` and DPA Verbs as `## verbs`. |
+| `doca-flow-dpa-provider` | [skills/libs/doca-flow-dpa-provider/SKILL.md](skills/libs/doca-flow-dpa-provider/SKILL.md) | DOCA Flow DPA Provider — bridges a `doca-flow` pipe into a DPA execution target so flow execution can run on the DPA processor instead of the host or DPU-CPU path. |
 | `doca-gpunetio` | [skills/libs/doca-gpunetio/SKILL.md](skills/libs/doca-gpunetio/SKILL.md) | DOCA GPUNetIO — GPU-initiated networking + CUDA integration. |
+| `doca-gpi` | [skills/libs/doca-gpi/SKILL.md](skills/libs/doca-gpi/SKILL.md) | DOCA GPI — GPU Programming Interface for kernel-launched RDMA operations directly from a CUDA thread. Pairs with `doca-rdma` and `doca-gpunetio` (different runtime surface for GPU-initiated networking). |
 | `doca-comch` | [skills/libs/doca-comch/SKILL.md](skills/libs/doca-comch/SKILL.md) | DOCA Comch (formerly Comm Channel) — host↔DPU control-plane messaging. |
-| `doca-telemetry` | [skills/libs/doca-telemetry/SKILL.md](skills/libs/doca-telemetry/SKILL.md) | DOCA Telemetry — schemas, sampling, DTS integration. |
+| `doca-telemetry` | [skills/libs/doca-telemetry/SKILL.md](skills/libs/doca-telemetry/SKILL.md) | DOCA Telemetry — collector library; schemas, sampling, DTS integration. |
 | `doca-telemetry-exporter` | [skills/libs/doca-telemetry-exporter/SKILL.md](skills/libs/doca-telemetry-exporter/SKILL.md) | DOCA Telemetry Exporter — application-side publish library. |
 | `doca-dma` | [skills/libs/doca-dma/SKILL.md](skills/libs/doca-dma/SKILL.md) | DOCA DMA — host↔DPU memory copy via the BlueField DMA engine. |
 | `doca-compress` | [skills/libs/doca-compress/SKILL.md](skills/libs/doca-compress/SKILL.md) | DOCA Compress — hardware-accelerated compression / decompression. |
@@ -97,60 +106,84 @@ below is the discovery surface every fresh agent walks.
 | `doca-erasure-coding` | [skills/libs/doca-erasure-coding/SKILL.md](skills/libs/doca-erasure-coding/SKILL.md) | DOCA Erasure Coding — hardware-accelerated EC (RS / similar). |
 | `doca-apsh` | [skills/libs/doca-apsh/SKILL.md](skills/libs/doca-apsh/SKILL.md) | DOCA App Shield (library) — process-introspection primitives. |
 | `doca-pcc` | [skills/libs/doca-pcc/SKILL.md](skills/libs/doca-pcc/SKILL.md) | DOCA PCC (library) — programmable congestion control (DPA-hosted). |
+| `doca-pcc-ztr-rttcc-algo` | [skills/libs/doca-pcc-ztr-rttcc-algo/SKILL.md](skills/libs/doca-pcc-ztr-rttcc-algo/SKILL.md) | DOCA PCC ZTR-RTTCC Algorithm — the shipped reference congestion-control algorithm (Zero-Touch-RTT-CC) that runs under doca-pcc. Pairs with `doca-pcc` (host) and `doca-pcc-counters` (observability). |
 | `doca-urom` | [skills/libs/doca-urom/SKILL.md](skills/libs/doca-urom/SKILL.md) | DOCA UROM (library) — Unified Communication Remote Memory Operations. |
 | `doca-argp` | [skills/libs/doca-argp/SKILL.md](skills/libs/doca-argp/SKILL.md) | DOCA Arg Parser — argument parser used by every shipped sample. |
-| `doca-log` | [skills/libs/doca-log/SKILL.md](skills/libs/doca-log/SKILL.md) | DOCA Log — logging primitive (log registries, levels). |
-| `doca-device-emulation` | [skills/libs/doca-device-emulation/SKILL.md](skills/libs/doca-device-emulation/SKILL.md) | DOCA Device Emulation — umbrella for PCI Generic, virtio, virtio-fs. |
-| `doca-switching` | [skills/libs/doca-switching/SKILL.md](skills/libs/doca-switching/SKILL.md) | DOCA Switching — BlueField switch-dataplane abstraction. |
-| `doca-dpl` | [skills/libs/doca-dpl/SKILL.md](skills/libs/doca-dpl/SKILL.md) | DOCA Pipeline Language — declarative pipeline definition. |
-| `doca-sta` | [skills/libs/doca-sta/SKILL.md](skills/libs/doca-sta/SKILL.md) | DOCA Storage Applications / STA — storage-focused reference apps + storage transport acceleration. |
-| `doca-rivermax` | [skills/libs/doca-rivermax/SKILL.md](skills/libs/doca-rivermax/SKILL.md) | DOCA Rivermax — media / streaming integration. |
-| `doca-dpdk-bridge` | [skills/libs/doca-dpdk-bridge/SKILL.md](skills/libs/doca-dpdk-bridge/SKILL.md) | DOCA DPDK Bridge (API-only) — interop layer for an existing DPDK application to reach DOCA libraries. |
+| `doca-devemu` | [skills/libs/doca-devemu/SKILL.md](skills/libs/doca-devemu/SKILL.md) | DOCA Device Emulation — umbrella for PCI Generic, virtio, virtio-fs. |
+| `doca-mgmt` | [skills/libs/doca-mgmt/SKILL.md](skills/libs/doca-mgmt/SKILL.md) | DOCA MGMT (Management library) — programmatic management of DOCA device state. Pairs with `doca-dms` (service-side) and `doca-version`. |
+| `doca-rdmi` | [skills/libs/doca-rdmi/SKILL.md](skills/libs/doca-rdmi/SKILL.md) | DOCA RDMI (Redfish Device Management Interface) — Redfish-compliant device-management surface. Pairs with `doca-mgmt`. |
+| `doca-sta` | [skills/libs/doca-sta/SKILL.md](skills/libs/doca-sta/SKILL.md) | DOCA STA — storage-focused reference apps + storage transport acceleration. |
+| `doca-rmax` | [skills/libs/doca-rmax/SKILL.md](skills/libs/doca-rmax/SKILL.md) | DOCA Rivermax — media / streaming integration. |
+| `doca-dpdk-bridge` | [skills/libs/doca-dpdk-bridge/SKILL.md](skills/libs/doca-dpdk-bridge/SKILL.md) | DOCA DPDK Bridge — interop layer for an existing DPDK application to reach DOCA libraries. |
 
-**Services (11) — `skills/services/<name>/`**
+**Services (6) — `skills/services/<name>/`, 1:1 with `doca/services/`**
+
+The doca-skills bundle is strict 1:1 with `doca/services/` (excluding
+the shared infra dirs `base_image` and `framework`, which are not
+user-facing services). External NVIDIA productized services that are
+**not** in `doca/services/` (e.g. HBN, BlueMan, SNAP, Virtio-net,
+Telemetry-Service-as-deployed) are intentionally out of scope — see
+[AGENTS.md `## Non-goals`](AGENTS.md#non-goals).
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
-| `doca-dms` | [skills/services/doca-dms/SKILL.md](skills/services/doca-dms/SKILL.md) | DOCA Management Service — gNMI/gNOI config + ops over gRPC. |
-| `doca-dts` | [skills/services/doca-dts/SKILL.md](skills/services/doca-dts/SKILL.md) | DOCA Telemetry Service — telemetry collection container on BlueField. |
-| `doca-blueman` | [skills/services/doca-blueman/SKILL.md](skills/services/doca-blueman/SKILL.md) | DOCA BlueMan Service — BlueField management dashboard. |
+| `doca-dms` | [skills/services/doca-dms/SKILL.md](skills/services/doca-dms/SKILL.md) | DOCA Management Service — gNMI / gNOI config + ops over gRPC. |
 | `doca-firefly` | [skills/services/doca-firefly/SKILL.md](skills/services/doca-firefly/SKILL.md) | DOCA Firefly Service — PTP / time-sync. |
 | `doca-flow-inspector` | [skills/services/doca-flow-inspector/SKILL.md](skills/services/doca-flow-inspector/SKILL.md) | DOCA Flow Inspector Service — mirrored-flow inspection. |
-| `doca-hbn` | [skills/services/doca-hbn/SKILL.md](skills/services/doca-hbn/SKILL.md) | DOCA HBN Service — Host-Based Networking (BGP/EVPN/VXLAN). |
-| `doca-snap` | [skills/services/doca-snap/SKILL.md](skills/services/doca-snap/SKILL.md) | DOCA SNAP Service — NVMe / virtio-blk storage emulation on BlueField-3. |
-| `doca-urom-svc` | [skills/services/doca-urom-svc/SKILL.md](skills/services/doca-urom-svc/SKILL.md) | DOCA UROM Service — paired with `libs/doca-urom`. `-svc` suffix per the AUTHORING § 17 collision rule. |
+| `doca-urom-svc` | [skills/services/doca-urom-svc/SKILL.md](skills/services/doca-urom-svc/SKILL.md) | DOCA UROM Service — paired with `libs/doca-urom`. `-svc` suffix per AUTHORING § 17 collision rule. |
 | `doca-argus` | [skills/services/doca-argus/SKILL.md](skills/services/doca-argus/SKILL.md) | DOCA Argus Service — runtime-security / monitoring on BlueField. |
-| `doca-virtio-net` | [skills/services/doca-virtio-net/SKILL.md](skills/services/doca-virtio-net/SKILL.md) | DOCA Virtio-net Service — virtio-net device-emulation service. |
-| `doca-container-deployment` | [skills/services/doca-container-deployment/SKILL.md](skills/services/doca-container-deployment/SKILL.md) | Cross-cutting: how every DOCA service container is deployed on BlueField (kubelet-standalone + pod-spec drop). Every per-service skill cross-links here. |
+| `doca-os-inspector` | [skills/services/doca-os-inspector/SKILL.md](skills/services/doca-os-inspector/SKILL.md) | DOCA OS Inspector Service — DPU-side out-of-band host-OS introspection container. Service wrapper for apsh-class capabilities; pairs with `doca-apsh` (library), `doca-apsh-config` (profile generation), and `doca-container-deployment`. |
 
-**Tools (12) — `skills/tools/<name>/`**
+**Tools (18) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
-| `doca-caps` | [skills/tools/doca-caps/SKILL.md](skills/tools/doca-caps/SKILL.md) | (see top-section row above) |
-| `doca-bench` | [skills/tools/doca-bench/SKILL.md](skills/tools/doca-bench/SKILL.md) | DOCA Bench — performance evaluation harness. |
+| `doca-caps` | [skills/tools/doca-caps/SKILL.md](skills/tools/doca-caps/SKILL.md) | DOCA Capabilities Print Tool — side-effect-free snapshot of what DOCA sees on this host (devices, representors, supported libraries, per-device capabilities, log registries). |
+| `doca-bench` | [skills/tools/doca-bench/SKILL.md](skills/tools/doca-bench/SKILL.md) | DOCA Bench — performance evaluation harness for the built-in workload modes. |
+| `doca-bench-extension` | [skills/tools/doca-bench-extension/SKILL.md](skills/tools/doca-bench-extension/SKILL.md) | DOCA Bench Extension — the in-tree extension / plug-in framework that lets `doca-bench` measure workload classes its built-in modes do not cover. Reference exemplar `doca_bench_cuda` drives GPUNetIO RX / TX kernels. |
 | `doca-comm-channel-admin` | [skills/tools/doca-comm-channel-admin/SKILL.md](skills/tools/doca-comm-channel-admin/SKILL.md) | Comm Channel Admin Tool — admin CLI for Comch channels. |
-| `doca-dpa-tools` | [skills/tools/doca-dpa-tools/SKILL.md](skills/tools/doca-dpa-tools/SKILL.md) | DPA Tools (umbrella) — DPA developer / admin CLIs. |
-| `doca-dpacc-compiler` | [skills/tools/doca-dpacc-compiler/SKILL.md](skills/tools/doca-dpacc-compiler/SKILL.md) | DPACC — DPA host/device split-build compiler. |
-| `doca-dpu-cli` | [skills/tools/doca-dpu-cli/SKILL.md](skills/tools/doca-dpu-cli/SKILL.md) | DOCA DPU CLI — administrative CLI for the BlueField DPU. |
-| `doca-flow-tune-tool` | [skills/tools/doca-flow-tune-tool/SKILL.md](skills/tools/doca-flow-tune-tool/SKILL.md) | Flow Tune Tool — visibility / analysis CLI for DOCA Flow programs. |
-| `doca-flow-tune-server` | [skills/tools/doca-flow-tune-server/SKILL.md](skills/tools/doca-flow-tune-server/SKILL.md) | Flow Tune Server — long-running server side of Flow Tune. |
-| `doca-pcc-counter` | [skills/tools/doca-pcc-counter/SKILL.md](skills/tools/doca-pcc-counter/SKILL.md) | PCC Counter — PCC counter inspection (paired with `libs/doca-pcc`). |
-| `doca-socket-relay` | [skills/tools/doca-socket-relay/SKILL.md](skills/tools/doca-socket-relay/SKILL.md) | Socket Relay — socket relay between host and DPU. |
-| `doca-ngauge` | [skills/tools/doca-ngauge/SKILL.md](skills/tools/doca-ngauge/SKILL.md) | DOCA Ngauge — diagnostic / measurement tool. |
-| `doca-hugepages` | [skills/tools/doca-hugepages/SKILL.md](skills/tools/doca-hugepages/SKILL.md) | `doca-hugepages` Tool — helper for huge-page reservations. |
+| `doca-flow-tune` | [skills/tools/doca-flow-tune/SKILL.md](skills/tools/doca-flow-tune/SKILL.md) | DOCA Flow Tune — unified tool for offline / online tuning of a live `doca-flow` pipeline. ONE binary with TWO internal roles (server role: snapshots and exposes pipe / counter / KPI state; client / consumer role: dumps / analyzes / visualizes / recommends). |
+| `doca-flow-perf` | [skills/tools/doca-flow-perf/SKILL.md](skills/tools/doca-flow-perf/SKILL.md) | DOCA Flow Perf — host / DPU-CPU control-plane rule-rate measurement (install / delete / query rate). Distinct from `doca-flow-dpa-perf` (DPA-offloaded path) and `doca-flow-tune` (optimizes a deployed pipeline). |
+| `doca-flow-dpa-perf` | [skills/tools/doca-flow-dpa-perf/SKILL.md](skills/tools/doca-flow-dpa-perf/SKILL.md) | DOCA Flow DPA Perf — flow performance for the DPA-offloaded execution path. |
+| `doca-flow-grpc-server` | [skills/tools/doca-flow-grpc-server/SKILL.md](skills/tools/doca-flow-grpc-server/SKILL.md) | DOCA Flow gRPC Server — gRPC remote-control server for `doca-flow` rule programming. |
+| `doca-pcc-counters` | [skills/tools/doca-pcc-counters/SKILL.md](skills/tools/doca-pcc-counters/SKILL.md) | DOCA PCC Counter Tool — PCC counter inspection (paired with `libs/doca-pcc`). |
+| `doca-socket-relay` | [skills/tools/doca-socket-relay/SKILL.md](skills/tools/doca-socket-relay/SKILL.md) | DOCA Socket Relay — socket relay between host and DPU. |
+| `doca-apsh-config` | [skills/tools/doca-apsh-config/SKILL.md](skills/tools/doca-apsh-config/SKILL.md) | DOCA App Shield Config — generates the host-OS profile / symbol files that `doca-apsh` and `doca-os-inspector` need to interpret host kernel state. Without a current profile, apsh-class introspection returns garbage. |
+| `doca-dpa-hl-tracer` | [skills/tools/doca-dpa-hl-tracer/SKILL.md](skills/tools/doca-dpa-hl-tracer/SKILL.md) | DOCA DPA High-Level Tracer — captures DPA-side execution traces with higher-level events than raw cycle counts. |
+| `doca-gpi-ib-write-lat` | [skills/tools/doca-gpi-ib-write-lat/SKILL.md](skills/tools/doca-gpi-ib-write-lat/SKILL.md) | DOCA GPI ib_write_lat — RDMA-write latency benchmark from the GPI (CUDA-kernel-initiated RDMA) path. |
+| `doca-gpunetio-ib-write-bw` | [skills/tools/doca-gpunetio-ib-write-bw/SKILL.md](skills/tools/doca-gpunetio-ib-write-bw/SKILL.md) | DOCA GPUNetIO ib_write_bw — RDMA-write bandwidth benchmark from the GPUNetIO framework. |
+| `doca-gpunetio-ib-write-lat` | [skills/tools/doca-gpunetio-ib-write-lat/SKILL.md](skills/tools/doca-gpunetio-ib-write-lat/SKILL.md) | DOCA GPUNetIO ib_write_lat — RDMA-write latency benchmark from the GPUNetIO framework. |
+| `doca-sha-offload-engine` | [skills/tools/doca-sha-offload-engine/SKILL.md](skills/tools/doca-sha-offload-engine/SKILL.md) | DOCA SHA Offload Engine — OpenSSL ENGINE wrapping the DOCA SHA library; lets unmodified OpenSSL-based applications offload SHA without code changes. |
+| `doca-spcx-cc` | [skills/tools/doca-spcx-cc/SKILL.md](skills/tools/doca-spcx-cc/SKILL.md) | DOCA SPCX-CC — Programmable Congestion-Control extension (next-gen). Pairs with `doca-pcc`, `doca-pcc-ztr-rttcc-algo`. Live-fabric safety implications: heavy use of `doca-hardware-safety`. |
+| `doca-telemetry-utils` | [skills/tools/doca-telemetry-utils/SKILL.md](skills/tools/doca-telemetry-utils/SKILL.md) | DOCA Telemetry Utils — operator-side support CLI for a DOCA Telemetry exporter pipeline. Translates name ↔ Data ID, enumerates the diagnostic-counter schema, and probes per-device counter support before an exporter config commits to it. |
 
 ## Adding a new skill
 
-1. Pick the right slot in the layered tree
+1. The bundle is **strict 1:1 with `doca/{libs,services,tools}`** at the
+   currently-aligned DOCA release. New skills exist iff `doca/` ships
+   the matching artifact at the build's `DOCA_BRANCH` parameter. The
+   [`devops/ci/check-doca-inventory.sh`](../devops/ci/check-doca-inventory.sh)
+   HARD gate enforces this and fails the build on any drift.
+2. Pick the right slot in the layered tree
    (`libs/<library>` / `services/<service>` / `tools/<tool>`, or
-   top-level only if the skill is genuinely cross-cutting).
-2. Create `<slot>/<kebab-case-id>/SKILL.md`.
-3. Use the frontmatter contract enforced by `ci/check-skill.sh`
+   top-level only if the skill is genuinely cross-cutting AND not
+   represented by a `doca/` artifact).
+3. Create `<slot>/<kebab-case-id>/SKILL.md`.
+4. Use the frontmatter contract enforced by `ci/check-skill.sh`
    (`name`, `description ≤ 1024 chars`, `kind: knowledge | library`).
-4. For `kind: library`, add `CAPABILITIES.md` and `TASKS.md` with the
+5. For `kind: library`, add `CAPABILITIES.md` and `TASKS.md` with the
    required H2 anchors (`ci/check-skill.sh` enforces them).
-5. Add a row to the index table above with a single-line "when to
-   load" trigger.
-6. Run `ci/check-skill.sh --all` locally (and `--check-urls` if any
-   URLs were added or changed) and confirm both pass.
+6. Add a row to the index table above with a single-line "what it
+   covers" trigger.
+7. Add a row to the
+   [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md)
+   routing tables (every per-artifact skill must be discoverable from
+   BOTH this index AND the knowledge-map — enforced by
+   `ci/check-coverage.sh --routing-discoverability-hard-fail`).
+8. Author a class-shape prompt under `devops/runner/prompts/` (every
+   `libs/services/tools` skill must have ≥1 prompt — enforced by
+   `ci/check-coverage.sh`).
+9. Run all 9 HARD gates locally and confirm they all pass:
+   `ci/check-skill.sh --all`, `ci/check-anchor-density.sh --all`,
+   `ci/check-crosslinks.sh`, `ci/check-coverage.sh
+   --routing-discoverability-hard-fail`, `ci/check-doca-inventory.sh`.

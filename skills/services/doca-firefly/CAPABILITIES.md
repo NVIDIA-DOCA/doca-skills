@@ -129,7 +129,7 @@ Firefly alone is not a finished deployment.
 
 | Consumer workload | Why it needs Firefly | Pairing shape |
 | --- | --- | --- |
-| Broadcast SMPTE ST 2110 on Rivermax | SMPTE 2110 mandates PTP-locked time on every endpoint that emits or receives video / audio / ancillary streams; the Rivermax SDK assumes the PHC is being disciplined externally | Firefly drives the PHC with the SMPTE 2059-2 profile; the Rivermax-using workload reads the disciplined PHC via [`doca-rivermax`](../../doca-rivermax/SKILL.md); the host clock follower wires chrony or `ptp4l` to the PHC so the host OS clock also follows. See [`doca-rivermax CAPABILITIES.md ## Safety policy`](../../doca-rivermax/CAPABILITIES.md#safety-policy) for the Rivermax-side precondition matrix |
+| Broadcast SMPTE ST 2110 on Rivermax | SMPTE 2110 mandates PTP-locked time on every endpoint that emits or receives video / audio / ancillary streams; the Rivermax SDK assumes the PHC is being disciplined externally | Firefly drives the PHC with the SMPTE 2059-2 profile; the Rivermax-using workload reads the disciplined PHC via [`doca-rmax`](../../libs/doca-rmax/SKILL.md); the host clock follower wires chrony or `ptp4l` to the PHC so the host OS clock also follows. See [`doca-rmax CAPABILITIES.md ## Safety policy`](../../libs/doca-rmax/CAPABILITIES.md#safety-policy) for the Rivermax-side precondition matrix |
 | 5G UPF (5G User Plane Function) | 5G timing requirements (G.8275.1 / G.8275.2 telecom profiles) demand PTP-grade time | Firefly drives the PHC with the G.8275.x profile; the UPF workload reads disciplined time from the host clock follower wired to the PHC |
 | Financial trading | Regulatory time-stamping requirements (e.g. sub-microsecond time accuracy on trade records) | Firefly drives the PHC with the user's chosen profile; trading process reads disciplined time |
 | Distributed databases needing high-precision time | Conflict ordering, distributed transactions, and externally consistent reads benefit from PTP-grade time | Same shape — Firefly drives PHC; DB process reads disciplined time |
@@ -195,7 +195,7 @@ clearing the layer above.
 | 2. Four-axis PTP config | Container green, PTP never advances past `LISTENING`; or no peers seen on the wire; or wrong upstream master selected | One or more of the four axes (role / profile / domain / interface) mismatches the upstream PTP infrastructure | [`## Capabilities and modes`](#capabilities-and-modes) four-axis table; the fix is config, not container |
 | 3. Host-side follower | PTP locks (Firefly says synced; PHC offset is tight); host OS clock drifts; `chronyc tracking` or `date` shows seconds-of-drift | Host-side chrony / `ptp4l` / `phc2sys` not configured to follow the PHC; the BlueField PHC is in sync but the host has not been told to read it | Host's chrony / `ptp4l` / `phc2sys` configuration (upstream Linux PTP / chrony docs) — Firefly is correct |
 | 4. PTP-aware path | PTP locks; sync acquired; offset and jitter are wildly past the profile's spec | A non-PTP-aware switch is in the path between Firefly and its peer; the switch silently adds variable latency that PTP cannot correct for | Network-side fix: insert boundary clocks at the non-PTP-aware switch, or replace the switch with a PTP-aware one — Firefly cannot fix a non-PTP-aware path from the endpoint |
-| 5. Consumer workload | Firefly correct; PHC correct; host clock follows PHC; but the consumer workload still reports time drift | The workload reads its own time source instead of the disciplined system clock; e.g., a Rivermax workload that was never wired to the disciplined PHC | The consumer-side skill — for Rivermax, [`doca-rivermax CAPABILITIES.md ## Safety policy`](../../doca-rivermax/CAPABILITIES.md#safety-policy); for 5G UPF or a distributed DB, the workload's own docs |
+| 5. Consumer workload | Firefly correct; PHC correct; host clock follows PHC; but the consumer workload still reports time drift | The workload reads its own time source instead of the disciplined system clock; e.g., a Rivermax workload that was never wired to the disciplined PHC | The consumer-side skill — for Rivermax, [`doca-rmax CAPABILITIES.md ## Safety policy`](../../libs/doca-rmax/CAPABILITIES.md#safety-policy); for 5G UPF or a distributed DB, the workload's own docs |
 
 The agent's rule: **never recommend a Firefly config change without
 first identifying which of the five layers is the cause**. The most
@@ -252,6 +252,8 @@ calls into a DOCA library that emits structured logs), see
 [`doca-debug CAPABILITIES.md ## Observability`](../../doca-debug/CAPABILITIES.md#observability).
 
 ## Safety policy
+
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
 
 Firefly's safety surface is **path-selection first**, then the
 END-TO-END discipline, then the smoke-before-scale rule, then the

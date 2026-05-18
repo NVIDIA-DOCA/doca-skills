@@ -205,6 +205,8 @@ If any disagree, the install is partial / mixed — route to [`doca-setup ## deb
 
 The anti-pattern to refuse: posting on the forum *first* (before walking the ladder). The forum is for symptoms the public, layered process cannot resolve, not for symptoms the agent has not yet investigated.
 
+**Commercial-support scope (what this bundle does not cover).** The public DOCA Developer Forum is the bundle's *technical* escalation channel and the only escalation channel the bundle is authorized to name. Commercial support contracts, response-time SLAs, escalation paths to NVIDIA engineering, and license-tier questions are out of scope for this bundle and are an [`AGENTS.md ## Non-goals`](../../AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely) class — the right shape of agent response is *"this bundle does not represent commercial support; the right next step is to engage NVIDIA sales"*, not silence and not improvisation. The Developer Forum is the right answer for *technical* questions an experienced engineer cannot resolve from the public docs; it is not a substitute for a procurement conversation.
+
 ## Command appendix
 
 The cross-cutting debug commands the verbs above reach for, grouped by

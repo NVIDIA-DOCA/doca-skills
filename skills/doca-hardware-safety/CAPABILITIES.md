@@ -120,7 +120,7 @@ Each change class has a documented *commit* action. The class shapes:
 | --- | --- | --- |
 | `mlxconfig`-class parameter write | Cold power cycle of the NIC / DPU (full A/C power removal) | A warm reboot does NOT commit firmware-stored configuration. The agent does not declare the change applied after a warm reboot. |
 | NIC firmware burn | The burn tool's documented completion handshake plus a power cycle if the tool requires it | The agent quotes the tool's own documented completion criterion; never invents a "looks done" judgment from log noise. |
-| BFB reflash | The BFB's documented post-flash boot + BlueField cold reboot | The BlueField comes up on the new BFB; every hosted service container has to be re-deployed per [`doca-container-deployment ## run`](../services/doca-container-deployment/TASKS.md#run). |
+| BFB reflash | The BFB's documented post-flash boot + BlueField cold reboot | The BlueField comes up on the new BFB; every hosted service container has to be re-deployed per [`doca-container-deployment ## run`](../doca-container-deployment/TASKS.md#run). |
 | BlueField mode flip | Cold power cycle + post-reboot verification of the new personality (per the matching per-artifact skill) | Confirm the host-visible representor topology matches the post-flip plan before any workload moves. |
 | Kernel boot parameter change | A host reboot. An installed DOCA runtime helper alone does NOT make up for a wrong IOMMU mode or for hugepages that were not reserved at boot. | The agent does not promise that a host-side runtime helper substitutes for the boot-time parameter. Cross-link to [`doca-setup`](../doca-setup/SKILL.md) for env-class verification of the post-reboot state. |
 | Link state down / up, PCIe rescan | The operator's documented procedure for the affected function | The agent surfaces that any workload currently using the function will see the function disappear; the verification gate is that the function comes back in the expected state. |
@@ -333,11 +333,11 @@ cross-cutting rules above. The convention is:
 
 Skills that overlay this meta-policy with artifact-specific
 hardware safety include the firmware-slot precondition in
-[`doca-virtio-net`](../services/doca-virtio-net/SKILL.md), the
+`doca-virtio-net`, the
 storage-side firmware-slot equivalent in
-[`doca-snap`](../services/doca-snap/SKILL.md), the HIGH-STAKES
+`doca-snap`, the HIGH-STAKES
 control-plane-ownership rule in
-[`doca-hbn`](../services/doca-hbn/SKILL.md), and the per-service
+`doca-hbn`, and the per-service
 preconditions captured in every container-shaped service skill's
 own `## Safety policy`. Each of those is an overlay; this skill is
 the meta-policy they share.

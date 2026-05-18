@@ -36,7 +36,7 @@ If the user is asking *"how do I configure the Comm Channel Admin
 Tool?"*, the question they almost certainly mean is one of:
 
 - *"How do I install DOCA so the admin tool shows up?"* → route to
-  [`doca-setup ## install`](../../doca-setup/TASKS.md#install). The
+  [`doca-setup ## install`](../../doca-setup/TASKS.md#configure). The
   binary is shipped under `/opt/mellanox/doca/tools/` on installs
   that include the Comm Channel tooling subpackage; configuring is
   install.
@@ -64,7 +64,7 @@ to compile, no build flags, no `meson` or `make` workflow.
 Routing for nearby "build" questions:
 
 - *"The binary isn't there — do I need to build it?"* → no. Route
-  to [`doca-setup ## install`](../../doca-setup/TASKS.md#install).
+  to [`doca-setup ## install`](../../doca-setup/TASKS.md#configure).
   The fix is to install (or re-install) DOCA with the right
   package profile, or use the public NGC DOCA container per
   [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install).
@@ -220,7 +220,7 @@ layers in order. The shape of the diagnosis:
    (e.g. `pkg-config --modversion doca-common`,
    `cat /opt/mellanox/doca/applications/VERSION`) and that the
    install profile included the Comm Channel tooling subpackage.
-   Route to [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+   Route to [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
    if not.
 2. **Device-binding layer.** The tool runs but cannot bind to a
    DOCA device on the side it was invoked from. Confirm the
@@ -293,7 +293,7 @@ The four verbs below are not Comm Channel Admin Tool work and
 should be routed out before the agent does any of them under this
 skill's name.
 
-- **install** ⇒ [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+- **install** ⇒ [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
   (and [`## no-install`](../../doca-setup/TASKS.md#no-install) for
   the public NGC DOCA container path). The admin tool is shipped
   by the install; this skill does not own the install workflow.

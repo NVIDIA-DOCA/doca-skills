@@ -13,9 +13,9 @@ verbs `configure / build / modify / run / test / debug`), jump to
 rules that this skill layers a STA overlay on top of, see
 [`doca-version`](../../doca-version/SKILL.md). For the RDMA
 substrate that NVMe-over-RDMA transport lands on, see
-[`doca-rdma`](../../doca-rdma/SKILL.md). For the steering side
+[`doca-rdma`](../doca-rdma/SKILL.md). For the steering side
 that decides which NVMe-oF packets land on which STA-managed
-queue, defer to [`doca-flow`](../../doca-flow/SKILL.md).
+queue, defer to [`doca-flow`](../doca-flow/SKILL.md).
 
 ## Pattern overview
 
@@ -164,7 +164,7 @@ there; this skill does not duplicate it.
   `doca_caps --version` line — a STA install that compiles
   against one DOCA RDMA major and runs against another is a
   partial-install hazard. Route to
-  [`doca-rdma CAPABILITIES.md ## Version compatibility`](../../doca-rdma/CAPABILITIES.md#version-compatibility)
+  [`doca-rdma CAPABILITIES.md ## Version compatibility`](../doca-rdma/CAPABILITIES.md#version-compatibility)
   for the RDMA-side overlay.
 
 ## Error taxonomy
@@ -182,7 +182,7 @@ response.
 | `DOCA_ERROR_NOT_SUPPORTED` | Setting a transport type the device does not advertise; opting in to an NVMe-oF feature the device does not advertise; oversized I/O queue count or depth | Re-run the matching `doca_sta_cap_*` query against the active `doca_devinfo`; if the cap query says false (or returns a smaller cap), that is the answer — the user's device or DOCA version does not support the request. |
 | `DOCA_ERROR_INVALID_VALUE` | `doca_sta_set_*` with a queue depth, queue count, or transport parameter outside the device cap; queue-pair config that mismatches the peer's advertised limits | The fix is to re-read the cap, lower the requested value, and re-run configure. Quote the queried cap value, not a value the user remembered. |
 | `DOCA_ERROR_AGAIN` | I/O submission on a per-queue path when the in-flight budget is full | The I/O queue is full. This is *not* a hardware error; the program must drain completions via `doca_pe_progress()` before re-submitting, or raise the queue depth and in-flight budget within the device cap. Same as the cross-library *"would-block, retry after progress"* pattern. |
-| `DOCA_ERROR_IO_FAILED` | Per-IO completion event reports failure; transport-layer error during the NVMe-oF Connect handshake | A transport-layer I/O error. Likely causes: link drop, RDMA peer disconnect, TCP reset, firmware fault, peer-side controller reset. Do not retry blindly — capture `dmesg | tail` and route to [`doca-setup TASKS.md ## debug`](../../doca-setup/TASKS.md#debug) and to [`doca-rdma CAPABILITIES.md ## Error taxonomy`](../../doca-rdma/CAPABILITIES.md#error-taxonomy) (for NVMe-over-RDMA) before recommending a code change. |
+| `DOCA_ERROR_IO_FAILED` | Per-IO completion event reports failure; transport-layer error during the NVMe-oF Connect handshake | A transport-layer I/O error. Likely causes: link drop, RDMA peer disconnect, TCP reset, firmware fault, peer-side controller reset. Do not retry blindly — capture `dmesg | tail` and route to [`doca-setup TASKS.md ## debug`](../../doca-setup/TASKS.md#debug) and to [`doca-rdma CAPABILITIES.md ## Error taxonomy`](../doca-rdma/CAPABILITIES.md#error-taxonomy) (for NVMe-over-RDMA) before recommending a code change. |
 | `DOCA_ERROR_NOT_PERMITTED` | `doca_dev_open` for a device the user has no access to; STA context create after a permission downgrade | The device was not opened with the required access. Confirm sudo or the appropriate group membership per [`## Safety policy`](#safety-policy); do not modify the program. |
 | `DOCA_ERROR_DRIVER` | Any submit / completion call | The layer below DOCA reported failure. Capture state (`dmesg | tail`, `mlxconfig -d <pcie> q`) and route to env-class debug ([`doca-setup TASKS.md ## debug`](../../doca-setup/TASKS.md#debug)) — the layer below DOCA is the suspect, not the program. |
 
@@ -240,6 +240,8 @@ device enumeration) defer to
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 DOCA STA's safety surface is **substrate-library presence,
 device access, and steering**. The single most common first-app
 failure for an NVMe-over-RDMA initiator is *"my Connect
@@ -252,9 +254,9 @@ DOCA STA setup:
 
 | Precondition | What must be true before `doca_ctx_start()` | How the agent verifies | Where to fix |
 | --- | --- | --- | --- |
-| Substrate library present | For NVMe-over-RDMA: `doca-rdma.pc` resolves and `doca_rdma_cap_*` reports a non-empty surface on the chosen device. For NVMe-over-TCP: the device's TCP path is enabled in firmware | `pkg-config --modversion doca-rdma`; the matching cap-query call as documented in [`doca-rdma CAPABILITIES.md ## Capabilities and modes`](../../doca-rdma/CAPABILITIES.md#capabilities-and-modes); `mlxconfig -d <pcie> q` for the firmware view | [`doca-setup`](../../doca-setup/SKILL.md) for the env-side; do not modify the program |
+| Substrate library present | For NVMe-over-RDMA: `doca-rdma.pc` resolves and `doca_rdma_cap_*` reports a non-empty surface on the chosen device. For NVMe-over-TCP: the device's TCP path is enabled in firmware | `pkg-config --modversion doca-rdma`; the matching cap-query call as documented in [`doca-rdma CAPABILITIES.md ## Capabilities and modes`](../doca-rdma/CAPABILITIES.md#capabilities-and-modes); `mlxconfig -d <pcie> q` for the firmware view | [`doca-setup`](../../doca-setup/SKILL.md) for the env-side; do not modify the program |
 | Device access | The `doca_dev` was opened against a BlueField PF / SF the user has permission to use (typically requires sudo or the appropriate group membership) | `id` for group membership; the open call failing with `DOCA_ERROR_NOT_PERMITTED` is the runtime symptom | [`doca-setup`](../../doca-setup/SKILL.md) for the env-side; do not modify the program |
-| NVMe-oF traffic actually reaches the STA-managed queue | Either a DOCA Flow rule (or the env-side equivalent) steers matching NVMe-oF 5-tuples to this STA instance's queues | Inspect the Flow rule programmed for this NVMe-oF connection (or the absence of one); confirm via the steering-rule listing on the user's setup | [`doca-flow`](../../doca-flow/SKILL.md) for the steering side; do not invent a `doca_sta_*` steering call |
+| NVMe-oF traffic actually reaches the STA-managed queue | Either a DOCA Flow rule (or the env-side equivalent) steers matching NVMe-oF 5-tuples to this STA instance's queues | Inspect the Flow rule programmed for this NVMe-oF connection (or the absence of one); confirm via the steering-rule listing on the user's setup | [`doca-flow`](../doca-flow/SKILL.md) for the steering side; do not invent a `doca_sta_*` steering call |
 
 **The integration point with SPDK or kernel-nvme is named, not
 implemented here.** The agent must surface — early in any

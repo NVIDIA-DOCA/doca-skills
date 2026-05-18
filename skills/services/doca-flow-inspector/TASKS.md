@@ -43,7 +43,7 @@ to observe.
    inspect; a concrete debug hypothesis (*"I expect packet X to
    match entry Y; it isn't, and I want to see why"*); and — if
    the pipeline is CT-aware — the CT context already started per
-   [`doca-flow-ct ## configure`](../../libs/doca-flow-ct/TASKS.md#configure).
+   `doca-flow-ct ## configure`.
 3. **Identify the public guide page version and the container
    image source.** Read the public DOCA Flow Inspector Service
    guide page; cross-link the live NGC catalog entry for the
@@ -99,7 +99,7 @@ fully owned by the matching library skill.
 | Build target | Where it lives | What the agent does here |
 | --- | --- | --- |
 | The inspector container itself | NGC catalog, per [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services). No source build — pull the documented image | The agent quotes the image string from the live NGC page, NOT from memory; the agent surfaces that the container tag is paired with the BlueField's DOCA install per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
-| The user's doca-flow / doca-flow-ct program (the source of the mirror action) | [`doca-flow ## build`](../../libs/doca-flow/TASKS.md#build) for the base pipeline; [`doca-flow-ct ## build`](../../libs/doca-flow-ct/TASKS.md#build) when CT wraps it; the canonical `pkg-config` + meson pattern in [`doca-programming-guide ## build`](../../doca-programming-guide/TASKS.md#build) | The agent does NOT author pipeline source code here; it cross-links the matching library skill and emphasizes that the mirror action is added via the universal modify-a-sample workflow there |
+| The user's doca-flow / doca-flow-ct program (the source of the mirror action) | [`doca-flow ## build`](../../libs/doca-flow/TASKS.md#build) for the base pipeline; `doca-flow-ct ## build` when CT wraps it; the canonical `pkg-config` + meson pattern in [`doca-programming-guide ## build`](../../doca-programming-guide/TASKS.md#build) | The agent does NOT author pipeline source code here; it cross-links the matching library skill and emphasizes that the mirror action is added via the universal modify-a-sample workflow there |
 | An inspector-specific consumer (e.g. parsing the JSON export in a downstream script) | Outside Flow Inspector scope — that consumer is the user's own program, against the documented JSON schema in the public guide | The agent does not write the consumer; describes the schema location and the agent rule "quote the live guide, don't infer the schema from prose" |
 
 For non-C consumers asking about reading the inspector's JSON
@@ -134,7 +134,7 @@ The Flow Inspector skill's *modify* surface is **two-sided**:
    belongs in
    [`doca-flow ## modify`](../../libs/doca-flow/TASKS.md#modify)
    (or
-   [`doca-flow-ct ## modify`](../../libs/doca-flow-ct/TASKS.md#modify)
+   `doca-flow-ct ## modify`
    when CT wraps the pipe). The two are independent levers on
    the same pipeline + inspector pair; the agent must surface
    both when the user reports *"my inspector is too noisy"* or
@@ -280,7 +280,7 @@ down without clearing the layer above. For symptoms that turn
 out to be in the user's doca-flow / doca-flow-ct pipeline
 itself (not in the inspector), route to
 [`doca-flow ## debug`](../../libs/doca-flow/TASKS.md#debug) or
-[`doca-flow-ct ## debug`](../../libs/doca-flow-ct/TASKS.md#debug)
+`doca-flow-ct ## debug`
 and stop. For symptoms that turn out to be cross-cutting (env,
 version, build, link), route to
 [`doca-debug ## debug`](../../doca-debug/TASKS.md#debug).
@@ -420,7 +420,7 @@ Three cross-cutting rules for this appendix:
   the mirror** — not a Flow Inspector question. Route to
   [`doca-flow ## modify`](../../libs/doca-flow/TASKS.md#modify)
   (and
-  [`doca-flow-ct ## modify`](../../libs/doca-flow-ct/TASKS.md#modify)
+  `doca-flow-ct ## modify`
   when CT wraps the pipe). The mirror action is a doca-flow
   action kind; its mechanics are owned by the doca-flow skill,
   not this one.

@@ -67,7 +67,7 @@ end-to-end discipline before the container starts.
    to support a Rivermax SMPTE workload, the Rivermax-side
    precondition matrix (Rivermax SDK + license + scheduling
    discipline) is ALSO required — route the Rivermax side to
-   [`doca-rivermax ## configure`](../../doca-rivermax/TASKS.md#configure).
+   [`doca-rmax ## configure`](../../libs/doca-rmax/TASKS.md#configure).
    For 5G UPF / finance / distributed databases, the consumer-side
    wiring is owned by the workload's own docs; Firefly's job is to
    keep the disciplined time available.
@@ -94,7 +94,7 @@ question:
   the DOCA library's build — route to
   [`doca-programming-guide`](../../doca-programming-guide/SKILL.md)
   and the matching `libs/<library>` skill (e.g.
-  [`doca-rivermax`](../../doca-rivermax/SKILL.md) for SMPTE).
+  [`doca-rmax`](../../libs/doca-rmax/SKILL.md) for SMPTE).
 - For applications that **read the OS system clock** that the
   host-side follower is disciplining, no DOCA-specific build is
   needed — the application uses standard `clock_gettime(2)` against
@@ -238,8 +238,8 @@ failure mode the iterative loop is here to prevent.
    is in fact the thing disciplining the host clock and not, e.g.,
    a stray `chronyd` reading an NTP source.
 4. **Consumer-workload smoke.** For Rivermax SMPTE, run the
-   `doca-rivermax` single-frame smoke (per
-   [`doca-rivermax TASKS.md ## test`](../../doca-rivermax/TASKS.md#test))
+   `doca-rmax` single-frame smoke (per
+   [`doca-rmax TASKS.md ## test`](../../libs/doca-rmax/TASKS.md#test))
    with the disciplined PHC available; for 5G UPF / finance /
    distributed databases, the workload-side smoke is the workload's
    own concern. The Firefly contribution to the consumer smoke is
@@ -299,7 +299,7 @@ without clearing the layer above. The five layers match
    clock follows PHC; but the consumer workload still reports time
    drift. Resolution: the workload is reading its own time source
    instead of the disciplined system clock. For Rivermax, walk
-   [`doca-rivermax TASKS.md ## debug`](../../doca-rivermax/TASKS.md#debug);
+   [`doca-rmax TASKS.md ## debug`](../../libs/doca-rmax/TASKS.md#debug);
    for 5G UPF / finance / distributed DB, the workload's own docs.
 6. **Version layer.** When the public Firefly Service Guide page
    appears to disagree with what the deployed container does, the
@@ -394,14 +394,14 @@ Three cross-cutting rules for this appendix:
   [`doca-programming-guide ## build`](../../doca-programming-guide/TASKS.md#build)
   for the canonical build pattern and the matching `libs/<library>`
   skill (e.g.
-  [`doca-rivermax ## configure`](../../doca-rivermax/TASKS.md#configure)
+  [`doca-rmax ## configure`](../../libs/doca-rmax/TASKS.md#configure)
   for SMPTE) for the API surface.
 - **Other DOCA services** (DMS / DTS / BlueMan / Flow-Inspector /
   HBN / Argus / …) — not Firefly. Route to
   [doca-public-knowledge-map ## DOCA services](../../doca-public-knowledge-map/SKILL.md#doca-services)
   for the routing table and the matching `services/<service>` skill
   when it exists (e.g.
-  [`doca-dms ## configure`](../../doca-dms/TASKS.md#configure) for
+  [`doca-dms ## configure`](../doca-dms/TASKS.md#configure) for
   device management). The container-shaped deployment pattern is
   shared; the per-service domain is different.
 

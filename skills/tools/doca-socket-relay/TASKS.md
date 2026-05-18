@@ -37,7 +37,7 @@ the operator is about to invoke the relay from. The relay does not
 carry a separate config file or daemon contract of its own beyond what
 the chosen deployment shape pulls in (a service-container deployment
 inherits the per-service config-file mount contract from
-[`doca-container-deployment CAPABILITIES.md ## Capabilities and modes`](../../services/doca-container-deployment/CAPABILITIES.md#capabilities-and-modes)).
+[`doca-container-deployment CAPABILITIES.md ## Capabilities and modes`](../../doca-container-deployment/CAPABILITIES.md#capabilities-and-modes)).
 
 Steps the agent should walk the user through, in order:
 
@@ -52,7 +52,7 @@ Steps the agent should walk the user through, in order:
    the trade-offs (host-OS permission surface for in-process; lifecycle
    coupling for sidecar; the static-pod / image-pull / per-service
    config-file mount surface from
-   [`doca-container-deployment ## configure`](../../services/doca-container-deployment/TASKS.md#configure)
+   [`doca-container-deployment ## configure`](../../doca-container-deployment/TASKS.md#configure)
    for the container shape).
 2. **Axis 2 — pick the socket type / protocol.** Name which socket
    family / protocol the wrapping host application speaks to its local
@@ -80,9 +80,9 @@ Steps the agent should walk the user through, in order:
    that its version agrees with the underlying `doca-common`. For the
    container-shape deployment, add the third anchor (the per-service
    container tag) per
-   [`doca-container-deployment CAPABILITIES.md ## Version compatibility`](../../services/doca-container-deployment/CAPABILITIES.md#version-compatibility).
+   [`doca-container-deployment CAPABILITIES.md ## Version compatibility`](../../doca-container-deployment/CAPABILITIES.md#version-compatibility).
    If the artifact is not present on the install profile, route to
-   [`doca-setup ## install`](../../doca-setup/TASKS.md#install).
+   [`doca-setup ## install`](../../doca-setup/TASKS.md#configure).
 5. **Identify the wrapping host application's pre-relay behavior.**
    The smoke in [`## test`](#test) compares the application's
    *with-relay* behavior to its *no-relay* baseline; the agent should
@@ -100,7 +100,7 @@ Steps the agent should walk the user through, in order:
    reach the operator if the deploy disrupts the host application. For
    the container-shape deployment, the rollback path layered on top is
    the static-pod-file removal documented in
-   [`doca-container-deployment ## modify`](../../services/doca-container-deployment/TASKS.md#modify).
+   [`doca-container-deployment ## modify`](../../doca-container-deployment/TASKS.md#modify).
 
 For the canonical DOCA universal lifecycle that underlies any
 DOCA-library work the wrapping host application might also do once
@@ -134,13 +134,13 @@ Routing for nearby "build" questions:
 
 - *"The relay binary / image isn't there — do I need to build it?"* →
   no. Route to
-  [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+  [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
   for the install path that ships the relay (and
   [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install)
   for the public NGC DOCA container alternative). For the
   container-shape deployment, route the image-pull / NGC tag lookup
   through
-  [`doca-container-deployment ## configure`](../../services/doca-container-deployment/TASKS.md#configure)
+  [`doca-container-deployment ## configure`](../../doca-container-deployment/TASKS.md#configure)
   step 4.
 - *"I want to build my wrapping host application against DOCA so I can
   drop the relay later."* → not a relay-build question. Route to
@@ -155,7 +155,7 @@ Routing for nearby "build" questions:
 - *"I want to build a custom DPU-side terminator that talks to the
   relay's far half."* → not a relay-build question. The DPU-side peer
   is either a documented BlueField service container (route to
-  [`doca-container-deployment`](../../services/doca-container-deployment/SKILL.md))
+  [`doca-container-deployment`](../../doca-container-deployment/SKILL.md))
   or a program written against the matching DOCA library
   ([`doca-comch`](../../libs/doca-comch/SKILL.md) for control-plane
   bridging, [`doca-eth`](../../libs/doca-eth/SKILL.md) for line-rate
@@ -194,7 +194,7 @@ that the agent must gate on a fresh
    (host-OS permissions for in-process; lifecycle coupling for sidecar;
    the full static-pod / image-pull / per-service config-file mount
    contract from
-   [`doca-container-deployment ## modify`](../../services/doca-container-deployment/TASKS.md#modify)
+   [`doca-container-deployment ## modify`](../../doca-container-deployment/TASKS.md#modify)
    for the container shape). Re-walk
    [`## configure`](#configure) axis 1 and the precondition step, then
    re-open the
@@ -249,7 +249,7 @@ port numbers"*).
    the next four steps will burn the operator's time on a deployment
    that the install does not actually support. For the container-shape
    deployment, add the
-   [`doca-container-deployment ## run`](../../services/doca-container-deployment/TASKS.md#run)
+   [`doca-container-deployment ## run`](../../doca-container-deployment/TASKS.md#run)
    steps 1-3 (image pulled, pod-spec dropped, kubelet shows `Running`)
    as preconditions to step 2 below.
 2. **Bind the relay on its configured endpoint.** Start the relay on
@@ -257,7 +257,7 @@ port numbers"*).
    on the host; service container on the BlueField); read the relay's
    own *bound / listening* signal from its `--help`-documented
    inspection surface or the container ENTRYPOINT log per
-   [`doca-container-deployment CAPABILITIES.md ## Observability`](../../services/doca-container-deployment/CAPABILITIES.md#observability).
+   [`doca-container-deployment CAPABILITIES.md ## Observability`](../../doca-container-deployment/CAPABILITIES.md#observability).
    A bind failure here is layer 2 in
    [`## debug`](#debug); do not move on until the relay reports bound
    against the configured socket / port / path.
@@ -280,7 +280,7 @@ port numbers"*).
    observability surface, e.g.
    [`doca-comm-channel-admin TASKS.md ## run`](../doca-comm-channel-admin/TASKS.md#run)
    when the DPU-side peer is comch-backed, or
-   [`doca-container-deployment ## run`](../../services/doca-container-deployment/TASKS.md#run)
+   [`doca-container-deployment ## run`](../../doca-container-deployment/TASKS.md#run)
    step 4-5 when the peer is a BlueField service container), and the
    host application's *response received* signal. A *"connection
    accepted but no bytes arrive"* asymmetry here is the canonical
@@ -367,7 +367,7 @@ one):
 | Smoke round-trip never closes; the relay says "accepted" but the application sees nothing | Forwarding-endpoint misconfiguration — the silent data-path break | Jump to [`## debug`](#debug) layer 4 (DPU-side-terminator-not-reachable); do NOT retry the round-trip until the forwarding endpoint is re-verified from the DPU side. |
 | Regression baseline disagrees with the with-relay path | The relay introduced a behavior change, OR the baseline path itself drifted | Stop iterating on relay tuning; capture both observability snapshots, route to [`## debug`](#debug) layer 4 + 6 (version) before any state-changing operation. |
 | Round-trip succeeds on host A, fails on host B at the same DOCA version | Deployment-shape precondition or host-OS permission delta | Re-walk [`## configure`](#configure) step 1 + the precondition surface; route the permission piece to [`## debug`](#debug) layer 5. |
-| Same invocation works on DOCA version X, breaks on Y | Version layer; *is* a regression signal — provided the deployment-shape and forwarding-endpoint configs are captured on both sides | Cross-link the two baselines, route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 and [`doca-container-deployment ## debug`](../../services/doca-container-deployment/TASKS.md#debug) layer 7 for the container shape. |
+| Same invocation works on DOCA version X, breaks on Y | Version layer; *is* a regression signal — provided the deployment-shape and forwarding-endpoint configs are captured on both sides | Cross-link the two baselines, route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 and [`doca-container-deployment ## debug`](../../doca-container-deployment/TASKS.md#debug) layer 7 for the container shape. |
 | Relay reports zero / hung after a quiet period | Could be the relay (state machine), the DPU-side terminator (peer gone), or below (driver, BlueField mode) | Stop iterating on the wrapping-app side; jump to [`## debug`](#debug) layers 4 + 7. |
 
 The agent's rule: every state-changing action on the relay re-opens the
@@ -402,7 +402,7 @@ layers in order. The shape of the diagnosis:
    [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools),
    and apply the Socket Relay overlay in
    [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility).
-   Route to [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+   Route to [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
    if absent.
 2. **Relay-not-bound — port / socket layer (layer 2).** The relay
    process / container starts but cannot bind the host-side socket /
@@ -413,7 +413,7 @@ layers in order. The shape of the diagnosis:
    host-OS team and to
    [`doca-setup CAPABILITIES.md ## Safety policy`](../../doca-setup/CAPABILITIES.md#safety-policy);
    for the container-shape deployment, walk
-   [`doca-container-deployment ## debug`](../../services/doca-container-deployment/TASKS.md#debug)
+   [`doca-container-deployment ## debug`](../../doca-container-deployment/TASKS.md#debug)
    layer 5 (volume-mount) when the bind target is a host-path UDS
    mounted into the container.
 3. **Host-app-not-connecting (layer 3).** The relay is bound on its
@@ -441,7 +441,7 @@ layers in order. The shape of the diagnosis:
      processed?) before blaming any single layer.
    - If the DPU-side peer is a documented BlueField service container,
      walk
-     [`doca-container-deployment ## debug`](../../services/doca-container-deployment/TASKS.md#debug)
+     [`doca-container-deployment ## debug`](../../doca-container-deployment/TASKS.md#debug)
      to confirm the pod is `Running` and the ENTRYPOINT log is clean.
    - If the DPU-side peer is a comch-backed program, walk
      [`doca-comm-channel-admin TASKS.md ## debug`](../doca-comm-channel-admin/TASKS.md#debug)
@@ -456,7 +456,7 @@ layers in order. The shape of the diagnosis:
    relay's own message is ground truth; the fix is to re-run with the
    correct privileges per the public guide and the host-OS rules, not
    to bypass the check. Route container-shape permission issues to
-   [`doca-container-deployment ## debug`](../../services/doca-container-deployment/TASKS.md#debug)
+   [`doca-container-deployment ## debug`](../../doca-container-deployment/TASKS.md#debug)
    layer 5.
 6. **Version layer (layer 6).** The relay runs but its behavior
    disagrees with what the public guide on the screen describes — a
@@ -467,7 +467,7 @@ layers in order. The shape of the diagnosis:
    layer 2 end-to-end and apply the Socket Relay overlay in
    [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility);
    for the container-shape deployment, add the third anchor per
-   [`doca-container-deployment CAPABILITIES.md ## Version compatibility`](../../services/doca-container-deployment/CAPABILITIES.md#version-compatibility).
+   [`doca-container-deployment CAPABILITIES.md ## Version compatibility`](../../doca-container-deployment/CAPABILITIES.md#version-compatibility).
 7. **Cross-cutting layer (layer 7).** The relay is bound, the host
    application connects, the forwarding endpoint is verified reachable,
    the version four-way match passes — and the symptom remains. The
@@ -512,14 +512,14 @@ does not invent guidance:
   static-pod authoring)** ⇒ out of scope here. The container-shape
   deployment of the relay rides on the shared BlueField service
   container runtime documented in
-  [`doca-container-deployment`](../../services/doca-container-deployment/SKILL.md);
+  [`doca-container-deployment`](../../doca-container-deployment/SKILL.md);
   the pod-spec shape, image-pull procedure, static-pod manifests
   directory, and per-service config-file mount are owned by that skill.
   This skill names *that* the container shape is one of the three
   documented deployment shapes; the runtime contract belongs there.
 - **Installing DOCA on the host or BlueField target** ⇒ out of scope
   here. Route to
-  [`doca-setup ## install`](../../doca-setup/TASKS.md#install) (and
+  [`doca-setup ## install`](../../doca-setup/TASKS.md#configure) (and
   [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install)
   for the public NGC DOCA container path). The relay is shipped by
   the install; this skill does not own the install workflow.
@@ -562,11 +562,11 @@ the agent should:
 
 | Purpose (class) | Invocation (shape) | Owning step | Reads as healthy when … |
 | --- | --- | --- | --- |
-| Detect that the relay artifact is present on this side | The documented relay-presence probe on the chosen deployment shape — the documented binary location plus the `--help` flag on the installed CLI, or the documented image-list / image-inspect command for the container shape per [`doca-container-deployment ## Command appendix`](../../services/doca-container-deployment/TASKS.md#command-appendix) | [`## configure`](#configure) step 4; [`## debug`](#debug) layer 1 | The artifact reports its documented `--help` output (or the image-inspect returns the documented per-service tag); absence routes to [`doca-setup ## install`](../../doca-setup/TASKS.md#install). |
+| Detect that the relay artifact is present on this side | The documented relay-presence probe on the chosen deployment shape — the documented binary location plus the `--help` flag on the installed CLI, or the documented image-list / image-inspect command for the container shape per [`doca-container-deployment ## Command appendix`](../../doca-container-deployment/TASKS.md#command-appendix) | [`## configure`](#configure) step 4; [`## debug`](#debug) layer 1 | The artifact reports its documented `--help` output (or the image-inspect returns the documented per-service tag); absence routes to [`doca-setup ## install`](../../doca-setup/TASKS.md#configure). |
 | Confirm relay version against the DOCA fabric | The documented binary's own `--version` flag (per `--help`), cross-checked with `pkg-config --modversion doca-common` per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure) | [`## configure`](#configure) step 4; [`## test`](#test) cross-check + [`## debug`](#debug) layer 6 | Both strings agree under the four-way match in [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility); disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2). |
-| Bind the relay on its configured host-side endpoint | The documented relay-bind invocation on the chosen deployment shape — invocation shape comes from the public guide and the installed `--help`; for the container shape, the documented pod-spec drop per [`doca-container-deployment ## modify`](../../services/doca-container-deployment/TASKS.md#modify) step 6 | [`## run`](#run) step 2 | The relay reports its documented *bound / listening* signal against the configured socket / port / path; a bind failure routes to [`## debug`](#debug) layer 2. |
+| Bind the relay on its configured host-side endpoint | The documented relay-bind invocation on the chosen deployment shape — invocation shape comes from the public guide and the installed `--help`; for the container shape, the documented pod-spec drop per [`doca-container-deployment ## modify`](../../doca-container-deployment/TASKS.md#modify) step 6 | [`## run`](#run) step 2 | The relay reports its documented *bound / listening* signal against the configured socket / port / path; a bind failure routes to [`## debug`](#debug) layer 2. |
 | List the relay's current connection set | The documented connection-set inspection subcommand and / or log surface per [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability); the agent quotes the column names from `--help` on the installed binary, not from memory | [`## run`](#run) step 3 + [`## test`](#test) step 1; [`## debug`](#debug) layer 3 | Exit 0; the listing includes the host application client the operator expected, with the documented per-connection state for a healthy active client. |
-| Drive the round-trip probe end-to-end | A trivial host-application-side request whose expected response shape the operator already knows, cross-checked against the relay's connection-set inspection (row above) and the DPU-side terminator's own observability surface (per [`doca-comm-channel-admin TASKS.md ## run`](../doca-comm-channel-admin/TASKS.md#run) for a comch-backed terminator, or [`doca-container-deployment ## run`](../../services/doca-container-deployment/TASKS.md#run) for a service-container terminator) | [`## run`](#run) step 4 + [`## test`](#test) step 1 | All three observability surfaces (host-app-side, relay-side, DPU-side terminator) report the matching *byte in / byte out* events for the same round-trip; a blank surface routes to [`## debug`](#debug) layer 4. |
+| Drive the round-trip probe end-to-end | A trivial host-application-side request whose expected response shape the operator already knows, cross-checked against the relay's connection-set inspection (row above) and the DPU-side terminator's own observability surface (per [`doca-comm-channel-admin TASKS.md ## run`](../doca-comm-channel-admin/TASKS.md#run) for a comch-backed terminator, or [`doca-container-deployment ## run`](../../doca-container-deployment/TASKS.md#run) for a service-container terminator) | [`## run`](#run) step 4 + [`## test`](#test) step 1 | All three observability surfaces (host-app-side, relay-side, DPU-side terminator) report the matching *byte in / byte out* events for the same round-trip; a blank surface routes to [`## debug`](#debug) layer 4. |
 | Diff the with-relay path against a no-relay baseline | The same trivial round-trip from row above, re-run against the host application's pre-relay socket path (or a direct host connection to the DPU-side terminator if the deployment supports it); the relay is removed for the comparison run per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) | [`## test`](#test) step 3 | The host application's observed behavior matches between the with-relay and no-relay runs (response shape, latency order of magnitude, error rate); a divergence routes to [`## debug`](#debug) layer 4 + 6 before any state-changing operation. |
 | Route to the cross-cutting debug ladder | Capture the relay-side inspection + the host-application-side trace + the DPU-side terminator's view as one artifact bundle, then hand off per [`doca-debug TASKS.md ## debug`](../../doca-debug/TASKS.md#debug); cross-cutting env commands (`pkg-config --modversion`, `dmesg`, `mlxconfig -d <bdf> q`, representor enumeration) live in [`doca-debug TASKS.md ## Command appendix`](../../doca-debug/TASKS.md#command-appendix) and [`doca-setup TASKS.md ## Command appendix`](../../doca-setup/TASKS.md#command-appendix) | [`## debug`](#debug) layer 7 | The downstream debug ladder consumes the three-view artifact bundle as evidence; looping on bind / unbind / restart at this layer is explicitly the wrong move per the safety rule. |
 
@@ -592,7 +592,7 @@ Three cross-cutting rules for this appendix:
   and
   [`doca-setup TASKS.md ## Command appendix`](../../doca-setup/TASKS.md#command-appendix);
   the container-shape deployment runtime commands live in
-  [`doca-container-deployment TASKS.md ## Command appendix`](../../services/doca-container-deployment/TASKS.md#command-appendix);
+  [`doca-container-deployment TASKS.md ## Command appendix`](../../doca-container-deployment/TASKS.md#command-appendix);
   this appendix names only Socket Relay-specific invocations on top.
 
 ## Cross-cutting

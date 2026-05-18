@@ -61,7 +61,7 @@ continues.
 
 **Discovery shortcut.** When the host has a structured-tools
 helper installed (per
-[`doca-structured-tools-contract`](../doca-structured-tools-contract/SKILL.md#doca-env-json-schema)),
+[`doca-structured-tools-contract`](../doca-structured-tools-contract/SKILL.md#doca-env---json-schema)),
 `doca-env --json` returns all five sources in one JSON object with
 a `version.consistent` boolean that pre-computes the four-way
 match. Prefer this when present; fall back to the chain above

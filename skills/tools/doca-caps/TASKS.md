@@ -29,7 +29,7 @@ If the user is asking *"how do I configure `doca_caps`?"*, the
 question they almost certainly mean is one of:
 
 - *"How do I install DOCA so `doca_caps` shows up?"* → route to
-  [`doca-setup ## install`](../../doca-setup/TASKS.md#install). The
+  [`doca-setup ## install`](../../doca-setup/TASKS.md#configure). The
   binary is shipped with every DOCA install since 2.6.0; configuring
   is install.
 - *"How do I make `doca_caps` see device X?"* → not a configuration
@@ -56,7 +56,7 @@ external user is expected to compile, no build flags, no `meson` or
 Routing for nearby "build" questions:
 
 - *"The binary isn't there — do I need to build it?"* → no. Route to
-  [`doca-setup ## install`](../../doca-setup/TASKS.md#install). The
+  [`doca-setup ## install`](../../doca-setup/TASKS.md#configure). The
   fix is to install (or re-install) DOCA, or use the public NGC DOCA
   container per
   [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install).
@@ -210,7 +210,7 @@ layers in order. The shape of the diagnosis:
    (e.g. `pkg-config --modversion doca-common`,
    `cat /opt/mellanox/doca/applications/VERSION`) and that the
    version is ≥ 2.6.0. Route to
-   [`doca-setup ## install`](../../doca-setup/TASKS.md#install) if
+   [`doca-setup ## install`](../../doca-setup/TASKS.md#configure) if
    not.
 2. **Permission / driver layer.** Tool runs but cannot enumerate
    devices. Check that the underlying driver stack (`mlx5_core`, IB
@@ -226,7 +226,7 @@ layers in order. The shape of the diagnosis:
      `--device` mappings. Route to
      [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install)
      for the container path, or to
-     [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+     [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
      for hardware questions.
    - Fewer devices than expected: re-run without `--pci-addr` to
      confirm the scope is not the cause; check the install version
@@ -288,7 +288,7 @@ Three cross-cutting rules for this appendix:
 The four verbs below are not `doca_caps` work and should be routed
 out before the agent does any of them under this skill's name.
 
-- **install** ⇒ [`doca-setup ## install`](../../doca-setup/TASKS.md#install)
+- **install** ⇒ [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
   (and [`## no-install`](../../doca-setup/TASKS.md#no-install) for
   the public NGC DOCA container path). `doca_caps` is shipped by
   the install; this skill does not own the install workflow.

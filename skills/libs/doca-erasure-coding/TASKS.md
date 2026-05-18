@@ -218,6 +218,15 @@ Steps the agent should walk the user through:
 
 ## test
 
+> **Performance harness routing.** For *throughput / latency
+> measurement* on the configured EC context (or for cross-library
+> comparison against the other DOCA crypto primitives), route the
+> user to [`doca-bench TASKS.md ## test`](../../tools/doca-bench/TASKS.md#test)
+> — `doca-bench` is the cross-library performance harness with
+> documented warm-up / steady-state / outlier semantics, and it
+> explicitly supports Erasure-Coding. The iteration loop below stays
+> the *correctness* harness; `doca-bench` is the *performance* harness.
+
 Goal: prove the configured EC context can actually produce
 correct parity (create), correctly reconstructed blocks
 (recover), and correctly refreshed parity (update), at the

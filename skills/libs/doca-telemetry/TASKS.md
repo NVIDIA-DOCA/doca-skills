@@ -105,7 +105,7 @@ Steps the agent should walk the user through:
    [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
    instead; if the user wanted plain stdout / structured-log
    shipping from their own program, use
-   [`doca-log`](../doca-log/SKILL.md); if the source is a
+   `doca-log`; if the source is a
    non-DOCA program, use a Prometheus client library or
    OpenTelemetry collector directly. Picking the collector
    *for* the user when the path-selection rule rules it out

@@ -13,7 +13,7 @@ jump to [TASKS.md](TASKS.md). For the canonical DOCA
 version-handling rules that this skill layers an Ethernet overlay
 on top of, see [`doca-version`](../../doca-version/SKILL.md). For
 the steering side (which Flow rule sends which packet to which
-RX queue), defer to [`doca-flow`](../../doca-flow/SKILL.md);
+RX queue), defer to [`doca-flow`](../doca-flow/SKILL.md);
 DOCA Ethernet is the *queue* surface, not the *steering*
 surface.
 
@@ -157,7 +157,7 @@ above is the cause**. `_AGAIN` is the only one that wants a
 retry (after `doca_pe_progress()`); the others want
 investigation, not retry. And *"no packets arriving"* is
 **never** a `DOCA_ERROR_*` — it is the steering side; route to
-[`doca-flow`](../../doca-flow/SKILL.md) or to the
+[`doca-flow`](../doca-flow/SKILL.md) or to the
 promiscuous-mode workaround in
 [`doca-setup`](../../doca-setup/SKILL.md), not to the Ethernet
 error taxonomy.
@@ -205,6 +205,8 @@ flavor) see
 
 ## Safety policy
 
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+
 DOCA Ethernet's safety surface is **access, port state, and
 steering**. The single most common first-app failure is *"my
 queue is up but no packets arrive"* — and the agent's job is to
@@ -219,7 +221,7 @@ DOCA Ethernet setup:
 | --- | --- | --- | --- |
 | Device access | The `doca_dev` was opened against a port / representor / SF the user has permission to use (typically requires sudo or `mlnx`-group membership) | `id` for group membership; the open call failing with `DOCA_ERROR_NOT_PERMITTED` is the runtime symptom | [`doca-setup`](../../doca-setup/SKILL.md) for the env-side; do not modify the program |
 | Port up | The underlying port reports linkup at the driver layer (`devlink dev show` reports `state: PORT_ACTIVE`; `ip link` shows the device `UP,LOWER_UP`) | `devlink dev show`; `ip -j link show <dev>`; `ethtool <dev>` | [`doca-setup CAPABILITIES.md ## Capabilities and modes`](../../doca-setup/CAPABILITIES.md#capabilities-and-modes) port-bring-up; do not modify the program |
-| Traffic actually reaches the RX queue | Either a DOCA Flow rule steers matching packets to this `doca_eth_rxq`, OR the underlying interface is in promiscuous mode at the kernel layer so every packet on the wire reaches the queue | Inspect the flow rule programmed for this queue (or the absence of one); `ip link show <dev>` reports the `PROMISC` flag if promiscuous mode is on | [`doca-flow`](../../doca-flow/SKILL.md) for the steering side (canonical); [`doca-setup`](../../doca-setup/SKILL.md) for the promiscuous-mode workaround (expedient first-run path only) |
+| Traffic actually reaches the RX queue | Either a DOCA Flow rule steers matching packets to this `doca_eth_rxq`, OR the underlying interface is in promiscuous mode at the kernel layer so every packet on the wire reaches the queue | Inspect the flow rule programmed for this queue (or the absence of one); `ip link show <dev>` reports the `PROMISC` flag if promiscuous mode is on | [`doca-flow`](../doca-flow/SKILL.md) for the steering side (canonical); [`doca-setup`](../../doca-setup/SKILL.md) for the promiscuous-mode workaround (expedient first-run path only) |
 
 **RX and TX queues are independent — do not share lifecycles.**
 A `doca_eth_rxq` and a `doca_eth_txq` each have their own

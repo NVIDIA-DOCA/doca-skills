@@ -153,7 +153,7 @@ Steps the agent should walk the operator through (in order):
      agent quotes the tool's own documented completion criterion.
    - BFB reflash: the BFB's documented post-flash boot + BlueField
      cold reboot; every hosted service container is re-deployed per
-     [`doca-container-deployment ## run`](../services/doca-container-deployment/TASKS.md#run).
+     [`doca-container-deployment ## run`](../doca-container-deployment/TASKS.md#run).
    - BlueField mode flip: cold power cycle + post-reboot
      verification of the new personality per the matching per-
      artifact skill.
@@ -295,7 +295,7 @@ skill.
      not invent a firmware version.
    - BFB reflash → reflash to the previously-captured BFB level and
      re-deploy every hosted service container per
-     [`doca-container-deployment ## run`](../services/doca-container-deployment/TASKS.md#run).
+     [`doca-container-deployment ## run`](../doca-container-deployment/TASKS.md#run).
      The captured baseline names the BFB level; the agent does not
      invent it.
    - Kernel boot parameter change → revert the host's kernel

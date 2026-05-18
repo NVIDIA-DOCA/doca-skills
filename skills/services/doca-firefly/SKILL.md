@@ -19,7 +19,7 @@ on the BlueField yet, route to
 [`doca-setup`](../../doca-setup/SKILL.md) first. If the user's
 real question is *"I have a Rivermax SMPTE workload and the docs say I
 need PTP"*, the right pairing is this skill **plus**
-[`doca-rivermax`](../../doca-rivermax/SKILL.md) — Firefly disciplines
+[`doca-rmax`](../../libs/doca-rmax/SKILL.md) — Firefly disciplines
 the PHC; Rivermax reads the disciplined time.
 
 ## Example questions this skill answers well
@@ -63,7 +63,7 @@ worked example is one instance.
   + the pairing step in
   [`TASKS.md ## configure`](TASKS.md#configure), which routes the
   Rivermax side to
-  [`doca-rivermax`](../../doca-rivermax/SKILL.md) and refuses to
+  [`doca-rmax`](../../libs/doca-rmax/SKILL.md) and refuses to
   collapse the two services into one.
 - **"My Firefly container starts but PTP never reaches
   `SLAVE` / `MASTER` state — was it role, domain, profile, or
@@ -242,7 +242,7 @@ and pull requests should not add:
   before-backend, env-before-program) remains useful when Firefly
   reports an error that originated in the container runtime or in
   a DOCA library it called.
-- [`doca-rivermax`](../../doca-rivermax/SKILL.md) — the canonical
+- [`doca-rmax`](../../libs/doca-rmax/SKILL.md) — the canonical
   paired workload. SMPTE ST 2110 Rivermax streams depend on a
   Firefly-disciplined PHC; Firefly is the time-source side and
   Rivermax is the timing-precise data-plane side. The two skills

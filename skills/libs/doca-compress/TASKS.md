@@ -202,6 +202,15 @@ correct encoded / decoded output at the user's intended
 throughput, on the user's hardware, and that the task selection,
 buffer sizing, and permission set were right.
 
+> **Performance harness routing.** For *throughput / latency
+> measurement* on the configured Compress context (or for cross-library
+> comparison against the other DOCA crypto primitives), route the
+> user to [`doca-bench TASKS.md ## test`](../../tools/doca-bench/TASKS.md#test)
+> — `doca-bench` is the cross-library performance harness with
+> documented warm-up / steady-state / outlier semantics, and it
+> explicitly supports Compress. The iteration loop below stays the
+> *correctness* harness; `doca-bench` is the *performance* harness.
+
 This is **a loop, not a one-shot pass.** Each iteration narrows
 either the task type, the buffer sizing, the permission set, or
 the path-selection assumption. The loop terminates when either

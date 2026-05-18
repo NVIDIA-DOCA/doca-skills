@@ -73,6 +73,137 @@ correct first move is to walk them through capability discovery in
 [TASKS.md ## configure](TASKS.md#configure) — not to guess a working pipe
 spec.
 
+## flow-ct
+
+DOCA Flow Connection Tracking (pkg-config `doca-flow-ct`) is the
+**COMPANION** library that EXTENDS the stateless steering surface
+in [`## Capabilities and modes`](#capabilities-and-modes) above
+with hardware-accelerated 5-tuple connection tracking, aging
+timers, and NAT-aware actions (SNAT / DNAT) on tracked
+connections. It is NOT a replacement for doca-flow; it attaches
+a per-port `doca_flow_ct` context on top of an already-up
+doca-flow port and wraps existing pipes with CT semantics.
+
+**Layering rule — doca-flow first, CT on top — non-negotiable.**
+A `doca_flow_ct` context cannot be created against a port that
+has not been brought up via doca-flow, and a CT entry cannot be
+added before BOTH the wrapped doca-flow pipe AND the CT context
+have started. When the user has not yet brought doca-flow up on
+the target port, route to
+[`TASKS.md ## configure`](TASKS.md#configure) FIRST. Do NOT
+propose that CT replaces or rewires the doca-flow setup — CT
+extends it. An agent that treats `doca-flow-ct` as a standalone
+library — or recommends rebuilding the doca-flow setup from
+scratch to add CT — has the layering wrong for every version of
+CT.
+
+**Path selection — stateless vs CT vs Linux kernel conntrack.**
+
+| User intent | Right artifact |
+| --- | --- |
+| Stateless steering only (match-and-forward, no per-connection state) | This skill's stateless surface in [`## Capabilities and modes`](#capabilities-and-modes) alone |
+| Hardware-accelerated stateful firewall offload, hardware NAT gateway, per-connection telemetry tied to flow rules, conntrack-aware dataplane actions | `doca-flow-ct` (this section) on top of doca-flow |
+| Software / kernel-side conntrack is acceptable (low connection rate, host CPU has headroom) | Linux netfilter (`nf_conntrack`, `iptables -m state`, `nft ct`) — different code path, out of scope here. Do NOT use `doca-flow-ct` as a wrapper around kernel conntrack |
+| Traffic dominated by one-packet flows (CT entries would churn faster than aging can keep up) | This skill's stateless surface alone — CT entries have a non-zero per-flow cost |
+
+**The per-port `doca_flow_ct` context — one per tracked port.**
+
+| Object | Lifetime | What it owns |
+| --- | --- | --- |
+| `doca_flow_ct` | Per doca-flow port the user wants stateful tracking on; created against an already-up port; lifetime is a subset of the port's (start after port start, stop before port stop) | The CT bookkeeping for that port: the CT entry table, the aging-timer configuration, the registration of CT-aware pipe builders that wrap the port's pipes; `doca_flow_ct_cap_*` for what this device supports on the CT axis |
+
+A host driving CT on more than one doca-flow port needs ONE
+`doca_flow_ct` per port — there is no *"global CT context"*. Ask
+which port (which doca-flow port handle) the user intends to
+track BEFORE recommending any `doca_flow_ct_*` call.
+
+**The 5-tuple CT match — the only match the agent should quote
+as default.**
+
+| Match field | What it carries |
+| --- | --- |
+| Source IP (v4 / v6) | The connection's source address — half of the connection identity |
+| Destination IP (v4 / v6) | The connection's destination address — the other half |
+| Source port | TCP / UDP source port — separates concurrent flows from the same source host |
+| Destination port | TCP / UDP destination port — separates concurrent flows to the same destination host |
+| Protocol | IP protocol number (TCP=6, UDP=17, …) — the same (IP, port, IP, port) tuple may legitimately exist for different protocols |
+| VRF / VNI (overlay only) | Routing-domain identifier (VRF) or overlay network identifier (VNI) for VXLAN / GENEVE / … — required when the same 5-tuple may exist in multiple overlay tenants |
+
+If the user asks for a CT match that is *less* than 5-tuple
+(e.g. *"track by source IP only"*), that is almost always a
+stateless steering question dressed up as CT — route back to
+[`## Capabilities and modes`](#capabilities-and-modes). If they
+ask for *more*, confirm via the cap-query before promising it.
+
+**CT-aware actions — state-tracking, NAT, overlay-aware.**
+
+| Action class | Capability axis to check |
+| --- | --- |
+| State-tracking only (new → established → related → closed) | Base CT capability — what every CT-supporting device has |
+| SNAT (rewrite source address / port; reverse is symmetric) | `doca_flow_ct_cap_*` SNAT axis |
+| DNAT (rewrite destination address / port; reverse is symmetric) | `doca_flow_ct_cap_*` DNAT axis (separate from SNAT — check independently) |
+| SNAT + DNAT combined (full-cone, hairpin, double NAT) | `doca_flow_ct_cap_*` combined axis — may be supported even when each individually is, but confirm; do not assume |
+| Overlay-aware CT (inner 5-tuple over VXLAN / GENEVE / …) | Per-overlay axis — VXLAN support does NOT imply GENEVE support |
+
+**Capability discovery — multi-axis, every time.** Before sizing
+any CT table, choosing an aging timer, attempting a NAT
+translation, or attaching CT over an overlay, call the matching
+`doca_flow_ct_cap_*` query against the active `doca_devinfo`.
+The agent must NEVER quote only one axis (typically the flow
+ceiling) and silently assume the rest:
+
+| Axis | Why ask separately |
+| --- | --- |
+| Max concurrent CT flows | Sizing for more flows than the device supports returns `DOCA_ERROR_FULL` at the worst possible time — under load |
+| Aging-timer range (min / max / granularity) | A timer outside the advertised range returns `DOCA_ERROR_INVALID_VALUE` at configure; under-provisioning causes spurious disconnects, over-provisioning wastes table space |
+| NAT variants (SNAT / DNAT / combined) | Requesting an unsupported variant returns `_NOT_SUPPORTED` at entry add; NAT support is NOT a single axis |
+| Overlay encapsulations for CT | Overlay support in stateless doca-flow does NOT imply CT support over that overlay — the CT layer has its own per-overlay axis |
+
+**Version pairing — doca-flow-ct rides the doca-flow version.**
+`pkg-config --modversion doca-flow-ct` MUST equal
+`pkg-config --modversion doca-flow`, AND both MUST equal
+`doca_caps --version`. A partial install (one `.pc` upgraded
+without the other) is the canonical *"my CT entry returns
+`_DRIVER` on a device the cap-query says supports it"* root
+cause. Route disagreement to
+[`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug)
+layer 2 BEFORE any CT-layer diagnosis.
+
+**CT-specific error overlay.** Add to the cross-library taxonomy
+in [`## Error taxonomy`](#error-taxonomy):
+
+| Error | CT-specific cause |
+| --- | --- |
+| `DOCA_ERROR_BAD_STATE` | Layering / lifecycle violation: a CT-layer call before the underlying doca-flow port reports started, OR a CT entry add before `doca_ctx_start()` on the `doca_flow_ct`, OR tearing down the doca-flow port while a CT context is still attached and running |
+| `DOCA_ERROR_NOT_SUPPORTED` | NAT variant / overlay / aging range / CT feature is unsupported on this device + firmware combo. Re-run the matching `doca_flow_ct_cap_*`; surface BOTH which DOCA version is installed AND which CT axis the device does not advertise. Do not retry the same spec on the same device |
+| `DOCA_ERROR_FULL` (or `_NO_MEMORY`) | CT entry table at capacity. Read the per-CT-entry counters to identify idle / stale entries; either wait for aging to evict them, evict explicitly, or — if the workload genuinely needs more concurrent flows than the device supports — re-run the cap query for the max-concurrent-flows axis and consider whether the workload fits this device at all |
+| `DOCA_ERROR_INVALID_VALUE` | Malformed 5-tuple (zero protocol, mismatched IP versions on src / dst), NAT translation that conflicts with an existing entry (two entries cannot map the same translated 5-tuple to two different connections), unsupported overlay configuration, or aging timer outside the cap-advertised range |
+| `DOCA_ERROR_IN_USE` | CT entry remove while the entry is still being referenced by in-flight traffic. Quiesce the affected 5-tuple (or wait for the aging timer to evict the entry naturally), then retry. Do NOT force-remove — doing so can corrupt the per-connection state on the wire |
+
+**Safety overlay.** Inherits this skill's existing
+[`## Safety policy`](#safety-policy) plus three CT-specific rules:
+
+1. **Aging-table sizing.** The cap-advertised max concurrent
+   flows is the ceiling; the user's expected peak (not average)
+   concurrent-flow count is the input. If the estimate exceeds
+   the ceiling, surface the device-fit gap — do NOT over-commit
+   the table. The aging timer must fit BOTH the cap-advertised
+   range AND the granularity.
+2. **Do not invent NAT translations to resolve a conflict.**
+   `DOCA_ERROR_INVALID_VALUE` on an entry add with a NAT action
+   is almost always a policy bug (two NAT rules that should not
+   coexist). Surface the conflict to the user; the policy layer
+   is the right place to fix it.
+3. **This skill does not define a firewall policy.**
+   doca-flow-ct *tracks* connections and *applies* the actions
+   the user asks for; it does NOT implement policy. When the
+   user asks *"what rules should I write"*, refuse to invent a
+   policy and route to their networking / security expertise.
+
+For the configure / build / modify / run / test / debug shape
+specific to CT, see
+[`TASKS.md ## flow-ct`](TASKS.md#flow-ct).
+
 ## Version compatibility
 
 For the canonical DOCA version-detection chain, the four-way match rule, NGC container semantics, and the headers-win-over-docs rule, see [`doca-version`](../../doca-version/SKILL.md). The body lives there; this skill does not duplicate it.
@@ -131,6 +262,8 @@ canonical order is *counters first → statistics second → trace dump
 third*. Walking the order saves redundant questions.
 
 ## Safety policy
+
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
 
 Programming the BlueField steering hardware is **not** a free-form
 operation. Wrong specs can take traffic offline; wrong actions can drop

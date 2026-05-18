@@ -104,7 +104,7 @@ the agent should distinguish, in escalating order:
 1. **Tool-not-installed.** `doca_caps` does not exist at
    `/opt/mellanox/doca/tools/doca_caps`. Cause: DOCA is not installed
    on this host, the install is < 2.6.0, or the path was changed by
-   the operator. Routing: [`doca-setup ## install`](../../doca-setup/TASKS.md#install).
+   the operator. Routing: [`doca-setup ## install`](../../doca-setup/TASKS.md#configure).
 2. **Permission / driver layer.** Tool runs but cannot enumerate
    devices because the underlying driver stack (`mlx5_core`, IB
    stack, etc.) is not loaded, the user lacks the privileges the
@@ -160,6 +160,8 @@ log levels, `doca_log_*`, `DOCA_LOGGER_*` env vars) see
 [`doca-programming-guide CAPABILITIES.md ## Observability`](../../doca-programming-guide/CAPABILITIES.md#observability).
 
 ## Safety policy
+
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
 
 `doca_caps` is the **safest tool the bundle prescribes**:
 

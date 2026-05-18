@@ -15,7 +15,7 @@ is *what can a DOCA Ethernet queue express* on this version. If
 the user has not installed DOCA yet, route to
 [`doca-setup`](../../doca-setup/SKILL.md) first. If the user is
 asking *"how do I get packets to land on my RX queue at all"*, the
-answer lives in [`doca-flow`](../../doca-flow/SKILL.md) — DOCA
+answer lives in [`doca-flow`](../doca-flow/SKILL.md) — DOCA
 Ethernet is the *queue* surface; DOCA Flow is the *steering*
 surface, and they are independent libraries.
 
@@ -55,7 +55,7 @@ instance.
   + the env-prep checklist in
   [`TASKS.md ## configure`](TASKS.md#configure) step 1, which
   routes the steering side to
-  [`doca-flow`](../../doca-flow/SKILL.md) and the
+  [`doca-flow`](../doca-flow/SKILL.md) and the
   promiscuous-mode side to
   [`doca-setup`](../../doca-setup/SKILL.md).
 - **"Is this Ethernet capability available on my device + my
@@ -133,9 +133,9 @@ work, in any language. Concretely:
 
 Do **not** load this skill for general DOCA orientation, install
 of DOCA itself, flow-rule programming (use
-[`doca-flow`](../../doca-flow/SKILL.md)), host ↔ DPU control
-messaging (use [`doca-comch`](../../doca-comch/SKILL.md)), or
-RDMA data movement (use [`doca-rdma`](../../doca-rdma/SKILL.md)).
+[`doca-flow`](../doca-flow/SKILL.md)), host ↔ DPU control
+messaging (use [`doca-comch`](../doca-comch/SKILL.md)), or
+RDMA data movement (use [`doca-rdma`](../doca-rdma/SKILL.md)).
 For DOCA documentation orientation, use
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 
@@ -207,7 +207,7 @@ contain — and pull requests should not add:
 Both companion files cross-link to each other,
 [`doca-version`](../../doca-version/SKILL.md) for the canonical
 version-handling rules,
-[`doca-flow`](../../doca-flow/SKILL.md) for the steering side
+[`doca-flow`](../doca-flow/SKILL.md) for the steering side
 that the RX queue depends on, and
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
 whenever the right answer is "look it up in the public docs or
@@ -241,7 +241,7 @@ guidance".
   universal lifecycle, the cross-library `DOCA_ERROR_*`
   taxonomy, and the program-side debug order. This skill layers
   Ethernet specifics on top.
-- [`doca-flow`](../../doca-flow/SKILL.md) — the steering surface
+- [`doca-flow`](../doca-flow/SKILL.md) — the steering surface
   that decides which packets land on which `doca_eth_rxq`. DOCA
   Ethernet does *not* program steering itself; an empty RX queue
   almost always means a missing or wrong Flow rule, not an
