@@ -145,7 +145,12 @@ two companion files:
   and the safety policy that gates HW programming.
 - `TASKS.md` — step-by-step workflows for the six in-scope Flow verbs:
   `configure`, `build`, `modify`, `run`, `test`, `debug`. Plus a
-  `Deferred task verbs` block that points install/deploy/rollback questions
+  `## flow-ct` rollback overlay (stateful-CT teardown with
+  `doca_flow_pipe_dump` snapshot) and a `## rollback` overlay for
+  non-CT pipeline-edit-class changes (VLAN push, encap, decap,
+  modify-header, mirror, sample, NAT-without-CT, hairpin attach) —
+  both invoked from the deploy-loop bridge on non-green smoke. Plus
+  a `Deferred task verbs` block that points install/deploy questions
   at the right next skill.
 
 The skill assumes a host where DOCA is already installed at the standard

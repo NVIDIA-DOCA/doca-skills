@@ -350,6 +350,91 @@ cross-cutting runtime to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug).
 
+**5-phase universal debug-loop instantiation (Compress).** Layer
+identification above is phase 1 of the
+[universal debug-loop contract](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract).
+The agent MUST walk the remaining four phases on every Compress
+debug answer before declaring done:
+
+1. **Layer identification** — above (capability / lifecycle /
+   data-path).
+2. **Triple capture (READ-ONLY).** Capture (a) capability map:
+   `doca_compress_cap_task_compress_deflate_is_supported(devinfo)`
+   + `doca_compress_cap_*` max buffer / algorithm support on the
+   actual devinfo, (b) submitted-task vs completed-task counters
+   from `doca_pe_progress` callback log, (c) DOCA log at
+   `DOCA_LOG_LEVEL=DEBUG` for the offending task with the
+   request / response buffer addresses. The triple is the
+   rollback target.
+3. **Single-variable mutation SMALLER than the original
+   change.** Examples: shrink the input buffer to a single
+   compressible payload (not the production batch); switch
+   `doca_mmap` to a fresh pinned region (not the production
+   pool); reduce parallelism to one outstanding task (not the
+   pipeline depth). Larger mutations void the experiment.
+4. **Re-capture and compare.** Re-run the triple; the
+   request/response counter diff IS the evidence.
+5. **Exit with named green signal OR escalate.** Green = one
+   round-trip (compress → decompress) returns bytes-equal at
+   the source. If two consecutive iterations don't change
+   anything, escalate via the layer route table above with the
+   captured triple.
+
+## rollback
+
+Compress contexts are stateful (started context + registered
+mmap regions + in-flight tasks on the progress engine) and the
+agent's failure mode is to leave in-flight tasks dangling on a
+context that is being torn down, returning
+`DOCA_ERROR_BAD_STATE` on the next program run. The
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer; this is the
+Compress instantiation.
+
+**Snapshot before mutate.** Before any change-recommending
+Compress answer, capture (a) the started-context registration
+map (mmap region IDs + task-type conf flags from `## configure`
+step 3), (b) the outstanding-task count from
+`doca_pe_progress`, and (c) the input/output buffer ownership
+list. The triple IS the rollback target.
+
+1. **Drain outstanding tasks FIRST.** Walk
+   `doca_pe_progress` until the outstanding-task counter is
+   zero. Do NOT submit new tasks after rollback intent is
+   declared. If the drain stalls (counter not decrementing
+   within the bounded debug-loop window), fire the
+   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger)
+   on the stalled-drain symptom before continuing the rollback.
+2. **`doca_ctx_stop` on the Compress context.** Returns
+   `DOCA_ERROR_BAD_STATE` if step 1 was skipped — that is
+   diagnostic, not a retry trigger; re-walk step 1 with a
+   higher-resolution drain log.
+3. **Unregister mmap regions in reverse-register order.**
+   `doca_mmap_destroy` on every region created with
+   `doca_mmap_create_*`; the underlying host buffers may be
+   freed after this step.
+4. **Destroy the Compress context.** `doca_compress_destroy`.
+   The underlying `doca_dev` remains valid and must not be
+   torn down by this step.
+5. **Re-verify with the shipped round-trip smoke.** Re-run
+   the round-trip from [`## test`](#test) step 1 against a
+   fresh context to confirm the device + driver path is
+   intact post-rollback. If the smoke does not return
+   bytes-equal, the rollback corrupted device state —
+   surface as a residual gap, do NOT retry.
+6. **Document the rollback verb in the verification contract
+   preconditions block.** The step 1 line for a Compress add
+   reads: *"the rollback path is the five-step reversal in
+   [`## rollback`](#rollback); the agent has captured the
+   started-context registration map and outstanding-task
+   count."* Without that line, the contract is incomplete
+   and the agent is NOT eligible to declare done.
+
+The rollback is bounded — on the second non-green re-verify at
+step 5, the agent MUST surface the unresolved residual gap
+instead of recommending another Compress retry.
+
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are

@@ -319,6 +319,100 @@ cross-cutting runtime to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug).
 
+**5-phase universal debug-loop instantiation (Apsh).** Layer
+identification above is phase 1 of the
+[universal debug-loop contract](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract).
+The agent MUST walk the remaining four phases on every Apsh
+debug answer before declaring done:
+
+1. **Layer identification** — above (PCIe path / symbol map /
+   lifecycle / cap-query).
+2. **Triple capture (READ-ONLY).** Capture (a) the configured
+   `doca_apsh_system` shape: PCIe path, host OS type, symbol
+   map filename + sha, (b) the capability set the host kernel
+   actually exposes via `doca_apsh_cap_*` against the active
+   `doca_devinfo`, (c) DPU-side trace at
+   `DOCA_LOG_LEVEL=DEBUG` for the offending enumerator call.
+   The triple is the rollback target.
+3. **Single-variable mutation SMALLER than the original
+   change.** Examples: enumerate a single known-running host
+   process by PID (not the full tree); switch the symbol map
+   to the one shipped under the public guide's reference set
+   (not a custom map); flip the apsh_system to a
+   known-quiescent host (not the production target). Larger
+   mutations void the experiment.
+4. **Re-capture and compare.** Re-run the triple; the
+   enumerator-returned-PID-list diff IS the evidence.
+5. **Exit with named green signal OR escalate.** Green = the
+   known-target PID appears in the enumerator output AND the
+   process trace shows the `doca_apsh_system` reached
+   `RUNNING`. If two consecutive iterations don't change
+   anything, the cause is below Apsh (host symbol map
+   mismatch / mode flip / firmware) — escalate via the layer
+   route table above with the captured triple.
+
+## rollback
+
+Apsh contexts are stateful (apsh_system context + loaded symbol
+map + DPU-side host-memory-access path) and a misconfigured
+configure → start sequence can leave the DPU holding a stale
+view of host memory that surfaces as `DOCA_ERROR_BAD_STATE` on
+the next enumerator call. The
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer; this is the
+Apsh instantiation. Mode-flip rollback (if the DPU was flipped
+to expose host memory) routes additionally through
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md).
+
+**Snapshot before mutate.** Before any change-recommending Apsh
+answer, capture (a) the `doca_apsh_system` configuration
+(PCIe path, OS type, symbol map filename + sha), (b) the
+pre-Apsh DPU mode and BFB version
+(via [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+binding stanza), and (c) the apsh-related kernel modules
+loaded on DPU (`lsmod | grep <apsh-related>`). The triple IS
+the rollback target.
+
+1. **Stop enumeration FIRST.** Any in-flight enumerator call
+   (`doca_apsh_processes_get` and friends) must return before
+   `doca_ctx_stop`. Do NOT start new enumerator calls after
+   rollback intent is declared.
+2. **`doca_ctx_stop` on the apsh_system.** Returns
+   `DOCA_ERROR_BAD_STATE` if step 1 was skipped — diagnostic,
+   not a retry trigger; re-walk step 1.
+3. **Unload the symbol map.** If the symbol map was loaded
+   via `doca_apsh_sys_os_symbol_map_set` to a DPU-side path,
+   the underlying file remains; if the loader allocated DPU
+   memory, free it in reverse-allocate order. The symbol map
+   file itself stays on disk for the next Apsh run.
+4. **Destroy the apsh_system context.**
+   `doca_apsh_system_destroy` + `doca_apsh_destroy`. The
+   underlying `doca_dev` remains valid.
+5. **Re-verify DPU mode and BFB are unchanged.** Re-run the
+   binding stanza from
+   [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+   (BFB version + mode); if mode was flipped earlier in the
+   change-recommending answer, the mode-flip rollback fires
+   per
+   [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+   discipline (NOT silently inside this rollback — the agent
+   surfaces it as an explicit follow-up step).
+6. **Document the rollback verb in the verification contract
+   preconditions block.** The step 1 line for an Apsh add
+   reads: *"the rollback path is the five-step reversal in
+   [`## rollback`](#rollback); the agent has captured the
+   apsh_system configuration, pre-Apsh DPU mode, and loaded
+   kernel module list. Mode-flip rollback (if any) routes to
+   [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)."*
+   Without that line, the contract is incomplete and the
+   agent is NOT eligible to declare done.
+
+The rollback is bounded — on the second non-green re-verify at
+step 5 (or any mode-flip residual), the agent MUST surface the
+unresolved residual gap instead of recommending another Apsh
+retry.
+
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are

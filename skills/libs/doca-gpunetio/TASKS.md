@@ -338,6 +338,96 @@ cross-cutting runtime to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug).
 
+**5-phase universal debug-loop instantiation (GPUNetIO).** Layer
+identification above is phase 1 of the
+[universal debug-loop contract](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract).
+The agent MUST walk the remaining four phases on every GPUNetIO
+debug answer before declaring done:
+
+1. **Layer identification** — above (RX / lifecycle / driver).
+2. **Triple capture (READ-ONLY).** Capture (a) `doca_eth_rxq`
+   parent state via `doca_caps --list-devs` and
+   `ethtool -S <netdev>` (rx queue counters), (b) DOCA log lines
+   at `DOCA_LOG_LEVEL=DEBUG` for the offending submit / drain,
+   (c) GPU-side state via `nvidia-smi -q` + `cuda-memcheck`
+   (or `compute-sanitizer`) on the persistent kernel. Capture
+   ALL THREE before mutating; the triple is the rollback target.
+3. **Single-variable mutation SMALLER than the original
+   change.** Examples: drop the kernel's per-iteration drain
+   width by half (not refactor to per-packet); register one
+   extra buffer (not the full pool); switch one queue to the
+   `doca-eth` smoke sample (not the production topology).
+   Larger mutations void the experiment.
+4. **Re-capture and compare.** Re-run the triple from phase 2;
+   diff against the baseline. The compare diff IS the evidence,
+   not the agent's prose interpretation.
+5. **Exit with named green signal OR escalate.** Green = the
+   specific counter / log line / GPU state the bug was
+   negating. Examples: `ethtool -S` `rx_packets` increments AND
+   GPU buffer holds the bytes; no `compute-sanitizer` errors;
+   stop-flag termination clean. If two consecutive iterations
+   don't change anything, the cause is below GPUNetIO — escalate
+   to [`doca-debug TASKS.md ## debug`](../../doca-debug/TASKS.md#debug)
+   with the captured triple.
+
+## rollback
+
+GPUNetIO contexts are stateful (persistent kernel + GPU buffer
+registration + doca-eth queue) and the agent's failure mode is
+to leave half-registered GPU buffers behind after a botched
+configure → start sequence. The
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer; this is the
+GPUNetIO instantiation.
+
+**Snapshot before mutate.** Before any change-recommending
+GPUNetIO answer, capture the GPU-side allocation map (`nvidia-smi
+-q -d MEMORY` + `cudaGetDeviceProperties`), the doca-eth queue
+attachment map (`doca_caps --list-devs` + the eth RXQ identity),
+and the persistent-kernel stop-flag location. The triple IS the
+rollback target.
+
+1. **Signal the persistent kernel to drain and stop FIRST.**
+   Flip the host-side termination flag from
+   [`## modify`](#modify) slot 6 *before* any context destroy.
+   `cudaDeviceSynchronize()` until the kernel returns; if it
+   does not return within the expected drain window, the kernel
+   is hung — that is the
+   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger)
+   trigger, not a rollback trigger; fire the debug-loop on the
+   hung-kernel symptom before continuing the rollback.
+2. **Unregister GPU buffers in reverse-register order.**
+   `doca_buf_arr_destroy` on every array created with
+   `doca_buf_arr_create_*`. Buffers MUST be unregistered before
+   `cudaFree`; the reverse order is non-negotiable per
+   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
+3. **Stop and destroy the GPUNetIO context.** `doca_ctx_stop`
+   on the `doca_gpu` context, then `doca_gpu_destroy`. The
+   parent doca-eth RXQ remains valid and must not be torn down
+   by this step.
+4. **`cudaFree` the underlying GPU allocations.** Only after the
+   DOCA-side unregister landed clean. Skipping this step leaks
+   GPU memory at process exit and surfaces as
+   `CUDA_ERROR_LAUNCH_FAILED` on the next program run with the
+   same NUMA-pinned GPU.
+5. **Re-verify the doca-eth parent is intact.** Re-run the
+   eth RXQ smoke from [`doca-eth TASKS.md ## test`](../doca-eth/TASKS.md#test)
+   to confirm the parent queue still receives packets at the
+   pre-GPUNetIO rate. If not, the GPUNetIO rollback corrupted
+   the parent — that is a bug to surface, not a retry trigger.
+6. **Document the rollback verb in the verification contract
+   preconditions block.** The step 1 line for a GPUNetIO add
+   reads: *"the rollback path is the five-step reversal in
+   [`## rollback`](#rollback); the agent has captured the GPU
+   allocation map and persistent-kernel stop-flag location."*
+   Without that line, the contract is incomplete and the agent
+   is NOT eligible to declare done.
+
+The rollback is bounded — on the second non-green re-verify at
+step 5, the agent MUST surface the unresolved residual gap
+instead of recommending another GPUNetIO retry.
+
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are

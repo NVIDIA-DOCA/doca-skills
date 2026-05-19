@@ -89,13 +89,15 @@ The agent MUST:
 
 Every answer that recommends a change (build, deploy, configure, modify) MUST end with the **5-step universal verification contract** defined in [`doca-setup CAPABILITIES.md ## Universal verification contract`](skills/doca-setup/CAPABILITIES.md#universal-verification-contract):
 
-1. **Preconditions.** What must be true *before* applying the change. (Versions match? Hardware visible? Required packages installed?)
+1. **Preconditions.** What must be true *before* applying the change. (Versions match? Hardware visible? Required packages installed? Rollback path documented?)
 2. **Smoke build / smoke spawn.** A minimal observable signal that the change can be applied at all. (Build one sample, dry-run the manifest, start one replica.)
 3. **Smoke probe.** A read-only check that confirms the change took effect at the smallest scale. (One packet, one query, one log line.)
 4. **Bulk / production scale.** Apply at the real scale only after smoke passes.
 5. **Observability + declare done.** Name the observability surface (which metric / log / counter) the agent expects to see green before saying the task is complete. *"Done"* without naming the green signal is forbidden.
 
 The agent must walk all five steps; skipping any step makes the answer ineligible to declare the task done. The per-artifact `## test` anchor in every library / service / tool skill is the artifact-specific instantiation of this contract.
+
+**Deploy-loop bridge — not-green at step 5 is the debug-loop trigger.** Real deploys frequently land on not-green at step 5 (`Ready 0/1`, port `Down`, counter flat, log line absent, `systemd active (running)` followed by repeated restarts) and the failure mode is to *declare done anyway* because the change "looks applied." Every change-recommending answer MUST treat "step 5 observability did NOT reach the named green signal within the expected window" — or "step 3 smoke probe itself did not return green" — as the symptom that fires the [universal debug-loop contract](#the-universal-debug-loop-contract) on the change-not-converging symptom. The agent walks the 5-phase debug-loop on the not-green observability surface (layer identification → triple capture → single-variable mutation smaller than the original change → re-capture → exit), bounded to one iteration before the rollback path documented at step 1 is walked. See [`doca-setup CAPABILITIES.md ## Deploy-loop bridge`](skills/doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger) for the full bridge table. This converts deploy / configure / install / upgrade prompts that previously stopped at *"watch the metric for green"* into prompts that say *"watch the metric for green; if not-green within X, walk the debug-loop on the not-green symptom; if the loop's second iteration does not converge, walk the rollback path."*
 
 ### The universal debug-loop contract
 
@@ -108,6 +110,38 @@ Every answer that diagnoses a symptom (build error, link error, runtime error, `
 5. **Exit condition or loop.** Resolve to: *resolved* (name the green signal — the specific metric / log / counter that confirms healthy state); *shape-changed* (the mutation took effect and unmasked a new symptom; loop back to phase 1 with the new picture); or *unchanged* (the hypothesis or layer was wrong; loop back to phase 1 at the next-lowest plausible layer). Declaring done at phase 3 without re-capturing and without naming the green signal is the failure mode this contract replaces.
 
 The agent must walk all five phases; pointing at the 7-layer ladder once and stopping is forbidden. The per-library `## debug` anchor in every library / service / tool skill is the artifact-specific instantiation of this contract — for Flow it adds `doca_flow_aggr_query` counters to the triple; for RDMA it adds QP-state dumps; for Comch it adds the channel statistics — but the universal spine is non-optional.
+
+### Per-library rollback overlay — mandatory on stateful-context changes
+
+Every change-recommending answer that brings up, modifies, or tears down a stateful per-library context (e.g. `doca_flow_pipe`, `doca_rdmi_connection`, `doca_gpu` registration + persistent kernel, `doca_compress` started context + mmap, `doca_apsh_system` + symbol map) MUST cite the per-library `## rollback` overlay (or `## flow-ct` overlay for the CT case in `doca-flow`) in the verification contract preconditions block. The per-library overlay is the artifact-specific instantiation of the *"rollback path is documented"* clause from the universal verification contract step 1 — without it, the contract is incomplete and the agent is NOT eligible to declare done.
+
+| Library | Overlay anchor | When it fires |
+| ------- | -------------- | -------------- |
+| `doca-flow` (stateless pipeline edits — VLAN push/pop, encap/decap, modify-header, mirror, sample, NAT-without-CT, hairpin attach) | [`doca-flow TASKS.md ## rollback`](skills/libs/doca-flow/TASKS.md#rollback) | Any pipe / entry / action add on an already-up port. Snapshot via `doca_flow_pipe_dump` + counter baseline + cap snapshot. |
+| `doca-flow` (CT) | [`doca-flow TASKS.md ## flow-ct`](skills/libs/doca-flow/TASKS.md#flow-ct) (rollback overlay sub-section) | Any CT-aware pipe wrap on a stateless port. Snapshot via `doca_flow_pipe_dump` of the stateless scheme + four-step CT reversal. |
+| `doca-rdmi` | [`doca-rdmi TASKS.md ## rollback`](skills/libs/doca-rdmi/TASKS.md#rollback) | Any RDMI connection / poster / DPA-attach / MR registration add. Snapshot via verbs context + connection state + MR list, both peers. |
+| `doca-gpunetio` | [`doca-gpunetio TASKS.md ## rollback`](skills/libs/doca-gpunetio/TASKS.md#rollback) | Any persistent-kernel + GPU buffer registration add on top of doca-eth. Signal kernel drain FIRST, unregister buffers reverse-order, leave doca-eth parent intact. |
+| `doca-compress` | [`doca-compress TASKS.md ## rollback`](skills/libs/doca-compress/TASKS.md#rollback) | Any started Compress context + mmap registration + in-flight tasks add. Drain `doca_pe_progress` outstanding count to zero FIRST. |
+| `doca-apsh` | [`doca-apsh TASKS.md ## rollback`](skills/libs/doca-apsh/TASKS.md#rollback) | Any `doca_apsh_system` configure → start + symbol map load. Stop enumeration FIRST; mode-flip residual routes through `doca-hardware-safety`. |
+| (other libraries — staged backlog) | per-library `## rollback` overlay (planned, not shipped) | When a per-library deep-dive prompt for that library lands; the lane stages adding the same shape to the remaining libraries that need it. |
+
+Two failure modes this overlay table replaces:
+
+1. *"Reverse what you did"* — unfalsifiable, no snapshot referenced, no green re-verify named. The overlay forces a snapshot-first discipline so *"restore the pre-edit state"* is a diff against a captured baseline, not a wish.
+2. *"It'll be fine to retry"* — the overlay is bounded. On the second non-green re-verify, the agent MUST surface the unresolved residual gap instead of recommending another retry. This is the same shape as `doca-hardware-safety`'s *"named rollback path or refuse-and-escalate"* discipline, applied to pipeline-edit / library-context-edit changes where no hardware mutation is involved.
+
+### Canonical answer-shape teasers — orientation and first-app prompts
+
+Orientation prompts (*"I'm new with DOCA, can you guide me?"*, *"what's DOCA, where do I start?"*, *"is there a Hello World?"*) and first-app prompts (*"give me my first DOCA app"*, *"I have docker — make me a DOCA app"*) reach the bundle BEFORE any specific library / service / tool skill has been picked. The agent's failure mode on these prompts is to skip the canonical build and first-app patterns because they "feel premature" — and the answer becomes a routing-only paragraph that fails the build-wrappers and first-app criteria the user actually needs.
+
+Every orientation or first-app answer MUST surface the two canonical patterns explicitly, even before the agent knows which library is in scope:
+
+| Canonical pattern | One-line teaser the orientation answer MUST carry | Drill-down anchor |
+| --- | --- | --- |
+| **Canonical build line** (every DOCA application in any language) | "Every DOCA application builds via `pkg-config --cflags --libs doca-<library>` discovered by `meson setup /tmp/build-<project> && ninja -C /tmp/build-<project>` (C/C++ Track 1), or via FFI / bindings against the same `*.so` libraries the C samples link against (Track 2 — Rust `bindgen`, Go `cgo`, Python `cffi`/`ctypes`). Never hand-type `-l` flags; the `pkg-config` module is the source of truth for include paths and link flags." | [`doca-programming-guide ## build`](skills/doca-programming-guide/TASKS.md#build) (Track 1 + Track 2) |
+| **Canonical first-app pattern** (every DOCA library, language-agnostic mental model) | "First DOCA app = copy a shipped sample from `/opt/mellanox/doca/samples/<library>/<sample_name>/`, fill the 5-slot modify-from-sample schema (which sample, what fields change, what stays, the smoke probe, the rollback), build via the line above, run the smoke from the matching library skill's `## test` anchor. The agent never authors a `main.c` / `Makefile` / `Dockerfile` from API memory — that is ground rule 5 of this file and the single most expensive failure mode for *agent helps me with DOCA* sessions." | [`doca-programming-guide ## modify`](skills/doca-programming-guide/TASKS.md#modify) + [`## build`](skills/doca-programming-guide/TASKS.md#build) |
+
+Both teasers must appear in any orientation / first-app answer, in addition to the routing pointer (which skill to load next once the user names a library). Skipping the build-line teaser is the failure mode that previously left orientation answers PARTIAL on the build-wrappers criterion; skipping the first-app teaser is the failure mode that drops the agent into prose code-synthesis (forbidden by ground rule 5).
 
 ### Hardware binding-layer command stanza
 

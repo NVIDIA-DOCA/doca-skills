@@ -154,7 +154,12 @@ specific material lives in two companion files:
   Eth, Flow).
 - `TASKS.md` — step-by-step workflows for the six in-scope App
   Shield verbs: `configure`, `build`, `modify`, `run`, `test`,
-  `debug`. Plus a `Deferred task verbs` block that points
+  `debug`. Plus a `## rollback` overlay (Apsh-specific six-step
+  teardown that stops enumeration before `doca_ctx_stop`,
+  unloads the symbol map, destroys the apsh_system, and routes
+  any mode-flip residual through `doca-hardware-safety`) and the
+  5-phase universal debug-loop instantiation appended to
+  `## debug`. Plus a `Deferred task verbs` block that points
   out-of-scope questions at the right next skill.
 
 The skill assumes a host + BlueField pair where DOCA is already

@@ -321,6 +321,103 @@ DPA-side debug to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug).
 
+**5-phase universal debug-loop instantiation (RDMI).** Layer
+identification above is phase 1 of the
+[universal debug-loop contract](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract).
+The agent MUST walk the remaining four phases on every RDMI
+debug answer before declaring done:
+
+1. **Layer identification** — above (runtime / program /
+   DPA-side handoff).
+2. **Triple capture (READ-ONLY).** Capture (a) verbs context
+   state via `doca_verbs_context` introspection + `ibv_devinfo`
+   on the underlying device, (b) RDMI connection state via
+   `doca_rdmi_connection_get_app_rq_info` (host side) AND the
+   DPA-side completion counter from
+   [`doca-dpa`](../doca-dpa/TASKS.md#debug), (c) DOCA log lines
+   at `DOCA_LOG_LEVEL=DEBUG` for the offending post / poll. The
+   triple is the rollback target — do NOT mutate before
+   capturing all three.
+3. **Single-variable mutation SMALLER than the original
+   change.** Examples: post ONE work request (not the batch);
+   switch the DPA kernel from the production shape to the
+   shipped RDMI smoke sample (not refactor the algorithm); flip
+   the connection state machine to a known-quiescent peer (not
+   the production peer). Larger mutations void the experiment.
+4. **Re-capture and compare.** Re-run the triple; the diff IS
+   the evidence. A "no change between iterations" diff means
+   the cause is below RDMI (verbs / firmware / network).
+5. **Exit with named green signal OR escalate.** Green = one
+   completion observed on the right datapath (host CQ for host
+   initiator; DPA completion counter for DPA initiator). If two
+   consecutive iterations don't change anything, escalate via
+   the layer-7 route table above with the captured triple.
+
+## rollback
+
+RDMI contexts are stateful (verbs context + connection / poster +
+optional DPA attach + remote responder peer) and the agent's
+failure mode is to leave a half-connected QP / a stale DPA
+handle / a registered MR pointing at freed host memory. The
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer; this is the
+RDMI instantiation.
+
+**Snapshot before mutate.** Before any change-recommending RDMI
+answer, capture (a) the underlying `doca_verbs_context` identity
+and QP allocation map (`ibv_devinfo` + per-QP `qp_num`), (b) the
+RDMI connection state map (active connection IDs, peer addresses,
+DPA attach status from `_get_dpa_handle`), and (c) the MR
+registration list (mmap region IDs from `doca_mmap_*`). The
+triple IS the rollback target — *"restore the pre-RDMI state"*
+is unfalsifiable without it.
+
+1. **Quiesce the data path FIRST.** Stop posting new WRs from
+   both initiator and responder. For DPA-initiated paths, signal
+   the DPA kernel to drain via the host-side termination flag
+   from [`## modify`](#modify); `cudaDeviceSynchronize` / DPA
+   join until the kernel returns. If it does not return within
+   the bounded debug-loop window, that is the
+   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger)
+   trigger; fire the debug-loop on the hung-kernel symptom
+   before continuing the rollback.
+2. **Tear down RDMI objects in reverse-create order.** (a)
+   Destroy DPA attach handles (`_get_dpa_handle` outputs) so the
+   DPA-side kernel cannot resurrect a stale CQ pointer; (b)
+   `doca_ctx_stop` on the RDMI context; (c) destroy connections
+   in reverse-create order (`doca_rdmi_connection_destroy` for
+   each); (d) destroy the RDMI context itself
+   (`doca_rdmi_destroy`).
+3. **Unregister MRs and underlying mmap regions.** Each
+   `doca_mmap` registered for RDMA payloads / control buffers
+   must be destroyed before the underlying host allocation is
+   freed; reverse order is non-negotiable per
+   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
+4. **Tear down the verbs context LAST.** `doca_verbs_context`
+   may be shared with non-RDMI clients (e.g., the verbs CQ from
+   [`doca-verbs`](../doca-verbs/SKILL.md)); only destroy it
+   if RDMI was the sole client. If shared, leave the verbs
+   context up and route the rollback's verbs leg via
+   [`doca-verbs TASKS.md`](../doca-verbs/TASKS.md).
+5. **Re-verify the verbs parent is intact.** Re-run the
+   one-WR smoke from [`doca-verbs TASKS.md ## test`](../doca-verbs/TASKS.md#test)
+   to confirm the parent verbs context still completes a single
+   WR at the pre-RDMI shape. If not, the RDMI rollback
+   corrupted the parent — surface as a residual gap, do NOT
+   retry RDMI.
+6. **Cross-peer rollback.** The remote BlueField responder
+   (if RDMI brought one up) MUST run the same five steps on its
+   side. Document the cross-peer rollback verb explicitly:
+   *"the rollback path is the five-step reversal in
+   [`## rollback`](#rollback), applied on BOTH peers in
+   reverse-connect order; the agent has captured the
+   QP/connection/MR snapshot on both sides."*
+
+The rollback is bounded — on the second non-green re-verify at
+step 5, the agent MUST surface the unresolved residual gap
+instead of recommending another RDMI retry.
+
 ## use
 
 Goal: integrate a working RDMI component into a larger

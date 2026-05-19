@@ -466,6 +466,162 @@ ladder:
   granularity; the cap query is the runtime authority over any
   prose recall of supported ranges.
 
+**rollback overlay.** CT changes are pipeline-edit-class
+mutations (they extend an already-up stateless flow port, they
+do not touch device firmware or eswitch mode), so the
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+overlay does NOT fire on a CT add. That is exactly why CT
+needs its own rollback discipline: the
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer, and CT is
+the canonical pipeline-edit case the bundle ships explicit
+rollback steps for. **Snapshot before mutate** is the load-
+bearing rule: the agent captures the stateless pipe scheme
+*before* any CT context creation, so that an unhealthy single-
+flow smoke at step 1 of the run/test overlay above has a
+mechanical undo path back to the pre-CT state. Without this
+overlay the agent's failure mode is to leave a half-applied CT
+overlay on a stateless port whose original behaviour has been
+destructively rewrapped.
+
+1. **Snapshot the stateless pipe scheme BEFORE creating the
+   CT context.** Enumerate the existing `doca_flow_pipe`
+   handles on the target port: name, root status, match spec,
+   action spec, monitor/counter attachment, miss-pipe linkage.
+   `doca_flow_pipe_dump` (with the file-descriptor variant)
+   produces the snapshot the agent diffs against. The snapshot
+   IS the rollback target — without it, *"restore the
+   stateless setup"* is unfalsifiable.
+2. **Run the configure overlay AS IF the rollback were
+   already needed.** Document, in the same answer that
+   recommends the CT add, the four-step reversal: (a)
+   `doca_flow_ct_entry_destroy` on every CT entry added since
+   the snapshot, in reverse-add order; (b)
+   `doca_flow_ct_pipe_*_destroy` on every CT-aware pipe
+   wrapped on top of the stateless pipes, in reverse-create
+   order; (c) `doca_ctx_stop` on the `doca_flow_ct` context;
+   (d) `doca_flow_ct_destroy` on the context. The stateless
+   doca-flow port and the original stateless pipes are
+   untouched by this sequence and must remain valid; if the
+   agent recommended a stateless-pipe edit *in addition to* CT
+   add, that edit needs its own rollback step BEFORE the CT
+   rollback runs.
+3. **Trigger the rollback from the [deploy-loop
+   bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger).**
+   The single-flow CT smoke from the run/test overlay step 1
+   is the verification contract's step 3 smoke probe in the
+   CT-pipeline-edit-class context. If the smoke does NOT
+   return green within the bounded debug-loop iteration, the
+   rollback above MUST be walked before any further CT
+   mutation. The agent does NOT loop indefinitely; on the
+   second non-green iteration, rollback is mandatory.
+4. **After rollback, re-run the parent's stateless smoke from
+   [`## test`](#test) step 1 to confirm the port is back to
+   the snapshot state.** Pre-CT counters should resume
+   incrementing at the same shape as the snapshot recorded; if
+   they do not, the rollback itself is suspect and the agent
+   must surface the unresolved residual gap to the user
+   instead of recommending another CT attempt.
+5. **Document the rollback verb explicitly in the preconditions
+   block of the verification contract.** The contract step 1
+   line for a CT add reads: *"the rollback path is the four-
+   step reversal in [`## flow-ct`](#flow-ct) rollback overlay;
+   the agent has captured the pipe snapshot via
+   `doca_flow_pipe_dump` and recorded the pre-CT counter
+   baseline."* Without that line, the contract is incomplete
+   and the agent is NOT eligible to declare done — same shape
+   as the hardware-safety overlay's *"named rollback path or
+   refuse-and-escalate"* rule on hardware changes, applied to
+   the pipeline-edit case where no hardware mutation is
+   involved.
+
+## rollback
+
+The Flow CT rollback overlay above is the canonical
+pipeline-edit-class rollback the bundle ships, but CT is not the
+only pipeline-edit case. **Every Flow pipe / entry / action add
+that modifies an already-up port is pipeline-edit-class and
+needs the same rollback discipline.** This `## rollback` anchor
+applies to all stateless-pipe edits the bundle reaches for from
+the per-library deep-dive prompts: VLAN push / pop, encap /
+decap, modify-header, mirror, sample, NAT-without-CT, hairpin
+attachment. The
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer; this is the
+non-CT Flow instantiation. CT additions route through
+[`## flow-ct`](#flow-ct) rollback overlay instead.
+
+**Snapshot before mutate.** Before any change-recommending
+Flow pipe / entry / action edit on an already-up port, capture
+(a) `doca_flow_pipe_dump` of every affected pipe handle on the
+target port (root status, match spec, action spec, monitor /
+counter attachment, miss-pipe linkage), (b) per-pipe counter
+baseline (pre-edit values from
+`doca_flow_pipe_query` + `doca_flow_pipe_entry_query`), and
+(c) the device cap snapshot the agent gated on
+(`doca_caps --list-devs` + Flow cap query results for the
+specific match / action kinds). The triple IS the rollback
+target — *"restore the pre-edit pipeline"* is unfalsifiable
+without it.
+
+1. **Snapshot the affected pipes BEFORE editing.**
+   `doca_flow_pipe_dump` (with the file-descriptor variant)
+   produces the diff-able snapshot. The snapshot scope is
+   every pipe the new action / entry will touch (the parent
+   root pipe, any wrapped pipe, any miss-pipe in the dependency
+   chain). Skipping a touched pipe in the snapshot makes the
+   rollback non-reversible at that pipe.
+2. **Document the reverse-edit verb explicitly in the same
+   answer that recommends the edit.** The reversal shape
+   depends on the action kind: (a) **entry add** → matching
+   `doca_flow_pipe_entry_remove` in reverse-add order;
+   (b) **action add / modify** (VLAN push, encap, modify) →
+   `doca_flow_pipe_destroy` on the modified pipe + recreate
+   from the snapshot's pipe spec; (c) **pipe add** →
+   `doca_flow_pipe_destroy` in reverse-create order;
+   (d) **monitor / counter attach** →
+   `doca_flow_monitor_destroy` + recreate without the attach.
+   For miss-pipe linkage edits, the snapshot's linkage spec
+   IS the rollback target.
+3. **Trigger the rollback from the [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger).**
+   The shipped-sample-based smoke from
+   [`## test`](#test) step 1 is the verification contract's
+   step 3 smoke probe for the pipeline-edit-class context. If
+   the post-edit smoke does NOT return green (counter
+   increment + `doca_flow_pipe_validate` clean on the modified
+   pipe) within the bounded debug-loop iteration, the rollback
+   above MUST be walked before any further pipeline edit. The
+   agent does NOT loop indefinitely; on the second non-green
+   iteration, rollback is mandatory.
+4. **After rollback, re-run the parent's pre-edit smoke from
+   [`## test`](#test) step 1.** Pre-edit counters should
+   resume incrementing at the snapshot shape; if not, the
+   rollback itself is suspect and the agent must surface the
+   unresolved residual gap to the user instead of recommending
+   another pipeline edit.
+5. **Document the rollback verb explicitly in the
+   preconditions block of the verification contract.** The
+   contract step 1 line for a non-CT Flow pipeline edit reads:
+   *"the rollback path is the reverse-edit reversal in
+   [`## rollback`](#rollback); the agent has captured the
+   `doca_flow_pipe_dump` snapshot, per-pipe counter baseline,
+   and device cap snapshot the edit gated on."* Without that
+   line, the contract is incomplete and the agent is NOT
+   eligible to declare done — same shape as the CT rollback
+   overlay's discipline, applied to the broader pipeline-edit
+   surface that the per-library deep-dive prompts (VLAN /
+   encap / modify) hit.
+
+The rollback is bounded — on the second non-green re-verify at
+step 4, the agent MUST surface the unresolved residual gap
+instead of recommending another pipeline-edit retry. Hardware
+changes (mode flip, SR-IOV, firmware) are NOT pipeline edits
+and route through
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)'s
+rollback discipline instead.
+
 ## Command appendix
 
 Flow-specific commands the verbs above reach for, grouped by purpose
