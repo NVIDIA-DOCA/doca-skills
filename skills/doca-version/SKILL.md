@@ -68,18 +68,32 @@ instance.
 ## When to load this skill
 
 Load this skill whenever version handling is the load-bearing
-concern. Concretely:
+concern. The decision must be made **before** the agent composes
+its first sentence — the activation checklist below is the same
+one referenced from
+[`AGENTS.md ## Cross-cutting overlay activation triggers`](../../AGENTS.md#cross-cutting-overlay-activation-triggers),
+mirrored here so the activation rule is at hand whenever this skill
+is consulted.
 
-- The user asks any *"what version do I have"* / *"is it
-  consistent"* / *"is X supported on Y"* / *"can I mix"* question.
-- A library / service / tool skill's `## Version compatibility`
-  section cross-links here for the rule body (rather than
-  duplicating it).
-- A `DOCA_ERROR_*` debug session has narrowed to *"the partial-install
-  hypothesis"* and the agent needs the canonical version-mismatch
-  diagnosis ladder.
-- A new skill is being added to the bundle and its author needs
-  the per-library overlay pattern.
+### Agent activation checklist — load this skill at the START of the answer when any cell below is true
+
+| Trigger class | Concrete prompt-side signals (any one fires the overlay) |
+| --- | --- |
+| Direct version question | *"what DOCA version do I have"*, *"is X consistent"*, *"is feature Y supported on version Z"*, *"can I mix host package version A with BFB version B"*, *"is my LTS still supported"*, *"what does the version string mean"* |
+| Container tag question | any prompt that mentions a specific NGC container tag, or asks about `latest`, or asks how to pin a tag in a Dockerfile / pod spec / Compose file. The agent MUST also cite the *"never invent a tag string from memory, never quote `latest` without confirming it"* rule from [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy). |
+| Build vs runtime drift | any debug session where the symptom is *"the program built fine but DOCA_ERROR_NOT_SUPPORTED at runtime"*, *"undefined reference to a symbol the docs say exists"*, *"my code does nothing on the wire"*, *"counter didn't increment"* — these are the canonical partial-install symptoms |
+| Upgrade / downgrade plan | the user is planning to upgrade or downgrade DOCA on a host already running other DOCA workloads, or to refresh the BFB on a BlueField pair already attached to a host |
+| Per-artifact cross-link | a per-artifact skill's `## Version compatibility` section cross-links here for the rule body, OR the agent is about to author a new per-artifact skill and needs the overlay template |
+
+When any cell above fires, the agent MUST:
+
+1. Cite the **four-source detection chain** from [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) explicitly in the answer — `pkg-config --modversion doca-common` → `cat /opt/mellanox/doca/applications/VERSION` → `doca_caps --version` → `mlxprivhost` / `bfb-info` (BlueField hosts). Do not paraphrase or summarize the chain; cite the commands by name.
+2. State the **four-way match rule** from [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) verbatim if the prompt could possibly involve a mismatch (every deploy-shape question and every debug-shape question can; orientation-shape questions usually cannot).
+3. Refuse to invent a version string. If the agent doesn't have the actual `pkg-config --modversion` output from the user's host, the answer must say so and route to the detection chain — not assert a version from training-data recall.
+
+### Universal version-coherence trigger
+
+Whenever ANOTHER overlay (e.g. [`doca-setup`](../doca-setup/SKILL.md), [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md), [`doca-container-deployment`](../doca-container-deployment/SKILL.md), [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)) calls a `## test` / `## configure` / `## modify` step that requires *"the install is healthy"* or *"versions are consistent"*, that step MUST resolve to a citation of this skill's four-source detection chain and four-way match rule. The agent does NOT redefine the rule per-overlay — every step that needs a version verification must route here. This is the *only* place in the bundle that owns the rule body.
 
 Do **not** load this skill for general DOCA orientation, for
 install procedures (use [`doca-setup`](../doca-setup/SKILL.md)),

@@ -82,25 +82,39 @@ answer, each with one worked example. The agent should treat the
 
 Load this skill whenever the agent is about to recommend, or is
 helping the operator apply, a change that touches DPU / NIC hardware
-state on a live system. Concretely:
+state on a live system. The decision must be made **before** the
+agent composes its first sentence — the activation checklist below
+is the same one referenced from
+[`AGENTS.md ## Cross-cutting overlay activation triggers`](../../AGENTS.md#cross-cutting-overlay-activation-triggers),
+mirrored here so a per-artifact skill that already loaded this skill
+has the activation rule at hand.
 
-- The recommended next step writes an `mlxconfig`-class parameter
-  (BAR window, BlueField mode toggle, SR-IOV count, device-emulation
-  slot enablement, or any other firmware-level configuration that is
-  committed at next cold power cycle).
-- The recommended next step burns NIC firmware or reflashes the
-  BlueField BFB.
-- The recommended next step changes a host kernel boot parameter that
-  governs IOMMU mode, hugepage reservation, or device pass-through
-  (i.e. the change takes effect at host reboot, not at runtime).
-- The recommended next step rebinds, disables, or re-enables a PCIe
-  function or representor, performs a PCIe rescan, or brings link
-  state down / up on a port currently carrying traffic.
-- The recommended next step is a BlueField cold reboot — every
-  hosted service on that DPU is restarted; any host workload that
-  depends on the DPU is interrupted.
-- A per-artifact skill's `## Safety policy` cross-links here for the
-  cross-cutting rule body (rather than duplicating it).
+### Agent activation checklist — load this skill at the START of the answer when any cell below is true
+
+| Trigger class | Concrete prompt-side signals (any one fires the overlay) |
+| --- | --- |
+| `mlxconfig`-class change | the prompt or the agent's next recommended action mentions `mlxconfig` directly; OR toggles BlueField between NIC / DPU / Separated-Host mode; OR enables SR-IOV; OR enables device-emulation slot (virtio-net, NVMe-emu, snap, virtio-blk-emu); OR changes BAR window / window size; OR sets any firmware-committed parameter that requires a reset to take effect |
+| Firmware / BFB | NIC firmware burn (`flint`, `mft`, `mlxfwmanager`, `mlxconfig` with `-y` reset); BlueField BFB reflash (`bfb-install`, `rshim`); BlueField mode change that requires a BFB swap |
+| Host kernel state | host kernel boot parameter change (IOMMU mode `iommu=pt` / `intel_iommu=on`, `default_hugepagesz`, `hugepagesz`, `nr_hugepages`, `pci=resource_alignment`, `vfio-pci.ids`); requires host reboot |
+| Hugepages | hugepage *reservation* change (`/sys/kernel/mm/hugepages/*/nr_hugepages`, `sysctl vm.nr_hugepages`); hugepage *mount* change (`mount -t hugetlbfs`); this is global state shared with every DOCA / DPDK process on the host |
+| PCIe state | PCIe rebind / `echo > /sys/bus/pci/.../{bind,unbind,remove,rescan}`; representor enable/disable; eswitch mode change (`devlink dev eswitch set ... mode {switchdev,legacy}`); link down/up on a port currently carrying traffic |
+| BlueField reboot class | BlueField cold reboot, BlueField warm reboot to apply `mlxconfig`; any change whose blast radius is *"every hosted service on this DPU restarts"* |
+| Per-artifact cross-link | any per-artifact skill's `## Safety policy` cross-links here for the cross-cutting rule body |
+
+When any cell above fires, the agent MUST load this skill **before** composing the first sentence of the answer, MUST walk the change-application discipline in [`TASKS.md ## configure`](TASKS.md#configure) → [`## modify`](TASKS.md#modify) → [`## test`](TASKS.md#test) → [`## debug`](TASKS.md#debug) in order, and MUST cite the activation explicitly in the answer (e.g. *"because this touches `mlxconfig`, the answer follows the `doca-hardware-safety` discipline …"*) so the user can audit the reasoning.
+
+The activation is **mandatory, not advisory.** The most common failure mode this overlay prevents is *"the agent recommended a `mlxconfig` change with no maintenance window, no out-of-band path, and no rollback statement, the user applied it, the management link dropped, and the box was unrecoverable without a physical console."* The cost of one unjustified activation (a few extra paragraphs in the answer) is trivial compared to the cost of one missed activation.
+
+### Refuse-and-escalate is a hard rule
+
+If any of the following is true, the agent MUST stop and refuse to recommend the change — not soften the warning, not proceed with a *"this is risky but here's how"* answer, not defer the rollback question to *"you should think about that"*:
+
+1. The change has no documented rollback path AND the user cannot provide one. (Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) *rollback-must-be-documented* rule.)
+2. The change is link-breaking AND the host has no out-of-band access path. (Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) *out-of-band-precondition* rule.)
+3. The change requires a cold power cycle AND the user has not confirmed a maintenance window. (Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) *maintenance-window* rule.)
+4. The change has not been validated against a non-prod replica AND the user is asking for direct application to a production box. (Per [`TASKS.md ## test`](TASKS.md#test) *replica-first* rule.)
+
+In each of these cases the correct answer shape is *"this change requires X (here is why); the bundle refuses to recommend it without X; here is the route to obtain X"* — not silence and not improvisation. The refuse-and-escalate rule is what makes the bundle's hardware-safety guidance trustworthy to production operators.
 
 Do **not** load this skill for general DOCA orientation (use
 [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)),

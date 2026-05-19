@@ -57,6 +57,73 @@ under `skills/` as under `.claude/skills/`. If it does not, read
 labels of the form `[<skill-name> ## <anchor>](...)` resolve by
 skill name regardless of where the skill lives in the tree.
 
+## Cross-cutting overlay activation triggers
+
+Cross-cutting overlays (`doca-hardware-safety`, `doca-version`,
+`doca-debug`, `doca-public-knowledge-map`, `doca-structured-tools-contract`)
+are designed to **stack** on top of any per-artifact skill (library
+/ service / tool) the agent has already loaded. The agent must load
+each overlay **at the start of the answer** whenever the prompt
+matches any trigger below — not later when the agent remembers, and
+not only when a per-artifact skill happens to link to the overlay.
+
+| Overlay to load | Load it whenever the prompt (or the agent's next recommended action) touches any of these triggers |
+| --- | --- |
+| [`doca-hardware-safety`](skills/doca-hardware-safety/SKILL.md) | `mlxconfig`, firmware burn / NIC firmware update, BFB reflash, BlueField cold reboot, host kernel boot parameter (IOMMU mode, hugepages reservation, device pass-through), PCIe rebind / `echo > /sys/bus/pci/.../{bind,unbind}`, PCIe rescan, link down/up on a port carrying traffic, representor enable/disable, eswitch mode change (`switchdev` ↔ `legacy`), SR-IOV count change, device-emulation slot enablement, BFB image change, any change whose blast radius is *"every workload on this DPU restarts"* or *"the management link may drop"*. |
+| [`doca-version`](skills/doca-version/SKILL.md) | any *"what version do I have"* / *"is X supported on Y"* / *"can I mix"* / *"is my build consistent"* question; any container-tag question (especially anything about `latest`); any *"undefined reference / DOCA_ERROR_NOT_SUPPORTED / built fine but does nothing on the wire"* debug; any host ↔ BlueField BFB pairing question; any *"I'm about to upgrade / downgrade DOCA"* question; **AND** any answer that walks a `## test` or `## configure` step from any per-artifact skill (the four-source detection chain is the preconditions check step 1 of the universal verification contract; deferring it is forbidden). The agent must cite the canonical four-source detection chain (`pkg-config --modversion doca-common` → `cat /opt/mellanox/doca/applications/VERSION` → `doca_caps --version` → BFB-image version on BlueField hosts) and the four-way match rule from [`doca-version CAPABILITIES.md ## Version compatibility`](skills/doca-version/CAPABILITIES.md#version-compatibility) on **every** version-bearing or verification-bearing answer. |
+| [`doca-debug`](skills/doca-debug/SKILL.md) | any error symptom (build error, link error, runtime error, `DOCA_ERROR_*`, segfault, hang, *"does nothing on the wire"*, *"counter didn't increment"*, *"undefined reference to ..."*, *"link error"*, *"build fails"*); any named `DOCA_ERROR_*` class in the prompt (`DOCA_ERROR_NOT_SUPPORTED`, `DOCA_ERROR_BAD_STATE`, `DOCA_ERROR_INVALID_VALUE`, `DOCA_ERROR_DRIVER`, `DOCA_ERROR_NOT_PERMITTED`, `DOCA_ERROR_TIME_OUT`, `DOCA_ERROR_INITIALIZATION`); any *"my program is misbehaving"* class question; any *"how do I diagnose X"* question; any prompt that names a tool whose typical use is debug (`doca-flow-inspector`, `doca-flow-tune`, `--sdk-log-level`, `gdb`, `strace`). The agent must walk the **universal debug-loop contract** from [`doca-debug CAPABILITIES.md ## Universal debug-loop contract`](skills/doca-debug/CAPABILITIES.md#universal-debug-loop-contract) end-to-end (layer identification → read-only triple capture → single-variable hypothesis → re-capture and compare → exit condition with named green signal). Pointing at the 7-layer ladder once and stopping is the failure mode this trigger replaces. |
+| [`doca-setup ## recognize`](skills/doca-setup/TASKS.md#recognize) | any deployment-shaped question (*"how do I deploy"*, *"how do I run my DOCA workload"*, *"I just got a BlueField, what now"*, *"my code is built, what next"*, *"do I run this in a container or on the host"*). `## recognize` is the front door — auto-detect first (`uname -m`, `lspci -d 15b3:`, `pkg-config --modversion doca-common`, `bf-release`), then ≤3 closed-form residual questions, then route to either `doca-container-deployment` or `doca-bare-metal-deployment`. The wrong failure mode is to silently push every developer onto containers because the agent loaded that skill first. |
+| [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) | *"where is the doc / guide / URL"*, *"is there a reference for X"*, any request for an external link. The map is the only source the agent should pull NVIDIA URLs from — direct training-data URL recall is forbidden by ground rule 1 + ground rule 3. |
+| [`doca-structured-tools-contract`](skills/doca-structured-tools-contract/SKILL.md) | the host has any of `doca-env --json`, `collect-host-state`, `collect-dpu-state`, `version-matrix.json`, or another structured-tools helper installed and the agent is about to recommend the equivalent manual command. Prefer the structured tool when it exists; the agent's answer is shorter and more verifiable. |
+
+### Overlay activation is mandatory, not advisory
+
+The agent MUST:
+
+1. **Load the overlay before answering**, not in the middle of the answer. If a deploy-shape question fires both `doca-setup ## recognize` and `doca-hardware-safety` (because the next recommended action will touch hardware state), load both before composing the first sentence.
+2. **Stack overlays.** A bare-metal deployment of a binary that requires hugepages and a specific BFB pairing fires `doca-setup ## recognize` + `doca-bare-metal-deployment` + `doca-hardware-safety` + `doca-version`. All four contribute distinct rule fragments to the answer; none is optional.
+3. **Cite the overlay in the answer.** When the agent loaded an overlay because of a trigger, the answer must say so explicitly (e.g. *"because this touches `mlxconfig`, the answer follows the `doca-hardware-safety ## modify` discipline — pre-flight inventory, out-of-band, maintenance window, apply, verify, rollback"*). This makes the activation auditable.
+4. **Refuse to proceed when an overlay's hard rule is violated.** If `doca-hardware-safety` says *"refuse-and-escalate when no rollback exists"*, and the user's setup has no rollback, the agent must stop and say so. It must NOT proceed with the change because the user pushed back.
+
+### The universal verification contract
+
+Every answer that recommends a change (build, deploy, configure, modify) MUST end with the **5-step universal verification contract** defined in [`doca-setup CAPABILITIES.md ## Universal verification contract`](skills/doca-setup/CAPABILITIES.md#universal-verification-contract):
+
+1. **Preconditions.** What must be true *before* applying the change. (Versions match? Hardware visible? Required packages installed?)
+2. **Smoke build / smoke spawn.** A minimal observable signal that the change can be applied at all. (Build one sample, dry-run the manifest, start one replica.)
+3. **Smoke probe.** A read-only check that confirms the change took effect at the smallest scale. (One packet, one query, one log line.)
+4. **Bulk / production scale.** Apply at the real scale only after smoke passes.
+5. **Observability + declare done.** Name the observability surface (which metric / log / counter) the agent expects to see green before saying the task is complete. *"Done"* without naming the green signal is forbidden.
+
+The agent must walk all five steps; skipping any step makes the answer ineligible to declare the task done. The per-artifact `## test` anchor in every library / service / tool skill is the artifact-specific instantiation of this contract.
+
+### The universal debug-loop contract
+
+Every answer that diagnoses a symptom (build error, link error, runtime error, `DOCA_ERROR_*`, segfault, hang, *"does nothing on the wire"*, *"counter didn't increment"*) MUST instantiate the **5-phase debug-loop contract** defined in [`doca-debug CAPABILITIES.md ## Universal debug-loop contract`](skills/doca-debug/CAPABILITIES.md#universal-debug-loop-contract):
+
+1. **Layer identification.** Name the lowest layer in the 7-layer debug ladder the symptom is consistent with (install / version / build / link / runtime / program / driver). An `undefined reference to doca_*` is layer 4 (Link), not layer 5 (Runtime); identification is mechanical.
+2. **Read-only capture (the triple).** Capture program output + system view + DOCA view at the identified layer *before* mutating anything. The triple is the artifact the rest of the loop iterates on.
+3. **Single-variable hypothesis change.** Apply exactly one mutation. Multi-variable changes destroy the ability to attribute the result.
+4. **Re-capture and compare.** Re-run the exact same triple commands. The mutation is not evidence — the side-by-side re-capture is.
+5. **Exit condition or loop.** Resolve to: *resolved* (name the green signal — the specific metric / log / counter that confirms healthy state); *shape-changed* (the mutation took effect and unmasked a new symptom; loop back to phase 1 with the new picture); or *unchanged* (the hypothesis or layer was wrong; loop back to phase 1 at the next-lowest plausible layer). Declaring done at phase 3 without re-capturing and without naming the green signal is the failure mode this contract replaces.
+
+The agent must walk all five phases; pointing at the 7-layer ladder once and stopping is forbidden. The per-library `## debug` anchor in every library / service / tool skill is the artifact-specific instantiation of this contract — for Flow it adds `doca_flow_aggr_query` counters to the triple; for RDMA it adds QP-state dumps; for Comch it adds the channel statistics — but the universal spine is non-optional.
+
+### Hardware binding-layer command stanza
+
+Every hardware-touching answer (system recognition, representor configuration, NUMA / IRQ / queue pinning, *"does nothing on the wire"* runtime debug, any `doca-hardware-safety`-triggering change) MUST instantiate the **binding-layer command stanza** defined in [`doca-setup CAPABILITIES.md ## Hardware binding-layer command stanza`](skills/doca-setup/CAPABILITIES.md#hardware-binding-layer-command-stanza). The stanza is read-only — running it is always safe — and consists of six rows:
+
+| Row | Command class |
+| --- | ------------- |
+| PCIe presence | `lspci -d 15b3:` (and `lspci -s <bdf> -vvv` for one device) |
+| Driver / device state | `devlink dev show` + `devlink port show` + SR-IOV state via `/sys/class/net/<pf>/device/sriov_numvfs` |
+| NUMA topology | `cat /sys/class/net/<iface>/device/numa_node` + `numactl -H` |
+| IRQ affinity | `cat /proc/interrupts \| grep <iface>` + `/proc/irq/<n>/smp_affinity_list` |
+| Firmware / configuration snapshot | `mlxconfig -d <bdf> q` (read-only) |
+| Kernel module state | `lsmod \| grep -E 'mlx5_core\|mlx5_ib\|mlx_compat'` + `modinfo mlx5_core` |
+
+Mentioning hardware ("you'll want to pin to the right NUMA node") without naming the specific stanza command that produces the enumeration is the failure mode this section replaces — same shape as pointing at the debug ladder without walking it. The agent does NOT need to run every row on every answer; it does need to name the rows that apply to the question at hand and the specific command in each.
+
 ## Ground rules every agent must follow
 
 1. **Public sources only.** Reference NVIDIA documentation only on these
