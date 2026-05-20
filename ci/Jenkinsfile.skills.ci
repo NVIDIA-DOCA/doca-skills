@@ -600,6 +600,42 @@ pipeline {
             }
         }
 
+        stage('No-regression gate (HARD — vs runner/baseline_grades.json)') {
+            // The "every commit improves or at least does not damage" gate.
+            // Compares the C-variant grades the A/B/C run just produced
+            // against the committed baseline at runner/baseline_grades.json
+            // (frozen via ci/freeze-baseline.py on the last green run).
+            //
+            // Project rule (verbatim from the project owner): "no way we
+            // have regression and we do not fix before push — we have in
+            // each commit to improve or at least not making damage."
+            //
+            // Skipped automatically when (a) no A/B/C run produced a
+            // grades/ directory this build, or (b) the baseline file does
+            // not yet exist (bootstrap case — ci/freeze-baseline.py
+            // produces it after the first known-green run).
+            when {
+                expression {
+                    return fileExists("${env.SKILLS_DIR}/runner/baseline_grades.json") &&
+                           fileExists("${env.REPORT_DIR}/grades")
+                }
+            }
+            steps {
+                script {
+                    def rc = sh(returnStatus: true, script: """
+                        python3 ${env.SKILLS_DIR}/ci/check-no-regression.py \\
+                          --current  ${env.REPORT_DIR}/grades \\
+                          --baseline ${env.SKILLS_DIR}/runner/baseline_grades.json \\
+                          --variant  C
+                    """)
+                    if (rc != 0) {
+                        error("No-regression gate failed: at least one cell went PASS -> FAIL since the baseline. See log above. " +
+                              "Project rule: every commit improves or at least does not damage.")
+                    }
+                }
+            }
+        }
+
         stage('Post PR comment (GitHub)') {
             when {
                 allOf {

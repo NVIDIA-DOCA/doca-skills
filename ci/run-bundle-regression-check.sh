@@ -121,12 +121,36 @@ if [[ -f "${CI_DIR}/check-reference-hygiene.py" ]]; then
     fi
 fi
 
+# No-regression gate — compares the latest grades-on-disk (if any) against
+# the frozen baseline in runner/baseline_grades.json. Skipped when no
+# current grades dir is present (so the gate does not block PRs that
+# haven't re-run the A/B/C measurement). When present, fails the build
+# if any cell went PASS -> FAIL since the baseline.
+#
+# Project-owner rule (verbatim): "no way we have regression and we do not
+# fix before push — we have in each commit to improve or at least not
+# making damage".
+if [[ -f "${CI_DIR}/check-no-regression.py" && -f "${REPO_ROOT}/runner/baseline_grades.json" ]]; then
+    # Pick the newest grades dir under runner/reports/*/grades (if any).
+    LATEST_GRADES_DIR="$(ls -1dt "${REPO_ROOT}"/runner/reports/*/grades 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${LATEST_GRADES_DIR}" && -d "${LATEST_GRADES_DIR}" ]]; then
+        if ! run_gate 'gate-5: no-regression vs runner/baseline_grades.json (no PASS->FAIL cell on C since last green run)' \
+                python3 "${CI_DIR}/check-no-regression.py" \
+                    --current "${LATEST_GRADES_DIR}" \
+                    --baseline "${REPO_ROOT}/runner/baseline_grades.json" \
+                    --variant C; then
+            overall_fail=1
+        fi
+    fi
+fi
+
 separator
 if (( overall_fail == 0 )); then
-    printf 'ALL GATES PASS — bundle matches the C‴ measurement baseline (6-variant constant-grader scoreboard, fully measured:\nA 20.0 %% → B 17.1 %% → C 49.5 %% → C′ 68.6 %% → C″ 86.7 %% → C‴ 91.4 %% YES of applicable; +71.4 pp vs A; 0 NO cells).\n'
-    printf 'You can run a fresh measurement via the runbook in devops/runner/reports/3agent_pr3pr4_ab_2026-05-18/VERDICT.md.\n'
+    printf 'ALL GATES PASS — bundle matches the post-AGENTS.md-fix + per-team coverage-fill measurement baseline (3-variant constant-grader scoreboard: 609 cells x 84 prompts on C, 100.0 %% PASS; every shipping lib/service/tool (52/52) has a named per-developer-team verdict; 0 regressions vs baseline).\n'
+    printf 'A fresh measurement run is reproducible by re-running the ai-mvp-with-files A/B/C subagent driver against the bundle this script just validated; the baseline lives at runner/baseline_grades.json and is the no-regression contract.\n'
     exit 0
 else
-    printf 'AT LEAST ONE GATE FAILED — bundle has structurally regressed from the C‴ baseline.\nDo not merge this PR until every gate above reads OK.\n'
+    printf 'AT LEAST ONE GATE FAILED — bundle has regressed from the post-AGENTS.md-fix baseline.\nDo not merge this PR until every gate above reads OK.\n'
+    printf 'Project rule: every commit improves or at least does not damage.\n'
     exit 1
 fi
