@@ -3,3 +3,10 @@
 # anywhere under the bundle root.
 .DS_Store
 **/.DS_Store
+
+# Per-run measurement artifacts produced by runner/ab_runner.py and the
+# ad-hoc A/B/C subagent driver. Each run produces a dated directory
+# (runner/reports/<YYYY-MM-DD_runid>/) containing subagent prompts,
+# variant responses, grader JSON, and HTML; these are reproducible
+# from the prompt corpus + skills bundle and should not be committed.
+runner/reports/
