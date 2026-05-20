@@ -1,0 +1,120 @@
+id: "04_link_error_debug"
+name: "Link-time error \u2014 cross-cutting debug ladder"
+description: |
+  THE THREE-SKILL CO-LOAD PROMPT. A naturally-arising symptom (the
+  user pasted a real-looking link-time error) that the bundle should
+  resolve by walking the cross-cutting debug ladder, not by guessing.
+  Specifically designed to exercise:
+    \u2014 doca-public-knowledge-map: which library is `doca_flow_init` in,
+      where on disk are the install pieces.
+    \u2014 doca-debug: the layered ladder (Layer 4 = Link), the
+      pkg-config --libs doca-flow rule, the "DOCA Flow split into 5
+      *.so on recent versions" gotcha, the read-only-first stance.
+    \u2014 doca-programming-guide ## debug: the layered investigation
+      order, the rule that link errors are env-class until proven
+      otherwise.
+  A baseline agent without skills typically: invents a -ldoca_common
+  link flag, suggests adding a manual -L/usr/lib path, or tells the
+  user to "rebuild DOCA from source" \u2014 all wrong-layer answers.
+
+prompt: |
+  I'm trying to build a DOCA Flow program from one of the shipped
+  samples. The compile step works but link fails:
+
+      /usr/bin/ld: undefined reference to `doca_flow_init'
+      /usr/bin/ld: undefined reference to `doca_flow_pipe_create'
+      collect2: error: ld returned 1 exit status
+
+  How do I debug this?
+
+context:
+  audience: "intermediate"
+  intent: "debug"
+  prior_knowledge: "knows C, has DOCA installed, sees a link error"
+  expected_skill_co_load:
+    - "doca-public-knowledge-map"
+    - "doca-debug"
+    - "doca-programming-guide"
+  changed_skill_in_pr: null
+  baseline_artifact: "doca-flow"
+
+criteria:
+  - id: "identifies_link_layer"
+    label: "Names this as a link-layer (Layer 4) failure, not a build / runtime failure"
+    weight: 1
+    pass_when: |
+      The agent recognizes "undefined reference" as link-time and
+      states that explicitly. A response that conflates this with a
+      compile error or a runtime error fails. A response that walks
+      the layered debug ladder and identifies Link as the relevant
+      layer passes.
+
+  - id: "uses_pkg_config_libs"
+    label: "Recommends `pkg-config --libs doca-flow` instead of guessing the link line"
+    weight: 2
+    pass_when: |
+      The agent recommends invoking `pkg-config --libs doca-flow`
+      (or, more generally, `pkg-config --libs doca-<library>`) to get
+      the canonical link line. A response that constructs the link
+      line by hand (e.g. `-ldoca_common -ldoca_flow`) without first
+      asking pkg-config fails. THIS IS THE HEADLINE ANTI-HALLUCINATION
+      CRITERION FOR THIS PROMPT.
+
+  - id: "knows_flow_split_libs"
+    label: "Aware DOCA Flow is split into multiple *.so files on recent versions"
+    weight: 1
+    pass_when: |
+      The agent mentions \u2014 explicitly or by deferring to
+      `pkg-config --libs` \u2014 that DOCA Flow on recent trains is
+      composed of more than one shared object (commonly
+      `libdoca_flow`, `libdoca_flow_ct`, `libdoca_flow_info_comp`,
+      `libdoca_flow_tune_server`, `libdoca_flow_definitions`).
+      A response that asserts only `-ldoca_flow` is needed fails.
+
+  - id: "verifies_env_first"
+    label: "Walks env layer before program layer (capture-first discipline)"
+    weight: 1
+    pass_when: |
+      The agent recommends at least one read-only env-layer check
+      BEFORE any code change: `pkg-config --modversion doca-common`,
+      `pkg-config --list-all | grep doca`, `ls /opt/mellanox/doca`,
+      or `dpkg -l | grep -i doca` / `rpm -qa | grep -i doca`.
+      A response that jumps straight to "edit your Makefile" fails.
+
+  - id: "no_invented_link_flag"
+    label: "Does not emit invented `-l<lib>` flags or fictional library paths"
+    weight: 2
+    pass_when: |
+      The agent's response does NOT include any of the following
+      unless prefixed with a verification step the user is told to
+      run first:
+        \u2014 `-ldoca_common` as a stand-alone link flag (it is
+          transitively pulled in by the Flow pkg-config; presenting it
+          standalone is the round-1 baseline failure mode).
+        \u2014 Hand-typed `-L/usr/lib/x86_64-linux-gnu/doca` or any
+          guessed install path.
+        \u2014 `-ldoca` (no library called that).
+        \u2014 Recommendation to "rebuild DOCA from source" (DOCA is
+          not built from source by customers; it's a packaged install).
+
+  - id: "co_loads_three_skills"
+    label: "Visibly co-loads doca-debug + doca-programming-guide + doca-public-knowledge-map"
+    weight: 1
+    pass_when: |
+      The agent's response references at least one element from each
+      of the three skills:
+        \u2014 doca-debug: the layered debug ladder, --sdk-log-level,
+          the trace build flavor, OR the read-only-first / capture-
+          first discipline.
+        \u2014 doca-programming-guide: the env-then-program
+          investigation order, OR `doca_error_get_descr` (for the
+          runtime-layer follow-up), OR the build-flag rules
+          (`-DALLOW_EXPERIMENTAL_API`, etc.).
+        \u2014 doca-public-knowledge-map: `/opt/mellanox/doca/...`
+          install layout OR a canonical docs.nvidia.com URL OR the
+          version-detection routine.
+      A response that mentions only one of the three (e.g. just walks
+      the debug ladder without ever pointing at the install layout
+      or the programming-guide investigation order) fails this
+      criterion. The criterion validates the bundle's separation of
+      concerns is actually being exercised.

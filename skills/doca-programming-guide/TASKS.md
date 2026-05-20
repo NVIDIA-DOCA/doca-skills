@@ -264,8 +264,10 @@ Two cross-cutting rules:
   command above comes from a public source (the DOCA SDK index in
   [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md),
   the library's own `--help`, or the sample's `README`). Agent-invented
-  flags are the failure mode [AUTHORING.md § 3](../../../devops/AUTHORING.md)
-  forbids; they break trust in every other command in the same answer.
+  flags are the failure mode the
+  [AGENTS.md `## Ground rules`](../../AGENTS.md#ground-rules)
+  anti-hallucination clause forbids; they break trust in every other
+  command in the same answer.
 - **Cite the version the user is on, not "latest".** Every command
   whose output is version-dependent (the API surface, the available
   pipe types, the supported capability bits) is answered against the

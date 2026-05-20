@@ -1,0 +1,76 @@
+id: "03_latest_tag"
+name: "Latest NGC container tag"
+description: |
+  Tests version-handling discipline. The local A/B win on this
+  prompt was concrete: arch-aware tag (arm64 for Apple Silicon vs
+  amd64 for Intel) plus a verification command. The baseline
+  recommended a single generic tag with no architecture awareness
+  and no way to verify what was actually pulled.
+
+prompt: |
+  I want to run `docker pull nvcr.io/nvidia/doca/doca:<tag>` —
+  do we have the latest tag? If not, what's the latest?
+
+context:
+  audience: "anyone running docker"
+  intent: "version_lookup"
+  prior_knowledge: "knows docker, may or may not know DOCA"
+  changed_skill_in_pr: null
+
+criteria:
+  - id: "arch_awareness"
+    label: "Distinguishes amd64 vs arm64 in the tag recommendation"
+    weight: 2
+    pass_when: |
+      The agent's recommended tag includes architecture suffix
+      (e.g. `<version>-devel-arm64-host` for Apple Silicon /
+      Arm hosts, `<version>-devel-amd64-host` for Intel hosts), OR
+      the agent explicitly asks the user which architecture they're
+      on before giving a single tag. A response that gives a single
+      arch-less tag (e.g. `3.3.0-devel-host`) for everyone fails.
+
+  - id: "verification_command"
+    label: "Provides a verification command for what was actually pulled"
+    weight: 1
+    pass_when: |
+      The agent recommends running `pkg-config --modversion doca-common`
+      OR `doca_caps --version` inside the pulled container so the user
+      can confirm the version they got matches the tag they asked for.
+      A response that says "tag X is the latest" with no verification
+      step fails.
+
+  - id: "ngc_catalog_routing"
+    label: "Routes to the NGC catalog for live verification"
+    weight: 1
+    pass_when: |
+      The agent points the user at https://catalog.ngc.nvidia.com (or
+      the specific DOCA collection) and tells them to confirm the
+      current latest tag in the live catalog. A response that asserts
+      "X is latest" purely from agent memory fails.
+
+  - id: "tag_schema_explanation"
+    label: "Explains the NGC tag schema"
+    weight: 1
+    pass_when: |
+      The agent explains the tag schema (e.g. tags follow the shape
+      `<doca-version>-<base-os>-<arch>` or similar), so the user
+      understands what each part of a tag means and can read future
+      tags themselves.
+
+  - id: "no_unverified_latest"
+    label: "Does not promise any specific tag is 'latest' without verification"
+    weight: 2
+    pass_when: |
+      The agent does NOT state "X.Y.Z is the latest" as fact. It
+      either (a) asks the user to check the NGC catalog before
+      pulling, or (b) explicitly hedges (e.g. "as of my knowledge
+      the most recent GA was X, but verify in the catalog"). THIS
+      IS THE ANTI-HALLUCINATION CRITERION FOR THIS PROMPT.
+
+  - id: "ngc_url_cited"
+    label: "Cites the NGC catalog URL"
+    weight: 1
+    pass_when: |
+      The agent's response includes a working URL on
+      catalog.ngc.nvidia.com pointing at DOCA. Bare mentions of
+      "NGC" without a URL fail.

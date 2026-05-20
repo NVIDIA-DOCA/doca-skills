@@ -1,0 +1,223 @@
+id: "15_offload_bulk_compression_to_doca_accelerator"
+name: "Offload bulk compression / decompression to a DOCA hardware accelerator — class-shaped"
+description: |
+  Class-shaped compression-accelerator-offload prompt. The HEADLINE
+  is the class ("offload bulk compression / decompression to a DOCA
+  hardware accelerator instead of running it on the host CPU"); the
+  worked example is DOCA Compress (hardware-accelerated DEFLATE
+  encoding of a 1 MiB buffer, with mention of decompression as a
+  valid standalone shape and of the size-threshold below which CPU
+  compression beats accelerator overhead), because that is the
+  newly-covered library in skills/libs/doca-compress.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  offload ANY DOCA-accelerated operation (DMA, SHA, AES-GCM,
+  Compress, …), not just Compress. The bundle proves this by
+  asking the agent to walk: env-side preconditions, the cap-query
+  rule against the active doca_devinfo, the DOCA Core lifecycle,
+  the source/destination mmap permission pair, a single-buffer
+  smoke before bulk, the size-threshold path-selection (don't use
+  compress for tiny buffers where CPU is faster), and to
+  generalize to one OTHER DOCA accelerator library identifying
+  same-shape (lifecycle, cap-query, permission discipline,
+  smoke-before-bulk) and different-shape (task name, capability
+  query, algorithm semantics, decompression-as-standalone) pieces.
+
+  A baseline agent without skills typically: invents a
+  doca_compress_* API surface from generic zlib knowledge,
+  recommends a per-call compress at 64 B input where CPU zlib
+  beats the DMA round-trip by orders of magnitude, hardcodes the
+  per-task max source size from memory instead of querying
+  doca_compress_cap_task_compress_deflate_get_max_buf_size,
+  conflates compress and decompress task names, omits the
+  decompression-only-as-standalone shape, and skips the
+  single-buffer round-trip smoke before bulk encoding.
+
+prompt: |
+  I have a host with a BlueField-3 DPU and DOCA installed. I want
+  to compress a 1 MiB buffer with DEFLATE using DOCA Compress (the
+  hardware accelerator), as part of a compress-before-write
+  storage pipeline, and I want to do it correctly the first time.
+
+  Walk me through the setup: what I should check on the host
+  BEFORE writing any code, which capability queries I have to run
+  against the active doca_devinfo before assuming the
+  compress-deflate task is supported and before sizing the source
+  / destination buffers, the lifecycle order I have to follow to
+  bring the doca_compress context up, the source / destination
+  mmap permission pair I have to set, what I should smoke-test
+  FIRST (single-buffer round-trip or known-fixture) before I bulk
+  through real data, and the size-threshold rule for path
+  selection — I expect you to tell me NOT to use doca-compress on,
+  say, a 64-byte buffer (where CPU zlib finishes faster than the
+  DMA-to-accelerator round-trip even completes).
+
+  After that, briefly tell me which parts of your answer would
+  generalize to a DIFFERENT DOCA accelerator library (e.g. DOCA
+  DMA for host ↔ DPU memory copy, DOCA SHA for hash offload, DOCA
+  AES-GCM for authenticated encryption) — which parts stay the
+  same (lifecycle, cap-query rule, permission discipline,
+  smoke-before-bulk) and which parts change (the task name per
+  library, the capability query name per library, the algorithm
+  semantics, the decompression-as-standalone shape that Compress
+  uniquely surfaces).
+
+context:
+  audience: "intermediate"
+  intent: "offload_bulk_compression"
+  prior_knowledge: "knows what a DPU is, has a BlueField-3 plus host, knows what DEFLATE / zlib / gzip are conceptually but has not used the DOCA Compress API"
+  baseline_artifact: "doca-compress"
+  changed_skill_in_pr: "libs/doca-compress"
+  expected_skill_co_load:
+    - "doca-compress"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "env_preconditions_first"
+    label: "Verifies DOCA install + devinfo enumerable BEFORE writing any code"
+    weight: 1
+    pass_when: |
+      The agent says the FIRST step is to confirm the env-side
+      preconditions: that DOCA is installed (e.g.
+      `pkg-config --modversion doca-compress` resolves), that the
+      doca-compress.pc plus doca-common.pc plus doca_caps --version
+      all agree (four-way match via doca-version), and that the
+      target device is enumerable as a doca_devinfo (e.g.
+      `doca_caps --list-devs`). A response that jumps to
+      doca_compress_* calls without naming these env-side checks
+      first fails.
+
+  - id: "capability_query_rule"
+    label: "Calls out doca_compress_cap_* before assuming task support + buffer sizes"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST call
+      doca_compress_cap_task_compress_deflate_is_supported(devinfo)
+      before assuming the compress-deflate task is in the device's
+      accelerator, MUST call
+      doca_compress_cap_task_compress_deflate_get_max_buf_size(devinfo)
+      to size / validate the source buffer, and (if decompression
+      is also in scope) must call the matching
+      _decompress_deflate_is_supported / _get_max_buf_size queries
+      independently. A response that quotes a max input size from
+      memory without naming the cap query, asserts that the
+      compress task is universally available without checking, or
+      assumes that compress support implies decompress support
+      (or vice versa), fails.
+
+  - id: "lifecycle_order_correct"
+    label: "Walks the DOCA Core context lifecycle in the right order"
+    weight: 2
+    pass_when: |
+      The agent names the lifecycle order create → configure
+      (doca_compress_task_compress_deflate_set_conf + set source
+      / destination mmap permissions) → start (doca_ctx_start) →
+      submit task → progress PE (doca_pe_progress) → stop →
+      destroy, and explicitly states that
+      doca_compress_task_compress_deflate_set_conf MUST happen
+      before doca_ctx_start(). A response that jumps to task
+      submission without naming the lifecycle, puts task config
+      after start, or omits the progress-engine drain, fails.
+
+  - id: "mmap_permission_pair_correct"
+    label: "States the source / destination mmap permission pair correctly"
+    weight: 2
+    pass_when: |
+      The agent correctly states that the source (input) mmap
+      needs DOCA_ACCESS_FLAG_LOCAL_READ_ONLY at minimum and the
+      destination (encoded output) mmap needs
+      DOCA_ACCESS_FLAG_LOCAL_READ_WRITE, and that BOTH must be
+      set via doca_mmap_set_permissions before the first task is
+      submitted. A response that conflates the two buffers'
+      permissions, makes the source read-write "for simplicity"
+      without flagging it as over-broad, or omits the destination
+      read-write requirement, fails.
+
+  - id: "single_buffer_smoke_before_bulk"
+    label: "Recommends a single-buffer round-trip (or known-fixture) smoke before bulk"
+    weight: 2
+    pass_when: |
+      The agent recommends a single-buffer smoke test BEFORE
+      bulk-encoding the 1 MiB buffer: either compress one short
+      input and decompress the output (round-trip, comparing to
+      the original byte-for-byte) on the accelerator, OR
+      compress one short input on the accelerator and decompress
+      it against a published CPU encoder like zlib for
+      comparison. A response that jumps straight to bulk
+      compression without naming a single-buffer smoke fails.
+
+  - id: "size_threshold_path_selection"
+    label: "Calls out the size-threshold rule (don't offload tiny inputs)"
+    weight: 2
+    pass_when: |
+      The agent surfaces the size-threshold path-selection rule:
+      doca-compress is the right answer for BULK inputs (rule of
+      thumb: ≥ a few KiB, the canonical fit being file-scale
+      inputs typically ≥ 4 KiB), and is the WRONG answer for
+      tiny one-shot inputs (e.g. a 64-byte buffer) where CPU
+      zlib / zstd finishes faster than the DMA-to-accelerator
+      submit + completion-drain round-trip. The agent should
+      also note that the cap query reports the per-task MAX
+      input size but does NOT report the MIN-input floor — that
+      is a path-selection rule the agent / user owns, ideally
+      validated by a small benchmark on representative inputs. A
+      response that recommends doca-compress unconditionally
+      without flagging the tiny-input case, or that claims the
+      cap query encodes the offload-vs-CPU threshold, fails.
+
+  - id: "no_hallucinated_api"
+    label: "Does not invent doca_compress_* API symbols or non-DEFLATE algorithms"
+    weight: 1
+    pass_when: |
+      Every doca_compress_* (or doca_ctx_*, doca_pe_*,
+      doca_mmap_*) symbol the agent mentions is one that
+      actually exists in the public DOCA Compress surface (or it
+      is explicitly framed as pseudocode / sketch), and the
+      algorithms the agent names are limited to DEFLATE unless
+      the cap query is invoked to discover others. A response
+      that invents API names like doca_compress_easy(),
+      doca_compress_quick_init(), doca_compress_zstd_*, or that
+      names algorithms outside DEFLATE (zstd, LZ4, Snappy) as
+      shipped by doca-compress without flagging that DOCA
+      Compress only exposes DEFLATE in its public task names,
+      fails — that is the baseline-agent hallucination failure
+      mode the bundle exists to prevent.
+
+  - id: "decompression_only_recognized"
+    label: "Recognizes decompression as a valid standalone shape"
+    weight: 1
+    pass_when: |
+      Either in the main walkthrough or in the generalization
+      section, the agent explicitly notes that
+      doca_compress_task_decompress_deflate can be enabled on
+      its own — a consumer that ONLY decodes inbound
+      DEFLATE-encoded data (e.g. decompress-on-read storage
+      daemon, decompress-on-network receiver) does NOT have to
+      also enable the compress task. A response that treats
+      compress and decompress as a coupled pair, or that
+      asserts both tasks must be enabled together, fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from Compress to other DOCA accelerator libraries"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names at least ONE OTHER DOCA accelerator
+      library (DOCA DMA, DOCA SHA, DOCA AES-GCM, …) and
+      identifies which parts of the workflow stay the same
+      across accelerators (DOCA Core lifecycle order,
+      capability-query rule against the active doca_devinfo,
+      source / destination mmap permission discipline,
+      smoke-before-bulk) versus which parts change per
+      accelerator (the task type name per library, the
+      capability query name per library, the algorithm
+      semantics per library — e.g. SHA's algorithm enum vs
+      Compress's task-name-encoded DEFLATE choice — and the
+      fact that decompression-as-standalone is a Compress
+      surface that has no analog in DMA or SHA). A response
+      that walks only Compress and is silent on generalization
+      fails this criterion.

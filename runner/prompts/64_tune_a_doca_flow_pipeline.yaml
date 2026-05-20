@@ -1,0 +1,341 @@
+id: "64_tune_a_doca_flow_pipeline"
+name: "Tune a deployed doca-flow pipeline against a known traffic mix and apply the recommended parameters end-to-end — class-shaped"
+description: |
+  Class-shaped Flow-tuning prompt. The HEADLINE is the class
+  ("tune a deployed doca-flow pipeline against a known traffic
+  mix and apply the recommended parameter change end-to-end with
+  a captured before / after pair"); the worked example is a
+  doca-flow service on BlueField-3 with a representative traffic
+  mix where the operator wants to push the rule-install rate up,
+  because that is the newly-covered tool in
+  skills/tools/doca-flow-tune.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  drive ANY tune-class question against a `doca-flow` pipeline:
+  separate the measurement question (route to
+  `doca-flow-perf`) from the optimization question (this skill);
+  pick a single tuning axis (rule placement vs resource hints vs
+  hardware-offload mode); pick a matching measurement; capture a
+  before / after pair anchored by the four-tuple of (cmd line,
+  JSON config, DOCA version, device, env); apply the
+  recommendation back to the doca-flow program via the universal
+  modify-a-sample workflow; smoke-before-bulk before any
+  state-changing application; treat the historical
+  *server / client* split as **one binary, two internal roles**;
+  refuse to invent flag strings, JSON config field names, or
+  recommendation identifiers; cross-link `doca-version` for the
+  four-way match; generalize to a different tuning axis or a
+  different traffic mix.
+
+  A baseline agent without skills typically: conflates tune and
+  perf and tries to use `doca_flow_tune` to produce a baseline
+  number; invents a `doca-flow-tune-server` daemon binary and a
+  `doca-flow-tune-tool` client binary as if they were separate
+  artifacts; invents JSON config field names from generic IPC
+  intuition; jumps from "list pipes" straight to applying a
+  recommended change without a before-leg snapshot; treats
+  applying the recommendation as a tune-binary concern instead of
+  a doca-flow program-side modify-a-sample change; cannot
+  generalize the pattern from rule-placement to resource-hints
+  or hardware-offload-mode tuning; produces a recommendation
+  without a four-tuple and so cannot defend it.
+
+prompt: |
+  I have a doca-flow application running on a BlueField-3 — it
+  brought up its Flow ports, created several pipes (a basic
+  match-and-forward pipe, a hairpin pipe, a control pipe), and
+  has been programming entries against them for a few hours
+  under a known representative traffic mix. I already used
+  `doca_flow_perf` to produce a defensible baseline number for
+  this pipeline's rule-install rate on this device + this DOCA
+  version, and I have the four-tuple captured. Now I want to
+  *improve* the rule-install rate by running `doca_flow_tune`
+  against the live pipeline and applying whatever change it
+  recommends, end-to-end.
+
+  Walk me through:
+
+  1. First, tell me whether `doca_flow_tune` is the right tool
+     for this question at all. I keep hearing people talk about
+     a "Flow Tune Server" and a "Flow Tune Tool" as if they were
+     two different installables. What is actually shipped on my
+     DOCA install — one binary or two? If one, what is the
+     server / client decomposition INSIDE the artifact and how
+     do I configure which role my session engages? Be explicit
+     that I should NOT install two separate packages.
+  2. I have a baseline rule-install-rate number from
+     `doca_flow_perf`. Tell me where the boundary is between
+     that tool and `doca_flow_tune` — when do I reach for each,
+     and why is reaching for `doca_flow_tune` for a baseline
+     number (or for `doca_flow_perf` for a recommended change)
+     the wrong tool for the question?
+  3. Walk me through the three-axis configuration I have to
+     commit to BEFORE invoking `doca_flow_tune`: which tuning
+     axis (rule placement, resource hints, hardware-offload
+     mode), which measurement (rule-install rate, lookup
+     latency, hardware-counter delta), and which scope (which
+     pipe / port / app). For my question — push rule-install
+     rate up under the captured traffic mix — pick exactly one
+     tuning axis with me, name the measurement that matches it,
+     and tell me what a wrong axis or wrong measurement would
+     silently do to my session.
+  4. Tell me the first thing I should run. I want the cheapest
+     read-only sequence that snapshots my live Flow pipeline
+     and produces an analyze + visualize output I can read
+     BEFORE I authorize any state-changing application of a
+     recommendation. Tell me what passing looks like, what
+     failing looks like, and what to do next in each case.
+  5. The shipped DOCA install has JSON config templates for the
+     tune tool (the user often sees `flow_tune_cfg_public.json`
+     and its variants). Tell me which fields I should care
+     about for my chosen scope and mode, and where I should
+     read the schema if a field name in my head does not match
+     what the template actually documents. Do NOT invent field
+     names from memory; if you do not know the spelling on my
+     installed version, say so and tell me where to look.
+  6. When the analyze step produces a recommendation, what is
+     the rule for getting it back into my doca-flow application?
+     Is the recommendation a knob the tune binary itself can
+     flip, or is it a change I have to apply to my Flow
+     program's source via the universal modify-a-sample
+     workflow? Walk me through the minimum-diff change shape and
+     tell me explicitly when a recommendation is
+     *recommendation-unactionable* because the Flow program does
+     not expose the knob the recommendation targets.
+  7. Tell me the rule for a defensible before / after pair. What
+     four-tuple do I have to capture for the *before* leg? What
+     do I have to capture for the *after* leg? What is the
+     right way to diff the two (the shipped `scripts/` directory
+     under the tune install has some helpers — tell me what
+     class they are, not the exact filename) and what does it
+     mean when the diff does not move in the direction the
+     recommendation predicted?
+  8. How do I know my `doca_flow_tune` binary, the `doca-flow`
+     library my application links against, and my host DOCA
+     install all came from the same DOCA train? What is the
+     right way to handle it if they did not? Be explicit that
+     this is a HARD precondition for any tuning operation, not
+     a nice-to-have.
+
+  After that, briefly generalize: name ONE OTHER tuning question
+  I could ask the same tool — for example, switching the tuning
+  axis from rule-placement to resource-hints / table-sizing on
+  the same pipeline, or repeating the rule-placement tuning loop
+  on a *different* representative traffic mix (say, with a
+  heavier hairpin fraction) — and identify which parts of your
+  answer above STAY THE SAME (the one-binary / two-role
+  decomposition, the three-axis decision shape, the
+  smoke-before-bulk loop, the four-tuple capture rule, the
+  minimum-diff application path through the doca-flow program,
+  the version overlay via `doca-version`) versus which CHANGE
+  (the specific tuning axis, the specific measurement axis, the
+  scope set, which Flow API call in the program ends up being
+  the knob the recommendation moves, the expected direction of
+  the diff).
+
+context:
+  audience: "intermediate"
+  intent: "tune_flow_pipeline_end_to_end"
+  prior_knowledge: "has a doca-flow application running on a BlueField-3 with several pipes already created and steady representative traffic on the wire, has a defensible rule-install-rate baseline from doca_flow_perf with the four-tuple captured, has not used doca_flow_tune before, wants a defensible non-mutating snapshot first and then a smoke-gated application of a recommendation"
+  baseline_artifact: "doca-flow-tune"
+  changed_skill_in_pr: "tools/doca-flow-tune"
+  expected_skill_co_load:
+    - "doca-flow-tune"
+    - "doca-flow"
+    - "doca-flow-perf"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+    - "doca-hardware-safety"
+
+criteria:
+  - id: "one_binary_two_roles_named"
+    label: "Names that doca_flow_tune is ONE binary with TWO internal roles, not two separately-installed packages"
+    weight: 3
+    pass_when: |
+      In response to question 1, the agent explicitly states that
+      `doca_flow_tune` is shipped as a SINGLE binary with TWO
+      internal roles (the server role that snapshots and exposes
+      live Flow state via a local IPC channel, and the client /
+      consumer role that runs the analyze / visualize / diff
+      chain on top), not as two separately-installed
+      `doca-flow-tune-server` and `doca-flow-tune-tool` packages.
+      The agent must say which role a given session engages is a
+      configuration / mode decision INSIDE the one binary, not a
+      package-selection decision. A response that invents a
+      separate server daemon and a separate client CLI as if they
+      were two installables, that recommends installing two
+      packages, or that treats the historical separation as the
+      current artifact shape, fails.
+
+  - id: "tune_vs_perf_boundary_named"
+    label: "Names the tune-vs-perf boundary and routes the baseline question to doca-flow-perf"
+    weight: 3
+    pass_when: |
+      In response to question 2, the agent explicitly states the
+      boundary: `doca_flow_perf` MEASURES a defensible baseline
+      number on a static pipeline configuration; `doca_flow_tune`
+      OPTIMIZES on top of an existing baseline by producing a
+      recommendation. The agent must say that reaching for
+      `doca_flow_tune` to produce a primary baseline is the wrong
+      tool, AND that reaching for `doca_flow_perf` to produce a
+      recommended parameter change is the wrong tool. The agent
+      must cite the matching skills
+      (`doca-flow-perf` for the baseline; this skill for the
+      optimization). A response that conflates the two, that
+      treats `doca_flow_tune` as a perf tool, or that omits the
+      boundary entirely, fails.
+
+  - id: "three_axis_decision_walked"
+    label: "Walks the three-axis decision (tuning axis × measurement × scope) explicitly for the user's question"
+    weight: 3
+    pass_when: |
+      In response to question 3, the agent walks ALL THREE axes:
+      tuning axis (rule placement vs resource hints vs
+      hardware-offload mode), measurement (rule-install rate vs
+      lookup latency vs hardware-counter delta), and scope
+      (which pipe / port / app). The agent must commit to one
+      tuning axis matching the user's stated rule-install-rate
+      question and name explicitly that the measurement must
+      MATCH the chosen tuning axis (e.g. a latency answer to a
+      rule-install-rate question is the canonical apples-to-
+      oranges failure). The agent must say what a wrong axis or
+      wrong measurement would silently do to the session
+      (silent narrowing, ambiguous attribution). A response that
+      collapses the axes into a single "tuning" decision, that
+      omits one axis entirely, or that picks a measurement that
+      does not match the tuning axis, fails.
+
+  - id: "smoke_before_bulk_loop_walked"
+    label: "Walks the snapshot → analyze → visualize → smoke loop BEFORE any state-changing application of a recommendation"
+    weight: 3
+    pass_when: |
+      In response to questions 4 and 6-7, the agent walks the
+      explicit ordered flow: (a) FIRST run the online read-only
+      snapshot (or the offline analyze on a captured config) to
+      produce dumper / analyze / visualize outputs; (b) THEN
+      read the recommendation as evidence under named
+      assumptions; (c) THEN capture the four-tuple for the
+      before leg; (d) ONLY THEN apply the recommendation back to
+      the Flow program via the universal modify-a-sample
+      workflow; (e) THEN re-snapshot for the after leg and diff
+      the two legs. The agent must NOT collapse the sequence,
+      must NOT recommend applying a change before the before-leg
+      snapshot is captured, must NOT skip the version check, and
+      must NOT loop on tune trying to "fix" an empty before-leg
+      with more tune runs. A response that jumps from "list
+      pipelines" straight to a state-changing change fails.
+
+  - id: "recommendation_routes_to_flow_program_modify"
+    label: "Applying a recommendation is a doca-flow PROGRAM change, not a knob the tune binary flips"
+    weight: 3
+    pass_when: |
+      In response to question 6, the agent explicitly states
+      that applying a tune recommendation is a CODE CHANGE to
+      the surrounding `doca-flow` application — landed via the
+      universal modify-a-sample workflow in
+      `doca-programming-guide` plus the Flow-specific
+      `doca-flow ## modify` — NOT a knob the `doca_flow_tune`
+      binary itself flips. The agent must name the
+      "recommendation-unactionable" case: when the
+      recommendation targets a pipe attribute the Flow program
+      hard-codes, the right next step is a Flow-program change
+      to expose the knob (or a routing-away from this
+      recommendation), NOT a tune-binary retry. A response that
+      treats the tune binary as the actuator of the change, or
+      that omits the modify-a-sample loop entirely, fails.
+
+  - id: "four_tuple_capture_rule_named"
+    label: "Names the four-tuple capture rule for a defensible before / after pair"
+    weight: 2
+    pass_when: |
+      In response to question 7, the agent surfaces the
+      capture rule: a defensible tune iteration requires the
+      four-tuple — (a) the exact tune command line, (b) the
+      JSON config used, (c) the DOCA version (anchored against
+      `doca-version`), (d) the device target (PCI address /
+      Flow port set), and (e) the as-deployed environment
+      (firmware, kernel, NUMA, hugepages) — captured for BOTH
+      the before leg and the after leg. The agent should also
+      name a class of helper script for diffing the two (the
+      shipped `scripts/` directory under the tune install
+      contains vendor-provided diff helpers; the agent should
+      NOT invent the exact filename but can name the class —
+      JSON diff, mermaid diff, CSV analyzer). A response that
+      treats the four-tuple as optional, that recommends
+      reporting a single after-leg number without the before
+      leg, or that asserts the captured artifact is enough
+      without the four-tuple, fails.
+
+  - id: "no_invented_cli_or_json_strings"
+    label: "Does not invent CLI flag strings, JSON config field names, or recommendation identifiers"
+    weight: 3
+    pass_when: |
+      The agent does NOT quote a specific `doca_flow_tune`
+      mode flag, subcommand name, JSON config field name, or
+      recommendation identifier from memory as authoritative
+      (e.g. it does NOT invent something like
+      `doca_flow_tune --server --listen unix:/var/run/...`,
+      `doca_flow_tune --tune-axis placement`, or a JSON field
+      like `monitor.tuning_axis` that the agent did not
+      verify against the shipped templates). Instead the
+      agent states that the authoritative source for the
+      flag inventory, JSON config field names, and
+      recommendation identifiers is the public DOCA Flow Tune
+      guide (reachable via
+      `doca-public-knowledge-map ## DOCA tools`), the
+      installed `--help` on the user's version, and the
+      shipped `flow_tune_cfg*.json` templates on the user's
+      install. If the agent DOES surface a candidate field
+      name (e.g. `network.server_uds` from the public
+      template), it must frame the source explicitly (the
+      shipped template, not memory). Inventing a flag or JSON
+      field from memory and presenting it as authoritative
+      fails — that is the canonical Flow-tune hallucination
+      failure mode.
+
+  - id: "version_overlay_via_doca_version"
+    label: "Names the version overlay via doca-version as a HARD precondition for tuning"
+    weight: 2
+    pass_when: |
+      In response to question 8, the agent surfaces the
+      version-handling rule via `doca-version`: the tune
+      binary's `--version`, `pkg-config --modversion doca-flow`
+      on the Flow application's host, and the host package
+      version per `doca-version ## configure` MUST all agree
+      as part of the four-way match. The agent must explicitly
+      state that the version check is a HARD precondition for
+      any tuning operation (not just on first connect, not
+      optional, not deferrable) and that disagreement is a
+      partial-install hazard the agent must surface — the right
+      fix is a consistent reinstall on the side that is out of
+      train, not a tune-side workaround. A response that
+      treats the version check as optional, that asserts
+      versions match without checking, that omits the
+      partial-install hazard, or that does not cite
+      `doca-version`, fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from rule-placement to another tuning axis or another representative traffic mix"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the generalization part
+      of the prompt: it walks at least ONE OTHER instance —
+      either a different tuning axis (resource-hints /
+      table-sizing OR hardware-offload-mode) on the same
+      pipeline, or the same rule-placement axis on a different
+      representative traffic mix (heavier hairpin fraction,
+      stateful CT traffic, etc.) — and identifies which parts
+      STAY THE SAME (the one-binary / two-role decomposition,
+      the three-axis decision shape, the smoke-before-bulk
+      loop, the four-tuple capture rule, the minimum-diff
+      application path through the doca-flow program, the
+      version overlay via `doca-version`) versus which CHANGE
+      (the specific tuning axis identifier, the specific
+      measurement axis, the scope set, which Flow API call
+      ends up being the knob, the expected direction of the
+      diff). A response that walks only the worked example
+      and is silent on the broader class fails this criterion.

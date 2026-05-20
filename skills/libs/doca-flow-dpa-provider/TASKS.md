@@ -387,7 +387,7 @@ provider-specific manifestation at layers 5 (runtime), 6
   precede entry-add; entry-add must precede export; export
   must precede `_pipe_get_device_addr`. Out-of-order
   returns `DOCA_ERROR_BAD_STATE` per
-  [`CAPABILITIES.md ## Error taxonomy`](#error-taxonomy).
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy).
 - Wrong queue type in the config: a kernel that calls
   `doca_flow_external_resource_memory_update` while the
   queue config did not include `RESOURCES_WRITE` fails

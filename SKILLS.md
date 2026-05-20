@@ -40,12 +40,12 @@ skills/
 The cross-cutting skills sit at the top level because they apply *across*
 libraries / services / tools. Per-artifact skills live under the matching
 subdirectory, **strictly 1:1 with `doca/{libs,services,tools}`** at the
-DOCA release the bundle is aligned to. The
-[`devops/ci/check-doca-inventory.sh`](../devops/ci/check-doca-inventory.sh)
-HARD gate enforces 1:1 alignment; the gate clones `@doca` at the
-`DOCA_BRANCH` parameter (default `master`), reads `doca/VERSION`, and
-fails the build on any MISSING (in `doca/` but not in `skills/`) or EXTRA
-(in `skills/` but not in `doca/`) artifact.
+DOCA release the bundle is aligned to. NVIDIA's internal CI clones
+`@doca` at the build's `DOCA_BRANCH` parameter (default `master`),
+reads `doca/VERSION`, and HARD-fails any commit that introduces a
+MISSING (in `doca/` but not in `skills/`) or EXTRA (in `skills/` but
+not in `doca/`) artifact. The bundle on `ai-mvp-with-files` is
+therefore always 1:1-aligned with the named DOCA release.
 
 This is a *physical* convention only — agents discover skills by their
 `name:` (declared in each `SKILL.md`'s YAML frontmatter), and cross-link
@@ -78,10 +78,9 @@ artifact. Every row also appears in the
 [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md)
 routing tables so the agent can reach the skill from either entry point.
 
-The complete mapping (skill dir → `doca/` source path → naming rationale)
-is audited in `devops/SKILL-PROVENANCE.md`. The compact triple table
-below is the discovery surface every fresh agent walks. Strict 1:1
-alignment is enforced by `devops/ci/check-doca-inventory.sh`.
+The compact triple table below is the discovery surface every fresh
+agent walks. Strict 1:1 alignment with the named DOCA release is
+enforced by NVIDIA's internal CI on every commit.
 
 **Libraries (28) — `skills/libs/<name>/`, 1:1 with `doca/libs/`** (excluding the internal-only `doca_gpunetio_internal`)
 
@@ -159,31 +158,9 @@ Telemetry-Service-as-deployed) are intentionally out of scope — see
 
 ## Adding a new skill
 
-1. The bundle is **strict 1:1 with `doca/{libs,services,tools}`** at the
-   currently-aligned DOCA release. New skills exist iff `doca/` ships
-   the matching artifact at the build's `DOCA_BRANCH` parameter. The
-   [`devops/ci/check-doca-inventory.sh`](../devops/ci/check-doca-inventory.sh)
-   HARD gate enforces this and fails the build on any drift.
-2. Pick the right slot in the layered tree
-   (`libs/<library>` / `services/<service>` / `tools/<tool>`, or
-   top-level only if the skill is genuinely cross-cutting AND not
-   represented by a `doca/` artifact).
-3. Create `<slot>/<kebab-case-id>/SKILL.md`.
-4. Use the frontmatter contract enforced by `ci/check-skill.sh`
-   (`name`, `description ≤ 1024 chars`, `kind: knowledge | library`).
-5. For `kind: library`, add `CAPABILITIES.md` and `TASKS.md` with the
-   required H2 anchors (`ci/check-skill.sh` enforces them).
-6. Add a row to the index table above with a single-line "what it
-   covers" trigger.
-7. Add a row to the
-   [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md)
-   routing tables (every per-artifact skill must be discoverable from
-   BOTH this index AND the knowledge-map — enforced by
-   `ci/check-coverage.sh --routing-discoverability-hard-fail`).
-8. Author a class-shape prompt under `devops/runner/prompts/` (every
-   `libs/services/tools` skill must have ≥1 prompt — enforced by
-   `ci/check-coverage.sh`).
-9. Run all 9 HARD gates locally and confirm they all pass:
-   `ci/check-skill.sh --all`, `ci/check-anchor-density.sh --all`,
-   `ci/check-crosslinks.sh`, `ci/check-coverage.sh
-   --routing-discoverability-hard-fail`, `ci/check-doca-inventory.sh`.
+Adding or modifying a skill is governed by NVIDIA's internal author
+contract. External consumers of this bundle do not need to author
+skills themselves — `ai-mvp-with-files` already carries the
+1:1-aligned skill for every public DOCA library, service, and tool at
+the currently-aligned DOCA release, and every new release brings the
+matching skills along with it through internal CI.

@@ -1,0 +1,335 @@
+id: "57_drop_to_low_level_verbs_below_doca_rdma"
+name: "Drop to low-level doca-verbs beneath the higher-level DOCA libraries — class-shaped"
+description: |
+  Class-shaped drop-down prompt. The HEADLINE is the CLASS
+  ("drop to low-level doca-verbs beneath the higher-level DOCA
+  libraries"); the worked example is a libibverbs codebase that
+  uses `IBV_SEND_INLINE` on a custom QP attribute on
+  BlueField-3, because that is the canonical case where a user
+  *thinks* they need raw verbs and the agent must walk the
+  decision honestly.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  recognize when a user's RDMA-class (or Ethernet-queue-class,
+  or media-class) requirement genuinely needs the low-level
+  `doca-verbs` surface vs the matching higher-level DOCA library
+  (`doca-rdma` / `doca-eth` / `doca-rmax`). The bundle proves
+  this by asking the agent to walk: the drop-down gate FIRST
+  (does the higher-level library actually cover the case?); only
+  then, if yes, the porting decision (how `ibv_*` handles map to
+  `doca_verbs_*` handles); the cap-query rule
+  (`doca_verbs_query_device` + `doca_verbs_device_attr_get_*`
+  against the active `doca_devinfo`); the DOCA Core lifecycle
+  (`doca_verbs_context_create` → per-object create → `doca_pe`
+  drive); the explicit completion-path choice (DOCA PE vs
+  manual `doca_verbs_bridge_poll_cq` vs comp-channel
+  `doca_verbs_get_cq_event`); the no-mixing-with-libibverbs
+  rule; the `DOCA_ERROR_*` overlays (especially IO_FAILED →
+  inspect the CQE, not the submit return). The same SHAPE
+  applies whether the user is dropping to verbs from doca-rdma,
+  doca-eth, or doca-rmax; the worked example focuses on the
+  RDMA-side drop-down because it is the most common.
+
+  A baseline agent without skills typically: jumps straight to
+  recommending raw verbs because the user said "verbs" or "QP"
+  (the unnecessary-drop-down failure mode); invents `doca_verbs_*`
+  symbol names from libibverbs analogy without reading the
+  installed headers; treats libibverbs and doca-verbs as
+  interchangeable and mixes their handles freely; skips the
+  cap-query and quotes feature support from doc memory;
+  conflates the QP state machine with the DOCA Core lifecycle
+  (or omits one of them); recommends a single completion-handling
+  path implicitly without naming the other two; does not
+  surface the IO_FAILED → CQE-error rule and tells the user to
+  inspect the submit return.
+
+prompt: |
+  I have a working libibverbs codebase on a host with a
+  BlueField-3 DPU. The codebase opens a `ibv_context`, allocates
+  a PD, registers a few MRs, creates a reliable-connection QP
+  with `IBV_QPT_RC`, and on the send side sets
+  `IBV_SEND_INLINE` on small WRs (the payloads are < 256 bytes
+  and we care about latency). The QP also uses a custom
+  attribute combination that my reading of the code seems to
+  require setting at the verb / WR level.
+
+  I want to bring this into the DOCA world on BlueField-3 with
+  DOCA already installed. My instinct is that I should drop to
+  `doca-verbs` because the existing code is already at the
+  verbs tier — but I want you to walk me through the decision
+  HONESTLY before I write any DOCA code.
+
+  Specifically:
+
+  1. Tell me FIRST whether `doca-rdma` (the higher-level DOCA
+     RDMA library) actually covers my case. I have a vague sense
+     that DOCA's task-based abstractions can handle inline-send
+     and RC QP setup, but I do not know whether they expose the
+     specific WR flag and QP attribute combination my existing
+     code uses. Walk the decision rather than just saying "go
+     drop to verbs".
+  2. ASSUMING the decision lands on `doca-verbs` (because
+     `doca-rdma` genuinely does not expose what I need), walk
+     me through the port: which `doca_verbs_*` handles replace
+     which `ibv_*` handles, how the DOCA Core lifecycle
+     (`doca_verbs_context_create` + `doca_pe_create` +
+     `doca_pe_connect_ctx` + `doca_ctx_start`) wraps the verbs
+     object set, which cap queries
+     (`doca_verbs_query_device` + the
+     `doca_verbs_device_attr_get_*` family) I have to run
+     against my active `doca_devinfo` BEFORE I can trust the
+     port works on this hardware, and which completion-handling
+     path I should pick (you mentioned three exist — please
+     name them explicitly and tell me which one is the default
+     for new code).
+  3. Tell me clearly whether I can keep ANY of my existing
+     `ibv_*` calls running side-by-side with the new
+     `doca_verbs_*` calls on the same QP / CQ / PD / MR — or
+     whether the boundary is hard. The codebase is large
+     enough that incremental porting would be nice, but I'd
+     rather know up front if mixing is unsupported.
+  4. When I post a send WR with `IBV_SEND_INLINE`-equivalent
+     semantics in the new code and the WR completes with
+     error, what specifically do I look at? My past habit is to
+     check the return value of the submit call; tell me HONESTLY
+     if that is the right place in doca-verbs.
+  5. Briefly generalize: if my case had been Ethernet-side
+     (line-rate I/O on a `doca_eth_*` queue) or
+     timing-precise-media-side (a Rivermax stream), how would
+     the decision shape change? I want to know whether the
+     drop-down rule is RDMA-specific or universal across the
+     three higher-level DOCA libraries (doca-rdma / doca-eth /
+     doca-rmax).
+
+  Don't paraphrase symbols — quote `doca_verbs_*` and
+  `doca_*` API names verbatim from what the skill says is in
+  the installed headers
+  (`/opt/mellanox/doca/infrastructure/include/`), and tell me
+  HONESTLY when a specific symbol or capability needs a
+  cap-query against my active `doca_devinfo` instead of being
+  promised by documentation. If a particular libibverbs idea I
+  have does not map cleanly onto doca-verbs, say so.
+
+context:
+  audience: "intermediate"
+  intent: "decide_drop_down_and_port_libibverbs"
+  prior_knowledge: "experienced libibverbs developer (knows ibv_open_device, ibv_alloc_pd, ibv_create_qp, ibv_post_send / WR flags, CQ poll), has a BlueField-3 plus host with DOCA installed, has done at least one DOCA build before, has NOT yet written any doca_verbs_* code"
+  baseline_artifact: "doca-verbs"
+  changed_skill_in_pr: "libs/doca-verbs"
+  expected_skill_co_load:
+    - "doca-verbs"
+    - "doca-rdma"
+    - "doca-eth"
+    - "doca-rmax"
+    - "doca-common"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "drop_down_decision_gated_first"
+    label: "Walks the drop-down decision BEFORE any doca-verbs code-level discussion"
+    weight: 3
+    pass_when: |
+      The agent's FIRST move is to question whether
+      `doca-rdma` actually covers the user's case — i.e., walk
+      the path-selection rule from the doca-verbs skill BEFORE
+      recommending any `doca_verbs_*` call. The agent should
+      explicitly state that the most common baseline failure is
+      recommending raw verbs UNNECESSARILY because the user
+      said "verbs" or "QP", and that the right answer is often
+      "stay in `doca-rdma`". The agent must NOT skip directly
+      to porting; it must walk the decision and only proceed
+      to verbs-side material once the user (or the agent on the
+      user's behalf) has confirmed `doca-rdma` does not expose
+      the specific WR flag / QP attribute the existing code
+      uses. A response that jumps straight into
+      `doca_verbs_context_create` without questioning the
+      drop-down, fails.
+
+  - id: "no_silent_mixing_with_libibverbs"
+    label: "Refuses to mix libibverbs and doca-verbs handles on the same hardware resources"
+    weight: 3
+    pass_when: |
+      When the user explicitly asks (prompt point 3) whether
+      they can keep `ibv_*` calls side-by-side with new
+      `doca_verbs_*` calls on the same QP / CQ / PD / MR, the
+      agent answers with a hard NO and explains the no-mixing
+      rule: `libibverbs` and `doca-verbs` are two different
+      libraries operating against the same kernel uverbs
+      interface from different sides; mixing handles can fail
+      silently (the call appears to succeed) and produce
+      failures far from the mixing line. The agent must name
+      the correct migration shape: port the libibverbs object
+      set over to `doca_verbs_*` handles (replacing
+      `ibv_context` ownership with `doca_dev` ownership through
+      `doca_dev_open` + `doca_verbs_context_create`), then run
+      purely through one library at a time. A response that
+      allows ANY mixing (even temporarily, even "just for
+      incremental porting"), fails.
+
+  - id: "cap_query_rule_called_out"
+    label: "Names doca_verbs_query_device + doca_verbs_device_attr_get_* as the runtime authority"
+    weight: 2
+    pass_when: |
+      The agent calls out that BEFORE assuming any verb,
+      opcode, WR flag, or QP attribute is supported, the user
+      MUST call `doca_verbs_query_device(devinfo, &dev_attr)`
+      and inspect the matching `doca_verbs_device_attr_get_*`
+      against the active `doca_devinfo` — e.g.,
+      `_get_is_qp_type_supported` for `IBV_QPT_RC`-equivalent
+      semantics; `_get_max_inline_data` (or the equivalent
+      sizing query) for the inline-send threshold; the
+      relevant feature flags (`_get_is_ece_supported`,
+      `_get_is_cqe_inline_supported`,
+      `_get_is_ordering_semantic_supported`, etc.) for any
+      QP-attribute behavior the existing code depends on. The
+      agent should also tell the user to FREE the returned
+      handle with `doca_verbs_device_attr_free` after
+      snapshotting. The agent must frame the cap-query as the
+      runtime authority (the public docs are the *promise*;
+      the cap-query is the *reality*). A response that quotes
+      a specific verb / WR flag / QP feature support from
+      memory, or that asserts a feature is available on
+      BlueField-3 without naming the cap-query, fails.
+
+  - id: "doca_core_lifecycle_wraps_verbs_objects"
+    label: "Walks doca_verbs_context_create + doca_pe_connect_ctx + doca_ctx_start lifecycle around the verbs object set"
+    weight: 2
+    pass_when: |
+      The agent explicitly states that the verbs object set
+      (PD / QP / CQ / SRQ / AH / MR) lives inside a DOCA Core
+      context: `doca_verbs_context_create(dev, &ctx)` creates
+      the context; the per-object `doca_verbs_pd_create` /
+      `doca_verbs_cq_create` / `doca_verbs_qp_create` family
+      attaches into it; `doca_pe_create(&pe)` +
+      `doca_pe_connect_ctx(pe, ctx_as_doca_ctx)` MUST happen
+      BEFORE `doca_ctx_start`; the QP state machine is driven
+      via `doca_verbs_qp_modify` using a `doca_verbs_qp_attr`
+      built with `doca_verbs_qp_attr_set_current_state` /
+      `_set_next_state`. The agent should also call out that
+      `ibv_open_device` is replaced by `doca_dev_open` on a
+      `doca_devinfo` from `doca_devinfo_create_list`. A
+      response that walks only `ibv_*` → `doca_verbs_*`
+      textual replacement without wrapping the object set in
+      the DOCA Core lifecycle, fails.
+
+  - id: "three_completion_paths_named_explicitly"
+    label: "Names ALL THREE completion-handling paths and picks one as the default"
+    weight: 2
+    pass_when: |
+      The agent explicitly names the three completion-handling
+      paths the doca-verbs surface exposes — (a) the DOCA
+      progress engine via `doca_pe_progress`, (b) manual CQ
+      polling via `doca_verbs_bridge_poll_cq`, and (c)
+      completion-channel event delivery via
+      `doca_verbs_comp_channel_create` +
+      `doca_verbs_get_cq_event` + `doca_verbs_ack_cq_events`
+      with `doca_verbs_req_notify_cq` to arm — AND picks ONE
+      as the recommended default (the DOCA PE, because it
+      integrates with the rest of DOCA Core). The agent must
+      warn the user that mixing two paths on the same CQ is
+      unsupported and drops completions silently. A response
+      that names only one path implicitly (typically the PE)
+      and omits the other two, or that recommends mixing, fails.
+
+  - id: "io_failed_routes_to_cqe_not_submit"
+    label: "On DOCA_ERROR_IO_FAILED, sends the user to the CQE error field, not the submit return"
+    weight: 2
+    pass_when: |
+      When the user asks (prompt point 4) where to look on a
+      failing WR completion, the agent explicitly states that
+      `DOCA_ERROR_IO_FAILED` means *the submit succeeded but
+      the completion reports an error* — and that the answer
+      lives in the CQE error field, NOT in the submit return.
+      The agent should direct the user to drain the CQ via
+      the chosen completion path (PE / manual /
+      comp-channel), read the CQE error field verbatim, and
+      then map THAT to the next action (capability mismatch /
+      lifecycle violation / driver-layer escalation). The
+      agent should also reinforce that the user's past habit
+      ("check the return of the submit call") is the wrong
+      place for IO_FAILED specifically. A response that
+      directs the user to the submit return value, or that
+      omits the CQE-inspection step, fails.
+
+  - id: "no_hallucinated_doca_verbs_api"
+    label: "Does not invent doca_verbs_* API symbols"
+    weight: 2
+    pass_when: |
+      Every `doca_verbs_*` symbol the agent mentions is one
+      the skill documents (drawn from the experimental ABI
+      tier exposed by the library's `version.map`: e.g.
+      `doca_verbs_context_create`, `doca_verbs_pd_create`,
+      `doca_verbs_qp_init_attr_create` + the
+      `_qp_init_attr_set_*` family,
+      `doca_verbs_qp_create`, `doca_verbs_qp_modify`,
+      `doca_verbs_qp_attr_*`, `doca_verbs_cq_attr_*` +
+      `doca_verbs_cq_create`, `doca_verbs_srq_*`,
+      `doca_verbs_ah_attr_*`,
+      `doca_verbs_comp_channel_create`,
+      `doca_verbs_get_cq_event`, `doca_verbs_ack_cq_events`,
+      `doca_verbs_req_notify_cq`,
+      `doca_verbs_bridge_poll_cq`,
+      `doca_verbs_query_device` +
+      `doca_verbs_device_attr_get_*` +
+      `doca_verbs_device_attr_free`,
+      `doca_verbs_get_async_event_handle` +
+      `doca_verbs_get_async_event` +
+      `doca_verbs_ack_async_event`), OR it is explicitly
+      framed as the agent telling the user to read the exact
+      symbol name from the installed headers
+      (`/opt/mellanox/doca/infrastructure/include/doca_verbs.h`
+      and the adjacent `doca_verbs_*.h` family). A response
+      that invents symbol names like
+      `doca_verbs_quick_init()`,
+      `doca_verbs_qp_easy_send()`, or quotes a verbs symbol
+      from memory that does not exist in the installed
+      `version.map`, fails — that is the baseline-agent
+      hallucination failure mode the bundle exists to
+      prevent.
+
+  - id: "version_overlay_named"
+    label: "Quotes pkg-config --modversion doca-verbs AND surfaces the experimental ABI tier"
+    weight: 1
+    pass_when: |
+      The agent surfaces TWO version axes: (a) the doca-verbs
+      `.pc` version via `pkg-config --modversion doca-verbs`
+      (which must match `doca_caps --version` AND
+      `pkg-config --modversion doca-common`) BEFORE quoting
+      any feature, AND (b) the fact that the entire
+      `doca_verbs_*` ABI ships under the EXPERIMENTAL tier on
+      this release — symbols may rename, reshape, or graduate
+      between releases, and the install's headers are the
+      authoritative truth per the headers-win-over-docs rule
+      in `doca-version`. The agent should also name that the
+      device-side cap query against `doca_devinfo` is the
+      runtime authority on top of both. A response that quotes
+      a DOCA version pin from memory, or that promises a
+      feature without naming either the version anchor or the
+      experimental-tier caveat, fails.
+
+  - id: "generalizes_beyond_rdma_worked_example"
+    label: "Generalizes from doca-rdma drop-down to doca-eth / doca-rmax drop-down — names what stays the same"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses prompt point 5: it
+      generalizes from the RDMA-side worked example (drop
+      from `doca-rdma` to `doca-verbs`) to the
+      Ethernet-queue-side case (drop from `doca-eth` to
+      `doca-verbs` — e.g., when the user needs explicit
+      TS-source-type, plane-index, multi-pkt-send-WQE control
+      on a `doca_verbs_eth_sq` / `doca_verbs_eth_rq`) and to
+      the timing-precise-media case (drop from `doca-rmax` to
+      `doca-verbs` for the rare media use case where Rivermax
+      does not expose a needed verb). The agent must state
+      that the SHAPE of the decision is the same across all
+      three higher-level libraries — confirm the higher-level
+      library does not cover the case FIRST; only then port,
+      cap-query, wrap in the DOCA Core lifecycle, pick a
+      completion path, honor the no-mixing rule. A response
+      that walks only the RDMA case and is silent on
+      generalization, or that claims the drop-down rule is
+      RDMA-specific, fails.

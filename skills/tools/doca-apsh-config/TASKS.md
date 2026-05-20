@@ -309,7 +309,7 @@ The iteration loop (apply to every rotation):
 
 | Iteration trigger | What it looks like | What changes next iteration |
 | --- | --- | --- |
-| `doca_apsh_system` configure rejects the profile on the DPU side | Layer 5 (DPU-side-load) of the error taxonomy; could be version pairing, corrupted artifact, or wrong OS axis | Confirm version pairing per [`CAPABILITIES.md ## Version compatibility`](#version-compatibility); re-distribute (atomic-swap may have torn the file); re-generate with the right `--os` if mis-axis. |
+| `doca_apsh_system` configure rejects the profile on the DPU side | Layer 5 (DPU-side-load) of the error taxonomy; could be version pairing, corrupted artifact, or wrong OS axis | Confirm version pairing per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility); re-distribute (atomic-swap may have torn the file); re-generate with the right `--os` if mis-axis. |
 | Process enumeration round-trip mismatches a known-running process | Profile loads, but symbol offsets are wrong — staleness or wrong-kernel-build | Re-confirm the host kernel build matches the build the script was run against (`uname -r` on both sides of the rotation); regenerate if not. |
 | `DOCA_ERROR_NOT_FOUND` on a process that genuinely exists | Per the *"`NOT_FOUND` is a normal answer"* rule in [`doca-apsh CAPABILITIES.md ## Error taxonomy`](../../libs/doca-apsh/CAPABILITIES.md#error-taxonomy), this can be a real *"not present"* answer — but if the validation set is *known-running*, this is a profile-staleness signal | Regenerate the profile against the current running kernel; re-validate. |
 | Validation passes on one DPU but fails on another paired with a different host kernel | Two host classes in the fleet; one profile cannot serve both | Generate a profile per host class; route per-DPU during distribution. |
@@ -370,7 +370,7 @@ in order. The shape of the diagnosis:
 5. **DPU-side-load.** If the artifact exists but the
    DPU-side consumer rejects it or mis-reads it, confirm
    version pairing per
-   [`CAPABILITIES.md ## Version compatibility`](#version-compatibility);
+   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility);
    confirm the distribution path delivered the file
    intact (SHA on both sides matches the host-side SHA);
    walk

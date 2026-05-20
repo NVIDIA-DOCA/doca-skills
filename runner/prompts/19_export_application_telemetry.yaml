@@ -1,0 +1,233 @@
+id: "19_export_application_telemetry"
+name: "Export structured application telemetry from a DOCA-using program — class-shaped"
+description: |
+  Class-shaped application-telemetry-publishing prompt. The
+  HEADLINE is the class ("export structured application
+  telemetry — counters / gauges / events — from a DOCA-using
+  program to an external consumer"); the worked example is DOCA
+  Telemetry Exporter (emit a per-second packets-processed
+  counter event from a DOCA Flow application), because that is
+  the newly-covered library in skills/libs/doca-telemetry-
+  exporter.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  set up ANY application-side structured-telemetry publishing
+  context (the DOCA Telemetry Exporter, conceptually a
+  Prometheus / OpenTelemetry-style client library — each carries
+  the same publisher-vs-receiver asymmetry, the same
+  schema-register-before-emit lifecycle, and the same hot-path
+  drop-not-block invariant for the publish call). The bundle
+  proves this by asking the agent to walk: exporter-vs-service
+  role rule FIRST, receiver-up-first staging BEFORE any code,
+  cap-query against the install for limits, schema register
+  BEFORE emit, DOCA Core lifecycle order, single-event smoke
+  with receiver-side reception BEFORE bulk emits, hot-path
+  drop-not-block on AGAIN, structured-log first observation.
+  The same SHAPE applies to every application-side
+  structured-telemetry library; the per-library details differ.
+
+  A baseline agent without skills typically: conflates the
+  publisher library (DOCA Telemetry Exporter) with the
+  receiving DOCA Telemetry Service, invents
+  doca_telemetry_exporter_* API surface beyond the public
+  shape, skips the schema-register-before-emit rule and is
+  surprised by DOCA_ERROR_NOT_FOUND from the first emit, adds
+  sudo to fix DOCA_ERROR_NOT_PERMITTED (when the real cause is
+  the receiver's transport endpoint permission), recommends a
+  blocking retry on DOCA_ERROR_AGAIN under load (back-pressuring
+  the data path through telemetry — the exact failure mode the
+  exporter is designed to prevent), and never generalizes the
+  answer from the exporter to another DOCA observation /
+  exporter library or to standalone Prometheus-style clients as
+  the conceptual sibling.
+
+prompt: |
+  I have a host with a BlueField DPU plugged in over PCIe, DOCA
+  already installed on the host, and a small DOCA Flow
+  application I wrote that processes packets and increments an
+  internal counter for every packet it forwards. I want my
+  application to publish that counter to an external telemetry
+  consumer running on the same host, as a per-second
+  packets-processed event, using the DOCA telemetry ecosystem.
+  Down the road I want to scale this to many events per second
+  from multiple worker threads, but a single counter event
+  emitted once a second is the priority right now.
+
+  Walk me through the setup: which DOCA library my application
+  should link to publish telemetry (vs. the artifact that
+  RECEIVES / aggregates telemetry — I keep confusing them),
+  what I have to check on the receiver side BEFORE I start my
+  application, which capability queries I have to run against
+  my install before assuming a particular event shape fits, the
+  DOCA Core lifecycle order I have to follow including the rule
+  for when I register the event schema vs. when I emit the
+  first event, what I should smoke-test FIRST to prove the
+  publish path actually reaches the consumer before I scale to
+  bulk emits, and what my application should do when an emit
+  starts returning DOCA_ERROR_AGAIN under load (do I sleep and
+  retry?).
+
+  After that, briefly tell me which parts of your answer would
+  change for a DIFFERENT application-side
+  structured-telemetry-publishing pattern (for example another
+  DOCA observation / exporter library, or a standalone
+  Prometheus-style client library conceptually), and which
+  parts are the same.
+
+context:
+  audience: "intermediate"
+  intent: "export_application_telemetry"
+  prior_knowledge: "has a DOCA Flow application running, has DOCA installed, knows what application telemetry is conceptually but not the DOCA Telemetry Exporter API and does not yet distinguish the exporter from the receiving telemetry service"
+  baseline_artifact: "doca-telemetry-exporter"
+  changed_skill_in_pr: "libs/doca-telemetry-exporter"
+  expected_skill_co_load:
+    - "doca-telemetry-exporter"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "exporter_vs_service_distinction_first"
+    label: "Surfaces the exporter-vs-service distinction FIRST, before any code"
+    weight: 2
+    pass_when: |
+      The agent explicitly states, as the FIRST step, that
+      doca-telemetry-exporter is the application-side PUBLISHER
+      library (linked INTO the user's program to emit events)
+      and that the receiving / aggregating side is a separate
+      DOCA artifact (the DOCA Telemetry Service, out of scope
+      for this skill) with its own public guide. A response
+      that walks the user toward the receiving service guide
+      when they wanted to emit, that recommends linking the
+      exporter when they actually wanted the aggregating
+      service, or that is silent on the distinction and jumps
+      straight to API calls, fails. The role distinction is
+      the load-bearing first-step rule for this library and
+      the agent must surface it before recommending any
+      specific call.
+
+  - id: "receiver_up_first_staging"
+    label: "Names the receiver-up-before-the-exporter staging rule BEFORE any emit"
+    weight: 2
+    pass_when: |
+      The agent states, BEFORE any emit-level recommendation,
+      that the receiving telemetry consumer must be running
+      and reachable on the host BEFORE the application starts
+      the exporter context — otherwise emitted events may be
+      queued or dropped depending on the transport with no
+      app-side error. A response that is silent on the
+      consumer-up-first staging, that mentions it only after
+      the user reports "emit returned success but the dashboard
+      is empty", or that treats receiver startup as
+      simultaneous with the app, fails. This is the canonical
+      "publish succeeded into a transport with no reader"
+      first-app failure the bundle exists to prevent.
+
+  - id: "capability_query_rule"
+    label: "Calls out doca_telemetry_exporter_*_get_* against the install before assuming limits"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST call the
+      doca_telemetry_exporter_*_get_* capability-query family
+      against the active install BEFORE assuming a particular
+      schema shape (max schema fields, max event size, supported
+      event types) is available. A response that asserts "the
+      exporter supports X fields" or "max event size is N" as a
+      universal fact without naming the cap-query gate, or that
+      omits the cap query entirely, fails.
+
+  - id: "schema_register_before_emit"
+    label: "Names the schema-register-BEFORE-emit lifecycle rule explicitly"
+    weight: 2
+    pass_when: |
+      The agent states explicitly that every
+      doca_telemetry_exporter_schema the application will
+      reference MUST be registered with the exporter context
+      BEFORE the first emit that references it, and that
+      emitting against an unregistered schema returns
+      DOCA_ERROR_NOT_FOUND. The agent also names the DOCA Core
+      lifecycle order: create exporter context → register
+      schema(s) → create source(s) → doca_ctx_start() → emit →
+      doca_ctx_stop() → destroy. A response that jumps to emit
+      without naming the schema-register-before-emit rule, that
+      puts schema registration after the first emit, or that
+      conflates the schema with the source, fails.
+
+  - id: "hot_path_drop_not_block_on_again"
+    label: "Names the hot-path drop-not-block invariant on DOCA_ERROR_AGAIN"
+    weight: 2
+    pass_when: |
+      The agent states that when an emit returns
+      DOCA_ERROR_AGAIN under load (transport queue full), the
+      application's correct response is to DROP the event (or
+      buffer it bounded at the app layer) and continue the
+      data path — NEVER to sleep, busy-retry, or block the hot
+      path on telemetry. A response that recommends a
+      blocking retry loop, a sleep-and-retry, or any pattern
+      that back-pressures the data path through the exporter
+      fails — that pattern destroys the application latency
+      the user is presumably trying to measure, and is the
+      canonical anti-pattern the exporter is designed to
+      prevent. This is a load-bearing safety rule and the
+      agent must surface it explicitly in answer to the user's
+      "do I sleep and retry?" question.
+
+  - id: "single_event_smoke_before_bulk"
+    label: "Recommends a single-event smoke (with receiver-side reception) before bulk emits"
+    weight: 2
+    pass_when: |
+      The agent recommends emitting ONE event from the
+      application and independently confirming the receiver
+      logged it as the FIRST functional test, BEFORE scaling
+      to bulk / multi-event / multi-worker emits. A successful
+      emit-and-receive confirms the permission + receiver
+      staging + transport path are all correct; bulk emits
+      inherit that confidence. A response that jumps straight
+      to "now emit at high rate from every worker" without
+      naming the single-event smoke fails.
+
+  - id: "no_hallucinated_api"
+    label: "Does not invent doca_telemetry_exporter_* API symbols"
+    weight: 1
+    pass_when: |
+      Every doca_telemetry_exporter_* (or doca_ctx_*, doca_pe_*)
+      symbol the agent mentions is one that actually exists in
+      the public exporter surface (object names like
+      doca_telemetry_exporter_schema,
+      doca_telemetry_exporter_source,
+      doca_telemetry_exporter_type, and the
+      doca_telemetry_exporter_*_get_* capability-query family),
+      or it is explicitly framed as pseudocode / sketch. A
+      response that invents API names like
+      doca_telemetry_exporter_easy_emit(),
+      doca_telemetry_exporter_subscribe(), or
+      doca_telemetry_exporter_quick_publish() fails — that is
+      the baseline-agent hallucination failure mode the bundle
+      exists to prevent. A response that conflates exporter
+      symbols with the receiving service's API surface
+      (doca_telemetry_service_* / doca_dts_*) also fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from the exporter to other application-side telemetry-publishing patterns"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names at least ONE OTHER application-side
+      structured-telemetry-publishing pattern (another DOCA
+      observation / exporter library, or a standalone
+      Prometheus / OpenTelemetry-style client library
+      conceptually) and identifies which parts of the workflow
+      stay the same (publisher-vs-receiver role split,
+      schema-register-before-emit lifecycle, capability /
+      limit discovery before assuming shape, single-event
+      smoke with receiver-side reception before bulk, structured-
+      log first observation) versus which change (the per-
+      library object family, the transport semantics, the
+      single-app-vs-multi-consumer scope, and the specific
+      drop-not-block invariant — the exporter's hot-path rule
+      is particularly load-bearing and not every
+      Prometheus-style client has it baked in the same way).
+      A response that walks only the DOCA Telemetry Exporter
+      and is silent on generalization fails this criterion.

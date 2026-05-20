@@ -1,0 +1,411 @@
+id: "51_inspect_pcc_counters"
+name: "Inspect congestion-control counters from a running DOCA PCC kernel — class-shaped"
+description: |
+  Class-shaped PCC Counter Tool prompt. The HEADLINE is the
+  class ("inspect congestion-control counters from a running
+  DOCA PCC kernel — list, snapshot, watch, diff, and refuse
+  to translate a single reading into a tuning move"); the
+  worked example is a custom DOCA PCC algorithm that the
+  host-side `doca-pcc` library has already loaded onto a
+  BlueField port and started, where the host claims the
+  algorithm is running but the user is not sure whether it
+  is actually modulating the RDMA / RoCE traffic the port
+  carries.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent
+  how to drive ANY paired DOCA admin / inspect CLI that
+  sits next to a programmatic DOCA library — not just the
+  PCC counter case. The bundle proves this on the PCC
+  Counter Tool by asking the agent to (a) pair the counter
+  tool with the host-side `doca-pcc` library (bring the
+  library up FIRST, then inspect what its loaded kernel
+  emits); (b) enforce the counter tool ↔ `doca-pcc`
+  library version match via `doca-version` BEFORE quoting
+  any counter reading as authoritative; (c) walk the
+  load-bearing list → snapshot → watch → diff loop in that
+  order, never collapsing the steps; (d) treat any
+  congestion-control tuning move derived from a counter
+  reading as HIGH-STAKES — a misread counter that drives a
+  CC parameter retune can destabilize the RDMA / RoCE
+  fabric every node on that port shares; (e) refuse to
+  invent the counter-tool binary path, subcommand names,
+  flag strings, or counter column names — the public DOCA
+  PCC Counter Tool guide plus the installed `--help` on the
+  user's DOCA version are the joint source of truth; (f)
+  consult the version overlay via `doca-version` to
+  disambiguate *"counter is missing"* / *"column does not
+  match"* from *"tool and library came from different DOCA
+  installs"*; (g) generalize the same paired-admin-tool
+  pattern to one other DOCA inspect / admin CLI — the
+  worked generalization target is the DOCA Comm Channel
+  Admin Tool sitting next to the `doca-comch` library —
+  identifying which parts of the answer stay the same
+  (pair-with-library, list → inspect → decide, version
+  overlay, source-of-truth, no-invented-strings) and which
+  change (the per-object state surface, the specific
+  subcommand inventory, the presence vs absence of any
+  state-changing operation at all).
+
+  A baseline agent without skills typically: invents a
+  `doca_pcc_counter list --port <bdf>` / `--counter
+  <name>` style flag string and a fabricated counter column
+  name from generic CLI knowledge; recommends a CC
+  parameter retune ("raise the rate-update step", "lower
+  the ECN marking threshold") on the basis of one snapshot
+  without a before / after diff; treats the counter tool
+  as a substitute for the `doca-pcc` library and proposes
+  loading a kernel from the counter tool's CLI; conflates
+  the counter tool with the default factory PCC algorithm
+  in ConnectX firmware (the firmware-only path that has
+  no host-side library or counter tool); jumps from
+  *"counter reads zero"* straight to *"the algorithm is
+  broken"* without first checking whether the host-side
+  `doca-pcc` flow ever reached the *started* lifecycle
+  stage on this port; ignores the partial-install hazard
+  where the counter tool and the `doca-pcc.so` came from
+  different DOCA trains; quotes counter values from prose
+  mentions on docs.nvidia.com rather than from the
+  installed `--help` and the live enumeration; and cannot
+  generalize the paired list → inspect → decide pattern
+  to another DOCA admin / inspect CLI.
+
+prompt: |
+  I have a host plus BlueField pair with DOCA installed on
+  both sides, the host-side `doca-pcc` library compiled and
+  linked into my program, and a custom Programmable
+  Congestion Control algorithm I wrote and built with
+  DPACC. My host program loaded the algorithm image into a
+  `doca_pcc` Core context against the BlueField port that
+  carries my application's RDMA / RoCE traffic, called
+  `doca_ctx_start()` cleanly, and is happily progressing
+  the host PE. The host-side log says everything is fine.
+  The application running on top, though, looks exactly
+  the same as it did before I deployed the custom PCC
+  algorithm — the rate curve hasn't moved, my goodput
+  hasn't moved, my tail latency hasn't moved.
+
+  Before I touch ANY host-side parameter or rebuild ANY
+  side of my custom algorithm, I want to inspect what is
+  actually happening at the PCC counter layer on this
+  BlueField port — using whatever DOCA-shipped diagnostic
+  CLI is the right tool for this — and decide from a
+  before / after diff, not from a single reading.
+
+  Walk me through:
+
+  1. Which DOCA-shipped diagnostic CLI I should reach for
+     to inspect PCC counters on a BlueField port, and
+     which DOCA library it pairs with (i.e. which library
+     I had to bring up FIRST on the host side before this
+     CLI returns anything useful, and which DOCA library
+     skill owns that lifecycle). Tell me where the
+     canonical public documentation for the CLI lives and
+     where I should ground specific flag strings,
+     subcommand names, and counter column names — I do
+     NOT want you to invent them from memory.
+
+  2. What I should verify in my environment BEFORE I run
+     the CLI at all: how I confirm the host-side library
+     is on the same DOCA train as the CLI binary, what I
+     should do if they came from different installs, and
+     why that matters specifically for the counter set and
+     column names this CLI will print.
+
+  3. The exact order of operations to run against a port
+     that is supposedly carrying my custom PCC algorithm
+     and live RDMA / RoCE traffic. I expect a specific
+     load-bearing rhythm — list available counters first,
+     snapshot one named counter back-to-back, then expand
+     to a per-flow / per-port / per-kernel sweep, then
+     watch over a controlled interval, then diff a
+     before / after snapshot pair around a controlled
+     change. Tell me what each step is FOR and what I
+     should be looking at in the output before I advance
+     to the next step.
+
+  4. What I should NOT do with the output. Specifically:
+     once I have a single snapshot in hand and the value
+     looks "wrong" in the direction I expected my custom
+     algorithm to move it, can I use that as the basis
+     for recommending a CC parameter retune? Walk me
+     through why or why not, what the blast radius of a
+     wrong tuning move actually is on a fabric every
+     node on that port shares, and what the agent's
+     posture must be before it agrees to translate a
+     counter reading into a tuning move.
+
+  5. If the CLI prints nothing useful — empty
+     enumeration, every value pinned at zero on a port I
+     swear has live traffic, an exit-0 with no
+     algorithm-defined counters, or a counter column the
+     installed `--help` does not show but a public page
+     does — walk me through the layered diagnosis. Tell
+     me which layer ("tool not installed", "no PCC
+     kernel actually loaded against this port", "the CLI
+     and the `doca-pcc.so` came from different DOCA
+     installs", "the running kernel does not declare the
+     counter I asked about", "permission", "sampling
+     aliasing or counter saturation", "version
+     four-way-match mismatch", "cross-cutting — host PE
+     not progressed, BlueField mode, firmware") I should
+     check in order, and which skill / public guide owns
+     each layer.
+
+  After that, briefly generalize: name ONE OTHER DOCA
+  admin / inspect CLI that sits next to a DOCA library
+  the way this PCC counter CLI sits next to `doca-pcc`
+  (for example, the DOCA Comm Channel Admin Tool that
+  sits next to the `doca-comch` library and inspects
+  control-plane channels the library created), and tell
+  me which parts of your answer above STAY THE SAME for
+  that other tool — pair-with-library, list → inspect →
+  decide, smoke before any state-changing or
+  high-stakes action, version overlay via `doca-version`,
+  public-guide-plus-`--help` source-of-truth, refuse to
+  invent subcommand strings — versus which CHANGE — the
+  per-object state surface, the specific subcommand
+  inventory, and whether the tool has any state-changing
+  operations at all (the PCC counter CLI is purely
+  read-only on the wire even though its downstream
+  decisions are high-stakes; the Comm Channel Admin
+  Tool also has documented state-changing drain /
+  restart operations).
+
+context:
+  audience: "intermediate"
+  intent: "inspect_pcc_counters_from_running_kernel"
+  prior_knowledge: "has a host + BlueField pair with DOCA installed on both sides, has the host-side `doca-pcc` library compiled and linked, has built a custom PCC algorithm with DPACC, has already brought the host-side `doca-pcc` flow up to the *started* lifecycle stage against the target BlueField port, has live RDMA / RoCE traffic on that port, has not used the DOCA PCC Counter Tool before, is currently looking at a *my custom PCC algorithm loaded but the flows look unchanged* symptom"
+  baseline_artifact: "doca-pcc-counters"
+  changed_skill_in_pr: "tools/doca-pcc-counters"
+  expected_skill_co_load:
+    - "doca-pcc-counters"
+    - "doca-pcc"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+
+criteria:
+  - id: "pairs_with_doca_pcc_library"
+    label: "Pairs the PCC Counter Tool with the doca-pcc library and names its public doc"
+    weight: 3
+    pass_when: |
+      In response to question 1, the agent explicitly
+      identifies the DOCA PCC Counter Tool as the right
+      diagnostic CLI AND explicitly pairs it with the
+      host-side `doca-pcc` library (the library that
+      loaded the custom congestion-control kernel whose
+      counters this CLI inspects). The agent must say that
+      the counter tool is the operator-side / read-only
+      inspection counterpart to the `doca-pcc` library's
+      programmatic load / start / observe surface, that
+      `doca-pcc` must already be brought up against the
+      target BlueField port and the algorithm started
+      BEFORE the counter tool can return anything useful,
+      and that the counter tool does NOT load or run a
+      kernel itself. The agent routes the user at the
+      public DOCA PCC Counter Tool guide via
+      `doca-public-knowledge-map ## DOCA tools` for the
+      canonical subcommand / flag / counter-column
+      inventory. A response that names the counter tool
+      but never connects it to `doca-pcc` fails. A
+      response that proposes using the counter tool to
+      LOAD a custom PCC algorithm fails. A response that
+      conflates the counter tool with the default factory
+      PCC algorithm in ConnectX firmware (firmware-only,
+      no host-side library, no host-side counter tool)
+      fails.
+
+  - id: "enforces_version_match_via_doca_version"
+    label: "Enforces counter-tool ↔ doca-pcc library version match via doca-version BEFORE any counter reading is authoritative"
+    weight: 3
+    pass_when: |
+      In response to question 2, the agent enforces the
+      counter-tool ↔ `doca-pcc` library version match
+      explicitly: surface BOTH the counter tool's own
+      `--version` AND `pkg-config --modversion doca-pcc`
+      AND `doca_caps --version`, cross-check them against
+      the DOCA Compatibility Policy via the
+      `doca-version` skill, and route any disagreement
+      through `doca-version ## debug` layer 2
+      (partial-install hazard) BEFORE quoting any counter
+      reading as authoritative. The agent must name the
+      partial-install hazard specifically: the column set
+      the tool prints, the kernel-defined counter names
+      it surfaces, and what it accepts as a kernel
+      identifier can all silently disagree with what the
+      `doca-pcc.so` actually exposed at runtime when the
+      two came from different DOCA installs. The agent
+      MUST treat the version check as a precondition to
+      interpretation, not as an optional add-on. A
+      response that runs the counter tool first and only
+      reaches for the version check after a counter
+      reading "looks wrong", or that asserts tool and
+      library versions match without surfacing the three
+      version probes, or that papers over a disagreement
+      by quoting one side's columns as authoritative,
+      fails.
+
+  - id: "walks_list_snapshot_watch_diff_loop"
+    label: "Walks list → snapshot → watch → diff in that exact order, never collapsed"
+    weight: 3
+    pass_when: |
+      In response to question 3, the agent walks the
+      explicit ordered loop: (a) FIRST enumerate / list
+      the available counters at the target granularity —
+      the agent uses ONLY counter identifiers that appear
+      in this enumeration for the next steps, and does
+      NOT quote a counter name from prose without seeing
+      it listed; (b) THEN snapshot ONE named counter
+      back-to-back and confirm the value is finite and
+      changing (a pinned-at-zero or pinned-at-max
+      reading is itself a finding, not a healthy read);
+      (c) THEN expand to the per-flow / per-port /
+      per-kernel sweep only after the single-counter
+      snapshot reads cleanly, following the per-port-
+      first / per-flow-after / per-kernel-for-internal-
+      confirmation ordering; (d) THEN watch with a
+      controlled interval window long enough to be above
+      the counter's documented update granularity; (e)
+      THEN diff a before / after snapshot pair around a
+      controlled change and quote the diff line by line.
+      The agent must NOT collapse the steps, must NOT
+      jump from "the algorithm loaded" straight to a
+      sweep or a watch without the prior single-counter
+      snapshot, and must NOT quote a diff without a
+      captured before / after pair. A response that
+      reorders the steps, that recommends a watch as the
+      first action, or that treats the four steps as
+      interchangeable, fails.
+
+  - id: "cc_tuning_from_counters_is_high_stakes"
+    label: "Treats any CC tuning move from a counter reading as high-stakes, fleet-impacting, gated on a before / after diff"
+    weight: 3
+    pass_when: |
+      In response to question 4, the agent explicitly
+      states that a congestion-control tuning move
+      derived from a counter reading is HIGH-STAKES —
+      not because the counter tool itself changes state
+      (it does not; enumeration / snapshot / watch /
+      diff are all read-only and side-effect-free), but
+      because the DOWNSTREAM tuning decision the agent
+      might recommend on the basis of a counter reading
+      DOES change PCC state (via a host-side `doca-pcc`
+      parameter retune or a rebuild of the algorithm
+      body) and CAN destabilize the RDMA / RoCE fabric
+      every node attached to that port shares. The agent
+      must name the fleet-impact framing explicitly: a
+      wrong tuning decision on one node propagates into
+      the fabric every other node uses. The agent gates
+      any tuning recommendation on a CAPTURED before /
+      after snapshot pair (the diff is the evidence, the
+      single reading is a guess), refuses to translate a
+      single snapshot into a tuning move, names the
+      smoke-before-bulk requirement (snapshot ONE
+      counter and confirm finite-and-changing on EVERY
+      new kernel before any sweep), and routes the
+      actual tuning decision back through the user's own
+      domain analysis rather than producing one itself.
+      A response that recommends "raise X" / "lower Y"
+      on the basis of one snapshot, or that frames the
+      counter tool's read-only nature as evidence that
+      its downstream uses are also safe, or that omits
+      the fleet-impact framing entirely, fails.
+
+  - id: "no_invented_binary_or_counter_names"
+    label: "Does NOT invent counter-tool binary path, subcommand names, flag strings, or counter column names"
+    weight: 3
+    pass_when: |
+      Every counter-tool surface the agent quotes is
+      framed in one of three safe ways: (a) it is a
+      class-shape name without quoting an install-bound
+      subcommand / flag / column (e.g. "the
+      list-available-counters subcommand", "the snapshot
+      / single-read subcommand", "the watch /
+      sample-over-time subcommand", "the per-port
+      aggregate granularity"); (b) it is explicitly
+      framed as "the public DOCA PCC Counter Tool guide
+      on your installed DOCA version" or "the installed
+      binary's `--help`" as the authoritative surface;
+      (c) it is a public DOCA symbol the parent
+      `doca-pcc` skill names (`doca_pcc`, `doca_pcc_app`,
+      `doca_ctx_start`, `doca_pcc_cap_*`, `doca_caps`,
+      `pkg-config`, `dpacc`). A response that fabricates
+      a specific counter-tool binary name not present
+      under `/opt/mellanox/doca/tools/`, that invents
+      flag strings (e.g. `--list-counters`, `--port
+      <bdf>`, `--counter <name>`, `--watch-interval
+      <ms>`), or that invents specific counter column
+      names from prose mentions on docs.nvidia.com,
+      fails. That is the baseline-agent hallucination
+      failure mode the bundle exists to prevent, and the
+      one with the highest downstream blast radius
+      because a misread counter can drive a destabilizing
+      CC tuning move.
+
+  - id: "version_overlay_via_doca_version"
+    label: "Routes the four-way version disambiguation via doca-version, not by guessing"
+    weight: 3
+    pass_when: |
+      In response to question 5, the agent surfaces the
+      version axis explicitly when the counter tool
+      prints a column the user does not recognize, the
+      installed `--help` lacks a flag a public page
+      mentions, or the counter tool appears missing
+      entirely. The agent walks the four-way match per
+      `doca-version ## debug` (DOCA install + DPACC +
+      counter tool + public guide all on the same
+      version), names the *installed* `--help` as the
+      winner when public docs and `--help` disagree,
+      and routes the user at
+      `doca-public-knowledge-map ## DOCA tools` for the
+      per-tool public guide URL on the user's installed
+      DOCA version. The agent must NOT treat a missing
+      column / missing tool as a definitive *"the tool
+      doesn't exist"* without first running the version
+      probes, and must NOT recommend a wrapper script
+      that simulates the tool. A response that papers
+      over a doc-vs-`--help` disagreement by quoting
+      the doc, or that omits the version overlay
+      altogether when the user reports a column or flag
+      mismatch, fails.
+
+  - id: "generalizes_to_doca_comm_channel_admin"
+    label: "Generalizes the paired-admin-tool pattern to the doca-comm-channel-admin tool by analogy"
+    weight: 3
+    pass_when: |
+      The agent explicitly addresses the generalization
+      part of the prompt: it names the DOCA Comm Channel
+      Admin Tool (or any other paired DOCA admin /
+      inspect CLI that sits next to a DOCA library — e.g.
+      a DPA admin / statistics tool sitting next to
+      `doca-dpa`, a Flow Tune tool sitting next to
+      `doca-flow`) and identifies which parts of the
+      answer STAY THE SAME — pair-with-library (the tool
+      inspects state the library created and the library
+      must be brought up FIRST), list → inspect → decide
+      ordering, smoke-before any state-changing or
+      high-stakes action, version overlay via
+      `doca-version`, public-guide-plus-`--help` joint
+      source of truth, refusal to invent subcommand
+      strings — versus which parts CHANGE — the library
+      the tool pairs with (`doca-comch` instead of
+      `doca-pcc`), the per-object state surface the tool
+      reports (channel-state vs PCC counter set), the
+      specific subcommand inventory, and crucially
+      whether the tool has any state-changing
+      operations at all (the PCC counter CLI is purely
+      read-only on the wire even though its downstream
+      tuning decisions are high-stakes; the Comm
+      Channel Admin Tool also has documented
+      state-changing drain / restart operations the
+      counter tool does not have). A response that
+      walks only the PCC counter worked example and is
+      silent on the broader paired-admin-tool catalog
+      fails. A response that names a programmatic
+      library skill (`doca-rdma`, `doca-comch`,
+      `doca-dpa`) as the "generalization" fails — those
+      are library skills, not paired admin / inspect
+      CLIs.

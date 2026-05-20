@@ -1,0 +1,135 @@
+id: "07_setup_doca_library_context"
+name: "Set up a DOCA library context — class-shaped"
+description: |
+  Class-shaped library-context-setup prompt. The HEADLINE is the
+  class ("set up a DOCA library context that follows the DOCA Core
+  lifecycle"); the worked example is DOCA RDMA, because that is the
+  newly-covered library in skills/libs/doca-rdma in PR1 of Wave 3.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to set
+  up ANY DOCA library context (RDMA, Comch, GPUNetIO, Eth, DPA, …),
+  not just RDMA. The bundle proves this by asking the agent to walk
+  the lifecycle schema the skill provides: confirm the install,
+  discover the device capability surface, decide the context-specific
+  mode/method, configure mandatory + optional properties, sanity-check
+  before the first task submission. The same schema applies to every
+  DOCA Core context.
+
+  A baseline agent without skills typically: invents a doca_rdma_*
+  API surface from generic ibverbs knowledge, omits the
+  capability-query step (doca_rdma_cap_* against the active
+  doca_devinfo), gets the permission matrix wrong (mmap permission vs
+  RDMA permission), and skips the "bidirectional smoke before
+  one-sided" rule.
+
+prompt: |
+  I have a host with a BlueField-3 DPU and DOCA installed. I want to
+  set up a DOCA RDMA context that can do one-sided Read and Write
+  between two sides on the same host (for first-run testing before I
+  involve a second machine).
+
+  Walk me through the setup: which lifecycle steps I have to do in
+  what order, which capability queries I have to run before assuming
+  any task type is available, what permissions I have to set on the
+  mmap and on the RDMA instance for one-sided Read/Write, how I
+  should pick a connection method, and what I should test first to
+  prove the setup is correct before I start moving real data.
+
+  After that, briefly tell me which parts of your answer would change
+  for a DIFFERENT DOCA library context (e.g. DOCA Comch for control
+  messages, or DOCA Eth for raw Ethernet transmit), and which parts
+  are the same.
+
+context:
+  audience: "intermediate"
+  intent: "configure_library_context"
+  prior_knowledge: "knows what a DPU is, has a BlueField-3 plus host, knows what RDMA is conceptually but not the DOCA RDMA API"
+  baseline_artifact: "doca-rdma"
+  changed_skill_in_pr: "libs/doca-rdma"
+  expected_skill_co_load:
+    - "doca-rdma"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "names_core_lifecycle"
+    label: "Walks the DOCA Core context lifecycle in the right order"
+    weight: 1
+    pass_when: |
+      The agent names the lifecycle order create → configure
+      (set_conf tasks + set permissions + optional set_*) → start →
+      connect → use → stop → destroy, and explicitly states that task
+      configuration and permission setting MUST happen before
+      doca_ctx_start(). A response that jumps to API calls without
+      naming the lifecycle, or that puts task config after start,
+      fails.
+
+  - id: "names_capability_query_rule"
+    label: "Calls out the doca_rdma_cap_* capability-query rule"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST query
+      doca_rdma_cap_task_*_is_supported against the active
+      doca_devinfo before assuming a task type is available, and
+      MUST NOT quote a task type from agent memory or from a generic
+      RDMA / ibverbs reference. A response that lists "supported task
+      types" without naming the per-device capability query fails.
+
+  - id: "permission_matrix_correct"
+    label: "States the mmap + RDMA permission pair for Read and Write"
+    weight: 2
+    pass_when: |
+      The agent correctly states that one-sided Read requires the
+      peer's mmap to be local-readable + RDMA-readable AND exported
+      via doca_mmap_export_rdma(), and that one-sided Write requires
+      the peer's mmap to be local-writable + RDMA-writable AND
+      exported. A response that conflates mmap permissions with RDMA
+      permissions, or that omits the export step, fails.
+
+  - id: "names_connection_method_tradeoff"
+    label: "Names the three connection methods and gives a pick rule"
+    weight: 1
+    pass_when: |
+      The agent names RDMA CM, bridge / OOB, and gRPC / arbitrary OOB
+      as the three connection methods, and gives at least one decision
+      criterion for which to pick (e.g. "if the application already
+      has its own out-of-band control plane, use bridge"). A response
+      that picks one method without acknowledging the others, or that
+      invents a fourth method, fails.
+
+  - id: "bidi_smoke_before_one_sided"
+    label: "Recommends Send/Receive smoke before the first Read/Write"
+    weight: 2
+    pass_when: |
+      The agent recommends a bidirectional Send + Receive smoke pair
+      as the FIRST functional test, even though the user's intent is
+      one-sided Read/Write, and gives the reason (validates connection
+      and two-sided permissions before adding the one-sided
+      permission set). A response that jumps straight to a Read or
+      Write submission as the first test fails.
+
+  - id: "no_hallucinated_api"
+    label: "Does not invent doca_rdma_* API symbols"
+    weight: 1
+    pass_when: |
+      Every doca_rdma_* (or doca_mmap_*, doca_ctx_*) symbol the agent
+      mentions is one that actually exists in the public DOCA RDMA
+      surface (or it is explicitly framed as pseudocode / sketch). A
+      response that invents API names like doca_rdma_setup_easy() or
+      doca_rdma_quick_init() fails — that is the baseline-agent
+      hallucination failure mode the bundle exists to prevent.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from RDMA to other DOCA library contexts"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the prompt:
+      it names at least ONE OTHER DOCA library context (Comch,
+      GPUNetIO, Eth, DPA, …) and identifies which parts of the setup
+      stay the same (DOCA Core lifecycle order, capability-query
+      rule against doca_devinfo, mandatory-before-start configuration,
+      bidi smoke before stress) versus which change (task type names
+      per library, permission semantics per library, connection /
+      transport surface per library). A response that walks only
+      RDMA and is silent on generalization fails this criterion.

@@ -1,0 +1,16 @@
+$ doca_caps --list-devs
+[ 0 ] BDF=0000:17:00.1
+        device=BlueField-3 (MT_0000000884)
+        PCI vendor=0x15b3 device=0xa2dc
+        IB device=mlx5_0
+        Net device(s)=enp23s0f1np1
+        Function type=PF
+        SRIOV: enabled, 16 VF(s) configured
+        Steering mode: HWS (HARDWARE_STEERING) supported
+        Capabilities:
+                doca-flow:     supported, version 2.9.0
+                doca-rdma:     supported, version 2.9.0
+                doca-comch:    supported, version 2.9.0
+                doca-flow-ct:  supported, version 2.9.0
+                doca-dpa:      not supported on this device
+                doca-gpunetio: not supported on this device

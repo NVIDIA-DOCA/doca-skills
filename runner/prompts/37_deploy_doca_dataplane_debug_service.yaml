@@ -1,0 +1,340 @@
+id: "37_deploy_doca_dataplane_debug_service"
+name: "Deploy DOCA Flow Inspector to debug a misbehaving dataplane pipeline — class-shaped"
+description: |
+  Class-shaped dataplane-debug-service prompt. The HEADLINE is the
+  class ("deploy a DOCA dataplane debug service to inspect a
+  misbehaving pipeline"); the worked example is deploying the
+  DOCA Flow Inspector Service on a BlueField to investigate a
+  doca-flow pipeline that is silently dropping packets the user
+  expects to match — because that is the newly-covered service
+  in skills/services/doca-flow-inspector.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent the
+  SHAPE of *standing up a BlueField-side debug service that is
+  PAIRED with an existing dataplane pipeline*. The bundle proves
+  this by asking the agent to walk: the service-deployment
+  recognition FIRST (Flow Inspector is a container, not a library
+  the user links), the mirror-action contract between the
+  inspector and the user's pipeline (the inspector consumes
+  mirrored traffic; it does NOT capture unmirrored traffic on its
+  own — the agent must teach this BEFORE prescribing any
+  inspector config), the inspection-depth choice (per-packet
+  metadata vs per-flow aggregate vs raw sampling, three different
+  debug questions), a single-known-packet smoke BEFORE scaling to
+  bulk debug, the mirror-overhead awareness (disable the mirror
+  for production after debug; route long-term observation to a
+  steady-state telemetry alternative instead of leaving the
+  inspector hot), the cross-link to doca-debug for the broader
+  debug toolkit Flow Inspector is one entry in, and a refusal to
+  hallucinate container image names / tags (route to the live NGC
+  catalog entry via doca-public-knowledge-map instead). The same
+  SHAPE generalizes to one other DOCA debug-style service / tool
+  (doca-debug as the broader cross-cutting debug skill that owns
+  the 7-layer ladder, OR doca-telemetry / DTS as the steady-state
+  observation counterpart that Flow Inspector is NOT a substitute
+  for); the per-service / per-tool details differ.
+
+  A baseline agent without skills typically: treats Flow Inspector
+  as if it were a library the user links against (recommends
+  `pkg-config --libs doca-flow-inspector` and authors C source
+  that calls `doca_flow_inspector_*` symbols); pretends Flow
+  Inspector magically captures dataplane traffic on the BlueField
+  without any pipeline-side mirror action wired to it (skips the
+  load-bearing prerequisite entirely); jumps straight to a
+  fabricated `docker run nvcr.io/nvidia/doca/doca-flow-inspector:latest`
+  command with an invented image tag instead of routing the user
+  to the live NGC catalog entry; picks an inspection depth
+  silently (typically per-packet *"because it's most detailed"*)
+  without surfacing the choice or its overhead trade-off; jumps
+  from "container is up" to "now scale to your real debug scope"
+  without a single-packet smoke; never reminds the user to
+  disable the mirror after debug, leaving the production
+  dataplane silently degraded; never cross-links to the broader
+  doca-debug ladder; and never generalizes from Flow Inspector
+  to other DOCA debug-style services / tools (doca-debug as
+  cross-cutting toolkit, DTS as steady-state counterpart).
+
+prompt: |
+  I have a BlueField-3 DPU with DOCA already installed on it and
+  a working doca-flow pipeline running on a BlueField port — port
+  is up, I have a match-and-forward pipe created, validated, and
+  started, and traffic is generally flowing. The problem: a
+  specific class of packets (5-tuple I know exactly) is supposed
+  to match one of my pipe entries and forward to a representor,
+  but the representor sees nothing and the entry's per-pipe
+  counter is suspiciously close to zero. Reading the pipe spec
+  one more time hasn't helped. I want to deploy the DOCA Flow
+  Inspector Service on the BlueField so I can see what the
+  hardware is actually doing with those packets, instead of
+  guessing from documentation.
+
+  Walk me through the whole thing: what kind of artifact Flow
+  Inspector actually is (the most important thing for me to get
+  right up front — am I linking against a library, am I deploying
+  a container, am I writing C code that calls
+  `doca_flow_inspector_*` symbols?); how the inspector gets
+  traffic to inspect at all (this is the part I'm most fuzzy
+  on — does the inspector just "watch the wire" once the
+  container is up, or do I need to do something on my doca-flow
+  side first?); what I have to change on my doca-flow pipeline as
+  a prerequisite BEFORE the inspector can see anything; how to
+  pick the inspection depth (per-packet vs per-flow aggregate vs
+  raw sampling — what's the right one for "is the hardware seeing
+  this exact 5-tuple"?); the smoke test you'd recommend to prove
+  the pair is wired correctly BEFORE I try to bulk-debug the real
+  problem; and — this is the one I'm most likely to forget —
+  what I should do with the mirror after the debug session is
+  over so I'm not silently degrading my production dataplane
+  forever. I do NOT want you to invent a container image name or
+  tag for me — tell me where to look it up. And if the broader
+  problem is "I don't even know if this is a Flow Inspector
+  question vs a different DOCA debug surface", tell me how to
+  triage that before I deploy anything.
+
+  After that, briefly tell me which parts of your answer would
+  carry over to a DIFFERENT DOCA debug-style artifact — either
+  the cross-cutting DOCA debug skill / toolkit itself (the
+  layered ladder that goes install → version → build → link →
+  runtime → program → driver, with tools like
+  `doca_caps`, `gdb`, `valgrind`, `dmesg`, `--sdk-log-level`),
+  OR the steady-state observation counterpart (DOCA Telemetry
+  Service, which is what I should be routing my LONG-TERM
+  dataplane observation to instead of leaving Flow Inspector
+  permanently hot in production) — and which parts would
+  change. I especially want to understand which parts are "same
+  shape" (BlueField-side artifact, container or local tool
+  shape, deployment paired with my dataplane, smoke-before-bulk
+  discipline, version-pair check against my installed DOCA) and
+  which parts are "different shape" (mirrored-traffic debug vs
+  metric-style observation, debug-time-only vs steady-state,
+  paired-pipeline contract vs free-standing collection).
+
+context:
+  audience: "intermediate"
+  intent: "deploy_dataplane_debug_service"
+  prior_knowledge: "knows what a DPU and a representor are, has a BlueField-3 plus host, has DOCA installed on both, has a working doca-flow port + pipe and is comfortable reading the pipe spec, knows per-pipe / per-entry counters exist and has already read them on the entry that is misbehaving (counter is near zero on an entry the user expects to be matching), has NOT used DOCA Flow Inspector Service before, has used `tcpdump` on representors before but knows that surface is shallower than what Flow Inspector exposes, is comfortable with the idea of running a container on the BlueField but has not deployed this specific one before"
+  baseline_artifact: "doca-flow-inspector"
+  changed_skill_in_pr: "services/doca-flow-inspector"
+  expected_skill_co_load:
+    - "doca-flow-inspector"
+    - "doca-flow"
+    - "doca-debug"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "recognizes_service_not_library"
+    label: "Recognizes Flow Inspector is a SERVICE / container deployment, not a library the user links against"
+    weight: 2
+    pass_when: |
+      The FIRST conceptual move of the agent's answer is to
+      surface that DOCA Flow Inspector Service is a long-running
+      BlueField-side CONTAINER / DAEMON, not a library the user
+      links into their own program. The agent must explicitly
+      state the user does NOT link `libdoca_flow_inspector.so`,
+      does NOT call `doca_flow_inspector_*` symbols from their
+      own code, and does NOT need a `pkg-config --libs
+      doca-flow-inspector` to consume the inspector. A response
+      that walks a `pkg-config` + meson build of an "inspector
+      consumer" or authors C source that calls invented
+      `doca_flow_inspector_*` functions fails this criterion —
+      that is the baseline-agent hallucination failure mode this
+      bundle exists to prevent. A response that names the
+      service-shaped artifact and then walks "deploy the
+      container, observe its output" passes.
+
+  - id: "mirror_action_prerequisite_named_first"
+    label: "FIRST surfaces that the user's pipeline must MIRROR traffic to the inspector — does NOT pretend the inspector captures unmirrored traffic"
+    weight: 2
+    pass_when: |
+      The agent explicitly states — BEFORE prescribing any
+      inspector config or container launch — that DOCA Flow
+      Inspector consumes MIRRORED traffic, and that the user's
+      EXISTING doca-flow pipeline must be modified to add a
+      MIRROR ACTION that targets the inspector. The agent must
+      surface that without a mirror action wired on the
+      pipeline side, the inspector container will run perfectly
+      healthily but see NO traffic — and that the most common
+      first-app failure for Flow Inspector is exactly this
+      mismatch (container up, no records, because no mirror
+      wired). A response that implies the inspector "watches the
+      wire" once the container is up, "captures DPU traffic
+      passively", "sees everything flowing through the
+      BlueField", or "automatically observes the doca-flow
+      pipeline" without any pipeline-side change fails this
+      criterion outright — that is the load-bearing hallucination
+      this skill exists to prevent. A response that surfaces the
+      mirror-action contract explicitly and routes the user to
+      modify their pipeline to add the mirror BEFORE deploying
+      the inspector passes.
+
+  - id: "walks_mirror_action_setup_on_doca_flow_side"
+    label: "Walks the mirror-action setup in the user's doca-flow pipeline as a prerequisite step, cross-linking the doca-flow library skill"
+    weight: 2
+    pass_when: |
+      The agent explicitly walks the user through adding a
+      mirror action to their existing doca-flow pipeline (or
+      cross-links the matching `doca-flow` library skill's
+      modify workflow for it). The agent must surface: the
+      mirror action is a doca-flow action kind that lives in the
+      pipe spec (not in the inspector config); it is wired by
+      modifying the existing pipe rather than rebuilding the
+      pipeline from scratch; the documented mirror target is
+      what connects it to the inspector; and the mirror entry
+      should have its own per-entry counter so the user can
+      confirm the mirror is *firing* independent of whether the
+      inspector is interpreting it correctly. A response that
+      treats the mirror as something the inspector "configures
+      on the device" rather than something the user's pipeline
+      programs fails. A response that proposes rebuilding the
+      user's doca-flow setup from scratch (rather than
+      modifying it to add the mirror) also fails — the user's
+      working pipeline must stay working.
+
+  - id: "names_inspection_depth_choice"
+    label: "Names the inspection-depth choice (per-packet metadata vs per-flow aggregate, plus raw sampling) and ties it to the user's debug question"
+    weight: 2
+    pass_when: |
+      The agent explicitly names the inspection-depth choice
+      Flow Inspector exposes (at minimum per-packet metadata
+      vs per-flow aggregate; bonus for naming raw packet-content
+      sampling as a third option) and ties it to the user's
+      specific debug question — *"is the hardware seeing this
+      exact 5-tuple"* points at per-packet metadata, not per-
+      flow aggregate. The agent must surface that the depth
+      choice is a debug-question choice (not a *"pick the most
+      detailed one by default"* choice), and that the heavier
+      depths cost more on-device cycles. A response that picks
+      an inspection depth silently (typically per-packet
+      *"because it's most detailed"*) without naming the
+      choice fails. A response that names per-packet vs per-
+      flow without tying them back to the user's *"see this
+      specific 5-tuple"* question, or that quotes inspection
+      depths the agent invented from generic packet-capture
+      knowledge instead of from the Flow Inspector surface,
+      also fails.
+
+  - id: "teaches_mirror_overhead_disable_for_production"
+    label: "Teaches mirror-overhead awareness — recommends disabling the mirror after debug to avoid silently degrading production"
+    weight: 2
+    pass_when: |
+      The agent explicitly tells the user — proactively, not
+      only if asked — that the mirror action carries a per-
+      packet overhead on the device, and that leaving the
+      mirror wired after the debug session is over silently
+      degrades production dataplane throughput. The agent must
+      include a concrete *end-of-debug-session* step: remove
+      (or narrow) the mirror action; confirm via the mirror-
+      entry counter that the mirror is no longer firing; if
+      the user genuinely needs continuous visibility into
+      dataplane behaviour, route them to DOCA Telemetry
+      Service (DTS) as the steady-state surface rather than
+      leaving Flow Inspector permanently hot. A response that
+      walks the entire deploy + debug flow and never mentions
+      removing the mirror afterwards fails this criterion —
+      that is the load-bearing production-regression failure
+      mode the skill exists to prevent. A response that
+      recommends *leaving the inspector wired indefinitely*
+      as a substitute for steady-state telemetry also fails.
+
+  - id: "single_packet_smoke_before_bulk"
+    label: "Recommends a single-known-packet smoke (one matching packet sent + visible in inspector with correct metadata) BEFORE bulk debug"
+    weight: 1
+    pass_when: |
+      The agent recommends — as the FIRST functional test once
+      the container is up and the mirror is wired — sending ONE
+      known-matching packet from the host that should match the
+      mirror action's match criteria, and confirming both: (a)
+      the doca-flow mirror-entry counter on the pipeline side
+      increments by one (proves the mirror fired), AND (b) the
+      Flow Inspector's CLI / JSON export shows ONE record with
+      the metadata fields the user expects (proves the
+      inspector received the mirrored copy and interprets it at
+      the chosen depth). The agent must explicitly say "smoke
+      with one packet first, then scale to your real debug
+      scope" — that ordering is the load-bearing piece. A
+      response that jumps from "container is up" straight to
+      "now bulk-debug your problem" without an explicit single-
+      packet smoke fails this criterion.
+
+  - id: "cross_links_doca_debug_for_broader_toolkit"
+    label: "Cross-links the cross-cutting doca-debug skill / toolkit as the broader debug context Flow Inspector is one entry in"
+    weight: 1
+    pass_when: |
+      The agent surfaces, when the user asks how to triage
+      *"is this a Flow Inspector question or a different DOCA
+      debug surface"*, that the broader DOCA debug toolkit
+      lives in `doca-debug` (the cross-cutting skill that owns
+      the install / version / build / link / runtime / program
+      / driver layered ladder and the cross-library tooling
+      surface — `doca_caps`, `gdb`, `valgrind`, `dmesg`,
+      `--sdk-log-level`, the `doca-<lib>-trace` build flavor,
+      the structured DOCA logger). The agent must explicitly
+      route the user to the broader ladder for symptoms that
+      are NOT pipeline-level (env / install / version / build
+      / driver / firmware), reserving Flow Inspector for the
+      narrower *"is the steering plane doing what the pipe
+      says"* question. A response that treats Flow Inspector
+      as the answer to every DOCA debug question, or that
+      never mentions the broader cross-cutting debug ladder
+      and so leaves the user with only one tool, fails this
+      criterion.
+
+  - id: "no_hallucinated_container_image_or_tag"
+    label: "Does NOT invent a container image name / tag — routes to the live NGC catalog entry instead"
+    weight: 2
+    pass_when: |
+      The agent does NOT write a concrete container image
+      string like `nvcr.io/nvidia/doca/doca-flow-inspector:latest`,
+      `nvcr.io/nvidia/doca/flow-inspector:3.3.0`, or any other
+      specific image+tag pulled from agent memory rather than
+      from a live source. Instead, the agent routes the user to
+      the live NGC catalog entry / the public Container
+      Deployment Guide reachable via `doca-public-knowledge-map`
+      and says explicitly *"quote the image string from the live
+      catalog; do not infer it from prose"*. A response that
+      fabricates a concrete `nvcr.io/...` image+tag and
+      presents it as a copy-paste `docker run` line fails this
+      criterion outright — that is the canonical service-shaped
+      hallucination failure mode the bundle exists to prevent.
+      A response that frames the image source as *"look it up on
+      the NGC catalog page documented in the public Flow
+      Inspector guide"* passes. A response that walks the
+      container-deploy SHAPE (privileges, mount points, runtime
+      flags) at a class level without committing to specific
+      invented values passes.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from Flow Inspector to one other DOCA debug-style artifact (doca-debug as cross-cutting toolkit, or DTS as steady-state counterpart)"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names at least ONE OTHER DOCA debug-style
+      artifact — either the cross-cutting `doca-debug` skill /
+      toolkit (the 7-layer layered ladder + cross-library
+      tooling surface) OR the DOCA Telemetry Service (DTS) as
+      the steady-state observation counterpart that Flow
+      Inspector is NOT a substitute for — and identifies which
+      parts of the workflow STAY THE SAME (BlueField-side
+      artifact paired with the user's dataplane; container /
+      local-tool deployment shape; version-pair check against
+      the user's installed DOCA; smoke-before-scale discipline;
+      env preconditions are owned by `doca-setup`) versus which
+      parts CHANGE (mirrored-traffic debug vs metric-style
+      observation; debug-time-only with a per-packet mirror
+      cost vs steady-state with a metric-pipeline shape;
+      paired-pipeline contract on a specific mirror target vs
+      free-standing collection across the whole device; the
+      end-of-session "disable the mirror" rule on Flow
+      Inspector vs the "let it keep running" posture on DTS).
+      A response that walks only the Flow Inspector example
+      and is silent on the same-shape / different-shape
+      generalization fails. A response that claims *"Flow
+      Inspector and DTS are the same thing"* and merges their
+      surfaces, or that names a non-debug-style artifact (e.g.
+      compares Flow Inspector to `doca-flow` itself, which is
+      the SOURCE not a debug counterpart) instead of an actual
+      debug-style service / tool, also fails.

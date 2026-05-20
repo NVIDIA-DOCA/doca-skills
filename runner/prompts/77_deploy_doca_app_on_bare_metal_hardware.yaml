@@ -1,0 +1,506 @@
+id: "77_deploy_doca_app_on_bare_metal_hardware"
+name: "Deploy a DOCA-linked application binary on bare-metal hardware — class-shaped"
+description: |
+  Class-shaped bare-metal-deployment prompt. The HEADLINE is
+  the class ("deploy a DOCA-linked application binary directly
+  on hardware — the non-container path — on EITHER host x86
+  with a remote BlueField NIC over PCIe OR BlueField Arm
+  bare-metal with the binary on the DPU cores directly");
+  the worked example is an operator who has just built a
+  DOCA-Flow application binary against a healthy DOCA install,
+  has a BlueField in the PCIe slot of an x86 host, and now
+  asks the agent "how do I actually run it correctly on the
+  hardware?" — because that is the canonical first-launch
+  question the newly-covered
+  `skills/doca-bare-metal-deployment` skill exists to answer.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent the
+  SHAPE of *deploying any DOCA-linked binary on bare-metal
+  hardware*. The bundle proves this by asking the agent to
+  walk: the bare-metal-vs-container deployment recognition
+  FIRST (this is the non-container path; the kubelet-
+  standalone-on-BlueField-Arm path is the sibling
+  `doca-container-deployment` skill, and routing between them
+  lives in `doca-setup`); the two host modes explicitly (host
+  x86 with a remote BlueField NIC over PCIe vs BlueField Arm
+  bare-metal with the binary on the DPU cores) and the
+  differences (install location, devlink surface, representor
+  naming, NUMA topology to bind against); the three launch
+  modes (direct foreground, tmux / screen, systemd-supervised)
+  with the trade-offs that drive the choice (interactive
+  debug vs long-running with manual reattach vs restart-
+  after-reboot with journald and a documented `Restart=`
+  policy); the hardware-resource binding step (PF / VF /
+  representor enumeration, NUMA node discovery, CPU pinning,
+  IRQ affinity) derived from LIVE host output rather than
+  invented from memory; the per-tenant isolation primitives
+  (cgroup-v2, network namespaces, `numactl` / `taskset`)
+  set up BEFORE the workload starts rather than after a
+  co-tenant complains; the smoke-before-bulk loop for a
+  binary (trivial-arg → liveness-equivalent → trivial-
+  workload, only THEN bulk); the restart-loop-is-HIGH-STAKES
+  rule (cross-linked into `doca-hardware-safety` as the
+  meta-policy); a refusal to invent PCI BDFs, NUMA numbers,
+  representor names, devlink paths, or systemd `Restart=`
+  mode names from memory; and a generalization beyond the
+  one worked example to the OTHER host mode (BlueField Arm
+  bare-metal) so the agent demonstrates it walks the CLASS,
+  not just the instance.
+
+  A baseline agent without skills typically: jumps straight
+  to a container recipe (`docker run nvcr.io/nvidia/doca/...`
+  or a kubelet static-pod YAML drop) without first asking
+  "container or bare metal?"; assumes "deploying a DOCA app"
+  means "on the BlueField Arm" and silently skips the
+  host-x86-with-remote-BlueField-NIC mode (or vice versa);
+  recommends a vague `./my-app &` or a sketchy nohup
+  invocation without naming the launch-mode decision at all;
+  invents a PCI BDF (`0000:01:00.0`) and a NUMA number from
+  memory and pastes them into a sample launch line; invents a
+  systemd `Restart=` mode the operator should use
+  (`Restart=always` is correct as a string but the agent
+  cannot tell which mode is right for THIS deployment
+  without reading the failure mode); skips the smoke-before-
+  bulk loop entirely and goes straight to "now run your
+  workload"; never mentions tenant isolation or the gotcha
+  that a representor moved into a netns is invisible from
+  the root netns; treats a failed binary with auto-restart
+  as a self-healing system rather than as HIGH-STAKES;
+  never generalizes from the worked example to the
+  BlueField-Arm-bare-metal mode and so leaves the operator
+  with a workflow that only fits one host mode.
+
+prompt: |
+  I have a host x86 server with a BlueField-3 in a PCIe
+  slot, DOCA installed and healthy on the host side per the
+  public DOCA Installation Guide (`pkg-config --modversion
+  doca-common` returns a sensible string,
+  `doca_caps --version` agrees, hugepages are mounted and
+  reserved, representors are visible). I just finished
+  building a DOCA-Flow application binary against that
+  install — meson + the canonical
+  `pkg-config doca-flow` build pattern that the
+  `doca-programming-guide` skill walks. The binary compiles,
+  links, and exits cleanly when I run it with `--version`.
+
+  Now I have to actually deploy it — and the operator I'm
+  handing it off to has been burned twice already by people
+  who said "just run it" and turned out to mean three
+  different things. I want to do this RIGHT the first time.
+
+  Walk me through the whole thing, generically — I will tell
+  you specific PCI addresses, NUMA numbers, CPU sets, and
+  systemd policy names that fit MY environment, but I want
+  you to refuse to make those up. Specifically:
+
+  1. First, surface the deployment-shape fork that I'm
+     about to commit to. People keep telling me to "deploy
+     the DOCA service container on the BlueField"; other
+     people keep telling me to "just run the binary on the
+     host". Those are two different deployment paths and I
+     want you to be EXPLICIT about which one fits my
+     situation (a DOCA-Flow binary I built and want to run
+     on the host x86 against the BlueField NIC over PCIe) —
+     and which skill owns the OTHER path so I can route
+     correctly if the user's situation changes. Cross-link
+     where the recognition step lives.
+
+  2. Then handle BOTH host modes for me. Even though my
+     immediate question is host x86 against a remote
+     BlueField NIC, the operator I'm handing this off to
+     also has a separate BlueField with DOCA installed on
+     the Arm side, and she's been asked to run a
+     similar DOCA-Flow binary directly on the DPU Arm
+     cores. Walk me through how the two host modes differ
+     for the bare-metal deploy path: where DOCA is installed,
+     which `devlink` surface I'm reading, which representor
+     naming convention is in play, which NUMA topology I'm
+     binding against. Don't make me re-ask this question for
+     each mode separately.
+
+  3. Pick a launch mode with me. I genuinely don't know
+     whether I should just `./my-doca-app &` it in a shell,
+     run it in tmux / screen, or wire it as a systemd unit.
+     Walk me through the three modes (direct foreground,
+     tmux / screen, systemd-supervised), what each one's
+     observability surface looks like (where does stdout
+     end up?), and the trade-offs that should drive the
+     choice for an interactive first launch vs a long-
+     running production workload vs anything in between. If
+     the answer is "it depends", tell me what it depends ON.
+
+  4. Hardware-resource binding. The host has multiple NUMA
+     nodes and the BlueField is plugged into one of them.
+     Walk me through how to figure out, from LIVE host
+     output, which PCI function the binary should attach to,
+     which NUMA node owns that function's PCIe root complex,
+     which CPU set the polling threads should pin to, and
+     how I should think about IRQ affinity. I want
+     COMMANDS — class-shaped, generic — that I can run on my
+     own host and quote back to you; I DO NOT want you to
+     paste me a `0000:01:00.0` or a `--cpunodebind=1` from
+     memory. If I ask you for a specific BDF or NUMA number,
+     refuse and tell me to derive it.
+
+  5. The smoke-before-bulk loop. Once the binary is wired
+     correctly, I want to know — before I put any real
+     traffic on the BlueField — that the deploy is actually
+     healthy. What is the smoke loop for a DOCA-linked
+     binary? Walk me through trivial-arg invocation,
+     liveness-equivalent invocation, and trivial-workload
+     invocation, and tell me what each step proves. Tell
+     me explicitly that I should NOT skip to bulk workload
+     based on "the binary started and didn't crash".
+
+  6. Restart and recovery. If I pick the systemd path and
+     the binary crashes, systemd's `Restart=` policy will
+     auto-relaunch it. I want to know when that is the
+     right behavior and when it is exactly the wrong
+     behavior. Be specific about the HIGH-STAKES rule. And
+     don't tell me which `Restart=` mode to pick from
+     memory — name the documented source (`systemd.service(5)`)
+     where the modes are spelled out and tell me to quote
+     from there.
+
+  7. Per-tenant isolation. Eventually I will have a
+     SECOND DOCA process (a doca-rdma binary for storage)
+     running alongside the DOCA-Flow one on the same
+     BlueField. Walk me through how to set up cgroup-v2 /
+     network namespaces / `numactl` so the two co-tenants
+     don't crush each other — at a class level, generically,
+     with the DOCA-specific gotchas (NUMA-locality vs the
+     NIC, hugepage accounting against `memory.max`,
+     representor-vs-namespace visibility) called out
+     explicitly. And tell me whether I should set the
+     isolation up BEFORE or AFTER I launch the second
+     tenant, and why.
+
+  8. Hardware-state safety boundary. If at any point in
+     your walkthrough you would normally tell me to run
+     `mlxconfig set` or burn firmware or reflash the BFB
+     to make the deploy work, STOP and tell me where that
+     boundary is and which skill owns it. I do NOT want
+     you to walk a hardware-state change inline; that is
+     a different conversation.
+
+  After the worked example above is done, generalize
+  briefly: take the same walkthrough and adapt it to the
+  OTHER host mode (BlueField Arm bare-metal, same
+  DOCA-Flow binary built for aarch64 instead, running
+  directly on the BlueField's Arm cores rather than on
+  the host x86). Which parts of your answer STAY THE
+  SAME (the launch-mode decision; the smoke-before-bulk
+  loop; the restart-loop-is-HIGH-STAKES rule; the
+  per-tenant isolation primitives; the refusal to invent
+  BDFs / NUMA numbers / `Restart=` modes from memory;
+  the hardware-state safety boundary), and which parts
+  CHANGE (where DOCA is installed; which `devlink`
+  surface I read; which representor naming convention is
+  in play; which NUMA topology I'm binding against; what
+  arch the binary is built for)? This is the part that
+  proves to me you walked a CLASS of deployment, not just
+  one instance of it.
+
+context:
+  audience: "intermediate"
+  intent: "deploy_doca_app_on_bare_metal_hardware"
+  prior_knowledge: "has a host x86 with a BlueField-3 in a PCIe slot, has DOCA installed and verified on the host side per the public Installation Guide (pkg-config --modversion doca-common returns, doca_caps --version agrees, hugepages mounted and reserved, representors visible), has just built a DOCA-Flow application binary against that install per doca-programming-guide ## build (meson + pkg-config doca-flow), the binary executes and answers --version cleanly, has NOT yet picked a launch mode and has NOT yet picked a PCI BDF / NUMA node / CPU pinning strategy, is comfortable reading lspci / devlink / numactl output but knows the exact addresses are per-host, is aware of systemd as a supervisor but has never written a unit file for a DOCA workload before, will eventually co-tenant a second DOCA process on the same BlueField, has heard the warning that a failed binary in an auto-restart loop is HIGH-STAKES, and is about to hand the runbook off to an operator who is in the same situation but on a BlueField Arm bare-metal target"
+  baseline_artifact: "doca-bare-metal-deployment"
+  changed_skill_in_pr: "doca-bare-metal-deployment"
+  expected_skill_co_load:
+    - "doca-bare-metal-deployment"
+    - "doca-setup"
+    - "doca-hardware-safety"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-public-knowledge-map"
+    - "doca-programming-guide"
+    - "doca-container-deployment"
+    - "doca-debug"
+
+criteria:
+  - id: "names_bare_metal_vs_container_fork_first"
+    label: "Recognises the bare-metal-vs-container deployment fork FIRST and routes the OTHER path correctly to doca-container-deployment"
+    weight: 3
+    pass_when: |
+      In response to question 1, the FIRST conceptual move
+      of the agent's answer is to surface that DOCA
+      deployment has two parallel paths — the container
+      path (kubelet standalone on the BlueField Arm watching
+      a static-pod manifests directory, owned by
+      `doca-container-deployment`) and the bare-metal path
+      (the binary runs directly on hardware, owned by this
+      `doca-bare-metal-deployment` skill) — and that the
+      operator's situation (a DOCA-Flow binary they built
+      and want to run on the host x86 against the BlueField
+      NIC over PCIe) is the BARE-METAL path. The agent
+      must cross-link `doca-container-deployment` as the
+      sibling path the operator should route to if the
+      situation changes, and must name `doca-setup` as
+      where the container-vs-bare-metal recognition step
+      lives. A response that does not surface the fork at
+      all and just walks one path (either path) without
+      acknowledging the other fails. A response that
+      collapses the two paths into "DOCA deployment" without
+      surfacing the distinction also fails — that is the
+      load-bearing routing failure this skill exists to
+      prevent.
+
+  - id: "handles_both_host_modes_explicitly"
+    label: "Handles BOTH host modes (host x86 AND BlueField Arm bare-metal) explicitly, with the differences enumerated"
+    weight: 3
+    pass_when: |
+      In response to question 2 (and in the generalization
+      block at the end), the agent explicitly handles BOTH
+      supported host modes: (a) host x86 with the DOCA host
+      install talking to a remote BlueField NIC over PCIe,
+      and (b) BlueField Arm bare-metal with DOCA installed
+      on the Arm side and the binary running on the DPU
+      cores directly. The agent must enumerate the
+      differences at class level: WHERE DOCA is installed
+      (host x86 OS vs BlueField Arm OS), WHICH devlink
+      surface lists the device, WHICH representor naming
+      convention applies (per the public BlueField / DPU
+      User Manual), WHICH NUMA topology the binary binds
+      against (the host's NUMA topology vs the BlueField
+      Arm's). A response that walks only the host x86 mode
+      (or only the BlueField Arm mode) and is silent on
+      the other fails. A response that pretends the two
+      modes have no differences, or that conflates them
+      into a generic "deploy on hardware" answer that
+      cannot be acted on differently for each mode, also
+      fails.
+
+  - id: "names_launch_mode_decision_with_tradeoffs"
+    label: "Names the three launch modes (direct, tmux/screen, systemd) with the trade-offs that drive the choice"
+    weight: 3
+    pass_when: |
+      In response to question 3, the agent explicitly
+      names the three launch modes for a DOCA-linked
+      binary on bare metal: direct foreground (interactive
+      shell-owned), tmux / screen (long-running with
+      manual reattach, no supervisor), and systemd-
+      supervised (long-running with journald and a
+      documented `Restart=` policy). The agent must
+      surface the observability surface for each (where
+      stdout / stderr arrive: the terminal vs the pane
+      buffer vs `journalctl -u <unit>`), and the
+      trade-offs that drive the choice (interactive
+      debug vs persistent-but-not-supervised vs
+      restart-after-reboot with journald). A response
+      that recommends ONE mode silently without naming
+      the others, that picks systemd by default without
+      explaining when direct or tmux is actually the
+      right choice, or that conflates the three modes
+      into "just run it in the background", fails. A
+      response that names the three modes but is silent
+      on the observability surface also fails — the
+      observability surface is the load-bearing reason
+      the choice matters.
+
+  - id: "binds_hardware_without_inventing_addresses"
+    label: "Names the hardware-binding step (PF/VF/representor + NUMA + CPU pinning + IRQ affinity) from LIVE host output, refusing to invent specific BDFs / NUMA numbers"
+    weight: 3
+    pass_when: |
+      In response to question 4, the agent walks the
+      hardware-binding step at class level: enumerate
+      PCI functions with `lspci -d 15b3:`, list devices
+      with `devlink dev show`, derive NUMA topology
+      with `numactl --hardware` / `lscpu`, identify the
+      NUMA node owning the BlueField's PCIe root
+      complex, pick a CPU set that is NUMA-local to
+      that node (via `numactl --cpunodebind` /
+      `--membind` or `taskset -c`), and mirror the
+      choice on the IRQ side per the BlueField / DPU
+      User Manual's documented IRQ-affinity guidance.
+      The agent must REFUSE to quote a specific PCI BDF
+      (e.g. `0000:01:00.0`), a specific NUMA node
+      number, a specific CPU set, or a specific
+      representor name from memory; if the user asks
+      for one, the agent says explicitly that the value
+      is per-host and must be derived from the live
+      command output above. A response that pastes a
+      concrete BDF / NUMA number / CPU list as if it
+      were the answer fails this criterion outright —
+      that is the load-bearing hallucination failure
+      mode this skill exists to prevent.
+
+  - id: "walks_smoke_before_bulk_for_binary"
+    label: "Walks the smoke-before-bulk loop for a binary (trivial-arg → liveness-equivalent → trivial-workload, then bulk)"
+    weight: 2
+    pass_when: |
+      In response to question 5, the agent explicitly
+      walks the three-step smoke-before-bulk loop for a
+      DOCA-linked binary: (a) trivial-arg invocation
+      (the binary's `--help` / `--version` equivalent
+      proving the loader resolves DOCA symbols and the
+      binary executes); (b) liveness-equivalent
+      invocation (the binary starts, opens the device,
+      prints documented bring-up lines, exits cleanly
+      on `SIGTERM`); (c) trivial-workload invocation
+      (one packet / one operation through the binary
+      per the documented liveness contract of the
+      library in use). The agent must explicitly say
+      "smoke first, then bulk" and must name what each
+      step PROVES that the previous step does not. A
+      response that jumps from "the binary started" to
+      "now run your real workload" without an explicit
+      smoke loop fails. A response that names a smoke
+      but does not tell the user what each step proves
+      also fails — the loop without the meaning is
+      cargo-cult.
+
+  - id: "honors_restart_loop_is_high_stakes_rule"
+    label: "Honors the restart-loop-is-HIGH-STAKES rule and names the documented source for `Restart=` modes"
+    weight: 3
+    pass_when: |
+      In response to question 6, the agent explicitly
+      states that a failed DOCA-linked binary that the
+      supervisor keeps auto-restarting is HIGH-STAKES —
+      the auto-restart is the right default for a
+      transient failure and the WRONG default for a
+      recurring one; a binary in an auto-restart loop
+      burns BlueField cycles, fills the log surface,
+      and obscures the underlying error. The agent
+      must direct the operator to STOP the supervisor,
+      read the binary's LAST full log, walk the error
+      taxonomy in order, and only re-enable the
+      supervisor once the root cause is identified.
+      The agent must name `systemd.service(5)` as the
+      documented source for `Restart=` mode names and
+      must REFUSE to pick a `Restart=` mode from
+      memory. A response that treats auto-restart as
+      a self-healing system, that recommends bumping
+      the restart-limit instead of clearing the root
+      cause, or that quotes a `Restart=` mode name
+      from memory as if it were authoritative for the
+      operator's deployment, fails. A response that
+      names the rule but does not cross-link
+      `doca-hardware-safety` for the meta-policy is
+      partially correct but loses points.
+
+  - id: "cross_links_doca_hardware_safety_meta_policy"
+    label: "Cross-links `doca-hardware-safety` for the meta-policy and refuses to walk a hardware-state change inline"
+    weight: 2
+    pass_when: |
+      In response to question 8 (and threaded
+      throughout the walkthrough where relevant), the
+      agent explicitly cross-links
+      `doca-hardware-safety` as the cross-cutting
+      meta-policy that owns any change touching device
+      firmware (`mlxconfig set`, BFB reflash, firmware
+      burn, BlueField mode flip, kernel-boot-parameter
+      changes). The agent must REFUSE to walk a
+      hardware-state change inline as part of the
+      bare-metal deploy; if the operator's
+      preconditions are not met because hardware
+      state needs to change, the agent stops, names
+      the boundary, and routes to
+      `doca-hardware-safety` for the change-application
+      discipline. A response that walks
+      `mlxconfig set` or a firmware burn inline as
+      part of "getting the deploy working" fails
+      outright. A response that mentions
+      hardware-safety only in passing without
+      surfacing the boundary fails partially.
+
+  - id: "walks_per_tenant_isolation_before_workload"
+    label: "Walks per-tenant isolation (cgroup-v2 / netns / numactl) BEFORE the workload starts, with the DOCA-specific gotchas named"
+    weight: 2
+    pass_when: |
+      In response to question 7, the agent walks the
+      per-tenant isolation primitives at class level:
+      cgroup-v2 cpu / memory / io controllers,
+      network namespaces, `numactl` / `taskset` for
+      CPU + NUMA binding. The agent must surface the
+      DOCA-specific gotchas — (a) hugepage backing
+      is accounted against the cgroup `memory.max`
+      and a too-tight limit starves the hugepage
+      pool and surfaces as a layer-2 startup
+      failure, (b) a representor moved into a tenant
+      netns is invisible to DOCA from any other
+      netns, (c) a CPU set that crosses the NUMA
+      boundary owning the NIC cancels the
+      isolation gain. The agent must say
+      explicitly that the isolation primitives are
+      set up BEFORE the workload starts, not after
+      a co-tenant complains. A response that walks
+      generic Linux cgroup-v2 / netns / numactl
+      without surfacing the DOCA-specific gotchas
+      fails. A response that recommends adding
+      isolation AFTER a co-tenant is already
+      degrading the first tenant's behavior also
+      fails — the order matters.
+
+  - id: "refuses_to_invent_systemd_restart_mode_names"
+    label: "Refuses to invent systemd `Restart=` mode names, PCI BDFs, NUMA numbers, representor names, or devlink paths from memory"
+    weight: 3
+    pass_when: |
+      The agent does NOT, anywhere in the answer,
+      quote a specific `Restart=` mode name
+      (`Restart=always`, `Restart=on-failure`,
+      `Restart=on-abnormal`, …) as authoritative
+      for the operator's deployment without naming
+      `systemd.service(5)` as the documented source
+      the operator must quote from. The agent also
+      does NOT quote a specific PCI BDF
+      (`0000:01:00.0`), a specific representor name
+      (e.g. `pf0vf0`), a specific NUMA node number,
+      a specific devlink path string, or a specific
+      hugepage allocation amount as authoritative
+      for the operator's host. If the agent surfaces
+      a candidate value as a sketch, it must frame
+      it as a sketch and tell the operator to
+      derive the real value from live host output
+      (`lspci -d 15b3:`, `devlink dev show`,
+      `numactl --hardware`, `cat /proc/meminfo |
+      grep -i huge`) or from the documented
+      source (`systemd.service(5)` for `Restart=`
+      modes, the public BlueField / DPU User
+      Manual for representor naming). A response
+      that pastes a `Restart=always` line into a
+      sketch systemd unit without naming the
+      documented source, or that recommends a
+      specific BDF / NUMA number / representor
+      name as if it were the operator's, fails
+      this criterion outright — that is the
+      canonical hallucination failure mode for
+      this skill.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from the host x86 worked example to the OTHER host mode (BlueField Arm bare-metal), naming what stays the same vs what changes"
+    weight: 3
+    pass_when: |
+      The agent explicitly addresses the
+      generalization block at the end of the
+      prompt: it walks the SAME bare-metal deploy
+      workflow against the OTHER host mode
+      (BlueField Arm bare-metal with the binary
+      built for aarch64 and running on the DPU
+      cores), and explicitly enumerates which
+      parts STAY THE SAME (the launch-mode
+      decision direct vs tmux vs systemd; the
+      trivial-arg → liveness-equivalent →
+      trivial-workload smoke loop; the
+      restart-loop-is-HIGH-STAKES rule; the
+      per-tenant isolation primitives via
+      cgroup-v2 / netns / numactl; the refusal to
+      invent PCI BDFs / NUMA numbers / `Restart=`
+      modes from memory; the hardware-state
+      safety boundary that hands off to
+      `doca-hardware-safety`) versus which parts
+      CHANGE (where DOCA is installed — host
+      x86 OS vs BlueField Arm OS; which devlink
+      surface the operator reads; which
+      representor naming convention applies;
+      which NUMA topology the binary binds
+      against; what arch the binary is built
+      for). A response that walks only the host
+      x86 worked example and is silent on the
+      BlueField Arm bare-metal generalization
+      fails this criterion. A response that
+      claims the two host modes are identical, or
+      that names "another DOCA library" instead
+      of the other HOST MODE (which is the
+      load-bearing CLASS dimension this skill
+      teaches), also fails.

@@ -66,7 +66,7 @@ Steps the agent should walk the user through, in order:
    input / output is in play (which pulls in the companion
    app — see step 6). Re-cross-check against the per-platform
    support matrix in
-   [`CAPABILITIES.md ## Version compatibility`](#version-compatibility);
+   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility);
    not every workload shape is documented for every BlueField
    generation.
 5. **Axis 3 — pick the measurement mode.** Throughput vs

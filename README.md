@@ -1,7 +1,5 @@
 # NVIDIA DOCA Skills
 
-![DOCA software Stack](doca-software.jpg "DOCA Software Stack")
-
 **Where to start (humans):** Read this README for context, then if
 you are an AI agent (or running one), open [AGENTS.md](AGENTS.md) for
 the ground rules and [SKILLS.md](SKILLS.md) for the skill index. Each
@@ -28,6 +26,8 @@ The skills layer is currently shipped on the `ai-mvp-with-files` branch; `master
 - [skills/](skills/) — the skill source files, layered: top-level cross-cutting skills, `libs/<library>/`, `services/<service>/`, `tools/<tool>/`. The path is intentionally vendor-neutral (`skills/`, not `.claude/skills/` or any other runtime-specific directory) so the bundle reads naturally to any agent — Cursor, Codex, Gemini, Claude Code, or in-house LLMs. Discovery is driven by [`AGENTS.md`](AGENTS.md) (industry convention); a stub `CLAUDE.md` at repo root exists only to redirect Claude Code's auto-discovery back to `AGENTS.md`.
 - [CLAUDE.md](CLAUDE.md) — one-line stub routing Claude Code back to `AGENTS.md`.
 
+Contributing to the skills layer is governed by an internal author / contributor / security policy; external consumers do not need it to use the bundle.
+
 **What the skills give you (three cross-cutting + per-artifact layers):**
 
 | Skill | Slot | What it covers | When the agent loads it |
@@ -47,6 +47,25 @@ When other DOCA libraries / services / tools ship their own skills (`doca-rdma`,
 2. Ask any DOCA question. The agent reads `AGENTS.md` automatically and pulls the matching skill in.
 3. To see the difference the skills layer makes, open the same repo on the `master` branch in a second window and ask the same question.
 
+## Beginner roadmap — Stage 1 (container learning) → Stage 2 (hardware runtime)
+
+If you are new to DOCA, the answer to *"how do I get to my first DOCA app?"* is a staged roadmap, not a single command. The bundle teaches a Stage-1-first path because almost every learning step can be done in a container on any OS without ordering hardware, and Stage 2 only matters once the user knows what to ask hardware *for*. The agent's response to any "I'm new to DOCA" prompt opens with this table before any command:
+
+| Stage | What you are doing | Where you are | Bundle path |
+| --- | --- | --- | --- |
+| **Stage 1 — container learning** | Read the API surface, build / modify a shipped C sample, smoke the build, learn the `pkg-config doca-<library>` + meson pattern. **No real packets cross hardware.** This is the universal entry point for any user on macOS, Windows, or Linux without DOCA. | The public **NGC DOCA container** `nvcr.io/nvidia/doca/doca:<tag>`, pulled with Docker and run with `-it --rm`. `/opt/mellanox/doca` is populated inside the container by construction. | [`doca-setup ## no-install`](skills/doca-setup/TASKS.md#no-install) **Path 0**, then [`doca-programming-guide ## modify`](skills/doca-programming-guide/TASKS.md#modify) (the *modify-a-shipped-C-sample* workflow), then the matching library skill (e.g. [`doca-flow`](skills/libs/doca-flow/SKILL.md)). |
+| **Stage 2 — hardware runtime** | Run the app you built in Stage 1 against real traffic on a real NIC / DPU. Programmed flows, real packets, counters move. | Either a **Linux host with a ConnectX / BlueField NIC** (Path C), or remote-into a **lab box that already has DOCA + hardware** (Path A). Cloud GPU/ARM SKUs do not generically include DOCA-eligible NICs and the agent does *not* pretend otherwise. | [`doca-setup ## no-install`](skills/doca-setup/TASKS.md#no-install) **Paths A / C**, then [`doca-bare-metal-deployment`](skills/doca-bare-metal-deployment/SKILL.md) or [`doca-container-deployment`](skills/doca-container-deployment/SKILL.md) depending on how the user wants to ship the app. |
+
+**Resume point inside the container.** Once the user is inside Stage 1, the agent expects them to paste back the output of `pkg-config --modversion doca-<library>` and `pkg-config --cflags --libs doca-<library>`, plus `ls /opt/mellanox/doca/samples/<library>/<sample_name>/` for the C track. The skill resumes from [`doca-programming-guide ## modify`](skills/doca-programming-guide/TASKS.md#modify) step 1 with the real install in hand. This is the canonical hand-off between *no-install* answer-time and *real-install* doing-time.
+
+**How to pick an NGC tag without guessing.** Image tags are version-dated and platform-shaped; never guess one. The deterministic rule:
+
+1. Open the catalog **Tags** page directly: <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/doca/containers/doca/tags>. This is the only authoritative list of tags that actually exist for `nvcr.io/nvidia/doca/doca`.
+2. Detect the user's host axes — architecture (`uname -m`: `x86_64` → look for `linux-amd64`, `aarch64` / Apple Silicon → look for `linux-arm64`), OS family (Ubuntu / RHEL flavor in the tag string), and whether they need CUDA (default: no for first-app work; CUDA-enabled variants are larger and only relevant if the user is also using CUDA).
+3. From the *visible* tags list, pick the **highest-numbered** tag matching those axes. The tag string is treated as opaque text from the catalog; the agent does NOT assemble a tag from version + arch fragments out of memory.
+4. `docker pull nvcr.io/nvidia/doca/doca:<tag-copied-verbatim-from-the-catalog>`. If a particular tag asks for auth, the user signs up for a free NGC account at <https://ngc.nvidia.com>, generates an API key, and runs `docker login nvcr.io -u '$oauthtoken' -p <api-key>` once.
+5. If the agent cannot reach the catalog page from this session, the agent says so explicitly and asks the user to paste the candidate tag from the catalog — it does NOT fabricate a tag string. This is the same *never invent symbols, URLs, paths, or package names* discipline as [AGENTS.md ground rule 3](AGENTS.md#ground-rules-every-agent-must-follow).
+
 ## Install — three deployment shapes
 
 The bundle is **markdown-only**: there is no `pip install`, no `npm
@@ -57,7 +76,6 @@ contributor docs. Three shapes are documented and CI-verified:
 ### Shape 1 — clone alongside your DOCA work (the canonical case)
 
 ```bash
-# Clone next to wherever you keep your DOCA work.
 git clone https://github.com/NVIDIA-DOCA/doca-skills.git
 cd doca-skills
 git checkout ai-mvp-with-files
@@ -77,114 +95,57 @@ and either symlink `doca-skills/AGENTS.md` into your workspace root,
 or copy its contents into your existing `AGENTS.md`. Agents resolve
 `AGENTS.md` at workspace root by convention.
 
-### Shape 3 — vet the bundle in CI before merging a skill change
+### Shape 3 — how skill quality is maintained behind the scenes
 
-The CI gates live in `devops/ci/` (sibling repo). To validate a skill
-change locally before opening a PR, run:
+External consumers of this bundle do not need to run any CI gates
+themselves. Skill changes are vetted by NVIDIA's internal CI before
+they land on `ai-mvp-with-files` — that pipeline enforces structural
+conformance of every `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`,
+public-sources-only references, cross-link integrity, anchor density,
+per-artifact prompt coverage, strict 1:1 alignment with the public
+`doca/{libs,services,tools}` tree at a named DOCA release, and a
+3-way agent A/B/C measurement that compares the current bundle
+against the previous release and against a no-skills baseline.
 
-```bash
-# Structural lint + non-public-info check + symlink ban.
-bash devops/ci/check-skill.sh --all
-
-# Live URL HEAD check (network required; takes ~30s).
-bash devops/ci/check-skill.sh --all --check-urls
-
-# Anchor density floor.
-bash devops/ci/check-anchor-density.sh --all
-
-# Per-artifact SKILL + PROMPT + KMAP coverage + routing discoverability
-# (all HARD-FAIL).
-bash devops/ci/check-coverage.sh \
-  --routing-discoverability-hard-fail \
-  --prompt-coverage-hard-fail \
-  --skill-coverage-hard-fail-below=100 \
-  --hard-fail-below=100
-
-# Anthropic SKILL.md frontmatter validator (one-time setup; see
-# devops/AUTHORING.md § 11).
-claude-skill-check skills/<slot>/<your-skill>/SKILL.md
-```
-
-A passing local run mirrors what Jenkins will gate on the PR.
-
-For deeper contributor rules and the security-reporting path, read
-`devops/CONTRIBUTING.md`, `devops/SECURITY.md`, and
-`devops/AUTHORING.md` in the sibling `devops/` working tree before
-opening a PR. (Those three files are staged in `devops/` today and
-will land at `doca-skills/` bundle root when the working tree merges
-into the public repo — see `devops/round2-backlog.md` for migration
-status.)
-
-**Conformance:** [`ci/check-skill.sh`](ci/check-skill.sh) enforces the rules every skill in `skills/` must satisfy. Run it locally before opening a PR that touches any skill file.
-
-| Check | Default | Network required |
-| --- | --- | --- |
-| Frontmatter validity, required H2 anchors, cross-anchor resolution, no symlinks. | always on | no |
-| Non-public references: any `*.nvidia.com` URL whose host isn't on the public allowlist (`docs.nvidia.com`, `developer.nvidia.com`, `catalog.ngc.nvidia.com`, `ngc.nvidia.com`, `forums.developer.nvidia.com`, `nvcr.io`, …) fails. Internal-tooling vocabulary in URL or path context (`gerrit`, `nvbugs`, `*.internal.*`, `gitlab-master`, `labhome`, …) fails. | always on | no |
-| URL HEAD validity: every `https?://` URL in any skill file must respond `2xx`/`3xx` (with a small GET fallback for hosts that 405 HEAD). Catches the *page renamed / page deleted* failure mode the earlier Samples Overview URL hit. | opt-in via `--check-urls` | yes |
-
-Examples:
-
-```bash
-ci/check-skill.sh --all                # structural + non-public, no network
-ci/check-skill.sh --all --check-urls   # also HEAD every skill URL
-ci/check-skill.sh --self-test          # confirm every gating check still trips
-```
+What this means for you as a consumer: every commit on
+`ai-mvp-with-files` you pull is a bundle state that has already
+passed those gates. You don't need any of the CI tooling to load and
+use the skills — just clone the repo and point your agent at it.
 
 **Ground rules every agent follows** (full list in `AGENTS.md`): public sources only — never reference internal NVIDIA hostnames; prefer the local install at `/opt/mellanox/doca` over the web; never invent symbols, URLs, paths, or package names; always check the installed DOCA version before quoting API names.
 
 ---
 
-##  Purpose
+## About the DOCA samples shipped here
 
-The DOCA samples repository is an educational resource provided as a guide on how to program on the NVIDIA BlueField networking platform using DOCA API.
+The bundle ships on top of the public **DOCA samples repository**,
+which is an educational resource provided as a guide on how to program
+on the NVIDIA BlueField networking platform using the DOCA API. The
+sample tree has two parts:
 
-The repository consist of 2 parts:
-* [Samples](https://github.com/NVIDIA-DOCA/doca-samples-demo/tree/main/samples):  simplistic code snippets that demonstrate the API usage 
-* [Applications](https://github.com/NVIDIA-DOCA/doca-samples-demo/tree/main/applications): Advanced samples that implements a logic that might cross different SDK libs.
+* [Samples](https://github.com/NVIDIA-DOCA/doca-samples-demo/tree/main/samples) — simplistic code snippets that demonstrate API usage.
+* [Applications](https://github.com/NVIDIA-DOCA/doca-samples-demo/tree/main/applications) — advanced samples that implement logic spanning multiple SDK libraries.
 
+For the *human* "how do I install DOCA, build a sample, run a sample"
+walk-through, the canonical source is the NVIDIA public documentation
+set, not this README. The skills in this bundle are designed so an AI
+agent answering an *external* user can route them directly to those
+pages instead of paraphrasing:
 
-For instructions regarding the development environment and installation, refer to the [NVIDIA DOCA Developer Guide](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Developer+Guide) and the [NVIDIA DOCA Installation Guide for Linux](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Installation+Guide+for+Linux) respectively.
+* [NVIDIA DOCA Developer Guide](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Developer+Guide)
+* [NVIDIA DOCA Installation Guide for Linux](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Installation+Guide+for+Linux) — install with the `doca-all` profile (superset of `doca-ofed` + `doca-networking`).
+* [NVIDIA DOCA Troubleshooting Guide](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Troubleshooting+Guide)
+* [Meson build configuration guide](https://mesonbuild.com/) — the build system every shipped sample uses.
 
-##  Prerequisites
+If you are reading this README directly (i.e. not via an agent), the
+fastest path to a working build is to follow the Installation Guide
+above with the `doca-all` profile, then in the cloned sample tree run
+`meson /tmp/build && ninja -C /tmp/build` from `applications/`. The
+generated binaries land under `/tmp/build/<application_name>/doca_<application_name>`.
 
-Install DOCA Software Package:
-
-A detailed step-by-step process for downloading and installing the required development software on both the host and BlueField can be found in the [NVIDIA DOCA Installation Guide for Linux](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Installation+Guide+for+Linux).
-
-note: Use doca-all profile, This profile is the super-set of components, which also includes the content of doca-ofed and doca-networking.
-
-
-##  Installation
-
-clone the sample repository
-
-    git clone https://github.com/NVIDIA-DOCA/doca-samples.git
-
-## Compilation
-
-To compile all the reference applications:
-
-Move to the applications directory:
-
-    cd doca-samples/applications
-    meson /tmp/build
-    ninja -C /tmp/build
-
-Info
-    The generated applications are located under the /tmp/build/ directory, using the following path /tmp/build/<application_name>/doca_<application_name>.
-
-Note
-    Compilation against DOCA's SDK relies on environment variables which are automatically defined per user session upon login. For more information, please refer to section "Meson Complains About Missing Dependencies" in the [NVIDIA DOCA Troubleshooting Guide](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Troubleshooting+Guide#src-2957507292_id-.NVIDIADOCATroubleshootingGuidev2.8.0-FailuretoSetHugePages).
-
-
-## Developer Configurations
-When recompiling the reference applications, meson compiles them by default in "debug" mode. Therefore, the binaries would not be optimized for performance as they would include the debug symbol. For comparison, the programs binaries shipped as part of DOCA's installation are compiled in "release" mode. To compile the applications in something other than debug, please consult Meson's configuration guide.
-
-The reference applications also offer developers the ability to use the DOCA log's TRACE level (DOCA_LOG_TRC) on top of the existing DOCA log levels. Enabling the TRACE log level during compilation activates various developer log messages left out of the release compilation. Activating the TRACE log level may be done through enable_trace_log in the meson_options.txt file, or directly from the command line:
-
-[Meson configuration guide](https://mesonbuild.com/)
-
-Prepare the compilation definitions to use the trace log level:
-
-    meson /tmp/build -Denable_trace_log=true
+For a richer "first app" walk-through that an AI agent can drive
+end-to-end against either a real DOCA install or the NGC container,
+follow the staged roadmap above and let the agent take you through
+[`doca-setup`](skills/doca-setup/SKILL.md) →
+[`doca-programming-guide ## modify`](skills/doca-programming-guide/TASKS.md#modify) →
+the matching library skill.

@@ -1,0 +1,345 @@
+id: "25_offload_storage_transport_to_doca"
+name: "Offload NVMe-over-Fabrics transport to a DOCA hardware accelerator — class-shaped"
+description: |
+  Class-shaped prompt for offloading the NVMe-over-Fabrics
+  transport layer (the per-connection queue establishment plus
+  the per-IO encapsulation / decapsulation onto RDMA or TCP)
+  onto a BlueField hardware accelerator, using the
+  `doca-sta` (Storage Transport Acceleration) library on the
+  host or BlueField Arm cores while the user's NVMe stack
+  above (SPDK `bdev_nvme` / `nvmf_tgt` or the kernel `nvme`
+  host / `nvmet` target) keeps owning the NVMe protocol
+  semantics. The HEADLINE is the class ("offload NVMe-over-
+  Fabrics transport to a DOCA hardware accelerator"); the
+  worked example is setting up an NVMe-over-RDMA initiator-
+  side I/O queue pair (admin queue plus one I/O queue) to a
+  remote target using doca-sta on a BlueField, because that is
+  the newly-covered library in skills/libs/doca-sta.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent the
+  shape of *offloading a transport layer to a DOCA hardware
+  accelerator while the protocol stack on top stays owned by
+  an upstream project*. The bundle proves this by asking the
+  agent to walk: the integration boundary FIRST (doca-sta is
+  the NVMe-oF transport — handshake plus per-IO encapsulation;
+  the NVMe semantics on top stay in SPDK or kernel-nvme),
+  capability discovery on every relevant axis (transport type
+  RDMA vs TCP, max I/O queue depth, max I/O queue count, NVMe-
+  oF feature opt-ins), the substrate-library dependency (doca-
+  rdma for NVMe-over-RDMA, doca-flow for steering, doca-eth as
+  the queue-pair-shape sibling), the DOCA Core lifecycle for
+  the per-instance `doca_sta` context, the NVMe queue-pair
+  shape (one admin queue plus N I/O queues per connection),
+  the env preconditions (DOCA installed and consistent, the
+  substrate library discoverable, the device opened with the
+  required permissions, the steering rule in place so NVMe-oF
+  traffic actually reaches the STA-managed queue), and a
+  single-IO smoke (one admin command on the admin queue plus
+  one Read or Write I/O on a single I/O queue) BEFORE scaling
+  to production traffic. The same SHAPE generalizes to raw
+  `doca-rdma` for non-NVMe RDMA workloads; the per-library
+  details differ (doca-sta adds NVMe-oF protocol semantics on
+  top of the RDMA transport and requires an SPDK / kernel-nvme
+  integration point above it, whereas raw doca-rdma is a
+  general-purpose RDMA queue surface with no protocol layer
+  above).
+
+  A baseline agent without skills typically: treats doca-sta
+  as a complete replacement for SPDK / kernel-nvme and
+  recommends NOT running either of them on top; invents
+  `doca_sta_*` API symbols beyond the public surface (e.g.
+  `doca_sta_connect_target()`, `doca_sta_submit_nvme_io()`,
+  `doca_sta_enable_nvme_oF()`); quotes a transport (RDMA vs
+  TCP) from memory without running the cap-query against the
+  active `doca_devinfo`; assumes a single I/O queue depth
+  value (1024 is a common hallucination) works on every
+  device; omits the substrate-library dependency on doca-rdma
+  for the NVMe-over-RDMA path entirely; omits DOCA Flow as
+  the steering boundary (treating *"my Connect handshake
+  never completes"* as a code bug rather than a missing or
+  wrong Flow rule); jumps from `doca_ctx_start()` straight to
+  bulk-driving I/O without a single admin-then-one-I/O smoke;
+  conflates the NVMe queue-pair shape (one admin queue plus N
+  I/O queues per CONNECTION) with the RDMA queue-pair shape
+  (a transport-layer construct that has no admin / I/O
+  distinction); and never generalizes from the
+  NVMe-oF-on-RDMA pattern to the underlying raw-RDMA surface
+  that doca-sta is built on top of.
+
+prompt: |
+  I have a host with a BlueField DPU plugged in over PCIe,
+  DOCA already installed on the host, and an NVMe-oF target
+  I can reach over my RoCE-capable fabric. On the BlueField
+  Arm cores I am running SPDK's `bdev_nvme` initiator (so
+  the NVMe protocol stack on top is already in place and I
+  control it). I want to offload the NVMe-oF *transport
+  layer* (the per-connection queue establishment plus the
+  per-IO encapsulation onto RDMA) onto BlueField hardware
+  using DOCA, so the BlueField Arms are not burning cycles
+  per-IO encapsulating NVMe-over-RDMA. Concretely, the
+  first thing I want working end-to-end is one NVMe-over-
+  RDMA initiator-side admin queue plus a single I/O queue
+  against my remote target, with SPDK still owning the NVMe
+  semantics on top.
+
+  Walk me through the setup: which DOCA library I add for
+  this (and what its boundary with SPDK / kernel-nvme is —
+  am I REPLACING SPDK, or am I plugging into it as the
+  transport provider?), what I have to check on the env /
+  DOCA / device side BEFORE writing any code (capability
+  queries against the active `doca_devinfo` for transport
+  type RDMA vs TCP, max I/O queue depth, max I/O queue count,
+  NVMe-oF feature opt-ins my deployment needs; substrate-
+  library checks because NVMe-over-RDMA rides on top of
+  another DOCA library; how the right NVMe-oF traffic
+  actually lands on the queue I'm about to set up), which
+  other DOCA libraries I need alongside doca-sta and what
+  each of them is responsible for, the DOCA Core lifecycle
+  I have to follow when creating the per-instance `doca_sta`
+  context, the NVMe queue-pair shape the context exposes
+  (admin queue vs I/O queue — how many of each per
+  connection, and which one carries what), and what
+  single-IO smoke test you would recommend BEFORE I drive
+  any real traffic from the SPDK side. If you tell me to
+  drop SPDK or kernel-nvme and let doca-sta own the NVMe
+  protocol stack itself, you have misunderstood the
+  integration boundary.
+
+  After that, briefly tell me which parts of your answer
+  would carry over to a DIFFERENT DOCA library — for
+  example raw `doca-rdma` for a general-purpose RDMA
+  workload that has nothing to do with NVMe — and which
+  parts would change (i.e. the NVMe-oF-specific things
+  that fall away when there is no NVMe protocol layer on
+  top and the user is just doing raw RDMA Read / Write).
+
+context:
+  audience: "intermediate"
+  intent: "offload_storage_transport_to_doca"
+  prior_knowledge: "knows C / C++ at the application level, has DOCA installed, has a BlueField DPU plus RoCE-capable fabric, has SPDK's bdev_nvme initiator already running on the BlueField Arms and controls it, has reached a remote NVMe-oF target before from SPDK using a software transport, has not used DOCA STA specifically, understands the NVMe-oF Connect handshake and the admin-queue / I/O-queue split at a protocol level but has not expressed it through a DOCA transport library before"
+  baseline_artifact: "doca-sta"
+  changed_skill_in_pr: "libs/doca-sta"
+  expected_skill_co_load:
+    - "doca-sta"
+    - "doca-rdma"
+    - "doca-eth"
+    - "doca-flow"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "spdk_kernel_nvme_integration_point_named"
+    label: "Names the SPDK / kernel-nvme integration point — doca-sta is the transport layer, NOT a complete NVMe stack"
+    weight: 2
+    pass_when: |
+      The agent's FIRST conceptual move is to surface that
+      doca-sta is the NVMe-oF TRANSPORT layer (per-connection
+      queue establishment plus per-IO encapsulation /
+      decapsulation onto RDMA or TCP) and that the NVMe
+      protocol semantics on top (admin commands, namespace
+      management, controller state machine, block-device
+      semantics) stay owned by SPDK or the kernel `nvme`
+      stack. The agent states explicitly that doca-sta plugs
+      into SPDK (or kernel-nvme) as the transport provider —
+      it does NOT replace it. The agent names the boundary
+      concretely (SPDK `bdev_nvme` initiator / `nvmf_tgt`
+      target, or kernel `nvme` host / `nvmet` target) and
+      ties it to the user's existing SPDK `bdev_nvme` setup.
+      A response that treats doca-sta as a complete NVMe
+      stack and recommends NOT running SPDK / kernel-nvme on
+      top fails. A response that fails to name the
+      integration point at all fails. A response that
+      proposes the user "drop SPDK" or "let doca-sta own the
+      NVMe protocol" fails — that is exactly the
+      baseline-agent failure mode the prompt is calibrated
+      against.
+
+  - id: "cap_query_against_devinfo_multi_axis"
+    label: "Calls `doca_sta_cap_*` queries against the active `doca_devinfo` for transport type AND queue sizing AND NVMe-oF feature support"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST run `doca_sta_cap_*`
+      queries against the active `doca_devinfo` BEFORE
+      assuming a doca-sta design will work, AND surfaces that
+      capability is a MULTI-AXIS question — at minimum the
+      transport-type axis (NVMe-over-RDMA vs NVMe-over-TCP —
+      do NOT promise either without quoting the queried
+      result; do NOT quote a transport from memory) AND the
+      queue-sizing axes (max I/O queue depth, max number of
+      I/O queues per connection, and the max-in-flight-IOs-
+      per-queue budget) AND the NVMe-oF feature opt-in axis
+      (whatever feature set the user's deployment opts in to
+      — Discovery, In-Capsule Data, etc.). The agent ties
+      each axis to the corresponding `doca_sta_cap_*` query
+      and to the active `doca_devinfo` (not the headers
+      alone, not an assumed-default value). A response that
+      quotes only one axis (typically transport type) and
+      silently assumes the rest fails. A response that does
+      not mention `doca_sta_cap_*` (or an equivalent
+      capability query against doca_devinfo for the STA
+      axes) at all fails. A response that quotes a specific
+      numeric value (e.g. *"depth 1024"*, *"16 I/O queues
+      per connection"*) without naming the matching cap
+      query fails.
+
+  - id: "core_lifecycle_walked"
+    label: "Walks the DOCA Core lifecycle for the `doca_sta` context (create → configure → start → use → stop → destroy)"
+    weight: 2
+    pass_when: |
+      The agent walks the lifecycle in order: open the
+      `doca_dev` against the device that advertises STA
+      capability; create the `doca_sta` Core context against
+      that `doca_dev`; configure the chosen transport type
+      AND the I/O queue count / depth at or below the
+      device cap AND any NVMe-oF feature opt-ins (each
+      gated on its cap query); register the per-queue
+      connection-state and per-IO completion callbacks
+      BEFORE start (callbacks registered after start are
+      silently missed on the first transitions); start the
+      `doca_sta` via `doca_ctx_start()` (the moment the
+      NVMe-oF Connect handshake becomes possible); drive
+      `doca_pe_progress()` so per-queue state transitions
+      and per-IO completions actually arrive; tear down in
+      REVERSE order (`doca_ctx_stop` → `doca_ctx_destroy`
+      → close the `doca_dev`). The agent surfaces that
+      reconfiguring transport type or queue sizing after
+      start is not legal — that returns
+      `DOCA_ERROR_BAD_STATE`. A response that omits any of
+      the universal lifecycle stages, or treats configure
+      and start as the same step, or tears down in forward
+      order, fails this criterion. A response that omits
+      the `doca_pe_progress` requirement and then claims
+      the Connect handshake or per-IO completions will
+      arrive automatically fails.
+
+  - id: "substrate_libraries_identified"
+    label: "Explicitly identifies `doca-rdma` / `doca-eth` / `doca-flow` as required substrate / sibling libraries — and names each one's role"
+    weight: 2
+    pass_when: |
+      The agent surfaces, for the user's NVMe-over-RDMA
+      pick, that doca-sta does NOT live alone: at minimum
+      `doca-rdma` is the substrate the NVMe-over-RDMA
+      transport rides on (its cap surface must be non-empty
+      on the chosen device, and `pkg-config --modversion
+      doca-rdma` must agree with `doca-sta` / `doca_caps
+      --version` per the substrate-library version-match
+      rule), AND `doca-flow` owns the steering side that
+      decides which NVMe-oF packets land on the STA-managed
+      queue (doca-sta does NOT program steering itself; an
+      NVMe-oF connection that never completes its Connect
+      handshake is, the majority of the time, a missing or
+      wrong Flow rule, not a doca-sta bug). The agent
+      additionally names `doca-eth` as the queue-pair-shape
+      sibling that the user's mental model of *"DOCA
+      queue-pair contexts"* should generalize from (even
+      though doca-sta does not link doca-eth as a
+      substrate). A response that omits doca-rdma fails. A
+      response that omits doca-flow (or invents an
+      STA-level steering call instead of routing to doca-
+      flow) fails. A response that names only one of the
+      three without naming the role of each fails. A
+      response that claims doca-sta is self-contained and
+      needs nothing else fails — that is exactly the
+      baseline-agent failure mode the bundle exists to
+      prevent.
+
+  - id: "single_io_smoke_before_scale"
+    label: "Recommends a single-IO smoke (one admin command on the admin queue + one Read or Write on a single I/O queue) BEFORE scaling to real traffic"
+    weight: 1
+    pass_when: |
+      The agent recommends, as the FIRST functional test, a
+      single-IO smoke: ONE NVMe admin command (typically
+      Identify Controller) on the admin queue, observed as
+      a completion event on the DOCA Core progress engine,
+      AND THEN ONE NVMe Read or Write I/O on a single I/O
+      queue, again observed as a completion event — BEFORE
+      driving any real workload through SPDK on top. The
+      agent surfaces why the admin-queue smoke is first
+      (the Connect handshake landed and the admin queue
+      reached CONNECTED) and why the I/O-queue smoke is
+      second (the I/O-queue path established and one
+      end-to-end I/O completed cleanly), and that splitting
+      the smoke this way gives a much cleaner bisection
+      than starting at production scale. A response that
+      jumps from `doca_ctx_start()` straight to driving
+      SPDK production traffic without an explicit
+      admin-then-one-I/O smoke fails. A response that
+      recommends "send a batch of I/Os to see if it works"
+      as the first functional test fails.
+
+  - id: "no_hallucinated_sta_api"
+    label: "Does not invent `doca_sta_*` API symbols beyond what the skill documents"
+    weight: 1
+    pass_when: |
+      Every `doca_sta_*` / `doca_ctx_*` / `doca_pe_*` /
+      `doca_dev*` symbol the agent mentions is one that
+      the skill documents as part of the public surface
+      (the `doca_sta` per-instance Core context, the
+      `doca_sta_cap_*` capability-query family, the
+      `doca_sta_set_*` setter family for transport type
+      and queue sizing and NVMe-oF feature opt-ins, the
+      universal `doca_ctx_start` / `doca_ctx_stop`
+      lifecycle, `doca_pe_progress`, `doca_dev` /
+      `doca_devinfo`), OR it is explicitly framed as
+      pseudocode / sketch / function-name placeholder
+      (e.g. the agent says "the exact cap-query and setter
+      spellings are install-bound — read them from
+      `/opt/mellanox/doca/infrastructure/include/doca_sta*.h`
+      on your install"). A response that invents API names
+      like `doca_sta_connect_target()`,
+      `doca_sta_submit_nvme_io()`,
+      `doca_sta_enable_nvme_of()`,
+      `doca_sta_quick_init()`, or
+      `doca_sta_attach_subsystem()` without framing them as
+      illustrative placeholders fails — that is the
+      baseline-agent hallucination failure mode the bundle
+      exists to prevent. A response that frames the
+      transport / queue-pair / cap-query / lifecycle
+      surfaces in prose (without committing to specific
+      invented function names) passes this criterion.
+
+  - id: "generalizes_to_doca_rdma"
+    label: "Generalizes from doca-sta (NVMe-oF transport offload) to raw `doca-rdma` (general-purpose RDMA workload) — same-shape vs different"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names raw `doca-rdma` as the right
+      artifact for a general-purpose RDMA workload that has
+      nothing to do with NVMe, AND identifies which parts of
+      the workflow STAY THE SAME (the universal DOCA Core
+      lifecycle on the per-instance context; the rule that
+      capability discovery via the matching `doca_*_cap_*`
+      family against the active `doca_devinfo` is required
+      before promising any feature on the device; the env
+      preconditions FIRST — DOCA installed and consistent,
+      device opened with the required permissions, the
+      version anchor via `pkg-config --modversion`; the
+      per-side queue-pair pattern as a recurring DOCA shape;
+      the rule of running a single-operation smoke BEFORE
+      scaling to production) VERSUS which parts CHANGE
+      (doca-sta adds NVMe-oF protocol SEMANTICS on top of
+      the RDMA transport — the one-admin-queue-plus-N-I/O-
+      queues shape, the NVMe-oF Connect handshake, the
+      NVMe admin / I/O command split — none of which exist
+      in raw doca-rdma; doca-sta REQUIRES an SPDK /
+      kernel-nvme integration point above it because it
+      does not implement NVMe semantics — raw doca-rdma
+      needs no upstream NVMe stack and the user's
+      application is the only thing on top; doca-sta's
+      cap-query axes are NVMe-oF-specific — transport type
+      RDMA vs TCP, NVMe-oF feature opt-ins — whereas raw
+      doca-rdma's cap-query axes are RDMA-task-type and
+      transport-type IB / RoCE / DC; the substrate
+      dependency on doca-flow for steering is the same
+      shape but the matched packets are different — NVMe-oF
+      5-tuples for doca-sta, arbitrary RDMA-tagged 5-tuples
+      for raw doca-rdma). A response that walks only the
+      doca-sta example and is silent on the generalization
+      fails. A response that claims doca-sta and raw
+      doca-rdma "are the same library" and merges their
+      surfaces, or that names a non-related artifact (e.g.
+      DOCA Comch, DOCA DMA) instead of raw doca-rdma,
+      fails this criterion.

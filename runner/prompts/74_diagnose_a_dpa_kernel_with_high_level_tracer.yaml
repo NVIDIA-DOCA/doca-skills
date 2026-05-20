@@ -1,0 +1,282 @@
+id: "74_diagnose_a_dpa_kernel_with_high_level_tracer"
+name: "Diagnose a DPA-side correctness or perf issue end-to-end with doca-dpa-hl-tracer — class-shaped"
+description: |
+  Class-shaped DPA high-level tracing prompt. The HEADLINE is
+  the class ("diagnose a DPA-side correctness or perf issue
+  using `doca_dpa_hl_tracer` end-to-end, from instrumentation
+  through reading the trace to acting on findings"); the
+  worked example is a DPA kernel that completes host-side
+  but produces the wrong RDMA WR ordering on the DPA side.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how
+  to drive an end-to-end DPA-side debug loop with the
+  high-level tracer for ANY class of DPA-side bug the tool
+  surfaces — wrong-result, wrong-ordering, sync-gap, RDMA-WR
+  to completion gap, comm-call stall — because each one is
+  one instance of the same class. The bundle proves this by
+  asking the agent to walk: confirm DPA-side tracing is the
+  right surface FIRST (gate, not a default), pick `CRIT` vs
+  `TRACE` mode against the bug-vs-overhead tradeoff, size
+  the JSON config (file-size limits + `file_size_limit_policy`
+  + thread priorities), plan the capture window to span the
+  workload phase, snapshot the matching DPA-side ELF for
+  decode, capture → decode → render, then hand the captured
+  trace back to the host-side `doca-dpa` debug loop. The same
+  SHAPE applies to every DPA-side bug class; the per-bug
+  details differ.
+
+  A baseline agent without skills typically: jumps to `TRACE`
+  mode (high overhead) before trying `CRIT` (low overhead);
+  invents event names or mode tokens that do not exist on
+  the public DOCA DPA Tools page; treats the tracer as a
+  workload driver (the kernel must already be running);
+  forgets that decode requires the *same* DPA-side ELF the
+  `doca-dpa` lifecycle loaded; quotes a tracer-measured
+  latency without naming the mode; conflates the tracer
+  with the host-side `doca-dpa` library; misses that the
+  raw cycle profiler is a different surface; silently
+  ignores the tracer ↔ `doca-dpa` library ↔ DPACC version
+  pairing.
+
+prompt: |
+  I have a host with a BlueField-3 DPU and DOCA installed.
+  I've built a small DPA-side application with DPACC and I
+  use `doca-dpa` from the host to launch a DPA kernel that
+  issues a sequence of RDMA WRs and a final sync. The
+  host-side `doca_dpa_kernel_launch_update_*` reports
+  `DOCA_SUCCESS`, the `doca_pe_progress` loop completes
+  cleanly, and the DPA-side kernel exits. But the
+  observable RDMA traffic on the wire has the WRs in the
+  wrong order — the sync is firing before all the WRs the
+  source order says should precede it. Nothing on the
+  host side has surfaced an error.
+
+  I want to use `doca_dpa_hl_tracer` to figure out what
+  the DPA kernel is actually doing at the DPA programming
+  event layer, then act on it.
+
+  Walk me through:
+
+  1. Is the DPA high-level tracer even the right surface
+     for this question? Briefly: how do I tell the
+     difference between *"the high-level tracer is what
+     I want"* and *"this is a host-side bug"* or *"this
+     is a job for a raw cycle profiler"*?
+  2. Which capture mode do I start with — `TRACE` or
+     `CRIT` — and why? Be explicit about the
+     overhead-vs-fidelity tradeoff.
+  3. Help me size the JSON config — the file-size limits,
+     the `file_size_limit_policy` choice (stop-on-limit
+     vs truncate-and-continue), and the thread
+     priorities + core affinities. Walk me through what
+     happens in each `file_size_limit_policy` mode if my
+     trace overruns the limit, so I pick deliberately.
+  4. Walk me through the capture → decode flow. What's
+     the rule about the DPA-side ELF I pass to decode?
+  5. Once I have a decoded trace, which event classes
+     should I correlate to localize an
+     out-of-order-WR-vs-sync bug? Don't invent event
+     names — name the event CLASSES the tool surfaces
+     and point me at where the exact event names live.
+  6. After I localize the gap on the DPA side, what's
+     the hand-off back to the host-side debug loop? I do
+     NOT want to rewrite my kernel based on a single
+     trace without first checking that I'm not in
+     `TRACE`-mode overhead-saturated territory.
+
+  Finally: if I tell you my BlueField has a DPA processor
+  that is NOT currently exposed to the host (BlueField
+  mode is wrong, or the firmware does not expose DPA),
+  tell me HONESTLY whether `doca_dpa_hl_tracer` can help
+  me at all in that state, and where the question
+  actually belongs. Don't paper over the precondition.
+
+context:
+  audience: "advanced"
+  intent: "diagnose_dpa_correctness_with_tracing"
+  prior_knowledge: "knows what a DPA is, has a BlueField-3 + host with DOCA installed, has built and launched at least one DPA kernel via host-side `doca-dpa`, has the DPA-side ELF on disk from a recent DPACC build, has never used `doca_dpa_hl_tracer` before"
+  baseline_artifact: "doca-dpa-hl-tracer"
+  changed_skill_in_pr: "tools/doca-dpa-hl-tracer"
+  expected_skill_co_load:
+    - "doca-dpa-hl-tracer"
+    - "doca-dpa"
+    - "doca-debug"
+    - "doca-version"
+    - "doca-setup"
+    - "doca-public-knowledge-map"
+    - "doca-programming-guide"
+    - "doca-structured-tools-contract"
+
+criteria:
+  - id: "right_surface_gate_walked"
+    label: "Walks the when-is-this-the-right-surface gate before configuring the tracer"
+    weight: 2
+    pass_when: |
+      The agent's FIRST step is to walk a small gate that
+      distinguishes the DPA high-level tracer from other
+      surfaces: the bug is on the DPA side (kernel
+      wrong-result or wrong-ordering, with clean host-side
+      completions); the cycle profiler is too low-level
+      for the question; the host-side `doca_dpa_*` calls
+      return `DOCA_SUCCESS` not `DOCA_ERROR_*`. If any of
+      those fails, the right answer is a different
+      surface (host-side debug, cycle profiler, DPACC
+      diagnostics, BlueField env). A response that
+      configures the tracer immediately without naming
+      this gate fails.
+
+  - id: "crit_before_trace_default"
+    label: "Starts with CRIT mode, justifies TRACE only when the bug demands it"
+    weight: 2
+    pass_when: |
+      The agent picks `CRIT` mode as the default
+      *"start here"* capture mode for the bug-vs-overhead
+      tradeoff and explicitly states why: `TRACE` mode
+      carries higher overhead and can shift kernel timing
+      materially in tight loops, so it is widened-into
+      only when the bug demands per-event detail. The
+      agent should also state the modes are NOT
+      interchangeable — quoting a `TRACE` number as if it
+      were `CRIT` (or vice versa) misrepresents the
+      observation. A response that jumps directly to
+      `TRACE` without naming the overhead tradeoff fails.
+
+  - id: "file_size_limit_policy_explicit"
+    label: "Picks file_size_limit_policy deliberately and explains both failure modes"
+    weight: 2
+    pass_when: |
+      The agent explains both `file_size_limit_policy`
+      modes — `0` (stop-on-limit: capture ends when
+      `bin_file_max_size_in_bytes` is reached, oldest
+      events preserved) vs `1` (truncate-and-continue:
+      capture keeps running, oldest events evicted) —
+      and tells the user to pick deliberately based on
+      whether they need the oldest events or the most
+      recent ones. The agent must also size
+      `log_file_max_size_in_bytes` and
+      `bin_file_max_size_in_bytes` against the expected
+      event rate × capture window. A response that
+      copies the shipped example config verbatim without
+      explaining the policy choice fails.
+
+  - id: "elf_must_match_image_rule"
+    label: "Names the ELF-must-match-image rule for decode and the SHA capture step"
+    weight: 2
+    pass_when: |
+      The agent explicitly states that decode requires
+      the SAME DPA-side ELF the host-side `doca-dpa`
+      lifecycle loaded into the `doca_dpa_app` context,
+      and recommends capturing a SHA of the ELF at
+      capture time so the decode-time pairing can be
+      confirmed. The agent must also state that decoding
+      against a different ELF build produces noise
+      silently, even if the binary trace is intact. A
+      response that omits the ELF-match rule, or that
+      suggests the tracer can decode without the ELF,
+      fails.
+
+  - id: "event_classes_not_invented_names"
+    label: "Names DPA programming event CLASSES, does not invent event names"
+    weight: 3
+    pass_when: |
+      The agent names the DPA programming event CLASSES
+      the tool exposes (kernel entry / exit, sync
+      points, comm primitive calls, RDMA WR submission,
+      completion drain) and explicitly tells the user to
+      read the exact event names from `--help` on the
+      installed binary and the public DOCA DPA Tools
+      page — not from agent memory. The agent uses the
+      class names to walk the user's specific bug
+      (out-of-order WR vs sync) without inventing a
+      `DPA_TRACE_*` constant or a specific event
+      identifier. A response that invents specific event
+      names like `DPA_EVENT_RDMA_WR_BEFORE_SYNC` or
+      `DPA_TRACE_KERNEL_OUT_OF_ORDER`, or that quotes a
+      specific event ID from memory, fails.
+
+  - id: "tracing_is_observation_not_workload"
+    label: "Calls out that the workload must already be running via doca-dpa"
+    weight: 1
+    pass_when: |
+      The agent explicitly states that the tracer is
+      observation, not a workload driver — the DPA-side
+      workload must be brought up via the host-side
+      `doca-dpa` lifecycle first (`doca_dpa` context
+      created, `doca_dpa_app` image loaded, at least
+      one launch fired) before the tracer attaches.
+      Starting the tracer against an idle DPA produces
+      an empty capture by construction. A response that
+      treats the tracer as a launcher fails.
+
+  - id: "overhead_check_before_acting"
+    label: "Checks for overhead-saturation before drawing a perf conclusion from TRACE mode"
+    weight: 2
+    pass_when: |
+      The agent surfaces the overhead-saturated failure
+      mode explicitly when discussing the hand-off back
+      to the host-side debug loop: a `TRACE`-mode
+      capture whose per-event interval is at the
+      receiver-thread scheduling floor, or where the
+      workload's wall-clock latency went up materially
+      under tracing, must be re-captured in `CRIT` mode
+      or with raised receiver-thread priority before
+      any DPA-perf conclusion is drawn. A response that
+      jumps from a single `TRACE` capture to a
+      kernel-rewrite recommendation without the
+      overhead check fails.
+
+  - id: "version_pairing_called_out"
+    label: "Names the tracer ↔ doca-dpa library ↔ DPACC version pairing"
+    weight: 1
+    pass_when: |
+      The agent names that the tracer, the host-side
+      `doca-dpa` library, and the DPACC compiler must
+      come from a matched DOCA release band per the
+      four-way match rule in `doca-version`, plus the
+      DPA-specific *DOCA must match DPACC* overlay
+      `doca-dpa` carries. The agent should also route
+      version-mismatch diagnosis to
+      `doca-version TASKS.md ## debug`. A response that
+      omits the three-axis version pairing fails.
+
+  - id: "dpa_not_exposed_precondition_honest"
+    label: "Tells the user honestly when DPA is not exposed and where the question belongs"
+    weight: 2
+    pass_when: |
+      When the prompt's contingency clause ("if the
+      BlueField's DPA processor is NOT currently exposed
+      to the host") is addressed, the agent tells the
+      user HONESTLY that `doca_dpa_hl_tracer` cannot
+      help in that state — tracing is meaningless when
+      the DPA is not visible — and routes the question
+      to the BlueField env layer:
+      [`doca-dpa TASKS.md ## configure`](../../libs/doca-dpa/TASKS.md#configure)
+      step 1 + `doca-setup ## debug` for the env-side
+      preconditions, plus the hardware-safety meta-
+      policy in `doca-hardware-safety` when the fix
+      involves a BlueField mode flip or firmware
+      change. A response that promises the tracer can
+      still produce useful output without DPA
+      visibility, or that quietly suggests flipping
+      BlueField mode without naming the hardware-safety
+      meta-policy, fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from out-of-order-WR-vs-sync to other DPA-side bug classes"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the generalization
+      across the DPA-side bug shape: the same
+      capture → decode → debug-hand-off workflow
+      applies to other DPA-side bug classes — sync gap
+      (sync events missing), comm-call stall (comm
+      issued but completion never drained), kernel
+      wrong-result (entry / exit events fire but the
+      result is wrong), kernel-entry to first-comm
+      latency gap (kernel entry event fires far before
+      the first comm event). The agent names the
+      different event-class signal each bug shape would
+      produce in the decoded trace. A response that
+      walks only the out-of-order-WR-vs-sync case and
+      is silent on what generalizes to other DPA-side
+      bug classes fails this criterion.

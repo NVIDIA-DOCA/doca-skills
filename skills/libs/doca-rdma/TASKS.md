@@ -109,11 +109,11 @@ before recommending any code-level edit:
 
 The agent emits an *intent description + the five filled slots*; the
 *actual* unified diff against the sample source is produced by the
-modify-from-sample renderer (deferred to a future round, captured in
-[`future-plan/cuda-executables-analysis.md`](../../../../future-plan/cuda-executables-analysis.md)).
-Until the renderer ships, the agent must walk the user through the
-diff line-by-line against the sample source they read on disk, and
-have the user paste back the result for validation.
+modify-from-sample renderer (deferred to a future round on the
+maintainer roadmap). Until the renderer ships, the agent must walk
+the user through the diff line-by-line against the sample source
+they read on disk, and have the user paste back the result for
+validation.
 
 ## run
 

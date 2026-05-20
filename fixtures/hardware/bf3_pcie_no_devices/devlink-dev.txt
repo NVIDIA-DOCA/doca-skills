@@ -1,0 +1,3 @@
+$ devlink dev show
+$ echo "(no output — no devlink-managed devices visible)"
+(no output — no devlink-managed devices visible)

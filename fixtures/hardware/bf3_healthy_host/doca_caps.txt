@@ -1,0 +1,6 @@
+$ doca_caps --version
+doca_caps version: 2.9.0
+doca-common: 2.9.0
+doca-flow: 2.9.0
+doca-rdma: 2.9.0
+build: production

@@ -1,0 +1,303 @@
+id: "71_measure_gpu_init_rdma_write_latency_jitter_from_gpunetio_for_real_time"
+name: "Measure GPU-initiated RDMA-WRITE latency / jitter from the DOCA GPUNetIO path and pick the right runtime surface for a real-time class workload — class-shaped"
+description: |
+  Class-shaped tool-invocation prompt for the GPUNetIO-
+  flavored `ib_write_lat` benchmark shipped at
+  `doca/tools/gpunetio_ib_write_lat/`. The HEADLINE is the
+  class ("measure GPU-init RDMA-WRITE latency / jitter from
+  the GPUNetIO path and pick the right runtime surface for a
+  real-time / control-loop class workload"); the worked
+  example is a single (GPU model × NIC model × real-time
+  workload class) the agent picks. The bundle MUST teach the
+  agent to (a) surface the runtime-surface choice (GPUNetIO
+  vs GPI vs CPU-initiated `perftest`) BEFORE defaulting, (b)
+  apply the GPU-NIC pairing precondition, (c) quote the
+  RIGHT statistic — median vs p99 vs jitter — for the
+  workload class instead of "the latency", (d) surface the
+  latency-vs-batching trade-off intrinsic to GPU-init RDMA,
+  (e) refuse to invent flag strings, (f) call out the
+  per-iteration timeout argument as a real configuration knob
+  the kernel-side functions accept.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how
+  to drive this benchmark class against ANY GPU + NIC pair
+  and ANY real-time workload class. The bundle proves this
+  by asking the agent to walk the class shape on one worked
+  example, then generalize to a DIFFERENT workload class
+  (e.g. typical-case request-response vs deadline-bound
+  control loop vs jitter-bound phase-locked loop) and
+  identify which statistic each one wants.
+
+  A baseline agent without skills typically: defaults to
+  GPUNetIO without surfacing the GPI alternative; quotes
+  "the latency" without naming median or p99; treats the
+  GPU-NIC pairing as a tunable; invents
+  `--num-iterations=10000`, `--message-size=64`,
+  `--latency-mode` flags that do not exist in `main.c`;
+  ignores the per-iteration timeout knob exposed via the
+  kernel-side `timeout_ns` argument; assumes the tool is
+  pre-built under `/opt/mellanox/doca/`; confuses the tool
+  with the GPI sister tool or the upstream `perftest`;
+  averages tail latency away.
+
+prompt: |
+  I have two hosts with NVIDIA GPUs and ConnectX NICs,
+  wired together over a high-speed IB fabric. DOCA is
+  installed on both, and `nvidia_peermem` is (or should
+  be) loaded. I am building a GPU-resident **real-time
+  control loop** that needs to push small WRITE updates
+  to a remote peer and observe the completion before the
+  loop's next deadline. I want to measure the latency
+  (and the jitter) of this RDMA WRITE when posted **from
+  a CUDA kernel through DOCA GPUNetIO**. Please walk me
+  through:
+
+  1. Which DOCA tool is the right answer here, and where
+     does it ship? If it is built from source, where is
+     the source tree?
+  2. Before I commit to GPUNetIO, what alternative runtime
+     surfaces can measure the "same physical RDMA WRITE
+     latency"? Name them and tell me when each is the
+     right answer. (My workload class is **real-time**;
+     do not silently pick GPUNetIO for me because of
+     marketing positioning — tell me when GPI or
+     CPU-initiated would actually win for a real-time
+     workload.)
+  3. The GPU + NIC pairing on each host — what
+     hardware-topology precondition do I have to satisfy,
+     and what happens to my latency distribution if the
+     pair is on different NUMA nodes with no NVLink
+     bridge?
+  4. When this benchmark reports its result line, what
+     columns does it carry, and which one is the
+     apples-to-apples ONE-WAY latency vs round-trip vs
+     cross-check? Walk me through the verified column
+     semantics.
+  5. For a REAL-TIME workload class, which statistic do I
+     quote — median, p99, p99.9, or jitter — and why?
+     Tell me if quoting the median for a deadline-bound
+     control loop is the right answer or the wrong
+     answer.
+  6. The latency-vs-batching trade-off — my CUDA kernel
+     could batch multiple WRs per launch to amortize
+     GPU-side overhead. What does that buy me on latency,
+     and what does it cost me on tail latency? Is the
+     benchmark's shipped batching configuration aligned
+     with my real-time class workload, or do I need a
+     different configuration?
+  7. Measurement soundness — how do I make sure the
+     distribution is statistically meaningful for a p99
+     or p99.9 statistic? In particular, how many
+     iterations do I need, what does the per-iteration
+     timeout do, and what should I do if the reported
+     iteration count is lower than the configured one?
+  8. The runtime flow — what is the client/server
+     pattern, and what flags are documented in the
+     shipped `main.c`? Do NOT invent flag strings; name
+     only the flag families documented in the source.
+  9. Versioning — what DOCA + CUDA Toolkit + CUDA driver
+     combinations does this tool tolerate, and where do
+     I read each pin from?
+  10. After walking my real-time / control-loop workload
+      class, briefly tell me what would change for a
+      DIFFERENT workload class — e.g. a typical-case
+      request-response pattern (where the median is the
+      answer), or a jitter-bound phase-locked loop
+      (where predictability matters more than the
+      median). Which parts of your answer stay the same
+      and which change?
+
+context:
+  audience: "intermediate"
+  intent: "measure_gpu_initiated_rdma_write_latency_real_time"
+  prior_knowledge: "knows what a GPU and an IB NIC are, has DOCA installed on both hosts, knows CUDA at a basic level, knows the distinction between median and p99, has not used doca-gpunetio as a programming surface before, is designing a real-time control loop with a hard deadline"
+  baseline_artifact: "doca-gpunetio-ib-write-lat"
+  changed_skill_in_pr: "tools/doca-gpunetio-ib-write-lat"
+  expected_skill_co_load:
+    - "doca-gpunetio-ib-write-lat"
+    - "doca-gpunetio"
+    - "doca-gpi"
+    - "doca-rdma"
+    - "doca-verbs"
+    - "doca-version"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+    - "doca-hardware-safety"
+    - "doca-gpunetio-ib-write-bw"
+    - "doca-gpi-ib-write-lat"
+
+criteria:
+  - id: "names_gpunetio_ib_write_lat_and_locates_it_correctly"
+    label: "Names doca-gpunetio-ib-write-lat AND clarifies it is built from source under doca/tools/gpunetio_ib_write_lat/"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 1 names the
+      GPUNetIO-flavored ib_write_lat benchmark shipped
+      under `doca/tools/gpunetio_ib_write_lat/` AND tells
+      the user it is built from source via `meson`, NOT a
+      pre-built binary. The agent points the user at the
+      `client/` + `server/` + `common/` subtree layout. A
+      response that assumes the tool is pre-built, or
+      that conflates it with `doca-gpi-ib-write-lat` or
+      the upstream `perftest` `ib_write_lat`, fails.
+
+  - id: "surfaces_runtime_surface_choice_honestly_for_real_time"
+    label: "Surfaces GPUNetIO vs GPI vs CPU-initiated AND tells the user when each is the right answer for a real-time class workload"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 2 names AT LEAST
+      THREE runtime surfaces (DOCA GPUNetIO, DOCA GPI,
+      upstream CPU-initiated `perftest`), surfaces them
+      as a DECISION the user makes BEFORE committing,
+      AND tells the user honestly when each would
+      actually win for a real-time class workload — for
+      example, the GPI surface might be the right
+      answer for a real-time loop where the GPU-side
+      handle's direct queue access matters; the CPU-
+      initiated path might be the right answer if the
+      control loop runs on the host and only the
+      reply originates from the GPU. A response that
+      silently defaults to GPUNetIO because the user
+      said "GPU", OR that pretends all three surfaces
+      deliver the same latency, fails.
+
+  - id: "gpu_nic_pairing_as_precondition"
+    label: "Applies GPU-NIC pairing as a hardware-topology precondition"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 3 frames the
+      GPU-NIC pairing as a precondition (same PCIe root
+      complex OR documented NVLink path) AND tells the
+      user that a wrong pairing inflates the host-side
+      latency number via PCIe-crossover overhead and
+      shifts the distribution. The agent must surface
+      that the FIX is platform-side, not benchmark-side.
+      A response that treats the pairing as a tunable
+      fails.
+
+  - id: "names_three_result_columns_with_verified_semantics"
+    label: "Names half-iter, full-iter, and CUDA-side usec columns and their semantics"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 4 names ALL THREE
+      result columns the tool reports (`t_half_iter`,
+      `t_full_iter`, `t_cuda` per the verified
+      `common/common.h`) and distinguishes them:
+      half-iter is one-way / one-direction latency;
+      full-iter is round-trip latency for a
+      request-response pattern; CUDA-side is a
+      cross-check against the host-side number, and a
+      large divergence is itself a diagnostic signal —
+      not a number to quote. A response that names only
+      one column, OR that invents column names, fails.
+
+  - id: "median_vs_p99_vs_jitter_picked_for_real_time"
+    label: "Picks p99/p99.9 (NOT median) as the right statistic for a real-time deadline-bound workload"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 5 explicitly says
+      that for a REAL-TIME deadline-bound control loop,
+      the right statistic is p99 (or p99.9) — NOT the
+      median — because the workload's deadline is broken
+      by tail events that the median averages away. The
+      agent must call out that quoting the median for a
+      deadline-bound workload is the WRONG answer, and
+      that jitter (min / max spread, stdev) is the right
+      statistic when predictability matters more than
+      speed. A response that quotes the median as "the
+      latency", or that averages the p99 away, fails.
+
+  - id: "latency_vs_batching_tradeoff_surfaced"
+    label: "Surfaces the latency-vs-batching trade-off specific to GPU-init RDMA"
+    weight: 2
+    pass_when: |
+      The agent's answer to question 6 explicitly
+      addresses the trade-off: batching multiple WRs per
+      CUDA kernel launch lowers per-WR amortized latency
+      (the GPU-side overhead is paid once per launch,
+      not once per WR) BUT increases per-batch tail
+      latency (the first WR in the batch waits for the
+      kernel-launch boundary). The agent must tell the
+      user that the shipped batching configuration may
+      not match the user's real-time class needs — a
+      deadline-bound control loop typically wants the
+      smallest batch (one WR per launch); a throughput
+      workload wants the largest. A response that omits
+      the trade-off, or that recommends batching without
+      naming the tail-latency cost, fails.
+
+  - id: "measurement_soundness_iteration_count_timeout_dropped_iterations"
+    label: "Calls out iteration-count statistical significance, per-iteration timeout, and dropped iterations as soundness signals"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 7 addresses ALL
+      THREE soundness signals: (a) iteration count must
+      be large enough for the chosen statistic — p99
+      needs at least ~10^5 iterations to be
+      statistically meaningful, p99.9 needs ~10^6, the
+      agent must surface this rather than recommend a
+      "quick test"; (b) the per-iteration timeout is a
+      kernel-side configuration (the verified
+      `common.h` kernel-side functions accept a
+      `timeout_ns` argument) and iterations that exceed
+      it are not measured; (c) if the reported
+      iteration count is LOWER than configured, the
+      timeout is the suspect — those dropped iterations
+      are themselves a signal, not noise to ignore. A
+      response that names only one of the three, OR
+      that ignores the per-iteration timeout, fails.
+
+  - id: "does_not_invent_runtime_flags"
+    label: "Does NOT invent runtime flags beyond what the shipped main.c documents"
+    weight: 3
+    pass_when: |
+      In response to question 8 the agent names ONLY the
+      flag families that match the shipped `main.c`
+      ARGP registration (`-d` / `--device`, `--gpu`,
+      `-c` for client mode, `--gid-index`) and tells
+      the user to confirm the exact spelling against
+      `--help` on the installed binary. A response that
+      fabricates flags like `--num-iterations=10000`,
+      `--message-size=64`, `--latency-mode=lat`,
+      `--timeout=1ms`, `--warmup`, WITHOUT explicitly
+      framing them as pseudocode to confirm against
+      `--help`, fails.
+
+  - id: "version_overlay_doca_cuda_toolkit_cuda_driver"
+    label: "Surfaces DOCA + CUDA Toolkit + CUDA driver as three version axes and routes through doca-version"
+    weight: 2
+    pass_when: |
+      In response to question 9 the agent surfaces (a)
+      `pkg-config --modversion doca-gpunetio` confirmed
+      against `doca_caps --version` for the DOCA-side
+      pin, (b) `nvcc --version` for the CUDA Toolkit
+      axis, (c) the CUDA driver as a third axis (the
+      module / kernel-side runtime; `nvidia-smi` to
+      check). The agent must route through doca-version
+      for the four-way match rule. A response that
+      quotes a literal from memory, says "latest", or
+      ignores the CUDA driver axis, fails.
+
+  - id: "generalizes_beyond_worked_workload_class"
+    label: "Generalizes from the worked real-time workload class to a DIFFERENT workload class"
+    weight: 3
+    pass_when: |
+      In response to question 10 the agent explicitly
+      generalizes from the real-time / control-loop
+      class to AT LEAST ONE OTHER workload class (e.g.
+      typical-case request-response where the median is
+      the right answer, or jitter-bound phase-locked
+      loop where the min / max spread is the answer)
+      and identifies which parts STAY THE SAME (the
+      tool itself, the GPU-NIC pairing precondition,
+      the build pattern, the three reported columns,
+      the version overlay) vs which CHANGE (the
+      statistic the user quotes — median vs p99 vs
+      jitter; the iteration-count requirement for that
+      statistic; the latency-vs-batching trade-off
+      direction; possibly the per-iteration timeout
+      sizing). A response that walks only the real-time
+      class and is silent on generalization fails — by
+      AUTHORING.md § 1a, the bundle is teaching the
+      CLASS, not the instance.

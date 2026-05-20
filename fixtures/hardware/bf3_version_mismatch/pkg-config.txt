@@ -1,0 +1,8 @@
+$ pkg-config --modversion doca-common
+2.7.0
+$ pkg-config --list-all | grep doca | head -3
+doca-common                                          DOCA common runtime (FROM STALE PREFIX /opt/mellanox-2.7)
+doca-flow                                            DOCA Flow library (2.7)
+doca-rdma                                            DOCA RDMA library (2.7)
+$ echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+PKG_CONFIG_PATH=/opt/mellanox-2.7/lib/pkgconfig

@@ -152,11 +152,10 @@ Three primary signals the agent should reach for:
    to fetching the *"available since"* prose from the per-library
    docs via [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md).
    That fallback is correct (the answer comes from NVIDIA's
-   freshest source) but slower than a local lookup; the design
-   for landing the data file together with the offline verifier
-   is captured in `future-plan/version-offline-database.md`. The
-   agent never treats the missing data file as a "no answer" — it
-   walks the manual fallback.
+   freshest source) but slower than a local lookup; an offline
+   version-data file together with an offline verifier is on the
+   maintainer roadmap. The agent never treats the missing data file
+   as a "no answer" — it walks the manual fallback.
 3. **The capability-query result.** The per-library
    `doca_<library>_cap_*` API answers *"is this supported on this
    device + this version"* at runtime. The version-matrix is the
@@ -211,8 +210,8 @@ this skill, the bundle convention is:
 > NOT redefine the four-way match rule or restate the detection
 > chain.
 
-The mechanical enforcer is the lint warning in
-`devops/ci/check-skill.sh` that flags repeated `/opt/mellanox/doca`
+The mechanical enforcer is the lint warning in NVIDIA's internal
+skill-conformance CI that flags repeated `/opt/mellanox/doca`
 references in a library skill's CAPABILITIES.md; if you find
 yourself accumulating warnings on a new skill's `## Version
 compatibility`, you are duplicating instead of cross-linking.

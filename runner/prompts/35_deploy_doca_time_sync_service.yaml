@@ -1,0 +1,289 @@
+id: "35_deploy_doca_time_sync_service"
+name: "Deploy DOCA Firefly to provide a host-facing time-sync capability — class-shaped"
+description: |
+  Class-shaped service-deployment prompt. The HEADLINE is the class
+  ("deploy DOCA Firefly to provide a host-facing time-sync
+  capability"); the worked example is bringing up Firefly on a
+  BlueField in PTP slave role for a SMPTE 2059-2 broadcast workload
+  that will run Rivermax on the host, because Firefly + Rivermax is
+  the canonical paired deployment the bundle teaches.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  deploy ANY DOCA service that is shaped as a container on BlueField
+  Arm (DMS, DTS, BlueMan, Firefly, Flow-Inspector, HBN, Argus, ...).
+  The bundle proves this by asking the agent to walk: recognize this
+  is a SERVICE deployment (container + config file mount), not a
+  library link; name the four PTP configuration axes (role, profile,
+  domain, interface) as the up-front decision; cross-link to
+  doca-rmax as the canonical paired workload; teach the
+  END-TO-END time-sync discipline (BlueField PHC + host clock
+  follower + consumer workload); walk the public Container Deployment
+  Guide as the canonical deployment pattern; recommend a smoke
+  (Firefly running, PHC time visible, host chrony following PHC)
+  before scaling to bulk workloads; refuse to invent container image
+  names or tags; and generalize to one other DOCA service to show the
+  service-shape is shared.
+
+  A baseline agent without skills typically: treats Firefly as a
+  library to link against; invents a container image tag and
+  `docker run` invocation; collapses the four PTP axes into one
+  "PTP config" blob with no four-axis rule; ignores the host-side
+  follower and presents a Firefly-only answer as if it disciplined
+  the host clock too; jumps straight to driving the Rivermax
+  workload without an end-to-end smoke; conflates Firefly's PHC
+  discipline with the Rivermax-side stream lifecycle (treats both
+  as one library); cannot generalize the deployment shape to a
+  different DOCA service.
+
+prompt: |
+  I have a BlueField-3 DPU with DOCA installed on the BlueField Arm.
+  I need to bring up DOCA Firefly on it in PTP slave role so the
+  BlueField follows an upstream PTP master on the wire-side port,
+  for a broadcast plant that will run a SMPTE ST 2110 video sender
+  on the host using Rivermax. The upstream PTP master is configured
+  for the SMPTE 2059-2 profile.
+
+  Walk me through the deploy:
+
+  1. Confirm whether Firefly is actually the right answer here, and
+     under what conditions it would NOT be (I want you to be honest
+     — if chrony / NTP would do, tell me; if my switching fabric is
+     not PTP-aware, tell me).
+  2. What kind of artifact is Firefly — am I linking a library, or
+     deploying a container, or running a host daemon? Walk the
+     deployment shape.
+  3. Which four PTP configuration axes do I have to decide BEFORE
+     starting the container, and what happens if I get any of them
+     wrong?
+  4. How does Firefly relate to my Rivermax SMPTE workload — does
+     Firefly stream the media, does it just discipline a clock that
+     Rivermax then reads, or something else?
+  5. What is the END-TO-END time-sync discipline I have to wire up?
+     I keep hearing "Firefly is on the BlueField" but I want to know
+     where the host's clock comes in and where my Rivermax workload
+     comes in.
+  6. Where does the canonical container deployment pattern live —
+     I don't want you to invent a `docker run` line; I want to know
+     which public doc you'd consult and why.
+  7. What smoke test would you recommend BEFORE I start driving any
+     real SMPTE traffic on the Rivermax side?
+  8. Don't quote container image tags or registry paths from memory.
+     If you don't know the exact tag, say so and tell me where to
+     look it up.
+
+  After that, briefly tell me which parts of your answer would
+  carry over to a DIFFERENT DOCA service (e.g. DOCA Telemetry
+  Service / DOCA BlueMan / DOCA Flow Inspector) — identify which
+  parts STAY THE SAME (the service is a container on BlueField Arm,
+  the Container Deployment Guide is canonical, env preconditions
+  are checked first, config is mounted as a file, smoke-before-scale
+  applies) vs which CHANGE (the per-service domain — time-sync vs
+  telemetry vs management vs flow debug; the paired-library or
+  paired-workload coupling — Firefly pairs with Rivermax /
+  host-follower, DMS pairs with gNMI / gNOI clients, Telemetry
+  pairs with metrics consumers).
+
+context:
+  audience: "intermediate"
+  intent: "deploy_service"
+  prior_knowledge: "knows what a DPU and a BlueField are, has a BlueField-3 plus host with DOCA installed on the BlueField Arm, has heard of PTP but has never operated a PTP daemon, will eventually run Rivermax SMPTE on the host but has not stood up Firefly before"
+  baseline_artifact: "doca-firefly"
+  changed_skill_in_pr: "services/doca-firefly"
+  expected_skill_co_load:
+    - "doca-firefly"
+    - "doca-rmax"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "recognizes_service_deployment_not_library"
+    label: "Recognizes this is a service deployment (container + config), not a library link"
+    weight: 2
+    pass_when: |
+      The agent explicitly names that DOCA Firefly is a long-running
+      CONTAINER that ships from NGC and runs on BlueField Arm, not
+      a library the user links against and not a host-side daemon
+      the user installs as a host package. The agent must walk the
+      deployment shape: pull the image per the public Firefly
+      Service Guide, mount the config file at the path the public
+      guide names, start under the BlueField container runtime per
+      the public Container Deployment Guide. A response that treats
+      Firefly as a `lib*.so` to link against, or that proposes to
+      build Firefly from source, or that omits the container nature
+      entirely and treats it as a host daemon, fails.
+
+  - id: "four_axis_ptp_config_named"
+    label: "Names PTP role + profile + domain + interface as the four-axis up-front decision"
+    weight: 3
+    pass_when: |
+      The agent explicitly names FOUR PTP configuration axes that
+      must be decided BEFORE starting the container, and names what
+      each one is for: (a) PTP role (master / slave / boundary
+      clock / transparent clock), (b) profile (default IEEE 1588 /
+      SMPTE 2059-2 / G.8275.1 / G.8275.2 / custom), (c) domain
+      number (PTP allows multiple time domains; mismatched domain
+      = zero peers visible), (d) network interface (typically the
+      wire-side port, not management; must have hardware PTP
+      timestamping enabled). The agent should also surface
+      transport (L2 multicast / L3 unicast / L3 multicast) as a
+      related knob. For the worked example, the agent should name
+      the role as `slave` and the profile as `SMPTE 2059-2`,
+      consistent with the prompt. A response that collapses the
+      four axes into one "PTP config" blob, or that names only
+      role + profile and silently drops domain or interface, or
+      that does not call out that a mismatch on any one axis
+      breaks PTP, fails.
+
+  - id: "rivermax_paired_workload_cross_linked"
+    label: "Cross-links to doca-rmax as the canonical paired workload"
+    weight: 2
+    pass_when: |
+      The agent explicitly names DOCA Rivermax as the consumer-side
+      workload for the SMPTE ST 2110 path AND states that Firefly
+      and Rivermax are SEPARATE skills / surfaces: Firefly is the
+      time-source side (drives the BlueField PHC); Rivermax is the
+      timing-precise data-plane side (reads the disciplined PHC to
+      emit / receive timing-precise media). The agent must NOT
+      collapse the two into one (e.g., proposing that Firefly
+      streams the SMPTE media itself, or that Rivermax disciplines
+      the PHC). The agent should also surface the doca-rmax
+      precondition matrix (Rivermax SDK install + license + the
+      doca-rmax skill's own end-to-end-discipline rule) as the
+      Rivermax-side concern. A response that walks only Firefly
+      and never mentions Rivermax by name, OR that conflates the
+      two surfaces, fails.
+
+  - id: "end_to_end_discipline_taught"
+    label: "Teaches the END-TO-END discipline: BlueField PHC + host clock follower + consumer workload"
+    weight: 3
+    pass_when: |
+      The agent explicitly walks the THREE legs of the end-to-end
+      time-sync discipline as the operator's joint responsibility:
+      (1) Firefly disciplines the BlueField PTP Hardware Clock
+      (PHC) by speaking PTP to the upstream master; (2) the host
+      clock follower (chrony with the PHC source, or `ptp4l` /
+      `phc2sys` reading the PHC via `/dev/ptpN`) reads the
+      disciplined PHC so the host OS clock follows; (3) the
+      consumer workload (Rivermax in this case) reads the
+      disciplined time so its outputs are PTP-locked. The agent
+      must state that the host-follower step is REQUIRED — without
+      it the host clock does NOT follow the PHC, regardless of how
+      cleanly Firefly comes up. A response that names only Firefly
+      and stops there, or that claims Firefly disciplines the host
+      clock directly, or that omits the host-side follower
+      requirement, fails.
+
+  - id: "container_deployment_guide_canonical"
+    label: "Walks the Container Deployment Guide as canonical for the deployment pattern"
+    weight: 1
+    pass_when: |
+      The agent references the public Container Deployment Guide
+      (or the public DOCA Firefly Service Guide that points to it)
+      as the canonical source for the deployment recipe — how to
+      pull the image, where to mount the config, which BlueField
+      container runtime to use, what the start / status / logs
+      commands look like. The agent should route via
+      `doca-public-knowledge-map ## DOCA services` rather than
+      paraphrase the deployment commands from memory. A response
+      that invents a `docker run` invocation without citing the
+      public guide as the authoritative source fails.
+
+  - id: "smoke_before_scale_recommended"
+    label: "Recommends a smoke (Firefly running, PHC visible, host chrony following PHC) before scaling to the bulk workload"
+    weight: 2
+    pass_when: |
+      The agent recommends a smoke sequence BEFORE driving any
+      real SMPTE traffic, covering at minimum: (a) Firefly
+      container running and not restart-looping; (b) Firefly's
+      PTP state advanced past `LISTENING` into `SLAVE` (consistent
+      with the prompt's slave role); (c) BlueField PHC offset
+      visible and within the SMPTE 2059-2 profile's spec; (d)
+      host-side follower (chrony or `ptp4l`) reports the PHC as
+      its reference with a tight offset, confirmed via
+      `chronyc tracking` or equivalent. Only after the smoke
+      passes does the agent layer the Rivermax workload on top.
+      A response that jumps from `container started` to "now run
+      Rivermax at full SMPTE rate" without an explicit smoke fails.
+
+  - id: "no_invented_container_image_or_tag"
+    label: "Does not invent Firefly container image names, tags, or registry paths"
+    weight: 2
+    pass_when: |
+      The agent does NOT quote a specific Firefly container image
+      string or tag from memory (e.g.
+      `nvcr.io/nvidia/doca/doca-firefly:latest`, a specific version
+      tag, or any other concrete tag). Instead the agent states
+      that the authoritative source for the image string and tag
+      is the public DOCA Firefly Service Guide (reachable through
+      `doca-public-knowledge-map ## DOCA services`) for the
+      operator's DOCA release, and explicitly tells the user to
+      look the tag up there rather than memorize it. If the agent
+      DOES surface an image string, it must clearly frame it as a
+      placeholder / sketch with the agent telling the user to
+      replace it with the value from the live guide. Inventing a
+      specific tag from memory and presenting it as the answer
+      fails — that is the canonical service-skill hallucination
+      failure mode.
+
+  - id: "path_selection_honesty"
+    label: "Honestly answers when Firefly is the WRONG tool (chrony / NTP suffices; non-PTP-aware fabric)"
+    weight: 2
+    pass_when: |
+      In response to question 1 of the prompt, the agent
+      explicitly identifies the conditions under which Firefly is
+      the wrong answer: (a) when chrony / NTP already meets the
+      workload's time-precision budget (which is typical for
+      normal workloads), (b) when no PTP-aware switching /
+      boundary-clock infrastructure exists in the network path
+      (the fix there is a network-side fix, not a Firefly knob),
+      (c) when pure software-side time precision is sufficient.
+      The agent must NOT recommend Firefly speculatively. For
+      the worked example (SMPTE ST 2110 broadcast), Firefly IS
+      the right answer because SMPTE 2110 mandates PTP — the
+      agent should say so explicitly. A response that recommends
+      Firefly for every "time precision" question without naming
+      the path-selection conditions fails.
+
+  - id: "version_overlay_named"
+    label: "Surfaces the Firefly container tag as the version anchor (NOT pkg-config on the host)"
+    weight: 1
+    pass_when: |
+      The agent surfaces that for a container-shaped DOCA service
+      like Firefly, the runtime version anchor is the CONTAINER
+      TAG pulled from NGC, not the host's
+      `pkg-config --modversion`. The agent should call out that
+      the container tag may lag the host's DOCA package version
+      and that the public Firefly Service Guide version must
+      match the container tag. A response that pretends
+      `pkg-config --modversion doca-common` is the Firefly
+      version anchor, or that quotes a hardcoded version from
+      memory, or that says nothing about versioning at all, fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from Firefly to one other DOCA service and identifies what stays the same vs changes"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it generalizes from the Firefly / SMPTE / Rivermax
+      worked example to AT LEAST ONE OTHER DOCA service (DOCA
+      Telemetry Service / DOCA BlueMan / DOCA Flow Inspector /
+      DOCA DMS / DOCA HBN / DOCA Argus / ...), and identifies
+      which parts of the deployment STAY THE SAME (container
+      shipped from NGC, runs on BlueField Arm, Container
+      Deployment Guide is the canonical recipe, env preconditions
+      checked first per `doca-setup`, config mounted as a file
+      rather than passed as CLI flags, smoke-before-scale before
+      driving bulk workload, public per-service guide is the
+      single source of truth) versus which CHANGE (the per-
+      service problem domain — time sync vs telemetry vs
+      management vs flow debug; the paired-library or
+      paired-workload coupling — Firefly pairs with Rivermax
+      + host-side time-sync follower, DMS pairs with gNMI / gNOI
+      clients, Telemetry pairs with metrics consumers; the
+      per-service config schema and observability surface; what
+      "healthy" looks like at the service-specific level). A
+      response that walks only Firefly and is silent on
+      generalization fails this criterion.

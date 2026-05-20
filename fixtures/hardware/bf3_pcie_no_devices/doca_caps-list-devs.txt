@@ -1,0 +1,8 @@
+$ doca_caps --list-devs
+DOCA Devices Enumerator:
+  0 device(s) found.
+  Possible causes:
+    - mlx5_core kernel module not loaded
+    - vendor 0x15b3 device not present at the PCIe layer (check lspci -d 15b3:)
+    - SR-IOV not configured
+    - Steering mode capability query failed before enumeration

@@ -1,0 +1,5 @@
+# macOS Finder noise — must never enter the public bundle.
+# The check-reference-hygiene.sh CI gate also fails on any .DS_Store
+# anywhere under the bundle root.
+.DS_Store
+**/.DS_Store

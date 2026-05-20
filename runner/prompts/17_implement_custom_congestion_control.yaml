@@ -1,0 +1,297 @@
+id: "17_implement_custom_congestion_control"
+name: "Implement and deploy a custom congestion control algorithm on the DPA — class-shaped"
+description: |
+  Class-shaped prompt for implementing and deploying a CUSTOM
+  congestion control algorithm onto a BlueField port that
+  handles RDMA / RoCE traffic, using the host-side `doca-pcc`
+  library as the control plane and the BlueField DPA as the
+  execution substrate. The HEADLINE is the class ("implement
+  and deploy a custom congestion control algorithm on the
+  DPA from a host program"); the worked example is deploying
+  a small sample custom PCC algorithm onto a BlueField port
+  carrying RoCE traffic, because that is the newly-covered
+  library in skills/libs/doca-pcc.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent the
+  shape of *running a custom user-supplied program on a DOCA
+  target processor that modulates an existing data plane*.
+  The bundle proves this by asking the agent to walk: env
+  preconditions FIRST (including the BlueField firmware-level
+  custom-PCC slot enable, which baseline agents miss), the
+  two-side-program model (host-side `doca-pcc` controls; the
+  algorithm itself is DPA-side code compiled by DPACC),
+  triple-axis capability discovery (DOCA cap-query against
+  doca_devinfo PLUS the BlueField generation actually
+  carrying a DPA PLUS the firmware custom-PCC slot being
+  enabled), the path-selection rule (custom `doca-pcc`
+  library vs default factory PCC in firmware vs
+  `doca_pcc_counter` diagnostic CLI), the DOCA Core
+  lifecycle, attaching to a port that ACTUALLY has RDMA /
+  RoCE traffic on it, and a single small-algorithm smoke
+  BEFORE deploying a sophisticated algorithm. The same SHAPE
+  generalizes to `doca-dpa` (generic DPA workload running on
+  the same processor); the per-target details differ (PCC is
+  RDMA / RoCE-bound and modulates an existing data plane,
+  DPA is generic compute on the same DPA processor).
+
+  A baseline agent without skills typically: conflates the
+  `doca-pcc` library (load custom algorithms) with the
+  `doca_pcc_counter` CLI (read-only counter inspection) and
+  recommends the wrong artifact; invents `doca_pcc_*` API
+  symbols beyond the public surface; forgets that the
+  algorithm itself is DPA-side code compiled by the DPACC
+  compiler and recommends *"write the algorithm in your host
+  code"*; skips the firmware-level custom-PCC slot enable
+  check entirely (the baseline-agent failure mode that turns
+  into a confusing `DOCA_ERROR_NOT_PERMITTED` later);
+  diagnoses that error as a host-OS permission problem
+  instead of a firmware-side fix; treats the host-side load
+  as if it defines the algorithm; jumps straight to a
+  sophisticated algorithm design without a single
+  small-algorithm smoke; and never generalizes from PCC to
+  the generic DPA workload path documented in `doca-dpa`.
+
+prompt: |
+  I have a host with a BlueField DPU plugged in over PCIe,
+  DOCA already installed on the host, the DPACC compiler
+  installed alongside DOCA, and RoCE traffic already flowing
+  through the BlueField port I care about (so the data plane
+  I want to control already exists). I want to deploy my own
+  CUSTOM congestion control algorithm onto that BlueField
+  port — not the default factory algorithm the ConnectX
+  firmware ships with, and not just inspect counters with a
+  read-only tool. I have a small sample custom PCC algorithm
+  I can use as a starting point; deploying it end-to-end on
+  one port carrying RoCE traffic is the priority right now.
+
+  Walk me through the setup: which DOCA library on the HOST
+  side I use to drive this (and how it differs from any
+  similarly-named DOCA artifact I might confuse it with),
+  how the algorithm itself relates to that host-side
+  library and what compiles the algorithm code, what I have
+  to check BEFORE writing any host or DPA code (env
+  preconditions on the host side AND on the BlueField side,
+  including any firmware-level enable I need to flip before
+  the host-side library will let me load a custom
+  algorithm), the capability queries I have to run against
+  the active doca_devinfo, the DOCA Core lifecycle I have
+  to follow when creating the per-PCC-instance context and
+  loading my compiled custom PCC algorithm image, what I
+  should smoke-test FIRST from the host side before
+  deploying a sophisticated algorithm body, and how I'll
+  know the deployed algorithm is actually affecting the
+  RoCE traffic on the port (i.e. how I distinguish *"the
+  algorithm loaded fine but is not modulating my flows"*
+  from *"the algorithm loaded fine and is doing what I
+  expect"*).
+
+  After that, briefly tell me which parts of your answer
+  would change if instead of a custom CONGESTION CONTROL
+  algorithm I wanted to run a GENERIC piece of compute on
+  the BlueField DPA processor through DOCA DPA (for
+  example a counter-loop kernel that has nothing to do
+  with RDMA / RoCE traffic), and which parts of the
+  workflow stay the same.
+
+context:
+  audience: "intermediate"
+  intent: "implement_custom_congestion_control"
+  prior_knowledge: "knows C / C++ at the application level, has DOCA installed and DPACC installed, knows what a BlueField is, has RDMA / RoCE traffic flowing on the target port already (i.e. the data plane this PCC algorithm will modulate exists), has not used the DOCA PCC host-side library before, has not written a custom PCC algorithm body before but knows it's a separate DPA-side translation unit"
+  baseline_artifact: "doca-pcc"
+  changed_skill_in_pr: "libs/doca-pcc"
+  expected_skill_co_load:
+    - "doca-pcc"
+    - "doca-dpa"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "two_side_program_model_first"
+    label: "Walks the two-side-program model FIRST (host-side `doca-pcc` controls; DPA-side algorithm body is a separate program)"
+    weight: 2
+    pass_when: |
+      The agent's FIRST conceptual move is to surface that a
+      custom PCC deployment is TWO translation units: a
+      host-side program (uses `doca-pcc` to load,
+      parameterize, start, and observe) AND a DPA-side
+      program (the custom congestion-control algorithm body
+      itself, a separate translation unit compiled into a
+      binary the host executable embeds as the PCC algorithm
+      image). The agent states explicitly that the algorithm
+      RUNS ON THE DPA and the host-side library only
+      controls / loads it — these are two distinct programs
+      coupled by the algorithm's entry points and the
+      host-side parameter shape. A response that walks only
+      the host side and never names the DPA-side algorithm
+      body as a separate program fails this criterion. A
+      response that proposes the host code "compute the
+      rate-update directly" or "write the algorithm in C on
+      the host" fails. A response that conflates the host-
+      side load library with the algorithm itself fails.
+
+  - id: "no_pcc_library_vs_counter_tool_conflation"
+    label: "Does NOT conflate `doca-pcc` (host-side library for custom algorithms) with `doca_pcc_counter` (diagnostic CLI tool)"
+    weight: 2
+    pass_when: |
+      The agent identifies `doca-pcc` as the host-side C
+      library the user links against to LOAD a custom
+      congestion control algorithm. If the agent mentions
+      `doca_pcc_counter` at all, it correctly identifies it
+      as a DIFFERENT artifact — a read-only diagnostic CLI
+      tool for inspecting PCC counters at the port, which
+      does NOT load any custom algorithm and is the wrong
+      artifact for the user's intent. A response that
+      recommends `doca_pcc_counter` as the way to deploy a
+      custom algorithm, or that treats the library and the
+      tool interchangeably, or that says "use
+      `doca_pcc_counter` to install your algorithm", fails
+      this criterion. A response that recommends the default
+      factory PCC algorithm shipped in firmware as a
+      substitute for the user's custom algorithm (when the
+      user explicitly asked for a custom one) also fails.
+
+  - id: "firmware_pcc_slot_check_before_code"
+    label: "Confirms the BlueField firmware-level custom-PCC slot is enabled BEFORE any code is written"
+    weight: 2
+    pass_when: |
+      The agent names the BlueField firmware-level custom-PCC
+      slot enable as a precondition the user MUST verify
+      BEFORE writing any host or DPA code, AND surfaces that
+      this is a firmware-side knob — NOT a host-OS permission
+      and NOT a host-side library call. The agent states that
+      a disabled firmware slot will look like a permission
+      problem at the `doca-pcc` API surface
+      (DOCA_ERROR_NOT_PERMITTED), but the fix is the
+      firmware-side enable (typically followed by a BlueField
+      reset), not a host-OS group-membership / sudo fix and
+      not a code change. A response that omits the
+      firmware-side slot check entirely fails. A response
+      that diagnoses an eventual NOT_PERMITTED as a host-OS
+      permission problem first, instead of the firmware-side
+      enable first, fails.
+
+  - id: "cap_query_against_devinfo"
+    label: "Calls a `doca_pcc_cap_*` capability query against the active doca_devinfo before assuming custom PCC is available"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST run a `doca_pcc_cap_*`
+      query against the active doca_devinfo for the target
+      BlueField BEFORE assuming custom PCC is available on
+      this device, AND surfaces that capability is a
+      multi-axis question — at minimum BOTH the
+      DOCA-version axis (`pkg-config --modversion doca-pcc`
+      agreeing with `doca_caps --version` and with the
+      installed `dpacc` per the DOCA Compatibility Policy)
+      AND the hardware/firmware axis (the BlueField actually
+      exposes a DPA processor AND the firmware custom-PCC
+      slot is enabled, since the algorithm runs on the DPA).
+      A response that assumes "all BlueFields with DOCA
+      installed can run custom PCC" or that quotes only one
+      axis fails this criterion. A response that does not
+      mention `doca_pcc_cap_*` (or an equivalent capability
+      query against doca_devinfo) at all fails.
+
+  - id: "core_lifecycle_walked"
+    label: "Walks the DOCA Core lifecycle for the `doca_pcc` context and the loaded `doca_pcc_app` algorithm image"
+    weight: 2
+    pass_when: |
+      The agent walks the lifecycle in order: create the
+      `doca_pcc` Core context against the chosen `doca_dev`
+      that maps to the BlueField port carrying the RoCE
+      traffic; load the PCC algorithm image (the
+      DPACC-produced binary) into it as a `doca_pcc_app`;
+      set whatever host-side parameters the algorithm
+      exposes; start the `doca_pcc` via `doca_ctx_start`
+      (the moment the algorithm becomes live on the port);
+      observe what the running algorithm reports back;
+      tear down in REVERSE order (stop the `doca_pcc` →
+      release the loaded `doca_pcc_app` → destroy the
+      `doca_pcc` → close the `doca_dev`). The agent
+      surfaces that loading the image without starting the
+      context leaves the algorithm inert. A response that
+      omits the `doca_pcc` / `doca_pcc_app` layering, or
+      that treats load as equivalent to start, or that
+      tears down in forward order, fails this criterion.
+
+  - id: "small_algorithm_smoke_before_complex"
+    label: "Recommends a single small-algorithm smoke BEFORE deploying a sophisticated algorithm body"
+    weight: 1
+    pass_when: |
+      The agent recommends deploying ONE trivial custom PCC
+      algorithm (no-op rate-update, pass-through that emits
+      a single report, or whatever the closest shipped
+      sample provides) and confirming the host observes the
+      load + start + a baseline report as the FIRST
+      functional test, BEFORE attempting to deploy a
+      sophisticated algorithm body. The agent surfaces that
+      a smoke failure is the cheapest place to identify
+      env-side, firmware-side, version-skew, or
+      two-side-program-parameter gaps. A response that jumps
+      straight to deploying a sophisticated congestion
+      control algorithm, or that fails to name the
+      small-algorithm smoke as the first functional test,
+      fails this criterion.
+
+  - id: "no_hallucinated_pcc_api"
+    label: "Does not invent `doca_pcc_*` / DPACC API symbols beyond the public surface"
+    weight: 1
+    pass_when: |
+      Every `doca_pcc_*` / `dpacc` / `doca_ctx_*` /
+      `doca_pe_*` / `doca_dev*` symbol the agent mentions is
+      one that actually exists in the public DOCA PCC + DOCA
+      Core + DPACC surface (e.g. `doca_pcc`, `doca_pcc_app`,
+      `doca_pcc_cap_*`, `doca_ctx_start`, `doca_ctx_stop`,
+      `doca_pe_progress`, `doca_dev`, `doca_devinfo`,
+      `dpacc`), OR it is explicitly framed as pseudocode /
+      sketch / function-name placeholder. A response that
+      invents API names like `doca_pcc_easy_init()`,
+      `doca_pcc_load_algorithm()`,
+      `doca_pcc_set_congestion_window()`,
+      `doca_pcc_quick_deploy()`, or `doca_pcc_attach_port()`
+      without framing them as illustrative placeholders
+      fails — that is the baseline-agent hallucination
+      failure mode the bundle exists to prevent. A response
+      that frames the in-flight load + start + observe
+      surface in prose (without committing to specific
+      invented function names) passes this criterion.
+
+  - id: "generalizes_to_doca_dpa"
+    label: "Generalizes from custom PCC to a second DOCA-into-DPA integration (generic DPA workload via doca-dpa)"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names DOCA DPA (the host-side library that
+      drives a GENERIC DPA workload on the same BlueField
+      DPA processor) as the right artifact for a generic
+      compute workload on the DPA that is NOT congestion
+      control, AND identifies which parts of the workflow
+      STAY THE SAME (the DPACC compile step for the
+      DPA-side translation unit; the host-side load model
+      via a per-instance Core context and a loaded
+      DPA-compiled image; the DOCA Core lifecycle on the
+      host side; the cap-query against the active
+      doca_devinfo as one axis of the capability rule; the
+      single small-program smoke before scaling; the
+      two-side-program model itself) versus which parts
+      CHANGE (custom PCC is RDMA / RoCE-bound and modulates
+      an EXISTING data plane on a BlueField port — generic
+      DPA workloads via doca-dpa are NOT bound to RDMA /
+      RoCE traffic and do not require any data plane to
+      already exist; custom PCC requires the FIRMWARE-LEVEL
+      custom-PCC slot to be enabled — generic DPA workloads
+      via doca-dpa do not require that specific firmware
+      slot; the host-side library is `doca-pcc` for custom
+      PCC versus `doca-dpa` for generic DPA workloads; PCC
+      attaches a `doca_pcc` to a specific BlueField PORT
+      that carries the RDMA / RoCE traffic to be modulated,
+      whereas a generic DPA workload via doca-dpa creates a
+      `doca_dpa` per DPA instance regardless of any
+      specific port's traffic). A response that walks only
+      PCC and is silent on the generalization fails. A
+      response that names a different library (e.g. RDMA,
+      Comch, GPUNetIO) as the second example, or that
+      claims "PCC and generic DPA are the same library"
+      and merges their surfaces, fails this criterion.

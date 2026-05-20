@@ -1,0 +1,361 @@
+id: "29_communicate_from_a_dpa_kernel"
+name: "Communicate from a DPA kernel using DOCA DPA Comms — class-shaped"
+description: |
+  Class-shaped prompt for letting a DPA kernel communicate
+  from INSIDE the DPA processor — i.e. the user is writing
+  DPA-side code (compiled by DPACC into the binary embedded
+  in the host executable as a `doca_dpa_app`) that needs to
+  send / receive small messages between DPA threads or
+  signal another DPA thread, and the question is which
+  DOCA library that DPA-side code links against. The HEADLINE
+  is the class ("communicate from a DPA kernel — pick the
+  DPA-SIDE library and wire it under the host-side
+  `doca-dpa` flow"); the worked example is a doca-dpa kernel
+  in which one DPA thread sends a small message to a second
+  DPA thread over a DOCA DPA Comms endpoint and the second
+  thread signals completion the host observes through
+  `doca_dpa_completion`. The DPA-Comms material is folded
+  into the doca-dpa skill itself as the `## comms` H2 anchor
+  (see `doca-dpa CAPABILITIES.md ## comms` and `doca-dpa
+  TASKS.md ## comms`), not a separate skill.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how
+  to disambiguate DPA-side communication libraries from
+  host-side messaging libraries. The bundle proves this by
+  asking the agent to walk: confirm the user is writing
+  DPA-side code (not host-side); name `doca-dpa-comms` as the
+  DPA-SIDE library the DPA kernel links against; name the
+  parent host-side `doca-dpa` library as the prerequisite
+  (it loads the DPA app and is the only path through which
+  the host observes the kernel's completion); name DPACC as
+  the required DPA-side build component; explain that the
+  DPA-Comms capability budget is committed at host-side
+  app-load time via `doca_dpa_comms_cap_*` (the DPA kernel
+  cannot generally cap-query at runtime); prescribe a
+  one-send-one-receive smoke between two DPA threads BEFORE
+  scaling; and finally generalize to the sibling DPA-side
+  library `doca-dpa-verbs` (DPA-side RDMA from the kernel to
+  remote peers, also folded into `doca-dpa` as the
+  `## verbs` H2 anchor) and identify what stays the same
+  (DPA-side execution under DPACC, host-side `doca-dpa`
+  parent flow, host-side capability budget, host-side
+  completion observation) versus what changes (comms = local
+  DPA messaging vs verbs = RDMA to remote peers).
+
+  A baseline agent without skills typically: recommends
+  `doca-comch` (host ↔ DPU PCIe control-plane messaging) or
+  `doca-rdma` (host-side RDMA) even though the user is
+  writing DPA-side kernel code; conflates `doca-dpa`
+  (host-side) with `doca-dpa-comms` (DPA-side) and adds
+  `-ldoca-dpa-comms` to the host link line; forgets the
+  DPACC compiler is the required build component for the
+  DPA-side translation unit; invents DPA-Comms API symbol
+  names beyond the public surface; treats the DPA kernel as
+  if it can cap-query at runtime instead of explaining the
+  host-side app-load-time budget commit; jumps straight to
+  a high-throughput streaming design without a
+  one-send-one-receive smoke between two DPA threads; and
+  never generalizes the answer from DPA Comms to DPA Verbs
+  as the sibling DPA-side library that shares the same
+  parent-skill shape but differs in transport.
+
+prompt: |
+  I have a host with a BlueField DPU plugged in over PCIe,
+  DOCA already installed on the host, the DPACC compiler
+  installed alongside DOCA, and I have already gotten a
+  trivial DPA kernel to launch and complete on the
+  BlueField's DPA processor using the host-side `doca-dpa`
+  library (single-launch smoke is green — the host loads my
+  DPA application image and observes a completion through
+  `doca_dpa_completion`).
+
+  Now I want to extend that DPA kernel so two DPA threads
+  on the same DPA processor talk to each other: one DPA
+  thread produces a counter value, sends it to a second DPA
+  thread over a DPA-side communication endpoint, and the
+  second DPA thread signals completion that my host
+  program observes (again through the same
+  `doca_dpa_completion` mechanism). Down the road I might
+  scale this to many message exchanges per kernel launch,
+  but a single send / receive round trip is the priority
+  right now.
+
+  Walk me through which DOCA library the DPA-side code
+  itself links against for this kind of DPA-internal
+  messaging, how it relates to the host-side `doca-dpa`
+  library I'm already using (in particular, do I add it to
+  my HOST link line, my DPA-side build, or both, and how do
+  I know which DPA-Comms primitives I'm even allowed to use
+  on this BlueField + DOCA install given the kernel itself
+  can't really check at runtime), what I have to verify
+  BEFORE writing any DPA-side comms code (env preconditions
+  inherited from my already-working `doca-dpa` flow, plus
+  the DPA-Comms-specific host-side capability-budget
+  commit), what the DPA-side primitive families look like
+  for inter-thread messaging vs inter-thread coordination,
+  how a `DOCA_ERROR_AGAIN` reported back on a host
+  completion for a DPA-side send should be handled by my
+  DPA kernel (do I retry tightly in-kernel?), what I should
+  smoke-test FIRST from the host side before scaling to a
+  multi-message exchange, and how I would terminate the
+  kernel cleanly if a DPA-Comms receive ends up waiting on
+  a sender that never sends.
+
+  After that, briefly tell me which parts of your answer
+  would change if instead of small messages between DPA
+  threads I wanted my DPA kernel to do RDMA from inside the
+  DPA processor to a REMOTE peer over the network — i.e.
+  the other DOCA DPA-side library that pairs with
+  `doca-dpa` — and which parts of the workflow stay the
+  same.
+
+context:
+  audience: "intermediate"
+  intent: "communicate_from_a_dpa_kernel"
+  prior_knowledge: "knows C / C++ at the application level, has DOCA installed and DPACC installed, has already brought up the host-side `doca-dpa` flow end-to-end with a trivial DPA kernel that launches and completes, has not used the DPA-side `doca-dpa-comms` library before, has not used the sibling DPA-side `doca-dpa-verbs` library before"
+  baseline_artifact: "doca-dpa"
+  changed_skill_in_pr: "libs/doca-dpa"
+  expected_skill_co_load:
+    - "doca-dpa"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "confirms_user_is_writing_dpa_side_code"
+    label: "FIRST move is to confirm the user is writing DPA-side code, not host-side"
+    weight: 2
+    pass_when: |
+      The agent's FIRST conceptual move is to surface that
+      DOCA DPA Comms is a DPA-SIDE library — its substantive
+      send / receive / signal calls live inside the DPA
+      kernel function body that DPACC compiles into the
+      binary the host executable embeds as `doca_dpa_app`,
+      NOT in the host-side translation unit. The agent
+      explicitly distinguishes "the user is writing
+      DPA-side kernel code" (the right scope here) from
+      "the user is writing host-side code" (the wrong scope
+      here, which would mean a different library). The
+      DPA-Comms surface lives under the doca-dpa skill as
+      the `## comms` H2 anchor (see `doca-dpa
+      CAPABILITIES.md ## comms`). A response that walks the
+      prompt without ever distinguishing host-side from
+      DPA-side fails this criterion. A response that treats
+      DPA Comms as a host-side library the user calls from
+      host code (e.g. "your host program calls
+      `doca_dpa_comms_send`") fails.
+
+  - id: "no_host_side_messaging_library_misroute"
+    label: "Does NOT recommend doca-comch / doca-rdma which are HOST-SIDE libraries (baseline failure mode)"
+    weight: 2
+    pass_when: |
+      The agent does NOT recommend `doca-comch` (host ↔ DPU
+      control-plane messaging over PCIe) or `doca-rdma`
+      (host-side host-to-remote-peer RDMA) as the
+      communication library the DPA kernel should use. If
+      the agent mentions either, it correctly identifies it
+      as a HOST-SIDE library that is the right answer for a
+      DIFFERENT scope (host process talking to a DPU
+      process; host process doing RDMA to a remote peer)
+      and explicitly rules it out for the user's actual
+      scope of DPA-thread-to-DPA-thread messaging on the
+      same DPA processor. A response that says "use
+      `doca-comch` to send messages between your DPA
+      threads" fails. A response that says "use `doca-rdma`
+      for any DOCA messaging including inside the DPA
+      kernel" fails. A response that recommends `doca-comch`
+      or `doca-rdma` as the primary answer here is the
+      baseline-agent misroute the bundle exists to prevent.
+
+  - id: "names_doca_dpa_as_host_side_parent"
+    label: "Names doca-dpa (host-side) as the prerequisite parent that loads the DPA app and is the only path the host observes the kernel completion"
+    weight: 2
+    pass_when: |
+      The agent explicitly identifies `doca-dpa` as the
+      host-side parent library whose flow must already be
+      working: it loads the DPA application image (the
+      `doca_dpa_app` produced by DPACC), creates the
+      `doca_dpa_thread` execution contexts the kernel runs
+      on, launches the DPA kernel from the host, and owns
+      the `doca_dpa_completion` mechanism the host uses to
+      observe that the DPA kernel finished — including the
+      mechanism by which DPA-Comms errors surface back to
+      the host. The agent states that `doca-dpa-comms` is
+      the DPA-side companion that the DPA-side translation
+      unit links against under that parent flow, NOT a
+      replacement for it. The DPA-Comms-specific overlays on
+      capability budget, error taxonomy, and workflow live
+      under the same parent skill as `## comms` (see
+      `doca-dpa CAPABILITIES.md ## comms` and `doca-dpa
+      TASKS.md ## comms`). A response that treats
+      `doca-dpa-comms` as a standalone library independent
+      of `doca-dpa` fails. A response that omits
+      `doca_dpa_completion` as the path through which
+      DPA-Comms errors surface on the host fails.
+
+  - id: "dpacc_named_as_required_build_component"
+    label: "Names the DPACC compiler as the required build component for the DPA-side translation unit that calls DPA-Comms"
+    weight: 2
+    pass_when: |
+      The agent explicitly states that the DPA-side
+      translation unit calling DPA-Comms primitives is
+      compiled by the DPACC compiler (`dpacc`), which ships
+      alongside DOCA, NOT by the host's system C / C++
+      compiler. The agent surfaces DPACC as a load-bearing
+      build component without which the DPA-side code that
+      uses `doca-dpa-comms` cannot be built. The agent
+      EITHER prescribes adding the DPA-Comms library to the
+      DPA-side DPACC build of the DPA-side translation unit
+      AND explicitly leaves it OUT of the host-side link
+      line, OR explicitly warns that adding
+      `-ldoca-dpa-comms` to the host-side link line is the
+      wrong place (DPA-Comms is DPA-side). A response that
+      does not name DPACC at all fails. A response that
+      adds `-ldoca-dpa-comms` to the host pkg-config / link
+      line as the primary recommendation fails.
+
+  - id: "capability_budget_committed_host_side_at_app_load"
+    label: "Explains the DPA-Comms capability budget is committed at HOST-SIDE app-load time via doca_dpa_comms_cap_* (NOT a DPA-side runtime check)"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST run the
+      `doca_dpa_comms_cap_*` family from HOST code against
+      the active `doca_devinfo` BEFORE the host loads the
+      DPA app into the `doca_dpa` context, to confirm which
+      DPA-Comms primitives are available on this BlueField
+      + DOCA install AND to commit a capability budget the
+      kernel may then use. The agent surfaces that the DPA
+      kernel itself cannot generally cap-query at runtime
+      on the DPA processor — the budget is fixed
+      host-side, before the kernel runs. The agent also
+      names that BlueField generations differ in which
+      DPA-Comms primitives are exposed (older generations
+      may not expose specific primitives at all). A
+      response that recommends the DPA kernel check
+      capability at runtime ("just check if it's supported
+      inside the kernel") fails. A response that omits the
+      host-side cap-query entirely fails. A response that
+      assumes "if `doca-dpa` works, every DPA-Comms
+      primitive works" fails.
+
+  - id: "smoke_one_send_one_receive_before_scale"
+    label: "Recommends a one-send-one-receive DPA-Comms smoke between two DPA threads BEFORE scaling to multi-message"
+    weight: 1
+    pass_when: |
+      The agent recommends launching a DPA kernel pattern
+      where ONE DPA thread issues ONE DPA-Comms send to a
+      second DPA thread and the second thread issues a
+      matching receive (and signals completion the host
+      observes through `doca_dpa_completion`) as the FIRST
+      functional DPA-Comms test, BEFORE scaling to a
+      multi-message exchange or a multi-thread design. The
+      agent surfaces that the parent skill's trivial-kernel
+      smoke (no DPA-Comms calls) must ALREADY pass on this
+      host before introducing DPA-Comms, and that a
+      DPA-Comms smoke failure is the cheapest place to
+      identify capability-budget gaps or two-side-program
+      signature gaps. A response that jumps straight to a
+      multi-message streaming design fails. A response that
+      omits the smoke step entirely fails.
+
+  - id: "no_hallucinated_dpa_comms_api"
+    label: "Does not invent doca_dpa_comms_* / DPACC API symbols beyond the public surface"
+    weight: 1
+    pass_when: |
+      Every DPA-Comms / DPACC symbol the agent mentions is
+      framed in one of three safe ways: (a) it is a generic
+      family / shape name without quoting an install-bound
+      symbol (e.g. "the DPA-side send primitive", "the
+      `doca_dpa_comms_cap_*` family from host code", "the
+      DPA-Comms endpoint handle"); (b) it is explicitly
+      framed as pseudocode / sketch / placeholder with a
+      route to the on-disk samples at
+      `/opt/mellanox/doca/samples/doca_dpa_comms/` and the
+      public *DOCA DPA Comms* guide for the real symbols;
+      (c) it is one of the public symbols inherited from
+      the parent skill (`doca_dpa`, `doca_dpa_app`,
+      `doca_dpa_thread`, `doca_dpa_kernel_launch_update_*`,
+      `doca_dpa_completion`, `doca_dpa_cap_*`,
+      `doca_ctx_start`, `doca_pe_progress`, `dpacc`). A
+      response that invents specific DPA-Comms send /
+      receive / signal symbol names ("`doca_dpa_comms_send_now`",
+      "`doca_dpa_comms_easy_init`", "`doca_dpa_comms_quick_signal`",
+      etc.) fails — that is the baseline-agent
+      hallucination failure mode the bundle exists to
+      prevent.
+
+  - id: "again_handled_with_kernel_yield_not_tight_retry"
+    label: "Says the DPA kernel must YIELD on DOCA_ERROR_AGAIN from a DPA-Comms send (NOT tight in-kernel retry)"
+    weight: 1
+    pass_when: |
+      The agent surfaces that `DOCA_ERROR_AGAIN` on a
+      `doca_dpa_completion` for a DPA-Comms-calling kernel
+      means the DPA-side comms queue is full and that the
+      DPA kernel must yield — i.e. return from the launch
+      and let the host drain through the parent skill's
+      progress engine before re-submitting, OR cooperatively
+      back off if the kernel is persistent. The agent
+      explicitly warns AGAINST a tight in-kernel retry loop
+      on `_AGAIN` (which would pin the DPA processor and
+      starve the host's drain). A response that recommends
+      a tight in-kernel `while (err == AGAIN) retry` loop
+      fails. A response that omits the kernel-side
+      back-off behavior altogether fails.
+
+  - id: "kernel_termination_on_no_matching_sender"
+    label: "Names how the DPA kernel terminates cleanly if a DPA-Comms receive / signal-wait has no matching peer"
+    weight: 1
+    pass_when: |
+      The agent surfaces that a DPA-Comms receive with no
+      matching sender (or a signal-wait with no signaler)
+      will pin the DPA processor and the host program will
+      block on shutdown because the in-flight kernel never
+      completes. The agent prescribes a termination
+      condition the kernel polls — a host-set flag in
+      DPA-visible memory, a per-launch one-shot, a timeout
+      sentinel, or whatever the sample's exit pattern is —
+      so the kernel can break out of a blocking DPA-Comms
+      call when shutdown is requested. A response that
+      walks the DPA-Comms send / receive flow without
+      naming the kernel's exit condition on a stuck
+      receive fails. A response that proposes killing the
+      host process to stop the DPA kernel fails.
+
+  - id: "generalizes_to_doca_dpa_verbs"
+    label: "Generalizes from DPA Comms to the sibling DPA-side library DOCA DPA Verbs (what stays the same, what changes)"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names DOCA DPA Verbs (`doca-dpa-verbs`) as
+      the sibling DPA-SIDE library the DPA kernel would
+      link against for RDMA from inside the DPA processor
+      to a REMOTE peer (and notes that the DPA-Verbs
+      material is folded into the same doca-dpa skill as
+      the `## verbs` H2 anchor — see `doca-dpa
+      CAPABILITIES.md ## verbs`), AND identifies which
+      parts of the workflow STAY THE SAME (the DPA-side
+      execution model — the DPA-side translation unit DPACC
+      compiles into the loaded `doca_dpa_app`; the parent
+      host-side `doca-dpa` flow that loads the app, creates
+      DPA threads, launches the kernel, and owns the
+      `doca_dpa_completion` mechanism through which errors
+      surface on the host; the host-side capability budget
+      committed before the kernel runs; the host-side
+      observation of completion) versus which parts CHANGE
+      (the transport itself — DPA-Comms is small-message-
+      and-signal-shaped for LOCAL DPA threads on the same
+      DPA processor, DPA-Verbs is ibverbs-shaped RDMA for
+      REMOTE peers over the network; the library on the
+      DPA-side build — `doca-dpa-comms` vs `doca-dpa-verbs`;
+      the host-side cap-query family — `doca_dpa_comms_cap_*`
+      vs the DPA-Verbs equivalent; the underlying error
+      taxonomy adds RDMA-specific failure modes that
+      DPA-Comms does not have). A response that walks only
+      DPA Comms and is silent on the generalization fails.
+      A response that says "DPA Comms and DPA Verbs are
+      the same" or merges their surfaces fails. A response
+      that names a host-side library (`doca-comch`,
+      `doca-rdma`) as the "generalization" of DPA-Comms
+      fails — those are host-side, not DPA-side siblings.

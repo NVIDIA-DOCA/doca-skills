@@ -1,0 +1,294 @@
+id: "26_collect_telemetry_with_doca"
+name: "Collect and consume telemetry events from DOCA applications — class-shaped"
+description: |
+  Class-shaped telemetry-collection prompt. The HEADLINE is the
+  class ("collect and consume structured telemetry events —
+  counters / gauges / events — at a local collector / aggregator
+  / monitoring agent that ingests from one or more DOCA-using
+  publishers"); the worked example is DOCA Telemetry (build a
+  small local collector that consumes per-second
+  packets-processed counter events from a
+  doca-telemetry-exporter-using application and aggregates
+  them), because that is the newly-covered library in
+  skills/libs/doca-telemetry.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  stand up ANY consumer-side structured-telemetry context (the
+  DOCA Telemetry collector, conceptually a Prometheus collector
+  / OpenTelemetry collector / NetFlow analyzer — each carries
+  the same publisher-vs-collector asymmetry, the same schema-
+  contract with the publisher, the same lifecycle-then-cap-
+  query gate, and the same consumer-queue back-pressure
+  decision). The bundle proves this by asking the agent to
+  walk: collector-vs-exporter role rule FIRST (refuse to wire
+  the exporter API into a consumer), schema-must-match contract
+  with the publisher BEFORE any code, cap-query against the
+  install for supported transports + max in-flight events,
+  DOCA Core lifecycle order on the collector context, single-
+  event publisher-plus-collector smoke BEFORE bulk traffic,
+  consumer-queue back-pressure policy (drain faster / widen
+  queue / accept loss) on DOCA_ERROR_AGAIN, refusal to invent
+  collector API symbols, and a generalization to one OTHER
+  consumer-side library or to a non-DOCA Prometheus / OTLP
+  collector — naming what stays the same vs what changes.
+
+  A baseline agent without skills typically: conflates the
+  collector library (DOCA Telemetry) with the publisher library
+  (DOCA Telemetry Exporter) and wires exporter calls into a
+  consumer application (the load-bearing first-app failure for
+  this skill), invents doca_telemetry_* API surface beyond the
+  public shape, treats the schema-must-match contract with the
+  publisher as an implementation detail and gets surprised
+  when the collector silently sees nothing, adds sudo to fix
+  DOCA_ERROR_NOT_PERMITTED globally (when the real cause is a
+  specific transport endpoint's owner / port range), recommends
+  a blocking retry on DOCA_ERROR_AGAIN (when the consumer-queue
+  back-pressure decision is the collector's to make explicitly),
+  jumps to bulk traffic without the single-event publisher-plus-
+  collector smoke, and never generalizes the answer from the
+  DOCA collector to another DOCA consumer-side library or to
+  standalone Prometheus / OTLP collectors as the conceptual
+  siblings (missing the SHAPE that lifecycle + cap-query +
+  schema-contract-with-publisher + back-pressure-policy carry
+  across every consumer-side library; missing that transport
+  semantics, schema-version ownership, and the canonical
+  DTS-as-aggregator pattern are the per-library differences).
+
+prompt: |
+  I have a host with a BlueField DPU plugged in over PCIe,
+  DOCA already installed on the host, and a small DOCA Flow
+  application I wrote that uses DOCA Telemetry Exporter to
+  publish a per-second packets-processed counter event for
+  every packet it forwards. I want to build a SECOND program
+  on the same host that RECEIVES those telemetry events from
+  my exporter-using app, aggregates them (sum per minute,
+  per source), and prints the aggregate to stdout. Down the
+  road I'd like that collector to attach to the DOCA
+  Telemetry Service (DTS) on the BlueField as the canonical
+  aggregator, and possibly fan out to a NetFlow analyzer; but
+  a single counter event consumed once a second from one
+  publisher is the priority right now.
+
+  Walk me through the setup: which DOCA library my collector
+  program should link to CONSUME telemetry (vs. the library my
+  publisher app is already linking to PUBLISH telemetry — I
+  keep confusing them and I'm pretty sure I already linked the
+  wrong one in an earlier draft), what has to be true about the
+  schema my publisher registers vs. what my collector consumes
+  against (I assume they have to agree, but I don't know who
+  defines what), which capability queries I have to run against
+  my install before assuming a particular incoming transport or
+  max event volume fits, the DOCA Core lifecycle order I have
+  to follow on the collector side (does the publisher have to
+  be up before I start the collector?), what I should smoke-
+  test FIRST to prove one event from my publisher actually
+  reaches my collector with the field values intact before I
+  scale to bulk consumption, and what my collector should do
+  when a consume call starts returning DOCA_ERROR_AGAIN under
+  load (do I sleep and retry, do I tell the publisher to slow
+  down, do I just drop?).
+
+  After that, briefly tell me which parts of your answer would
+  change for a DIFFERENT consumer-side library (for example
+  another DOCA observation-side library if there is one
+  conceptually, or a standalone Prometheus / OpenTelemetry
+  collector consuming non-DOCA sources), and which parts are
+  the same. I want to understand the SHAPE so I can apply it
+  again on the next collector.
+
+context:
+  audience: "intermediate"
+  intent: "collect_telemetry_with_doca"
+  prior_knowledge: "has a DOCA Flow application running that already uses DOCA Telemetry Exporter to publish a per-second counter, has DOCA installed, knows what telemetry consumption is conceptually but not the DOCA Telemetry (collector) API, does not yet cleanly distinguish the collector library from the publisher library and has already made the wrong-direction mistake at least once"
+  baseline_artifact: "doca-telemetry"
+  changed_skill_in_pr: "libs/doca-telemetry"
+  expected_skill_co_load:
+    - "doca-telemetry"
+    - "doca-telemetry-exporter"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "collector_vs_exporter_distinction_first"
+    label: "Surfaces the collector-vs-exporter distinction FIRST, before any code"
+    weight: 2
+    pass_when: |
+      The agent explicitly states, as the FIRST step, that
+      doca-telemetry is the consumer / collector / aggregator
+      library (linked INTO a program that RECEIVES telemetry
+      events) and that doca-telemetry-exporter is the publisher
+      library (linked INTO a program that EMITS telemetry
+      events). The two are a complementary publisher / collector
+      pair, NOT interchangeable. The agent must explicitly call
+      out that wiring exporter APIs into a consumer (or wiring
+      the collector library into a publisher) is the load-
+      bearing first-app failure and acknowledge that the user
+      already mentioned having made the wrong-direction mistake
+      in an earlier draft. A response that walks the user toward
+      doca-telemetry-exporter (the publisher skill) when they
+      wanted to consume, that recommends linking the collector
+      when they actually wanted to publish, or that is silent on
+      the distinction and jumps straight to API calls, fails.
+      The role distinction is the load-bearing first-step rule
+      for this skill and the agent must surface it before
+      recommending any specific call.
+
+  - id: "schema_must_match_contract_named"
+    label: "Names the schema-must-match contract between publisher and collector explicitly"
+    weight: 2
+    pass_when: |
+      The agent states explicitly that every event the collector
+      receives is shaped by a schema the publisher (the
+      doca-telemetry-exporter-using app) registered, and that
+      the collector and the publisher MUST agree on the schema
+      name, the schema version, and the per-field type set. The
+      agent must name that the publisher OWNS the schema
+      definition (registers it with its exporter context) and
+      the collector DISCOVERS the schema from the incoming
+      traffic via the schema-query family — the collector does
+      NOT register a schema of its own. The agent must surface
+      that a mismatch is silent: the collector either sees
+      nothing or decodes events as garbage, and that this is the
+      canonical "events appear to flow on the publisher side but
+      the collector sees nothing or nonsense" failure. A
+      response that does not name the schema contract, that
+      treats the collector as defining the schema, or that
+      treats schema agreement as an automatic library guarantee,
+      fails.
+
+  - id: "capability_query_rule"
+    label: "Calls out doca_telemetry_*_cap_* against the install before assuming transport types or max event volume"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST call the
+      doca_telemetry_*_cap_* capability-query family against the
+      active install BEFORE assuming a particular incoming
+      transport (local socket / NetFlow / IPFIX / DTS
+      attachment) or a particular max in-flight event volume is
+      supported. A response that asserts "the collector
+      supports transport X" or "max in-flight events is N" as a
+      universal fact without naming the cap-query gate, or that
+      omits the cap query entirely, fails.
+
+  - id: "doca_core_lifecycle_walked"
+    label: "Walks the DOCA Core lifecycle on the collector context"
+    weight: 2
+    pass_when: |
+      The agent walks the DOCA Core lifecycle order on the
+      collector context: create collector context → set
+      incoming transport configuration → init → start (the
+      context reaches RUNNING) → consume incoming events / call
+      the schema-query family → stop → destroy. The agent must
+      explicitly state that calling consume before
+      doca_ctx_start() returns DOCA_ERROR_BAD_STATE, and that
+      this is the universal DOCA Core lifecycle (the collector
+      does not redefine it). The agent must also address the
+      user's staging question: the publisher does NOT have to be
+      up before the collector starts — the collector can start
+      first and the schema-query will return
+      DOCA_ERROR_NOT_FOUND (the expected "no publisher yet"
+      signal) until a publisher attaches and registers a schema.
+      A response that skips the lifecycle, that puts consume
+      before start, that conflates the collector context with
+      the publisher's exporter context, or that asserts the
+      publisher must always start first, fails.
+
+  - id: "publisher_plus_collector_smoke_before_bulk"
+    label: "Recommends a single-event publisher-plus-collector smoke (with field values intact) BEFORE bulk consumption"
+    weight: 2
+    pass_when: |
+      The agent recommends, as the FIRST functional test, a
+      smoke where ONE publisher (the user's existing
+      doca-telemetry-exporter-using app) emits ONE event with
+      the agreed schema, and the collector consumes exactly that
+      one event with the field values intact, BEFORE scaling to
+      bulk / multi-event / multi-publisher consumption. The
+      agent must call out that "field values intact" — not just
+      "an event arrived" — is the load-bearing criterion: an
+      event that arrives but decodes wrong is the silent schema-
+      mismatch failure the smoke is designed to catch. A
+      response that jumps straight to "now consume at high rate
+      from every publisher" without naming the single-event
+      smoke, or that recommends a smoke that only checks
+      arrival-count without checking field values, fails.
+
+  - id: "consumer_queue_back_pressure_policy"
+    label: "Names the consumer-queue back-pressure policy on DOCA_ERROR_AGAIN (drain faster / widen queue / accept loss) as the collector's to decide"
+    weight: 2
+    pass_when: |
+      The agent states that when a consume returns
+      DOCA_ERROR_AGAIN under load, the local consumer queue is
+      full (events arriving faster than the collector drains)
+      and the collector's correct response is an EXPLICIT POLICY
+      decision: drain faster (widen the drain loop, dispatch to
+      a worker pool), increase the queue cap if the install
+      allows, or accept bounded loss. The agent must surface
+      that asking the publisher to slow down is a POLICY the
+      collector owns (not a library default) and that the
+      publisher's own hot-path-drop-not-block rule means many
+      publishers WILL simply drop on their own AGAIN rather than
+      slow down. A response that recommends a blocking retry /
+      sleep-and-retry on AGAIN, that treats the publisher
+      slowing down as the automatic library behavior, or that
+      is silent on the policy decision entirely, fails. The
+      correct framing is that DOCA_ERROR_AGAIN on consume is a
+      back-pressure SIGNAL, not a transport error, and the
+      collector must own the policy explicitly.
+
+  - id: "no_hallucinated_api"
+    label: "Does not invent doca_telemetry_* API symbols"
+    weight: 1
+    pass_when: |
+      Every doca_telemetry_* (or doca_ctx_*, doca_pe_*) symbol
+      the agent mentions is one that actually exists in the
+      public collector surface (the collector-context object,
+      the schema-query family, the event consumption / sampling
+      primitives, and the doca_telemetry_*_cap_* capability-
+      query family), or it is explicitly framed as pseudocode /
+      family-pattern / sketch with a note that the exact symbol
+      must be verified against the user's installed headers
+      under /opt/mellanox/doca/infrastructure/include/. A
+      response that invents API names like
+      doca_telemetry_easy_consume(),
+      doca_telemetry_subscribe_callback(), or
+      doca_telemetry_register_schema() (the collector does NOT
+      register schemas — that is the publisher's job) fails —
+      that is the baseline-agent hallucination failure mode the
+      bundle exists to prevent. A response that conflates
+      collector symbols with the publisher's API surface
+      (doca_telemetry_exporter_*) also fails — that IS the
+      load-bearing first-app failure for this skill.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from the DOCA collector to other consumer-side telemetry patterns"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names at least ONE OTHER consumer-side
+      telemetry-collection pattern (another DOCA observation-
+      side / consumer library conceptually, or a standalone
+      Prometheus / OpenTelemetry collector, or a custom NetFlow
+      / IPFIX analyzer consuming non-DOCA sources) and
+      identifies which parts of the workflow stay the SAME
+      (consumer-vs-publisher role split, schema-must-match
+      contract between the consumer and whatever produces the
+      data, capability / limit discovery before assuming
+      ingest shape, lifecycle-then-consume order, single-event
+      publisher-plus-consumer smoke with field values intact
+      before bulk, consumer-queue back-pressure policy as the
+      consumer's to decide) versus which parts CHANGE (the
+      per-library object family and capability-query naming;
+      the transport semantics — local socket vs scrape endpoint
+      vs OTLP gRPC vs NetFlow listener; schema-version
+      ownership — who registers the schema, who versions it,
+      and how mismatches are signaled; the canonical aggregator
+      pattern — DTS-as-aggregator for DOCA telemetry vs
+      Prometheus server vs OTLP collector backend; whether
+      back-pressure to the source is even possible — a
+      Prometheus scrape is pull-based and the back-pressure
+      shape is fundamentally different from a push-based
+      collector). A response that walks only the DOCA collector
+      and is silent on generalization fails this criterion.

@@ -1,0 +1,457 @@
+id: "68_author_and_wire_in_a_doca_bench_extension"
+name: "Author a custom doca-bench extension for a workload class the built-in modes do not measure, and wire it in so doca-bench can call it — class-shaped"
+description: |
+  Class-shaped doca-bench extension-author prompt. The
+  HEADLINE is the class ("author a custom doca-bench
+  extension for a workload class the built-in modes do
+  not measure, and wire it in so doca-bench can
+  discover, load, and call the extension end-to-end with
+  a defensible smoke before any scaled run"); the worked
+  example is a GPU-side workload that drives DOCA
+  GPUNetIO TX queues from a CUDA kernel, because the
+  shipped `doca_bench_cuda` reference extension under
+  `doca/tools/doca-bench-extension/doca_bench_cuda/`
+  expresses exactly that class and stands as the
+  canonical adapt-this-pattern exemplar. The
+  newly-covered tool is `skills/tools/doca-bench-extension`.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent
+  to drive ANY extension-author-and-wire-in question:
+  confirm `doca-bench` does NOT already measure the
+  workload class via a built-in mode (extension is the
+  exit ramp, not the first answer); locate the shipped
+  reference exemplar and treat its build + API surface
+  shape as the schema-by-example; build a versioned
+  shared library whose `soversion` matches the DOCA
+  release per the shipped `meson.build`; refuse to
+  invent `DOCA_EXPERIMENTAL` entry-point names or the
+  exact runtime discovery mechanism; smoke that
+  `doca-bench` actually finds, loads, and calls the
+  extension BEFORE pointing the real workload at it;
+  capture the four-tuple (DOCA version, BlueField /
+  device generation, firmware, extension soversion +
+  source SHA, parent invocation) for any reported
+  number; walk the layered debug ladder when the
+  extension does not load; cross-link `doca-gpunetio`
+  for GPU-side semantics; treat the
+  `DOCA_EXPERIMENTAL` stability overlay as a hard rule
+  (rebuild every DOCA release).
+
+  A baseline agent without skills typically: jumps
+  straight to "write an extension" when a built-in
+  `doca-bench` mode already covers the class; invents
+  `DOCA_EXPERIMENTAL` entry-point names from generic
+  plug-in intuition; asserts a runtime discovery
+  mechanism (search path, naming convention) from
+  memory as authoritative; skips the soversion-matches-
+  DOCA-release rule and ships an extension that won't
+  load on the next DOCA upgrade; conflates the
+  GPUNetIO semantics into the extension skill
+  instead of routing to `doca-gpunetio`; jumps from
+  "extension built" to "scaled measurement" without a
+  load-smoke; reports a measurement without capturing
+  the source SHA / soversion of the extension that
+  produced it.
+
+prompt: |
+  I have DOCA installed on a BlueField-3 paired with a
+  CUDA-capable GPU on the same PCIe complex. I have
+  `doca-bench` available and have already confirmed
+  with my team that the GPU-side TX workload class we
+  care about — driving DOCA GPUNetIO TX queues from a
+  CUDA kernel under our specific batching pattern — is
+  not measured by any of `doca-bench`'s built-in
+  modes. I now need to author a custom `doca-bench`
+  extension for this workload class and wire it in
+  end-to-end so I can produce a defensible perf
+  number.
+
+  Walk me through:
+
+  1. First, push back on me. Are you SURE `doca-bench`
+     does not already cover this workload class via a
+     built-in mode? Walk me through how to verify
+     that — what is the canonical first-stop in the
+     `doca-bench` skill before I commit to the
+     extension exit ramp? Tell me explicitly that
+     extensions add cost (build toolchain, version
+     churn, the experimental-surface contract) and
+     that the built-in modes are ALWAYS the first
+     answer to try. If after walking that check the
+     built-in modes still do not cover my class,
+     THEN we proceed.
+  2. Locate the AUTHORITATIVE reference exemplar.
+     I have heard of `doca_bench_cuda` shipped
+     under `doca/tools/doca-bench-extension/`. Tell
+     me what is in that tree (the per-extension
+     subdirectory layout, the `meson.build`, the
+     `doca_bench_cuda.h` header that declares the
+     `DOCA_EXPERIMENTAL` API surface, the
+     per-workload settings structs). What am I safe
+     to copy and adapt versus what changes the
+     contract? Do NOT invent entry-point names
+     from generic intuition — if I ask for a
+     specific entry-point spelling you don't see in
+     `doca_bench_cuda.h` on my install, say so and
+     tell me where to look (the public DOCA Bench
+     documentation on `docs.nvidia.com`).
+  3. Walk me through the BUILD shape. The reference
+     extension surfaces as a versioned shared
+     library on Linux (`.so` with `soversion`
+     matching the DOCA release), built via the
+     `doca-bench-extension` Meson rules in
+     `doca/tools/doca-bench-extension/meson.build`.
+     Why does the soversion have to match the DOCA
+     release? What happens if I ship a static
+     soversion across DOCA upgrades? Tell me
+     explicitly that the rule is "rebuild every
+     DOCA release", not the exception, and tell me
+     where the canonical answer for the soversion
+     spelling on my install lives (the shipped
+     `meson.build`, not your memory).
+  4. Walk me through the API surface shape. The
+     shipped `doca_bench_cuda.h` declares a small
+     set of `DOCA_EXPERIMENTAL`-marked C entry
+     points (`*_init`, `*_device_query`,
+     `*_device_synchronize`, per-workload
+     `*_start_*_kernel` entry points) and per-workload
+     settings structs. For my CUDA-kernel-driven
+     GPUNetIO TX workload, walk me through which
+     entry points and which settings struct shape
+     I am most directly adapting from
+     `*_start_eth_send_kernel` /
+     `doca_bench_cuda_eth_tx_kernel_settings`.
+     Tell me what `DOCA_EXPERIMENTAL` means for
+     the surface's stability across DOCA releases —
+     am I going to have to rebuild every release?
+     (Yes — say so explicitly.)
+  5. Where does the GPUNetIO semantics actually
+     live? The reference exemplar drives DOCA
+     GPUNetIO RX / TX queues; the question of
+     "how do I set up the TX queue, post the
+     descriptor batch from the CUDA kernel,
+     synchronize the stats pointer" is NOT
+     answered in this extension skill — it lives
+     in [`doca-gpunetio`](../../libs/doca-gpunetio/SKILL.md).
+     Route me there explicitly for the GPUNetIO
+     programming model, and stay focused on the
+     extension's parent-tool relationship here.
+  6. Tell me the FIRST thing I should run after
+     I build my custom `.so`. I want the cheapest
+     possible smoke that proves `doca-bench`
+     actually FOUND, LOADED, and CALLED my
+     extension — not the workload measurement, just
+     the wire-up. What is the right cheap workload
+     to point at my extension first (a no-op /
+     init-only kernel, like the reference
+     `*_start_nop_kernel`)? What does passing
+     look like? What does failing look like? Tell
+     me explicitly NOT to skip the load-smoke and
+     jump to the scaled measurement.
+  7. When the load-smoke fails, walk me through
+     the layered debug ladder in order: build
+     failure (extension `.so` did not build); load
+     failure (`doca-bench` cannot find or
+     `dlopen()` the `.so`); registration mismatch
+     (the entry-point ABI does not match what the
+     parent expects, often due to a DOCA-version
+     skew); runtime call failure (parent calls in
+     but the call returns failure or the
+     synchronization does not return). For each
+     layer, name the canonical first-stop check
+     and which skill or public doc to consult
+     (`doca-setup` for the dynamic-linker layer,
+     `doca-version` for the soversion layer,
+     `doca-debug` for the runtime layer, the
+     public DOCA Bench documentation on
+     `docs.nvidia.com` for the discovery
+     mechanism). Tell me when to STOP retrying
+     and escalate.
+  8. Tell me what I MUST CAPTURE alongside any
+     reported number from a `doca-bench` invocation
+     that loaded my extension. Walk me through
+     the capture set: DOCA version (anchored
+     against `doca-version`), BlueField / GPU
+     generation, firmware version, the extension's
+     soversion AND the source SHA of the
+     extension's tree (not just the soversion —
+     the source SHA, so someone else can rebuild
+     the exact extension that produced the
+     number), the parent `doca-bench` invocation
+     line, and the workload-specific settings
+     struct contents. Why is each leg required
+     for someone else to either reproduce my
+     number or rule out a difference between our
+     runs?
+
+  After that, briefly generalize: name ONE OTHER
+  instance of this class — for example, switching
+  the GPU-side workload from CUDA-kernel-driven
+  TX to CUDA-kernel-driven bidir (same reference
+  exemplar pattern, different per-workload
+  settings struct shape adapted from
+  `*_start_eth_bidir_kernel` /
+  `doca_bench_cuda_eth_bidir_kernel_settings`), OR
+  switching from a GPU-side extension to a
+  DPU-side extension that does not use GPUNetIO at
+  all (different reference exemplar, no
+  `doca-gpunetio` co-load, but same Meson +
+  soversion + `DOCA_EXPERIMENTAL` + load-smoke
+  pattern) — and identify which parts of your
+  answer above STAY THE SAME (the
+  built-in-modes-first check, the soversion-
+  matches-release rule, the `DOCA_EXPERIMENTAL`
+  rebuild-every-release rule, the load-smoke-
+  before-scaled-measurement loop, the four-tuple
+  capture rule including the source SHA, the
+  layered debug ladder) versus which CHANGE
+  (which reference exemplar in the shipped
+  `doca-bench-extension/` tree applies, which
+  settings struct shape, whether `doca-gpunetio`
+  is in the co-load set or not, which device-side
+  preconditions matter).
+
+context:
+  audience: "advanced"
+  intent: "author_and_wire_in_doca_bench_extension_end_to_end"
+  prior_knowledge: "has DOCA installed on a BlueField-3 with a CUDA-capable GPU on the same PCIe complex, has doca-bench available, has confirmed with their team the GPU-side TX workload class is not measured by any doca-bench built-in mode, is comfortable with Meson / shared-library packaging / DOCA_EXPERIMENTAL stability contract, has never authored a doca-bench extension before, knows GPUNetIO basics but has not driven TX queues from a CUDA kernel via an extension before"
+  baseline_artifact: "doca-bench-extension"
+  changed_skill_in_pr: "tools/doca-bench-extension"
+  expected_skill_co_load:
+    - "doca-bench-extension"
+    - "doca-bench"
+    - "doca-gpunetio"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+    - "doca-hardware-safety"
+
+criteria:
+  - id: "built_in_modes_first_check_walked"
+    label: "Pushes back to confirm doca-bench built-in modes do not already cover the class before committing to the extension exit ramp"
+    weight: 3
+    pass_when: |
+      In response to question 1, the agent explicitly
+      pushes back to confirm that none of `doca-bench`'s
+      built-in workload modes covers the user's class
+      BEFORE proceeding. The agent must route the user
+      back to the `doca-bench` skill (specifically
+      `doca-bench TASKS.md ## configure`) as the
+      canonical first-stop, must state that extensions
+      add cost (build toolchain, version churn, the
+      experimental-surface contract), and must state
+      that built-in modes are ALWAYS the first answer
+      to try. A response that accepts the extension
+      premise without the verification step, that
+      skips the built-in-modes-first check, or that
+      treats extensions as the default answer instead
+      of the exit ramp, fails.
+
+  - id: "reference_exemplar_as_schema_by_example"
+    label: "Routes the API surface and build shape through the shipped doca_bench_cuda reference and refuses to invent entry-point names or settings struct shapes"
+    weight: 3
+    pass_when: |
+      In response to questions 2 and 4, the agent
+      points the user at the shipped reference
+      exemplar (`doca/tools/doca-bench-extension/doca_bench_cuda/`)
+      as the schema-by-example for both the API
+      surface (entry points declared in
+      `doca_bench_cuda.h`) and the per-workload
+      settings struct shapes. The agent must name
+      the entry-point family that the user is
+      adapting (the `*_start_eth_send_kernel` /
+      `doca_bench_cuda_eth_tx_kernel_settings`
+      shape for the TX workload) as a sketch /
+      placeholder anchored against what the
+      user's installed header actually declares,
+      NOT as memorized authoritative spellings. The
+      agent must explicitly REFUSE to invent
+      entry-point names or settings struct fields
+      that are not in the shipped reference; if the
+      user asks for a field the agent cannot point
+      to in the shipped reference, the agent says
+      so and routes to the public DOCA Bench
+      documentation on `docs.nvidia.com` (via
+      `doca-public-knowledge-map ## DOCA tools`).
+      A response that asserts a specific entry-
+      point name from memory as authoritative, that
+      omits the reference exemplar, or that invents
+      a settings struct shape, fails.
+
+  - id: "soversion_matches_doca_release_rule"
+    label: "States the soversion-matches-DOCA-release rule and the DOCA_EXPERIMENTAL rebuild-every-release rule as HARD"
+    weight: 3
+    pass_when: |
+      In response to questions 3 and 4, the agent
+      explicitly states that the extension's
+      `.so` soversion MUST match the DOCA release
+      per the shipped `meson.build`, that the
+      canonical source for the spelling on the
+      user's install is the shipped `meson.build`
+      (NOT the agent's memory), and that the
+      `DOCA_EXPERIMENTAL` surface stability rule
+      is "rebuild every DOCA release" — not the
+      exception. The agent must explain WHY: the
+      surface is experimental, the ABI is not
+      guaranteed stable across DOCA releases, a
+      static soversion across upgrades silently
+      produces a `.so` that either won't load or
+      will load with an ABI mismatch the parent
+      cannot detect cleanly. A response that
+      treats the soversion as a one-time choice,
+      that omits the rebuild-every-release rule,
+      or that asserts ABI stability the
+      `DOCA_EXPERIMENTAL` marker does not
+      promise, fails.
+
+  - id: "gpunetio_routed_out_not_duplicated"
+    label: "Routes the GPUNetIO semantics OUT to doca-gpunetio and keeps the extension skill focused on the parent-tool relationship"
+    weight: 2
+    pass_when: |
+      In response to question 5, the agent
+      explicitly routes the GPUNetIO RX / TX queue
+      setup, descriptor-batch posting from the CUDA
+      kernel, and stats-pointer synchronization
+      questions OUT to
+      [`doca-gpunetio`](../../libs/doca-gpunetio/SKILL.md),
+      and keeps the extension skill focused on the
+      extension-author-and-wire-in class
+      (parent-tool relationship,
+      registration / discovery, soversion, the
+      experimental-surface contract). The agent
+      must NOT duplicate the GPUNetIO programming
+      model inline. A response that inlines
+      GPUNetIO programming, that asserts GPUNetIO
+      details from memory, or that omits the
+      cross-link entirely, fails.
+
+  - id: "load_smoke_before_scaled_measurement"
+    label: "Walks the load-smoke (cheapest workload, no-op-style) BEFORE the scaled measurement"
+    weight: 3
+    pass_when: |
+      In response to question 6, the agent walks
+      the explicit ordered flow: (a) FIRST build
+      the extension `.so` with the correct
+      soversion; (b) THEN point `doca-bench` at
+      the cheapest possible workload that proves
+      it FOUND, LOADED, and CALLED the extension
+      (the reference `*_start_nop_kernel` or
+      equivalent init-only entry); (c) THEN
+      confirm the load + call succeeded; (d) ONLY
+      THEN point the real scaled workload at the
+      extension. The agent must explicitly state
+      that skipping the load-smoke and going
+      straight to scaled measurement is wrong —
+      a failed scaled run cannot distinguish
+      between extension-load-failure and
+      workload-failure. A response that collapses
+      the sequence, that omits the load-smoke, or
+      that treats the smoke as optional, fails.
+
+  - id: "layered_debug_ladder_walked"
+    label: "Walks the layered debug ladder (build → load → registration → runtime) when the load-smoke fails"
+    weight: 3
+    pass_when: |
+      In response to question 7, the agent walks
+      the layered debug ladder in order: build
+      failure → load failure (`dlopen()`) →
+      registration mismatch (ABI / soversion skew)
+      → runtime call failure. For each layer the
+      agent names the canonical first-stop check
+      and which skill or public doc to consult
+      (`doca-setup` for dynamic-linker layer,
+      `doca-version` for soversion layer,
+      `doca-debug` for runtime layer, the public
+      DOCA Bench documentation on
+      `docs.nvidia.com` for the discovery
+      mechanism). The agent must say when to STOP
+      retrying and escalate. A response that
+      omits a layer, that conflates layers, or
+      that asserts a discovery mechanism from
+      memory as authoritative, fails.
+
+  - id: "capture_set_includes_source_sha_and_soversion"
+    label: "Capture set required for every reported number includes BOTH soversion AND source SHA of the extension"
+    weight: 3
+    pass_when: |
+      In response to question 8, the agent
+      enumerates the capture set required for
+      every reported number from an extension-
+      backed `doca-bench` run: DOCA version
+      (anchored against `doca-version`),
+      BlueField / GPU generation, firmware
+      version, the extension's soversion AND the
+      source SHA of the extension's tree (BOTH —
+      the soversion alone is insufficient because
+      two builds at the same soversion can differ
+      in source), the parent `doca-bench`
+      invocation line, the workload-specific
+      settings struct contents. The agent must
+      explain why each leg is required for
+      someone else to either reproduce the number
+      or rule out a difference. A response that
+      omits the source SHA leg, that lists only
+      the soversion as the extension provenance,
+      or that treats capture as optional, fails.
+
+  - id: "no_invented_entry_points_or_discovery_mechanism"
+    label: "Does not invent DOCA_EXPERIMENTAL entry-point names, settings struct fields, or runtime discovery mechanism details"
+    weight: 3
+    pass_when: |
+      The agent does NOT quote a specific
+      `DOCA_EXPERIMENTAL`-marked entry-point name
+      from memory as authoritative beyond what is
+      present in the shipped `doca_bench_cuda.h`
+      reference, does NOT quote a specific
+      settings struct field name as authoritative
+      beyond what is present in the shipped
+      reference, and does NOT assert a specific
+      runtime discovery mechanism (search path,
+      naming convention, registration call) as
+      authoritative. The agent states that the
+      authoritative source for the entry-point
+      surface is the shipped header on the
+      user's install, that the authoritative
+      source for the discovery mechanism is the
+      public DOCA Bench documentation on
+      `docs.nvidia.com` and the installed
+      `doca-bench` binary, and that the
+      authoritative source for the soversion
+      spelling is the shipped `meson.build`. If
+      the agent DOES surface a candidate
+      spelling, it must be framed as a sketch
+      with the user told to verify. Inventing a
+      spelling and presenting it as
+      authoritative fails — that is the
+      canonical hallucination failure mode for
+      this skill.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from GPU-side CUDA-kernel-driven TX to another workload axis or a non-GPU extension"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the
+      generalization part of the prompt: it walks
+      at least ONE OTHER instance — either
+      switching the GPU-side workload axis (TX →
+      bidir, adapting `*_start_eth_bidir_kernel` /
+      `doca_bench_cuda_eth_bidir_kernel_settings`),
+      OR switching to a DPU-side extension that
+      does not use GPUNetIO at all (different
+      reference exemplar, no `doca-gpunetio`
+      co-load) — and identifies which parts STAY
+      THE SAME (the built-in-modes-first check,
+      the soversion-matches-release rule, the
+      `DOCA_EXPERIMENTAL` rebuild-every-release
+      rule, the load-smoke-before-scaled-
+      measurement loop, the source-SHA capture
+      rule, the layered debug ladder) versus
+      which CHANGE (which reference exemplar
+      applies, which settings struct shape,
+      whether `doca-gpunetio` is in the co-load
+      set, which device-side preconditions
+      matter). A response that walks only the
+      worked example and is silent on the
+      broader class fails this criterion.

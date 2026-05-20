@@ -1,0 +1,190 @@
+id: "09_offload_data_op_to_doca_accelerator"
+name: "Offload a data-plane operation to a DOCA hardware accelerator — class-shaped"
+description: |
+  Class-shaped accelerator-offload prompt. The HEADLINE is the
+  class ("offload a data-plane operation onto a DOCA hardware
+  accelerator instead of running it on the host CPU"); the worked
+  example is DOCA DMA (host ↔ DPU bulk memcpy via the BlueField
+  DMA engine), because that is the newly-covered library in
+  skills/libs/doca-dma.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  drive ANY DOCA accelerator-style library context (DMA, SHA,
+  AES-GCM, Compress, Erasure Coding — each has its own task type
+  and capability-discovery shape). The bundle proves this by
+  asking the agent to walk: env-side preconditions FIRST, the
+  universal DOCA Core lifecycle, the cap-query rule against the
+  active doca_devinfo BEFORE assuming size or support, the
+  permission discipline on the input / output buffers, and a
+  small-buffer smoke before any bulk run. The same SHAPE applies
+  to every accelerator-style DOCA library; the per-library
+  details (task name, capability-query name, permission
+  semantics) differ.
+
+  A baseline agent without skills typically: invents a
+  doca_dma_* API surface from generic DMA / memcpy knowledge,
+  recommends submitting a 16 MiB task without first reading
+  doca_dma_cap_task_memcpy_get_max_buf_size, conflates the
+  source/dest mmap permission flags, and never names DOCA RDMA /
+  Comch as the right alternative when DMA is not the right
+  library for the user's data flow.
+
+prompt: |
+  I have a host with a BlueField-3 DPU and DOCA installed. I want
+  to offload a bulk memory copy off the host CPU onto the
+  BlueField DMA engine: copy a 64 KiB buffer between host memory
+  and DPU memory once per request, several thousand times per
+  second. Down the road I may chain other DOCA accelerator
+  offloads (SHA, AES-GCM, Compress) in front of or behind this
+  copy, but the DMA copy is the priority right now.
+
+  Walk me through the setup with the doca-dma library: which
+  env-side preconditions I have to check BEFORE writing any code,
+  the DOCA Core lifecycle order I have to follow for the
+  doca_dma context, which capability queries I have to run
+  against the active doca_devinfo BEFORE assuming a 64 KiB buffer
+  is supported, what permission flags I have to set on the source
+  and destination doca_mmap regions, and what I should smoke-test
+  first to prove the memcpy task works end-to-end before scaling
+  up to the bulk rate.
+
+  After that, briefly tell me which parts of your answer would
+  generalize to a DIFFERENT DOCA accelerator library (e.g. DOCA
+  SHA for hash offload, DOCA AES-GCM for encryption offload, or
+  DOCA Compress) — which parts of the workflow stay the same
+  (lifecycle, cap query, permission discipline, smoke before
+  bulk) and which parts change (the task name, the capability
+  query name, the permission semantics specific to that
+  accelerator). And tell me when DOCA DMA is NOT the right
+  library, so I know to route to DOCA RDMA / Comch / a CPU memcpy
+  instead.
+
+context:
+  audience: "intermediate"
+  intent: "configure_library_context"
+  prior_knowledge: "knows what a DPU is, has a BlueField-3 plus host, has used CPU memcpy and is aware that bulk copies cost CPU cycles, but has not used DOCA DMA before"
+  baseline_artifact: "doca-dma"
+  changed_skill_in_pr: "libs/doca-dma"
+  expected_skill_co_load:
+    - "doca-dma"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "env_preconditions_first"
+    label: "Verifies DOCA install + devinfo enumerable BEFORE writing any code"
+    weight: 2
+    pass_when: |
+      The agent says the FIRST step is to confirm the env-side
+      preconditions: that DOCA is installed (`pkg-config
+      --modversion doca-dma` resolves), that `doca-dma.pc`
+      matches `doca_caps --version` (four-way match per
+      doca-version), and that the target device is enumerable
+      (`doca_caps --list-devs`) before any doca_dma_* call. A
+      response that jumps to doca_dma_* lifecycle calls without
+      naming the env-side check first fails.
+
+  - id: "universal_lifecycle_named"
+    label: "Names the universal DOCA Core lifecycle for the doca_dma context"
+    weight: 2
+    pass_when: |
+      The agent explicitly walks the DOCA Core lifecycle for the
+      doca_dma context: create → configure (enable the memcpy
+      task via doca_dma_task_memcpy_set_conf, set mmap
+      permissions) → start (doca_ctx_start) → submit + progress
+      (doca_pe_progress) → stop → destroy. A response that calls
+      submit before naming start, or that omits the
+      progress-engine drain, fails. The agent must not invent a
+      "doca_dma_init" or "doca_dma_quick_start" shortcut that is
+      not in the public surface.
+
+  - id: "cap_query_before_size_assumption"
+    label: "Calls doca_dma_cap_task_memcpy_* BEFORE assuming size / support"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST query
+      doca_dma_cap_task_memcpy_is_supported,
+      _get_max_buf_size, and (if scatter-gather is in scope)
+      _get_max_buf_list_len against the active doca_devinfo
+      BEFORE assuming a 64 KiB (or any size) buffer is supported.
+      A response that quotes a numeric cap from memory, or that
+      asserts "DMA supports up to X MiB" without naming the cap
+      query, fails.
+
+  - id: "source_dest_permission_pair_correct"
+    label: "Names the source = LOCAL_READ_ONLY / dest = LOCAL_READ_WRITE rule"
+    weight: 2
+    pass_when: |
+      The agent explicitly states that the source doca_mmap
+      needs at least DOCA_ACCESS_FLAG_LOCAL_READ_ONLY (and, for
+      cross-peer copies, must additionally be exported via
+      doca_mmap_export_*), and that the destination doca_mmap
+      needs at least DOCA_ACCESS_FLAG_LOCAL_READ_WRITE. A
+      response that swaps the two flags, that omits one of the
+      two, or that recommends a single permission flag covering
+      both sides fails.
+
+  - id: "smoke_before_bulk"
+    label: "Single small-buffer smoke before scaling to bulk rate"
+    weight: 1
+    pass_when: |
+      The agent recommends one small-buffer (a few KiB) memcpy
+      task as the FIRST functional test (verify the per-task
+      completion event fires on the progress engine with
+      DOCA_SUCCESS), before scaling to 64 KiB at thousands of
+      requests per second. A response that jumps straight to
+      bulk submission without an explicit small-buffer smoke
+      fails.
+
+  - id: "no_hallucinated_api"
+    label: "Does not invent doca_dma_* API symbols beyond the public surface"
+    weight: 2
+    pass_when: |
+      Every doca_dma_*, doca_ctx_*, doca_pe_*, or doca_mmap_*
+      symbol the agent mentions is one that actually exists in
+      the public DOCA DMA surface (the public surface is closed:
+      the doca_dma context, doca_dma_task_memcpy as the only
+      task type, the doca_dma_cap_task_memcpy_* query family,
+      and the standard Core ctx / pe / mmap symbols), or it is
+      explicitly framed as pseudocode / sketch. A response that
+      invents API names like doca_dma_easy_copy(),
+      doca_dma_quick_memcpy(), doca_dma_cap_get_throughput(), or
+      that adds task types beyond doca_dma_task_memcpy fails —
+      that is the baseline-agent hallucination failure mode the
+      bundle exists to prevent.
+
+  - id: "path_selection_against_alternatives"
+    label: "Names when DOCA DMA is NOT the right library (RDMA / Comch / CPU)"
+    weight: 1
+    pass_when: |
+      The agent surfaces the path-selection rule: DOCA DMA is
+      for mmap-to-mmap copies on the same host or across the
+      host ↔ DPU PCIe boundary; it is NOT the right library when
+      the data has to traverse the network (route to DOCA RDMA),
+      when the flow is producer / consumer messaging between
+      host and DPU processes (route to DOCA Comch fast-path), or
+      when the copy is tiny and one-shot (a CPU memcpy is faster
+      than DMA submit + completion-drain overhead). A response
+      that recommends DMA for every copy without naming the
+      alternatives, or that confuses DMA with RDMA, fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from DMA to other DOCA accelerator libraries"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it names at least ONE OTHER DOCA accelerator
+      library (SHA, AES-GCM, Compress, Erasure Coding, …) and
+      identifies which parts of the workflow stay the same
+      across accelerators (DOCA Core lifecycle, the
+      cap-query-before-payload rule against the active
+      doca_devinfo, the permission discipline on the input /
+      output buffers, the small-buffer smoke before bulk) versus
+      which parts change per accelerator (the task type name,
+      the capability query name, and the permission semantics
+      specific to that accelerator — e.g. SHA's input vs DMA's
+      source/dest pair). A response that walks only DMA and is
+      silent on generalization fails this criterion.

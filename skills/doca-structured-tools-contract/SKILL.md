@@ -114,10 +114,10 @@ guidance. For those, use the matching library skill +
    the schema, treat the extra field as advisory and quote the
    official schema as the boundary.
 6. **Schemas describe contracts, not implementations.** The
-   executables that satisfy these contracts are deferred to PR2
-   per [`future-plan/cuda-executables-analysis.md`](../../../future-plan/cuda-executables-analysis.md).
-   This skill exists so every other skill in the bundle can be
-   *infra-aware* before the executables ship.
+   executables that satisfy these contracts are deferred to a
+   subsequent PR on the maintainer roadmap. This skill exists so
+   every other skill in the bundle can be *infra-aware* before the
+   executables ship.
 
 ## The agent behavior contract
 
@@ -311,8 +311,8 @@ trivially when diagnosing host ↔ BlueField mismatches.
 ## Relationship to PR2 executables
 
 The schemas above describe **contracts**. The implementations that
-satisfy each contract are deferred to PR2 per the design captured
-in [`future-plan/cuda-executables-analysis.md`](../../../future-plan/cuda-executables-analysis.md).
+satisfy each contract are deferred to a subsequent PR on the
+maintainer roadmap.
 
 The reason this skill exists *before* the executables ship is so
 every other skill in the bundle can be infra-aware from PR1 onward:

@@ -130,6 +130,12 @@ Two failure modes this overlay table replaces:
 1. *"Reverse what you did"* — unfalsifiable, no snapshot referenced, no green re-verify named. The overlay forces a snapshot-first discipline so *"restore the pre-edit state"* is a diff against a captured baseline, not a wish.
 2. *"It'll be fine to retry"* — the overlay is bounded. On the second non-green re-verify, the agent MUST surface the unresolved residual gap instead of recommending another retry. This is the same shape as `doca-hardware-safety`'s *"named rollback path or refuse-and-escalate"* discipline, applied to pipeline-edit / library-context-edit changes where no hardware mutation is involved.
 
+### Beginner-orientation staged-roadmap rule (Stage 1 → Stage 2)
+
+When the prompt is beginner-shaped (*"I am new to DOCA, guide me to my first app"*, *"how do I start with DOCA"*, *"I have docker on my mac, what now"*, *"follow the local doca-skills bundle"* — anything where the user is asking *where to go* before *what to type*), the agent's answer MUST open with the two-row Stage-1 / Stage-2 staged-roadmap table from [`doca-setup TASKS.md ## no-install` → *Stage 1 vs Stage 2*](skills/doca-setup/TASKS.md#stage-1-vs-stage-2-open-every-i-am-new-to-doca-answer-with-the-staged-roadmap) **before** any command. Beginners overwhelm easily when the first thing the agent emits is a stack of commands; the staged roadmap establishes *where the user is going* (Stage 1: container learning → Stage 2: hardware runtime) and *the resume point inside the container* before *what to type next*. If the agent's first emitted block is a `docker pull` / `pkg-config` / `meson` invocation rather than the two-row stage table, the answer is mis-shaped — back up.
+
+When the agent then drops into the Path-0 NGC container recommendation, it MUST also walk the **NGC tag selection rule** from [`doca-setup TASKS.md ## no-install` → *How to pick an NGC tag without guessing*](skills/doca-setup/TASKS.md#how-to-pick-an-ngc-tag-without-guessing). Fabricating a tag string (`doca:3.5.0-arm64-ubuntu22.04`, `doca:latest`, anything not copied verbatim from <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/doca/containers/doca/tags>) is a release-blocker — it violates [ground rule 3](#ground-rules-every-agent-must-follow). If the agent cannot reach the catalog page from this session, the agent says so explicitly and asks the user to paste the candidate tag — never inventing one.
+
 ### Canonical answer-shape teasers — orientation and first-app prompts
 
 Orientation prompts (*"I'm new with DOCA, can you guide me?"*, *"what's DOCA, where do I start?"*, *"is there a Hello World?"*) and first-app prompts (*"give me my first DOCA app"*, *"I have docker — make me a DOCA app"*) reach the bundle BEFORE any specific library / service / tool skill has been picked. The agent's failure mode on these prompts is to skip the canonical build and first-app patterns because they "feel premature" — and the answer becomes a routing-only paragraph that fails the build-wrappers and first-app criteria the user actually needs.
@@ -164,7 +170,7 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
    public hosts: `docs.nvidia.com`, `developer.nvidia.com`,
    `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
    `forums.developer.nvidia.com`, `nvcr.io`. Anything else is rejected
-   by `ci/check-skill.sh`.
+   by NVIDIA's internal release CI before the bundle ships.
 2. **Prefer the local install over the web.** When DOCA is installed at
    `/opt/mellanox/doca`, those files *are* the release. Web docs describe a
    release.
@@ -185,34 +191,27 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
 
 ## Conformance
 
-`ci/check-skill.sh` enforces the rules every skill in
-`skills/` must satisfy. Three layers, all gating:
+NVIDIA's internal release CI enforces — on every commit, before the
+bundle is shipped to `ai-mvp-with-files` — three layers of
+conformance over every skill file in `skills/`:
 
 1. **Structural.** Frontmatter validity, required H2 anchors in
    `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, cross-anchor labels in
-   `TASKS.md` resolve, no symlinks. Run by default, no network needed.
-2. **Public-sources.** Any `*.nvidia.com` URL whose host isn't on a
+   `TASKS.md` resolve, no symlinks.
+2. **Public-sources.** Any `*.nvidia.com` URL whose host isn't on the
    small public allowlist (`docs.nvidia.com`, `developer.nvidia.com`,
    `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
    `forums.developer.nvidia.com`, `nvcr.io`) fails. Internal-tooling
    vocabulary in URL or path context (`gerrit`, `nvbugs`,
    `*.internal.*`, `gitlab-master`, `labhome`, …) fails. This is the
-   automated counterpart to ground rules 1 and 3 above. Run by
-   default, no network needed.
-3. **URL HEAD validity.** Opt-in via `--check-urls`; HEADs every URL
-   in every skill file and fails on non-`2xx`/`3xx`. Use this to
-   catch the *page renamed* / *page deleted* failure mode (e.g. the
-   pre-3.x DOCA Samples Overview URL the agent previously got a 404
-   on). Requires outbound network; CI should run with `--check-urls`
-   when network is available.
+   automated counterpart to ground rules 1 and 3 above.
+3. **URL HEAD validity.** Every URL in every skill file HEAD-checks
+   to a `2xx`/`3xx`. Catches the *page renamed* / *page deleted*
+   failure mode (e.g. the pre-3.x DOCA Samples Overview URL).
 
-Run locally before opening a PR that touches any skill file:
-
-```bash
-ci/check-skill.sh --all                # structural + public-sources
-ci/check-skill.sh --all --check-urls   # also URL HEAD validity
-ci/check-skill.sh --self-test          # confirm every gating check still trips
-```
+What this means for you as a consumer: every commit on
+`ai-mvp-with-files` ships a bundle that has already passed those
+gates. You do not need to run any of them yourself.
 
 ## Non-goals (questions the agent should recognize and refuse politely)
 
@@ -220,10 +219,10 @@ This bundle is the **public, vendor-shipped** skills bundle for the NVIDIA DOCA 
 
 1. **Cross-vendor comparisons.** *"DOCA vs DPDK vs OvS-DPDK vs kernel offload vs Intel IPU SDK vs AMD Pensando vs …"* The bundle is DOCA-specific by design and does not ship competitive content. A vendor-shipped skills bundle synthesizing comparisons against competing stacks would be inappropriate; refer the user to independent sources (their own benchmarks, third-party analyst reports, the NVIDIA Developer Forum for architectural questions on the DOCA side).
 2. **Commercial support contracts, SLAs, and procurement.** The bundle's support-surface coverage is the **public** NVIDIA DOCA Developer Forum at <https://forums.developer.nvidia.com/c/infrastructure/doca/370>. Commercial support contracts, response-time SLAs, escalation paths to NVIDIA engineering, and license pricing are out of scope; refer the user to NVIDIA sales for that conversation.
-3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by `ci/check-skill.sh` and is not what this bundle is for. The bundle ships only public surfaces.
+3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by NVIDIA's internal release CI and is not what this bundle is for. The bundle ships only public surfaces.
 4. **Pre-release or unreleased DOCA content.** The bundle's URL allowlist (rule 1) is the *public* documentation set; if a release is not yet public, the bundle has nothing to say about it. Refer the user to the public release-notes channel.
 5. **Code synthesis from prose.** Ground rule 5 above. The agent never scaffolds DOCA code from doc prose. *This is a methodology constraint, not a question-class refusal* — but it is the most operationally important non-goal in practice and so is listed here for visibility.
 6. **Security architecture claims the bundle is not authorized to make.** Side-channel guarantees, isolation guarantees on shared accelerators, FIPS / Common Criteria assertions, and similar properties of the DOCA crypto / DPA engines are not the bundle's to assert. Frame the question; route to NVIDIA security architecture material (Confidential Computing mode pages, BlueField secure-boot guides) and the Developer Forum; do not synthesize an isolation claim.
-7. **Externally-productized NVIDIA networking software not in the DOCA monorepo.** This bundle is **strictly 1:1 with `doca/{libs,services,tools}`** at the currently-aligned DOCA release (enforced by [`devops/ci/check-doca-inventory.sh`](../devops/ci/check-doca-inventory.sh)). Products that NVIDIA productizes externally to the monorepo — DOCA Telemetry Service (DTS) as deployed, DOCA HBN Service, DOCA BlueMan Service, DOCA SNAP Services, DOCA Virtio-net Service, DOCA-DPACC-Compiler, DPA-Tools (GDB Server / PS / Statistics), DOCA-DPU-CLI, DOCA-Ngauge, the `doca-hugepages` helper, and similar — are out of scope by design. The right next step for a question on one of these is the public NVIDIA documentation on `docs.nvidia.com/doca/sdk/` for that specific product, plus the public DOCA Developer Forum for help. Do NOT synthesize answers about these products from training knowledge; recognize the class, name the boundary, and route.
+7. **Externally-productized NVIDIA networking software not in the DOCA monorepo.** This bundle is **strictly 1:1 with `doca/{libs,services,tools}`** at the currently-aligned DOCA release (enforced by NVIDIA's internal CI on every commit). Products that NVIDIA productizes externally to the monorepo — DOCA Telemetry Service (DTS) as deployed, DOCA HBN Service, DOCA BlueMan Service, DOCA SNAP Services, DOCA Virtio-net Service, DOCA-DPACC-Compiler, DPA-Tools (GDB Server / PS / Statistics), DOCA-DPU-CLI, DOCA-Ngauge, the `doca-hugepages` helper, and similar — are out of scope by design. The right next step for a question on one of these is the public NVIDIA documentation on `docs.nvidia.com/doca/sdk/` for that specific product, plus the public DOCA Developer Forum for help. Do NOT synthesize answers about these products from training knowledge; recognize the class, name the boundary, and route.
 
 The shape of a good agent response to a non-goal class question is *"this bundle does not cover X (here is why); the right next step is Y (here is the route)"* — not silence and not improvisation.

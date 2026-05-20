@@ -1,0 +1,292 @@
+id: "18_offload_erasure_coding_to_doca_accelerator"
+name: "Offload erasure coding (RAID-6-style storage resilience) to a DOCA hardware accelerator — class-shaped"
+description: |
+  Class-shaped erasure-coding-accelerator-offload prompt. The
+  HEADLINE is the class ("offload erasure coding — RAID-6-style
+  storage resilience, N data blocks + K redundancy blocks tolerating
+  K simultaneous losses — to a DOCA hardware accelerator, NOT a
+  network primitive, and recognize the cheap update path for
+  single-block changes"); the worked example is DOCA Erasure Coding
+  (Vandermonde Reed-Solomon encode of 8 data blocks + 4 parity
+  blocks at 64 KiB each, with mention of update as the right answer
+  for single-block changes and recover as the disk-failure rebuild
+  path), because that is the newly-covered library in
+  skills/libs/doca-erasure-coding.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  offload ANY DOCA-accelerated operation (SHA, AES-GCM, Compress,
+  Erasure Coding, …), not just EC. The bundle proves this by asking
+  the agent to walk: env-side preconditions, the cap-query rule
+  against the active doca_devinfo (task-type presence AND max block
+  size AND max N+K AND supported matrix types), the DOCA Core
+  lifecycle, the source/destination mmap permission pair (with EC's
+  multi-buffer twist — N+K buffers per task, not just two), a
+  known-vector recover smoke before bulk submission (encode → drop
+  a block → recover → bit-compare), the update-vs-re-encode path
+  selection (single-block change → update task, NOT a fresh
+  create), and to generalize to one OTHER DOCA accelerator library
+  identifying same-shape (lifecycle, cap-query, permission
+  discipline, smoke-before-bulk) and different-shape (storage
+  domain vs crypto/compress, multi-block-input semantics,
+  recover / update verbs unique to EC) pieces.
+
+  A baseline agent without skills typically: invents a doca_ec_*
+  API surface from generic Reed-Solomon knowledge, conflates EC
+  with RAID-6 or with pure replication, mis-categorizes EC as a
+  network primitive (FEC-on-the-wire), recommends recomputing all
+  K parity blocks via doca_ec_task_create whenever ONE source
+  block changes (instead of doca_ec_task_update), hardcodes the
+  max block size or max N+K from memory instead of querying
+  doca_ec_cap_get_max_block_size / _get_max_num_blocks, assumes
+  Vandermonde matrix is universally supported without querying
+  doca_ec_cap_get_matrix_*, asserts the recover task is universally
+  available without checking _task_recover_is_supported, and skips
+  the single-buffer known-vector recover smoke before bulk encode.
+
+prompt: |
+  I have a host with a BlueField-3 DPU and DOCA installed. I want
+  to use DOCA Erasure Coding (the hardware accelerator) to encode
+  8 data blocks + 4 parity (redundancy) blocks of 64 KiB each
+  using Vandermonde Reed-Solomon, as the encode stage of a
+  distributed-storage daemon that wants RAID-6-style resilience
+  (any 4 of the 12 blocks can be lost and the original 8 data
+  blocks are still recoverable), and I want to do it correctly
+  the first time.
+
+  Walk me through the setup: what I should check on the host
+  BEFORE writing any code, which capability queries I have to
+  run against the active doca_devinfo before assuming the
+  create / recover / update tasks are supported and before
+  picking the matrix type, the block size, and the N+K layout,
+  the lifecycle order I have to follow to bring the doca_ec
+  context up, the source / destination mmap permission pair I
+  have to set on EVERY one of the N+K buffers (not just two),
+  what I should smoke-test FIRST (a known-vector encode → drop
+  one block → recover → bit-compare against the original)
+  before I push real storage data through the accelerator, and
+  the right answer for a follow-up I expect: once a layout is
+  on disk and one of the 8 source data blocks gets rewritten,
+  do I recompute all 4 parity blocks from scratch via the
+  create task — or is there a cheaper path?
+
+  Also: please be explicit about which DOMAIN this primitive
+  belongs to. I want to know if I am confusing erasure coding
+  with anything adjacent (RAID-6 on disk, pure replication,
+  network forward-error-correction on the wire), because I
+  want this code to live in the storage stack, not the
+  network stack.
+
+  After that, briefly tell me which parts of your answer would
+  generalize to a DIFFERENT DOCA accelerator library (e.g.
+  DOCA SHA for hash offload, DOCA Compress for DEFLATE
+  encode/decode, DOCA AES-GCM for AEAD encryption) — which
+  parts stay the same (lifecycle, cap-query rule, permission
+  discipline, smoke-before-bulk) and which parts change (the
+  storage-domain framing, the multi-block-input semantics
+  where EC has N+K buffers per task instead of one source +
+  one destination, and the recover / update verbs which are
+  unique to EC and have no analog in SHA / Compress / AES-GCM).
+
+context:
+  audience: "intermediate"
+  intent: "offload_erasure_coding"
+  prior_knowledge: "knows what a DPU is, has a BlueField-3 plus host, knows what RAID-6 is conceptually, has heard of Reed-Solomon erasure coding, but has not used the DOCA Erasure Coding API"
+  baseline_artifact: "doca-erasure-coding"
+  changed_skill_in_pr: "libs/doca-erasure-coding"
+  expected_skill_co_load:
+    - "doca-erasure-coding"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "storage_domain_framed_correctly"
+    label: "Names erasure coding as a STORAGE primitive, not a network primitive"
+    weight: 2
+    pass_when: |
+      The agent explicitly tells the user that DOCA Erasure
+      Coding is a STORAGE-domain primitive — N data + K
+      redundancy block layout for durability (RAID-6-style,
+      distributed file system parity, object-storage
+      erasure-coded buckets) — and NOT a network primitive
+      (no wire-side FEC). The agent also distinguishes EC
+      from adjacent confusions: EC is mathematically related
+      to but operationally distinct from RAID-6 the disk
+      layout (RAID-6 is one specific N + K = 2 instance), and
+      EC is not a substitute for pure replication (replication
+      stores M whole copies; EC stores N + K coded fragments —
+      orthogonal trade-offs). A response that mis-frames EC as
+      a network/wire primitive, treats EC and replication as
+      interchangeable, or skips the domain framing entirely
+      fails this criterion. This is the load-bearing
+      domain-discipline criterion for this prompt.
+
+  - id: "env_preconditions_first"
+    label: "Verifies DOCA install + devinfo enumerable BEFORE writing any code"
+    weight: 1
+    pass_when: |
+      The agent says the FIRST step is to confirm the env-side
+      preconditions: that DOCA is installed (e.g.
+      `pkg-config --modversion doca-erasure-coding` resolves),
+      that the doca-erasure-coding.pc plus doca-common.pc plus
+      doca_caps --version all agree (four-way match via
+      doca-version), and that the target device is enumerable
+      as a doca_devinfo (e.g. `doca_caps --list-devs`). A
+      response that jumps to doca_ec_* calls without naming
+      these env-side checks first fails.
+
+  - id: "capability_query_rule"
+    label: "Cap-queries task type(s), max block size, max N+K, and matrix type"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST call
+      doca_ec_cap_task_create_is_supported(devinfo) before
+      assuming the create task is in the device's accelerator,
+      AND MUST call doca_ec_cap_get_max_block_size(devinfo) to
+      validate the 64 KiB block size, AND MUST call
+      doca_ec_cap_get_max_num_blocks(devinfo) to validate the
+      N + K = 12 layout, AND MUST call the
+      doca_ec_cap_get_matrix_* family (or an explicit
+      "enumerate supported matrix types") to confirm
+      Vandermonde Reed-Solomon is in the device's set before
+      assuming it. The agent SHOULD also note that
+      doca_ec_cap_task_recover_is_supported(devinfo) and
+      _task_update_is_supported(devinfo) are independently
+      gated (cannot infer one from another). A response that
+      quotes the max block size, max N + K, or matrix-type
+      support from memory without naming the cap query — or
+      that assumes the create task is universally available
+      without checking — fails.
+
+  - id: "lifecycle_order_correct"
+    label: "Walks the DOCA Core context lifecycle in the right order"
+    weight: 2
+    pass_when: |
+      The agent names the lifecycle order create → configure
+      (doca_ec_task_create_set_conf + commit the coding
+      parameters matrix type / N / K / block size + set source
+      and destination mmap permissions on EVERY buffer) →
+      start (doca_ctx_start) → submit task → progress PE
+      (doca_pe_progress) → stop → destroy, and explicitly
+      states that doca_ec_task_create_set_conf MUST happen
+      before doca_ctx_start(). A response that jumps to task
+      submission without naming the lifecycle, puts task
+      config after start, or omits the progress-engine drain,
+      fails.
+
+  - id: "mmap_permission_pair_correct"
+    label: "States the source / destination mmap permission pair on EVERY N+K buffer"
+    weight: 2
+    pass_when: |
+      The agent correctly states that the source (data block)
+      mmaps need DOCA_ACCESS_FLAG_LOCAL_READ_ONLY at minimum
+      and the destination (redundancy block) mmaps need
+      DOCA_ACCESS_FLAG_LOCAL_READ_WRITE, and that BOTH must be
+      set via doca_mmap_set_permissions before the first task
+      is submitted. The agent SHOULD also flag the EC-specific
+      twist: EC tasks have MULTIPLE source and destination
+      buffers (8 source data blocks + 4 destination parity
+      blocks in this example, 12 buffers total), so the
+      permission rule has to be honored on EVERY one of them —
+      a missing flag on a single block trips
+      DOCA_ERROR_NOT_PERMITTED at submit. A response that
+      conflates the two buffers' permissions, treats the
+      permission rule as applying to only one source + one
+      destination, makes the source read-write "for
+      simplicity" without flagging it as over-broad, or omits
+      the destination read-write requirement, fails.
+
+  - id: "known_vector_recover_smoke_before_bulk"
+    label: "Recommends a small-block encode → drop → recover → bit-compare smoke before bulk"
+    weight: 2
+    pass_when: |
+      The agent recommends a known-vector recover smoke BEFORE
+      bulk-encoding real storage data: encode a small fixed
+      N + K layout from a known input, simulate losing one
+      block (zero it or otherwise mark it missing), submit a
+      doca_ec_task_recover, and bit-compare the recovered
+      block against the original byte-for-byte. The agent
+      MAY also recommend a parallel update smoke (encode →
+      update one block → re-encode and compare parity). A
+      response that jumps straight to encoding 8 × 64 KiB of
+      real storage data without naming the
+      encode-drop-recover smoke, or that hand-waves "just
+      test it on some data" without specifying the recover
+      bit-compare, fails. This is the load-bearing
+      smoke-discipline criterion for this prompt.
+
+  - id: "update_path_recognized"
+    label: "Surfaces doca_ec_task_update as the right answer for single-block changes"
+    weight: 2
+    pass_when: |
+      When the user asks the explicit follow-up ("once a
+      layout is on disk and one of the 8 source data blocks
+      gets rewritten, do I recompute all 4 parity blocks from
+      scratch via the create task — or is there a cheaper
+      path?"), the agent MUST answer: use
+      doca_ec_task_update — it is the cheap, purpose-built
+      path for a single-block change, and is far cheaper than
+      re-encoding all N data blocks via doca_ec_task_create
+      just to refresh K parity blocks. The agent SHOULD also
+      note that update is independently capability-gated
+      (doca_ec_cap_task_update_is_supported(devinfo)) — if
+      the device does not expose update, the user has to
+      fall back to a fresh create AND should know that
+      fallback is a real cost increase, not a permanent
+      design. A response that recommends a fresh create
+      (re-encode all 8 data → 4 parity) for the single-block
+      change, omits the update task entirely, or treats
+      update as equivalent to create-with-extra-arguments,
+      fails this criterion. This is the second load-bearing
+      criterion for this prompt: EC's update verb is a
+      first-class path the baseline agent typically misses.
+
+  - id: "no_hallucinated_api"
+    label: "Does not invent doca_ec_* API symbols or non-Reed-Solomon schemes"
+    weight: 1
+    pass_when: |
+      Every doca_ec_* (or doca_ctx_*, doca_pe_*, doca_mmap_*)
+      symbol the agent mentions is one that actually exists
+      in the public DOCA Erasure Coding surface (or it is
+      explicitly framed as pseudocode / sketch), and the
+      coding schemes the agent names are limited to
+      Reed-Solomon variants (typically Vandermonde or Cauchy)
+      that the cap query can confirm — the agent does NOT
+      assert fountain codes, LDPC, raptor codes, or any other
+      non-Reed-Solomon family as shipped by
+      doca-erasure-coding. A response that invents API names
+      like doca_ec_easy_encode(), doca_ec_quick_init(),
+      doca_ec_ldpc_*, or that names a non-Reed-Solomon scheme
+      as if doca-erasure-coding covered it without flagging
+      that the public surface is Reed-Solomon-only, fails —
+      that is the baseline-agent hallucination failure mode
+      the bundle exists to prevent.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from EC to other DOCA accelerator libraries; calls out EC-specific verbs"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the generalization part
+      of the prompt: it names at least ONE OTHER DOCA
+      accelerator library (DOCA SHA, DOCA Compress, DOCA
+      AES-GCM) and identifies which parts of the workflow
+      stay the same across accelerators (DOCA Core lifecycle
+      order, capability-query rule against the active
+      doca_devinfo, source / destination mmap permission
+      discipline, smoke-before-bulk) versus which parts
+      change per accelerator. The agent MUST specifically
+      call out two EC-distinct surfaces: (1) the DOMAIN
+      framing — EC is a storage-resilience primitive, while
+      SHA / Compress / AES-GCM are crypto / compress
+      primitives in different domains; and (2) the
+      multi-block-input semantics + recover / update verbs
+      — EC tasks have N + K buffers per task and expose
+      recover and update verbs that have no analog in SHA
+      (hash) / Compress (encode / decode pair) / AES-GCM
+      (encrypt / decrypt pair). A response that walks only
+      EC and is silent on generalization, or that
+      generalizes but misses both the storage-domain framing
+      and the multi-buffer / recover-update distinction,
+      fails this criterion.

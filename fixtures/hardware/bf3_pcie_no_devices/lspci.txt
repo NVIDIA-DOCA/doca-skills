@@ -1,0 +1,6 @@
+$ lspci -d 15b3:
+$ echo "(no output — vendor 15b3 not enumerated by the kernel)"
+(no output — vendor 15b3 not enumerated by the kernel)
+$ lspci | grep -i mellanox
+$ echo "(no output)"
+(no output)

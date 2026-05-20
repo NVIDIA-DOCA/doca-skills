@@ -1,0 +1,372 @@
+id: "61_bridge_a_doca_flow_pipe_into_target_processor_inline"
+name: "Bridge a host-side DOCA Flow pipe into target-processor processing so the accelerator can read and modify per-flow state inline — class-shaped"
+description: |
+  Class-shaped prompt for bridging a host-side DOCA Flow pipe
+  into target-processor processing on the BlueField, so a
+  kernel running on the DPA can read per-flow counters /
+  external-resource memory and modify hash-pipe entries
+  inline without round-tripping through the host CPU. The
+  HEADLINE is the class ("bridge a host-side `doca-flow`
+  pipe into target-processor inline processing"); the worked
+  example is the user's `doca-flow` per-flow rate-limiter
+  whose decisions a DPA kernel will refine inline, because
+  the newly-covered library in skills/libs/doca-flow-dpa-provider
+  is the bridge between the host-side Flow surface and the
+  DPA execution surface.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent the
+  SHAPE of *exporting an existing host-side data-plane
+  control structure into a programmable target processor so
+  the processor can mutate it inline with the data plane*.
+  The bundle proves this by asking the agent to walk: when
+  this library is the right surface vs alternatives (pure
+  host-side `doca-flow`, pure host-side `doca-dpa`), the
+  three-program model (host-side Flow + host-side
+  DPA / DPACC + DPA-side kernel) FIRST, the per-port
+  `doca_flow_dpa_ctx` and its queue allocation (the three
+  queue types — general / resources-write / resources-read),
+  the order-sensitive pipe-export handshake (queues created
+  → `_pipe_export_prepare` BEFORE adding entries → entries
+  added → `_pipe_export` → `_pipe_get_device_addr`), the
+  device-address handoff to the DPA kernel, the DPA-side
+  consumption surface (`doca_flow_pipe_hash_*`,
+  `doca_flow_external_resource_*`,
+  `doca_flow_queue_poll_completion`), the single-entry
+  hash-control smoke before scaling, and the debug ladder
+  when host-side counters do not move. The same SHAPE
+  generalizes to other "export-an-existing-structure-into-
+  the-DPA-and-mutate-it-inline" cases NVIDIA may ship in
+  the future; the per-target-structure details differ.
+
+  A baseline agent without skills typically: assumes
+  `doca-flow` itself exposes a DPA-callable API and invents
+  one; conflates this library with `doca-dpa` and writes a
+  generic DPA kernel that has no Flow handle to act on;
+  calls `_pipe_export_prepare` AFTER entries are added to
+  the pipe (the load-bearing lifecycle bug documented on
+  the call in the installed header — the entries silently
+  don't get exported); allocates only the `GENERAL` queue
+  type and then expects the DPA-side memory-read API to
+  work; never names the queue-config array passed to
+  `doca_flow_dpa_queues_create`; quotes a single
+  `pkg-config --modversion` version axis instead of the
+  joint Flow + DPA + provider + DPACC quartet; jumps straight
+  to widening before a single-entry hash-control smoke;
+  recommends a tight retry on a DPA-side `DOCA_ERROR_AGAIN`
+  instead of a drain-then-retry via
+  `doca_flow_queue_poll_completion`; or silently substitutes
+  *"just program the steering from the host periodically"*
+  when the user explicitly asked for inline DPA-side
+  mutation.
+
+prompt: |
+  I have a host with a BlueField DPU, DOCA installed, the
+  DPACC compiler installed alongside DOCA, and I already
+  have a working host-side `doca-flow` pipe — specifically
+  a per-flow rate-limiting pipe with per-entry counters
+  that's already steering production traffic on one
+  representor. The host-side rate-limiting decisions are
+  good but not fast enough for a couple of edge cases I
+  care about — I want a kernel running on the BlueField DPA
+  to be able to read the per-entry counters inline and
+  disable / replace individual hash-pipe entries when
+  certain in-band conditions are observed, without
+  round-tripping back to the host. I have a sketch of the
+  DPA-side kernel I'll write; what I don't have is the
+  glue between my existing `doca-flow` pipe and that DPA
+  kernel.
+
+  Walk me through the setup. Start by telling me HONESTLY
+  whether this is the right tool for what I want — I've
+  heard of `doca-flow` and `doca-dpa` separately and I'm
+  not sure which library / bridge actually does the
+  exporting. If this IS the right tool, walk me through:
+  the three-program model I have to keep straight (host-
+  side Flow / host-side DPA-control / DPA-side kernel),
+  the per-port context I have to stand up, the queue types
+  I have to allocate (and what happens if I only allocate
+  the general queue and then ask the DPA kernel to read
+  memory), the EXACT order of the pipe-export handshake
+  (what calls before what, and specifically when relative
+  to my entry-add loop), how the device address gets to
+  the DPA kernel, what subset of the per-entry / per-
+  resource operations my DPA kernel can actually issue
+  against the exported handle, and what single-entry
+  smoke test I should run BEFORE I let my kernel touch
+  every entry. Tell me what counters / completion
+  statistics I should be looking at to know it's actually
+  working, and what error code I should expect when my
+  kernel posts requests faster than it polls the
+  matching completion queue (so I know NOT to recommend a
+  tight retry loop).
+
+  After that, briefly tell me how this would change if
+  instead I just wanted the host CPU to periodically re-
+  program the steering pipe based on aggregated counters
+  (the pure host-side `doca-flow` path), OR if I wanted a
+  generic compute kernel on the DPA that has nothing to do
+  with `doca-flow` at all (the pure `doca-dpa` path) — I
+  want to make sure I'm picking the right library and not
+  forcing the bridge where neither side actually needs the
+  other.
+
+context:
+  audience: "advanced"
+  intent: "bridge_host_flow_into_dpa_inline_processing"
+  prior_knowledge: "knows C / C++ at the application level, has DOCA installed and DPACC installed, has at least one working host-side `doca-flow` pipe in production (per-flow rate-limit with per-entry counters on a representor), has read about DOCA DPA but never written a DPA kernel, knows what BlueField generations expose a DPA processor, has not used the DOCA Flow DPA Provider library before"
+  baseline_artifact: "doca-flow-dpa-provider"
+  changed_skill_in_pr: "libs/doca-flow-dpa-provider"
+  expected_skill_co_load:
+    - "doca-flow-dpa-provider"
+    - "doca-flow"
+    - "doca-dpa"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "confirms_library_is_the_right_surface_first"
+    label: "First confirms whether `doca-flow-dpa-provider` is actually the right surface (vs pure `doca-flow` or pure `doca-dpa`)"
+    weight: 2
+    pass_when: |
+      The agent's FIRST step is to verify that the user's
+      intent (DPA-side kernel reading host-side `doca-flow`
+      per-entry counters inline AND mutating hash-pipe
+      entries inline) actually requires the
+      `doca-flow-dpa-provider` bridge — i.e. that it is NOT
+      satisfied by either pure host-side `doca-flow`
+      (periodic re-programming from the host CPU) or pure
+      host-side `doca-dpa` (a generic DPA kernel that has
+      no Flow handle to act on). The agent must surface
+      this library as the niche bridge between the two and
+      explicitly state that the host-side `doca-flow`
+      pipe and a host-side DPA execution surface BOTH
+      have to exist already; if either does not, the user
+      goes to the matching skill first. A response that
+      jumps straight to `doca_flow_dpa_*` calls without
+      confirming the bridge is needed, or that recommends
+      this library for a user who only needs host-side
+      Flow, fails.
+
+  - id: "three_program_model_named_explicitly"
+    label: "Walks the three-program model (host Flow + host DPA + DPA kernel) BEFORE any code"
+    weight: 2
+    pass_when: |
+      The agent surfaces explicitly that a provider
+      deployment is THREE coupled translation units: (a) a
+      host-side `doca-flow` program (port + pipe), (b) a
+      host-side program that calls
+      `doca-flow-dpa-provider` plus the host-side DPA /
+      FlexIO execution surface (queues + export + device-
+      address handoff + DPA kernel launch), and (c) a
+      DPA-side kernel compiled by `dpacc` that consumes
+      the exported `doca_flow_dpa_addr` and calls the
+      DPA-side device API (`doca_flow_pipe_hash_*`,
+      `doca_flow_external_resource_*`,
+      `doca_flow_queue_poll_completion`) against it. The
+      agent must NOT propose that the host code "just call
+      the DPA function directly" or that "the kernel reads
+      from the host-side pipe pointer". A response that
+      walks only the host side, or that treats the DPA
+      kernel and the host program as one unit, fails.
+
+  - id: "queue_types_named_and_consequence_of_wrong_choice_surfaced"
+    label: "Names the three queue types and what happens if the wrong subset is allocated"
+    weight: 2
+    pass_when: |
+      The agent names the three queue types passed to
+      `doca_flow_dpa_queues_create` —
+      `DOCA_FLOW_DPA_QUEUE_TYPE_GENERAL` (for
+      `doca_flow_pipe_hash_*` requests),
+      `DOCA_FLOW_DPA_QUEUE_TYPE_RESOURCES_WRITE` (for
+      `doca_flow_external_resource_*` writes), and
+      `DOCA_FLOW_DPA_QUEUE_TYPE_RESOURCES_READ` (for
+      `doca_flow_external_resource_memory_read*`) — and
+      explicitly states that the queue-config array
+      passed to `_queues_create` must include the queue
+      types the DPA kernel will use. The agent surfaces
+      that allocating only `GENERAL` and then calling a
+      DPA-side memory-read returns
+      `DOCA_ERROR_NOT_SUPPORTED`, and that the read API is
+      two-phase (issue, then poll the `RESOURCES_READ`
+      completion queue before the value is populated). A
+      response that omits the queue-types question, or
+      that uses a single global queue, or that omits the
+      two-phase read contract, fails.
+
+  - id: "export_lifecycle_order_called_out_with_prepare_before_entries"
+    label: "Pipe-export handshake walked in the exact documented order, with `_export_prepare` BEFORE entry-add"
+    weight: 3
+    pass_when: |
+      The agent walks the pipe-export handshake in this
+      exact order: (1) bring up the host-side `doca-flow`
+      pipe (no entries yet); (2) call
+      `doca_flow_dpa_init` and
+      `doca_flow_dpa_queues_create`; (3) call
+      `doca_flow_dpa_pipe_export_prepare(ctx, pipe,
+      nr_entries, &dpa_pipe)` BEFORE any entry is added to
+      the pipe; (4) add the entries via `doca-flow`; (5)
+      call `doca_flow_dpa_pipe_export(ctx, dpa_pipe)`;
+      (6) call `doca_flow_dpa_pipe_get_device_addr` to
+      obtain the `doca_flow_dpa_addr` the DPA kernel
+      consumes. The agent must EXPLICITLY surface that
+      calling `_pipe_export_prepare` AFTER adding entries
+      silently produces an exported pipe whose entries the
+      DPA kernel cannot see — quoting the installed
+      header's documented contract, not inventing it. A
+      response that puts `_pipe_export_prepare` after the
+      entry-add loop, or that omits the prepare step, or
+      that fails to explain the silent-empty-export
+      failure mode, fails.
+
+  - id: "device_address_is_what_kernel_consumes"
+    label: "Surfaces that the DPA kernel consumes the `doca_flow_dpa_addr` device address, not a host pointer"
+    weight: 2
+    pass_when: |
+      The agent explicitly states that the DPA kernel does
+      NOT receive a host-side `struct doca_flow_pipe *` or
+      a host-side `struct doca_flow_dpa_pipe *`; it
+      receives the opaque `doca_flow_dpa_addr` populated
+      by `doca_flow_dpa_pipe_get_device_addr`, and that
+      address is what every DPA-side
+      `doca_flow_pipe_hash_*` / `_external_resource_*`
+      call operates against. The agent also describes that
+      the handoff is via whatever launch-argument
+      mechanism the host-side DPA library provides. A
+      response that proposes the DPA kernel "follow a
+      host pointer" or that conflates the host-side
+      `doca_flow_dpa_pipe *` with the DPA-side device
+      address fails.
+
+  - id: "single_entry_smoke_before_widening"
+    label: "Single-entry hash-control smoke + completion poll BEFORE the kernel touches every entry"
+    weight: 2
+    pass_when: |
+      The agent recommends a single-entry smoke (one
+      `doca_flow_pipe_hash_disable_index` or
+      `_enable_index` against a known entry, then a
+      `doca_flow_queue_poll_completion` on the `GENERAL`
+      queue type, then a check that
+      `num_completed == 1`, `num_failed == 0`) BEFORE
+      the kernel iterates over every entry of the
+      exported pipe. The agent must surface that a smoke
+      failure with no host-side error is exactly the
+      `_pipe_export_prepare`-after-entries lifecycle
+      failure mode — i.e. the smoke is the cheap
+      validator for the lifecycle ordering. A response
+      that jumps from `_pipe_export` straight to a
+      production-scale DPA loop without an explicit
+      single-entry smoke fails.
+
+  - id: "doca_error_again_is_drain_then_retry_not_tight_loop"
+    label: "DPA-side `DOCA_ERROR_AGAIN` handled as drain-then-retry via `doca_flow_queue_poll_completion`, not a tight retry"
+    weight: 1
+    pass_when: |
+      The agent surfaces that a DPA-side
+      `DOCA_ERROR_AGAIN` from `doca_flow_pipe_hash_*` or
+      `doca_flow_external_resource_*` means the matching
+      work queue is full and the request was not
+      submitted, and the fix is a drain-then-retry via
+      `doca_flow_queue_poll_completion(queue_type)` on
+      the right queue type — NOT a tight retry loop and
+      NOT a queue resize on the first occurrence. A
+      response that recommends a tight retry loop on
+      `_AGAIN`, or that treats it as a hardware error,
+      fails.
+
+  - id: "joint_version_quartet_named"
+    label: "Surfaces the joint `doca-flow-dpa-provider` + `doca-flow` + `doca-dpa` + `dpacc` version axes"
+    weight: 1
+    pass_when: |
+      The agent surfaces that the working version set is
+      the JOINT cross-product of `pkg-config --modversion
+      doca-flow-dpa-provider`, `pkg-config --modversion
+      doca-flow`, `pkg-config --modversion doca-dpa`, and
+      the installed `dpacc` version, all cross-checked
+      against the DOCA Compatibility Policy at
+      `docs.nvidia.com/doca/sdk/doca-compatibility-policy/`;
+      AND that a `DOCA_ERROR_DRIVER` from a
+      `doca_flow_dpa_*` call is most often a skew across
+      one of those four axes rather than a hardware bug.
+      A response that quotes only the `doca-flow-dpa-provider`
+      version axis, or that recommends bypassing the
+      DOCA Compatibility Policy, fails.
+
+  - id: "no_hallucinated_provider_or_device_api"
+    label: "Does not invent `doca_flow_dpa_*` or DPA-side `doca_flow_*` API symbols beyond the public surface"
+    weight: 2
+    pass_when: |
+      Every `doca_flow_dpa_*`, `doca_flow_pipe_hash_*`,
+      `doca_flow_external_resource_*`, or
+      `doca_flow_queue_*` symbol the agent mentions is one
+      that exists in the public Flow DPA Provider surface
+      that the skill documents (host-side:
+      `doca_flow_dpa_init`, `doca_flow_dpa_destroy`,
+      `doca_flow_dpa_queues_create`,
+      `doca_flow_dpa_pipe_export_prepare`,
+      `doca_flow_dpa_pipe_export`,
+      `doca_flow_dpa_pipe_get_device_addr`,
+      `doca_flow_dpa_pipe_destroy`,
+      `doca_flow_dpa_external_resource_export`,
+      `doca_flow_dpa_external_resource_get_device_addr`,
+      `doca_flow_dpa_external_resource_destroy`; DPA-side:
+      `doca_flow_pipe_hash_enable_index`,
+      `doca_flow_pipe_hash_disable_index`,
+      `doca_flow_pipe_hash_replace_index`,
+      `doca_flow_external_resource_index_selector_modify`,
+      `doca_flow_external_resource_index_selector_modify_range`,
+      `doca_flow_external_resource_memory_update`,
+      `doca_flow_external_resource_memory_read`,
+      `doca_flow_external_resource_memory_read_range`,
+      `doca_flow_queue_poll_completion`,
+      `doca_flow_queue_flush`), OR is explicitly framed as
+      pseudocode / sketch and the agent tells the user to
+      read the exact symbol name from the installed header
+      `doca_flow_dpa_provider.h` (host) or
+      `doca_flow_dpa_provider_dev.h` (DPA). A response that
+      invents API names like `doca_flow_dpa_pipe_quick_export()`,
+      `doca_flow_dpa_attach_kernel()`, or that quotes
+      DPA-side API names like `doca_flow_dpa_pipe_update()`
+      that don't exist on the public surface, fails — that
+      is the baseline-agent hallucination failure mode the
+      bundle exists to prevent.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from the bridged case to pure `doca-flow` and pure `doca-dpa` and identifies what stays the same vs changes"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of
+      the prompt: it generalizes from the per-flow rate-
+      limiter-bridged-to-DPA worked example to BOTH the
+      pure host-side `doca-flow` path (host CPU
+      periodically re-programs the pipe based on
+      aggregated counters; the DPA bridge is unnecessary
+      and the agent should not recommend it) AND the pure
+      host-side `doca-dpa` path (a generic DPA kernel
+      with no `doca-flow` handle; the kernel does compute
+      that has nothing to do with the Flow datapath).
+      The agent identifies which parts STAY THE SAME
+      regardless of which path the user picks (the
+      host-side `doca-flow` port + pipe lifecycle still
+      applies on the Flow side; the host-side `doca-dpa`
+      Core lifecycle plus the DPACC-and-DOCA version
+      pairing still applies on the DPA side; the
+      capability rule against `doca_devinfo` still
+      applies; the env preconditions verified FIRST still
+      apply) versus which parts CHANGE (the
+      `doca-flow-dpa-provider` library is only loaded
+      when both surfaces need to interlock — it disappears
+      from the pure `doca-flow` path; the device-address
+      handoff and the DPA-side device API disappear from
+      the pure host-side path; the queue-config array,
+      the `_pipe_export_prepare`-before-entries rule, and
+      the DPA-side polling discipline disappear from the
+      pure `doca-flow` path; the Flow-pipe export and
+      `doca_flow_pipe_hash_*` DPA-side mutation
+      disappear from the pure `doca-dpa` path because
+      there is no Flow pipe to mutate). A response that
+      walks only the bridged case, or that claims the
+      three paths are interchangeable, fails this
+      criterion.

@@ -1,0 +1,12 @@
+$ doca_caps --version
+doca_caps version: 2.9.0
+doca-common: 2.9.0
+doca-flow: 2.9.0
+doca-rdma: 2.9.0
+build: production
+$ cat /opt/mellanox/doca/applications/VERSION
+2.9.0
+$ # BFB version on the BlueField (queried via mlxprivhost / bfb-info from the host)
+$ bfb-info | grep -i version
+BFB image version: 3.0.0
+BlueField OS:      DOCA 3.0.0 (Ubuntu 22.04)

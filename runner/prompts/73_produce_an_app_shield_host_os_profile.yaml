@@ -1,0 +1,267 @@
+id: "73_produce_an_app_shield_host_os_profile"
+name: "Produce a current host-OS profile for an apsh-class introspection deployment — class-shaped"
+description: |
+  Class-shaped App Shield configuration prompt. The HEADLINE
+  is the class ("produce a current host-OS profile for an
+  apsh-class introspection deployment and validate the
+  profile is correct against the live host"); the worked
+  example is a Linux Ubuntu host whose kernel was just
+  upgraded and whose paired DPU-side `doca-apsh` consumer
+  started returning `DOCA_ERROR_NOT_FOUND` on a known-running
+  process.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how
+  to run `doca_apsh_config.py` for ANY host OS axis the tool
+  supports (Linux + Windows) and ANY apsh-class introspection
+  use case the DPU side surfaces — plain enumeration,
+  per-process integrity check, page-table walking — because
+  each one is one instance of the same class. The bundle
+  proves this by asking the agent to walk: host-side
+  prerequisites FIRST (DOCA install + `dwarf2json` from the
+  public Volatility Foundation repo + Python deps), the
+  artifact-set decision driven by the DPU-side consumer's
+  use case, the profile-must-match-running-kernel invariant
+  surfaced explicitly as the silent-bug failure mode, the
+  validate-on-one-DPU-before-fleet-rollout gate, the
+  rotation-on-host-kernel-change rule, and the
+  generalization to a different OS axis (Windows host)
+  where the extractor and the supported artifact set differ.
+  The same SHAPE applies to every apsh-class deployment; the
+  per-host-OS details differ.
+
+  A baseline agent without skills typically: assumes the DPU
+  side is broken when an apsh-class consumer regresses;
+  invents `--files` tokens, subcommand names, or artifact
+  filenames from generic CLI knowledge; misses that
+  `dwarf2json` is an external open-source dependency the
+  operator installs separately from DOCA; treats the profile
+  as time-bound ("good for N days") rather than
+  kernel-bound; pushes a freshly-generated profile to the
+  fleet without round-tripping it through one DPU first;
+  silently substitutes a host OS axis without confirming the
+  script's `--os` flag matches the host the script is
+  actually running on; conflates the host-side configuration
+  tool with the DPU-side `doca-apsh` library.
+
+prompt: |
+  I have an Ubuntu 22.04 host paired with a BlueField-3 DPU
+  running DOCA, and a DPU-side application using
+  `doca-apsh` that was working last week — process
+  enumeration, no integrity-check, no page-table walking.
+  After a kernel patch + reboot on the host this morning,
+  the same DPU-side application started returning
+  `DOCA_ERROR_NOT_FOUND` on processes I can see in `ps`
+  output on the host (e.g. `sshd`, `systemd`). Nothing
+  changed on the DPU side.
+
+  Walk me through producing a fresh App Shield profile for
+  this host and validating it before I let my DPU-side
+  application use it. Specifically:
+
+  1. What's the host-side prerequisite story I need to
+     confirm BEFORE I run `doca_apsh_config.py`? I want to
+     understand what's a DOCA concern vs what's an
+     external open-source dependency I install separately
+     — be explicit about which is which, and tell me where
+     I get the external one from.
+  2. Which artifact subset of `--files` do I actually need
+     for this use case (plain process enumeration, no
+     integrity check, no page-table walking)? Don't make me
+     generate things I don't need.
+  3. Why did the original profile go bad? I want to
+     understand the invariant so I don't make the same
+     mistake the next time the host kernel changes — is
+     this a clock-driven rotation or a kernel-change-driven
+     rotation?
+  4. Walk me through the generation flow with the right
+     `--os` axis and the right `--files` subset.
+  5. After I have the new artifacts on the host, what's my
+     validation gate before I roll them out to the rest of
+     the DPU fleet? I do NOT want to push a bad profile to
+     every DPU at once.
+  6. If at any point I tell you my host is actually a
+     Windows Server box instead of Ubuntu, tell me HONESTLY
+     what changes about the workflow — the external
+     dependency, the supported `--files` subset, the
+     extractor — so I know which parts of the answer
+     generalize and which don't.
+
+  Finally: explicitly call out which `doca_apsh_*` API
+  symbol or `--files` token (if any) I'd be making up if I
+  followed your answer literally without first reading
+  `python3 doca_apsh_config.py --help` on my installed
+  version and the public DOCA App Shield page.
+
+context:
+  audience: "intermediate"
+  intent: "operate_host_side_tool"
+  prior_knowledge: "knows what a DPU and a BlueField are, has a paired Ubuntu host + BlueField-3 with DOCA installed on both sides, has built and run at least one DPU-side `doca-apsh` application before, has never run `doca_apsh_config.py` and has never used `dwarf2json` from the Volatility Foundation"
+  baseline_artifact: "doca-apsh-config"
+  changed_skill_in_pr: "tools/doca-apsh-config"
+  expected_skill_co_load:
+    - "doca-apsh-config"
+    - "doca-apsh"
+    - "doca-version"
+    - "doca-setup"
+    - "doca-debug"
+    - "doca-public-knowledge-map"
+    - "doca-programming-guide"
+    - "doca-structured-tools-contract"
+
+criteria:
+  - id: "host_side_prereqs_named_with_external_dependency"
+    label: "Names DOCA host install + dwarf2json (Linux) as separate prerequisites, with the public Volatility Foundation repo as source"
+    weight: 3
+    pass_when: |
+      The agent's FIRST step is to confirm host-side
+      prerequisites in this order: (a) DOCA is installed on
+      the host with the App Shield optional component (the
+      script lives at the standard host-side install path),
+      (b) Python 3 plus the script's third-party Python
+      packages are installed, and (c) the Linux symbol
+      extractor `dwarf2json` is installed SEPARATELY from
+      DOCA, sourced from the public Volatility Foundation
+      repository on GitHub. The agent must explicitly state
+      that `dwarf2json` is NOT bundled with DOCA — it is an
+      external open-source dependency the operator installs
+      from `github.com/volatilityfoundation/dwarf2json`. A
+      response that omits the external dependency, or that
+      treats `dwarf2json` as a DOCA-provided binary, fails.
+
+  - id: "use_case_driven_files_selection"
+    label: "Picks the smallest --files subset for plain enumeration (symbols + memregions), skips hash and kpgd_file"
+    weight: 2
+    pass_when: |
+      The agent picks the smallest `--files` subset for the
+      stated use case (plain process enumeration, no
+      integrity check, no page-table walking): `symbols` +
+      `memregions`, NOT the default full set, and explicitly
+      states that `hash` (per-process integrity) and
+      `kpgd_file` (Linux-only page-table anchor) are NOT
+      needed for this use case. A response that generates
+      every artifact "just in case" or that includes
+      `kpgd_file` without `--find_kpgd=1` or `hash` without
+      `--pid <PID>` fails.
+
+  - id: "profile_match_running_kernel_invariant_surfaced"
+    label: "Surfaces the profile-must-match-running-kernel invariant as kernel-change-driven, not clock-driven"
+    weight: 3
+    pass_when: |
+      The agent explicitly states that the previous profile
+      went stale because the host kernel changed under it,
+      and that the profile is bound to the EXACT host
+      kernel build / patch level it was generated against —
+      not bound to a clock. The rotation trigger is the
+      kernel-touching change (upgrade, patch, live-patch,
+      security-update reboot, distribution upgrade), not
+      "every N days". The agent must also state that the
+      DPU-side `doca-apsh` consumer cannot detect the
+      mismatch on its own — it will silently return wrong-
+      symbol data or `DOCA_ERROR_NOT_FOUND` on known-running
+      processes. A response that frames the rotation as
+      time-based, or that misses that the DPU-side library
+      cannot self-detect staleness, fails.
+
+  - id: "validation_before_fleet_rollout"
+    label: "Names a one-DPU round-trip validation gate before rolling the new profile to the rest of the fleet"
+    weight: 2
+    pass_when: |
+      The agent's answer to step 5 requires that the
+      freshly-generated profile is round-tripped through
+      ONE representative DPU before the fleet picks it up:
+      distribute the new artifacts to one DPU, reload the
+      `doca-apsh` consumer there, enumerate a known-running
+      host process by PID and by name, confirm both
+      directions round-trip cleanly. The previous profile
+      is retained on every other DPU until this validation
+      passes. A response that jumps from "generate" to
+      "deploy fleet-wide" without the single-DPU validation
+      gate fails.
+
+  - id: "no_hallucinated_flags_or_artifact_names"
+    label: "Does not invent --files tokens, artifact filenames, or doca_apsh_* symbols"
+    weight: 2
+    pass_when: |
+      Every `--files` token, `--*` flag, and artifact
+      filename the agent mentions is either documented by
+      the public DOCA App Shield page that the skill
+      routes to (the `symbols`, `memregions`, `kpgd_file`,
+      `hash` artifact classes documented in the skill;
+      `--os`, `--files`, `--pid`, `--path`, `--find_kpgd`
+      flags) or is explicitly framed with the agent telling
+      the user to read the exact name from `python3
+      doca_apsh_config.py --help` on the installed version.
+      A response that invents a `--files=enumerate` token,
+      a `--kernel-version` flag, a `--quick-generate`
+      mode, or that quotes a `doca_apsh_*` symbol name
+      from memory as if it were on the host side, fails.
+
+  - id: "windows_axis_generalization_named"
+    label: "Names what changes vs stays the same on the Windows host axis (pdbparse extractor, no kpgd_file, pefile pin)"
+    weight: 2
+    pass_when: |
+      The agent's answer to step 6 explicitly names the
+      differences between the Linux and Windows host axes:
+      the extractor changes from `dwarf2json` to
+      `pdbparse-to-json.py` (sourced from the public
+      Volatility 3 repository on GitHub), `kpgd_file` is
+      NOT supported on Windows, the `pefile` Python package
+      has a tool-imposed version pin the script itself
+      prints when violated, and the symbol source is the
+      host's PDB symbol cache rather than kernel DWARF.
+      The agent should also name what STAYS the same: the
+      script entry point, the `--os` / `--files` axis
+      decision shape, the kernel-change-driven rotation
+      rule, the one-DPU validation gate. A response that
+      silently treats the Windows path as identical to
+      Linux, or that omits the Windows-side externals,
+      fails.
+
+  - id: "version_pairing_called_out"
+    label: "Names that host-side tool and DPU-side library are version-paired per doca-version"
+    weight: 1
+    pass_when: |
+      The agent names that the host-side configuration tool
+      and the DPU-side `doca-apsh` library must come from
+      the same DOCA release band per the four-way match
+      rule in `doca-version`, and routes the user to
+      `pkg-config --modversion doca-apsh` (or equivalent
+      DOCA version detection on the DPU side) plus the
+      host-side `doca-version` detection chain to confirm
+      the pairing. A response that quotes a specific DOCA
+      version pin from memory, or that omits the version-
+      pairing dimension entirely, fails.
+
+  - id: "host_side_vs_dpu_side_split_clean"
+    label: "Keeps the host-side tool and the DPU-side library cleanly distinct"
+    weight: 2
+    pass_when: |
+      The agent does NOT conflate the host-side
+      `doca_apsh_config.py` script with the DPU-side
+      `doca-apsh` library. Specifically: the tool produces
+      profile artifacts on the host; the library loads
+      them on the DPU; the two are paired by version and
+      by host-kernel build but live in separate skill
+      slots. A response that proposes calling
+      `doca_apsh_*` API symbols inside the script, or that
+      treats the script's output as a runtime library
+      object rather than file artifacts the DPU side
+      reads, fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from the Ubuntu-after-kernel-patch case to other rotation triggers and other host classes"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the generalization
+      across the apsh-class deployment shape: the same
+      workflow applies to any host-kernel-touching change
+      (kernel upgrade, live-patch, distribution upgrade,
+      rebuild with different config knobs), and the same
+      workflow applies on every host-OS axis with the
+      per-axis differences named (Linux dwarf2json vs
+      Windows pdbparse, the supported `--files` subset per
+      axis, the per-process `hash` artifact's PID
+      precondition). A response that walks ONLY the Ubuntu-
+      after-patch case and is silent on what generalizes
+      to other rotation triggers and other host classes
+      fails this criterion.

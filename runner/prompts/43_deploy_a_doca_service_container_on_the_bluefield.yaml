@@ -1,0 +1,297 @@
+id: "43_deploy_a_doca_service_container_on_the_bluefield"
+name: "Deploy a DOCA service container on the BlueField — class-shaped"
+description: |
+  Class-shaped container-deployment prompt for the cross-cutting
+  DOCA container-deployment runtime that every DOCA service on the
+  BlueField shares. The HEADLINE is the class ("deploy a DOCA
+  service container on the BlueField"); the worked example is a
+  single canonical DOCA service container (the agent's choice from
+  DTS, Firefly, BlueMan, HBN, SNAP, Virtio-net), but the deployment
+  STEPS the agent walks must be class-shaped: drop the pod spec
+  into the documented static-pod manifests directory, wait for
+  kubelet standalone to schedule the pod, tail the container
+  ENTRYPOINT log, confirm a trivial per-service liveness probe,
+  smoke before bulk workload.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  walk the SHARED deployment runtime for ANY DOCA service on the
+  BlueField, not just one named service. The bundle proves this by
+  asking the agent to:
+    - recognize the runtime — kubelet standalone on the BlueField
+      Arm watching a documented static-pod manifests directory;
+    - name the static-pod manifests directory as a documented path
+      whose exact string is in the public DOCA Container Deployment
+      Guide (NOT invented by the agent);
+    - call out the BlueField preconditions (DOCA install on the
+      BlueField Arm, BFB version, per-service firmware slot when
+      the service emulates a device, image-pull reachability to
+      NGC) as foundational, not as follow-ups;
+    - walk the smoke-before-bulk loop (pod Running → ENTRYPOINT
+      log clean → trivial liveness probe → only then bulk
+      workload);
+    - treat a failed-pod restart loop as HIGH-STAKES (no retry
+      without root-cause diagnosis);
+    - refuse to invent kubelet flags, pod-spec YAML field names,
+      the static-pod manifests directory path, or container image
+      tags from memory;
+    - apply the doca-version overlay (three version anchors: host
+      DOCA on BlueField Arm, BFB version, per-service container
+      tag);
+    - generalize the deployment runtime to AT LEAST ONE OTHER
+      DOCA service to show the runtime contract is shared and
+      only the per-service overlay changes.
+
+  A baseline agent without skills typically: invents a `docker run`
+  or `kubectl apply` invocation against a cluster API that does
+  not exist on the BlueField; invents a static-pod manifests
+  directory path and pod-spec YAML field names from upstream
+  Kubernetes intuition; invents an NGC image string from memory;
+  collapses the precondition matrix into a single "DOCA must be
+  installed" line; jumps straight to bulk workload after the pod
+  reports `Running`; treats a `CrashLoopBackOff` as a normal
+  kubelet self-healing event rather than a HIGH-STAKES diagnosis
+  trigger; conflates the per-service config schema with the
+  shared deployment runtime; cannot generalize the deployment
+  shape to a different DOCA service.
+
+prompt: |
+  I have a BlueField-3 DPU with DOCA installed on the BlueField
+  Arm and the BlueField OS image that ships with DOCA. I want to
+  deploy a DOCA service container on it — pick any canonical DOCA
+  service container you'd like to use as the worked example (DOCA
+  Telemetry Service, DOCA Firefly, DOCA BlueMan, DOCA HBN, DOCA
+  SNAP, DOCA Virtio-net are all fine), but I want you to teach me
+  the CLASS pattern that applies to every DOCA service container
+  on the BlueField, not just the one you picked.
+
+  Walk me through the deploy:
+
+  1. What is the runtime on the BlueField that actually runs DOCA
+     service containers? I keep hearing about kubelet but I also
+     don't have a Kubernetes cluster set up — what's going on?
+  2. The DOCA Container Deployment Guide says I drop a YAML pod
+     spec into some directory and kubelet picks it up. Where does
+     that directory live, and what shape does the pod spec have to
+     be? I don't want you to invent the path or the field names
+     from memory — tell me which public doc you'd consult.
+  3. What BlueField preconditions do I have to confirm BEFORE I
+     drop the pod spec? Walk them as foundational, not as
+     follow-ups. In particular, for the service you picked as the
+     worked example, are there any service-specific preconditions
+     (firmware slot, paired upstream, host-side follower) on top
+     of the cross-cutting ones?
+  4. After I drop the pod spec into the static-pod manifests
+     directory, what's the smoke I should run BEFORE I put my
+     BlueField under real workload? Walk it step by step (kubelet
+     status, container logs, per-service liveness, trivial
+     probe).
+  5. My pod went into CrashLoopBackOff. Kubelet is just going to
+     restart it forever, right? Should I let it loop and hope it
+     resolves, or is that exactly the wrong thing? Walk the
+     root-cause-first rule.
+  6. Don't quote container image tags or registry paths from
+     memory. If you don't know the exact tag for the service you
+     picked as the worked example, say so and tell me where to
+     look it up.
+  7. Do I need to worry about versions? My host DOCA is at one
+     release, but the BFB on the BlueField is at another, and the
+     container tag is yet a third thing. Walk the version
+     overlay.
+
+  After that, briefly tell me which parts of your answer would
+  carry over to a DIFFERENT DOCA service (e.g. if you picked DTS
+  for the worked example, generalize to Firefly or HBN or SNAP;
+  if you picked Firefly, generalize to DTS or HBN; etc.) —
+  identify which parts STAY THE SAME (kubelet standalone is the
+  runtime, the static-pod manifests directory is the unit of
+  operator input, the smoke-before-bulk loop is the same, the
+  three version anchors are the same, the public DOCA Container
+  Deployment Guide is canonical for the runtime, image-pull
+  reachability to NGC is a precondition, the failed-pod-restart-
+  is-HIGH-STAKES rule is the same) vs which CHANGE (the per-
+  service config schema, the per-service firmware-slot
+  precondition if any, the per-service "healthy" definition,
+  the per-service paired-workload contract, the per-service
+  safety overlay).
+
+context:
+  audience: "intermediate"
+  intent: "deploy_service"
+  prior_knowledge: "knows what a DPU and a BlueField are, has a BlueField-3 plus host with DOCA installed on the BlueField Arm, has heard of Kubernetes / kubelet but has never operated a DOCA service container before"
+  baseline_artifact: "doca-container-deployment"
+  changed_skill_in_pr: "doca-container-deployment"
+  expected_skill_co_load:
+    - "doca-container-deployment"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+
+criteria:
+  - id: "explains_kubelet_standalone_and_pod_spec_drop_pattern"
+    label: "Explains the kubelet-standalone + pod-spec-drop pattern as THE runtime on the BlueField"
+    weight: 3
+    pass_when: |
+      The agent explicitly names that DOCA service containers on
+      the BlueField are run by a kubelet in STANDALONE mode (not
+      against a Kubernetes cluster control plane / API server),
+      that the operator's unit of input is a YAML pod-spec file
+      dropped into a documented static-pod manifests directory
+      that kubelet watches locally, and that kubelet reconciles
+      files in that directory into pods on the BlueField. A
+      response that proposes `kubectl apply` against a cluster
+      API, or that treats the BlueField as a full Kubernetes
+      cluster, or that proposes a raw `docker run` on the host
+      and ignores kubelet entirely, fails.
+
+  - id: "names_standard_pod_spec_directory_and_doc_source"
+    label: "Names the static-pod manifests directory as documented, NOT invented from memory"
+    weight: 3
+    pass_when: |
+      The agent states that the static-pod manifests directory
+      path on the BlueField (the directory kubelet watches for
+      pod-spec YAML files) is named in the public DOCA Container
+      Deployment Guide, and that the agent will quote it from
+      that guide rather than inventing it. The agent must route
+      via `doca-public-knowledge-map ## DOCA services` (which
+      contains the Container Deployment Guide URL row) to find
+      the path. The agent MAY mention `/etc/kubelet.d/` or a
+      similar conventional path AS A PLACEHOLDER tied to the
+      live guide; it must NOT present that path as the
+      authoritative answer derived from memory. A response that
+      makes up a directory path with no doc reference, or that
+      quotes upstream Kubernetes prose as the contract for
+      kubelet's standalone-mode behavior on the BlueField,
+      fails.
+
+  - id: "bluefield_preconditions_named_as_foundational"
+    label: "Names firmware-slot / BFB / image-pull / DOCA-install preconditions as foundational, not follow-ups"
+    weight: 3
+    pass_when: |
+      The agent walks the BlueField preconditions UP FRONT,
+      before any pod-spec authoring step, covering at least:
+      (a) DOCA installed on the BlueField Arm and healthy
+      (route to doca-setup); (b) the BFB version on the
+      BlueField as a precondition — the BFB ships kubelet +
+      container runtime and the certified pair for the
+      per-service container tag must match; (c) image-pull
+      reachability from the BlueField to NGC (`nvcr.io`) — air
+      gap / corporate proxy / firewall concerns close here, not
+      after the pod-spec is dropped; (d) the per-service
+      firmware-slot precondition when the service the agent
+      picked emulates a host-facing PCIe device (SNAP for
+      NVMe / virtio-blk, Virtio-net Service for virtio-net) —
+      the slot must be enabled and the BlueField reset BEFORE
+      the pod is scheduled. A response that collapses these
+      into a single "DOCA must be installed" line, or that
+      surfaces the firmware-slot rule as a follow-up after the
+      pod is failing, fails.
+
+  - id: "smoke_before_bulk_loop_walked"
+    label: "Walks the smoke-before-bulk loop (pod Running → ENTRYPOINT log clean → liveness probe → only then bulk workload)"
+    weight: 3
+    pass_when: |
+      The agent walks the smoke sequence BEFORE any bulk
+      per-service workload, in this order: (a) confirm the pod
+      reached `Running` per kubelet's documented status surface
+      (no `Pending`, no `ImagePullBackOff`, no
+      `CrashLoopBackOff`); (b) read the container's ENTRYPOINT
+      log via the BlueField container manager's documented
+      log-stream command and confirm the per-service guide's
+      documented bring-up lines appear cleanly; (c) confirm the
+      service inside the container answers a trivial per-service
+      liveness probe (the per-service skill names what
+      "trivial" means; the agent should name a plausible
+      probe for the service it picked as the worked example);
+      (d) only then layer per-service bulk workload. A
+      response that jumps from "kubelet says Running" to "now
+      drive full workload" without an explicit smoke fails. A
+      response that names "smoke" but skips the
+      ENTRYPOINT-log + liveness-probe steps also fails.
+
+  - id: "failed_pod_restart_high_stakes"
+    label: "Treats failed-pod-restart as HIGH-STAKES — no retry without root-cause diagnosis"
+    weight: 3
+    pass_when: |
+      In response to question 5 of the prompt (the
+      `CrashLoopBackOff` question), the agent explicitly states
+      that letting kubelet restart-loop a recurringly-crashing
+      pod is NOT resilience — it is delayed diagnosis. The
+      agent must name the rule: a pod that has crashed more
+      than the documented threshold (or twice in a row with the
+      same exit signature) requires the operator to STOP the
+      retry loop, read the container's last full ENTRYPOINT
+      log, walk the error taxonomy from pod-spec syntax →
+      scheduling → image pull → ENTRYPOINT → volume mount →
+      network policy → version → cross-cutting host, identify
+      the root cause, and only then re-enable scheduling. A
+      response that recommends "let kubelet keep restarting,
+      it'll work itself out", or that proposes increasing the
+      restart limit without root-cause diagnosis, fails.
+
+  - id: "no_invented_kubelet_flags_or_yaml_fields"
+    label: "Does not invent kubelet flag names, pod-spec YAML field names, or the static-pod manifests directory path from memory"
+    weight: 3
+    pass_when: |
+      The agent does NOT quote a specific kubelet flag (e.g. a
+      made-up `--pod-manifest-path=/foo/bar`), a specific pod-
+      spec YAML field name presented as the BlueField-specific
+      contract, or a specific static-pod manifests directory
+      path as the authoritative answer derived from memory.
+      Instead the agent states that all three are documented
+      in the public DOCA Container Deployment Guide (for the
+      BFB version on the operator's BlueField) reached through
+      `doca-public-knowledge-map ## DOCA services`, and tells
+      the operator to look them up there. If the agent surfaces
+      a specific flag / field / path, it must clearly frame it
+      as a placeholder / sketch with the agent telling the
+      operator to replace it with the value from the live
+      guide. Inventing specific strings from memory and
+      presenting them as the answer fails — that is the
+      canonical service-skill hallucination failure mode.
+
+  - id: "version_overlay_via_doca_version"
+    label: "Surfaces the three version anchors (host DOCA on BlueField Arm + BFB + per-service container tag) and routes the body to doca-version"
+    weight: 3
+    pass_when: |
+      The agent surfaces that for any DOCA service container on
+      the BlueField, there are THREE runtime version anchors,
+      not two: (1) the host DOCA install version on the
+      BlueField Arm, (2) the BFB version on the BlueField, (3)
+      the per-service container tag pulled from NGC. The agent
+      must state that a mismatch between any two of those three
+      is the canonical "the docs say this should work but it
+      does not" failure mode. The agent SHOULD route the
+      version-handling body (four-way match rule, NGC container
+      semantics, detection chain) to `doca-version` rather
+      than re-deriving it. A response that pretends
+      `pkg-config --modversion doca-common` is the runtime
+      version anchor, or that quotes a hardcoded version from
+      memory, or that says nothing about versioning at all,
+      fails.
+
+  - id: "generalizes_to_two_named_doca_services"
+    label: "Generalizes the deployment runtime to AT LEAST TWO named DOCA services (the worked example plus one other)"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it generalizes from the worked-example service to
+      AT LEAST ONE OTHER named DOCA service (so the answer
+      names at least TWO of: DTS / Firefly / BlueMan / HBN /
+      SNAP / Virtio-net / UROM / Argus / Flow-Inspector), and
+      identifies which parts of the deployment STAY THE SAME
+      (kubelet standalone is the runtime, the static-pod
+      manifests directory is the unit of operator input, the
+      public DOCA Container Deployment Guide is canonical for
+      the runtime, image-pull reachability to NGC is a
+      precondition, the smoke-before-bulk loop is the same,
+      the three version anchors are the same, the failed-pod-
+      restart-is-HIGH-STAKES rule is the same) versus which
+      CHANGE (the per-service config schema, the per-service
+      firmware-slot precondition if any, the per-service
+      "healthy" definition, the per-service paired-workload
+      contract, the per-service safety overlay). A response
+      that walks only the worked-example service and is silent
+      on the cross-service generalization fails.

@@ -1,0 +1,268 @@
+id: "21_stream_media_with_doca_rivermax"
+name: "Stream timing-precise media / data over IP with DOCA Rivermax — class-shaped"
+description: |
+  Class-shaped media-streaming prompt. The HEADLINE is the
+  class ("stream timing-precise media / data over IP with DOCA
+  Rivermax"); the worked example is a SMPTE ST 2110 video
+  receive stream on a representor using `doca-rmax`, because
+  that is the newly-covered library in
+  skills/libs/doca-rmax.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  set up ANY timing-precise / sub-microsecond-jitter media-or-
+  data-over-IP stream that the DOCA Rivermax integration
+  surfaces (SMPTE ST 2110 audio + video, real-time market data,
+  scientific instrument streams — each one is one instance of
+  the same class). The bundle proves this by asking the agent
+  to walk: Rivermax SDK + license precondition FIRST (gate, not
+  error path), DOCA-side env preconditions, capability
+  discovery via `doca_rivermax_*_cap_*`, per-stream DOCA Core
+  lifecycle, the `doca-eth` + `doca-flow` pairing for the
+  queue + steering side, real-time scheduling discipline on the
+  streaming thread, single-frame smoke before scaling to full
+  stream rate. The same SHAPE applies to every Rivermax-
+  integration stream type; the per-stream-type details differ.
+
+  A baseline agent without skills typically: assumes DOCA
+  bundles the Rivermax engine and never surfaces the
+  Rivermax-SDK + license precondition; invents Rivermax
+  symbol names from generic streaming knowledge; quotes a
+  stream type / frame size / packet rate from memory without
+  the cap query; conflates the Rivermax per-stream object
+  lifecycle with the underlying `doca_eth_rxq` and the steering
+  Flow rule (treats them as one library instead of three);
+  silently substitutes `doca-eth` when Rivermax is unavailable
+  and pretends timing precision survives the substitution;
+  skips the single-frame smoke before pushing to the full
+  stream rate.
+
+prompt: |
+  I have a host with a BlueField-3 DPU and DOCA installed. I
+  want to set up a SMPTE ST 2110 video RECEIVE stream on a
+  representor of one of the BlueField ports, using
+  `doca-rmax`, so my user-space agent can consume timing-
+  precise 1080p video over IP. Eventually this will feed a
+  broadcast-production pipeline, but right now I just want one
+  frame to arrive cleanly so I know the stream is alive.
+
+  Walk me through the setup: what I have to check on the env
+  side BEFORE writing any code (Rivermax-side AND DOCA-side,
+  in that order — I've never used Rivermax before so I need
+  you to be explicit about what's a DOCA concern vs what's a
+  separate Rivermax SDK concern), which `doca_rivermax_*_cap_*`
+  queries I must run against the active `doca_devinfo` before
+  picking a stream type or assuming the frame size + packet
+  rate I want is supported, the universal DOCA Core context
+  lifecycle I have to follow on the per-integration context
+  AND on the per-stream session (I want to make sure I get
+  that right), how the queue side (`doca-eth`) and the
+  steering side (`doca-flow`) relate to this (I know they
+  exist but I'm not sure where the boundaries are), what
+  real-time scheduling discipline you'd recommend on the
+  streaming thread, and what single-frame smoke test you'd
+  recommend before I start driving the full stream rate.
+
+  If at any point I tell you I cannot install Rivermax or
+  cannot get a license, tell me HONESTLY whether
+  `doca-rmax` is still usable for me, and if not what the
+  closest fallback is and what it would cost me in terms of
+  timing properties — don't paper over the trade-off.
+
+  After that, briefly tell me which parts of your answer would
+  carry over to a DIFFERENT use of vanilla `doca-eth` (no
+  Rivermax integration) — for example best-effort packet I/O
+  on the same queue — and identify which parts stay the same
+  vs which change.
+
+context:
+  audience: "intermediate"
+  intent: "configure_library_context"
+  prior_knowledge: "knows what a DPU and a representor are, has a BlueField-3 plus host, has done at least one DOCA build before but has never used DOCA Rivermax or the Rivermax SDK specifically, does not yet know whether the Rivermax SDK is installed on the host"
+  baseline_artifact: "doca-rmax"
+  changed_skill_in_pr: "libs/doca-rmax"
+  expected_skill_co_load:
+    - "doca-rmax"
+    - "doca-eth"
+    - "doca-flow"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "rivermax_sdk_and_license_precondition_first"
+    label: "Confirms Rivermax SDK installed AND license present BEFORE any DOCA-side concern"
+    weight: 3
+    pass_when: |
+      The agent's FIRST step is to confirm two hard external
+      preconditions, in this order: (a) the NVIDIA Rivermax
+      SDK is installed on the host (separately from DOCA —
+      DOCA does NOT bundle Rivermax), and (b) a valid
+      Rivermax license is present and readable by the user
+      the streaming process will run as. The agent must
+      surface that these are GATES — not error paths — and
+      that without both, `doca-rmax` cannot function
+      regardless of how clean the DOCA-side code is. A
+      response that jumps to `doca_rivermax_*` calls without
+      naming BOTH the Rivermax SDK install and the Rivermax
+      license, or that treats them as a runtime error to
+      diagnose rather than a precondition to verify, fails.
+
+  - id: "no_silent_fallback_to_vanilla_doca_eth"
+    label: "Refuses to substitute doca-eth as a silent fallback that would lose timing properties"
+    weight: 2
+    pass_when: |
+      When the prompt's contingency clause ("if I tell you I
+      cannot install Rivermax or cannot get a license") is
+      addressed, the agent tells the user HONESTLY that
+      without Rivermax, `doca-rmax` cannot be used,
+      names `doca-eth` (best-effort) or `doca-gpunetio`
+      (GPU-initiated best-effort) as the closest alternative,
+      AND explicitly states that the alternative LOSES the
+      sub-microsecond-jitter / timing-precise guarantee that
+      is the whole point of Rivermax. A response that
+      silently substitutes `doca-eth` and pretends the
+      timing properties survive, OR that promises a workaround
+      inside `doca-rmax` that lets it work without a
+      Rivermax license, fails.
+
+  - id: "capability_query_rule_called_out"
+    label: "Calls out doca_rivermax_*_cap_* before assuming stream type / frame size / packet rate"
+    weight: 2
+    pass_when: |
+      The agent says the user MUST query, against the active
+      `doca_devinfo`, the matching `doca_rivermax_*_cap_*`
+      family for the chosen stream type, frame size, and
+      packet rate BEFORE assuming any specific timing-precise
+      configuration is feasible on this device + this
+      Rivermax SDK version. The agent must frame the cap
+      query as the runtime authority (not the public docs).
+      A response that quotes a specific stream type / frame
+      size / packet rate from memory without naming the cap
+      query, or that asserts SMPTE ST 2110 video is available
+      on every BlueField without the cap query, fails.
+
+  - id: "doca_core_lifecycle_per_stream_and_per_integration"
+    label: "DOCA Core lifecycle walked on the per-integration context AND each per-stream session"
+    weight: 2
+    pass_when: |
+      The agent explicitly states that the per-integration
+      `doca_rivermax` context AND each per-stream input /
+      output session are separate DOCA Core contexts, each
+      with its own `doca_ctx_create` / `_start` / `_stop` /
+      `_destroy` lifecycle, and that one `doca_ctx_start()`
+      on the per-integration context does NOT cover the
+      per-stream sessions. The agent should also call out the
+      PE progress (`doca_pe_progress`) requirement for events
+      to fire. A response that walks a single lifecycle "for
+      Rivermax" without distinguishing the two layers fails.
+
+  - id: "doca_eth_and_doca_flow_pairing_named"
+    label: "Names the doca-eth (queue) + doca-flow (steering) pairing as separate libraries"
+    weight: 2
+    pass_when: |
+      The agent explicitly states that `doca-rmax` is the
+      Rivermax integration surface, `doca-eth` is the queue
+      surface that carries the packets (`doca_eth_rxq` for
+      input streams), and `doca-flow` is the steering surface
+      that decides which packets land on which queue — three
+      independent libraries with three independent lifecycles.
+      The agent must NOT invent a queue or steering API
+      inside `doca-rmax`. A response that conflates any
+      two of the three surfaces, or that proposes that
+      `doca-rmax` programs steering itself, fails.
+
+  - id: "single_frame_smoke_before_full_rate"
+    label: "Single-frame smoke before driving full stream rate"
+    weight: 1
+    pass_when: |
+      The agent recommends a single-frame smoke (one frame /
+      chunk of the configured stream type, one completion
+      event) as the FIRST functional test, before any
+      full-stream-rate traffic. A response that jumps from
+      `doca_ctx_start()` to "now drive the full ST 2110 rate"
+      without an explicit single-frame smoke fails.
+
+  - id: "no_hallucinated_api"
+    label: "Does not invent doca_rivermax_* API symbols"
+    weight: 2
+    pass_when: |
+      Every `doca_rivermax_*` (or `doca_ctx_*`, `doca_pe_*`)
+      symbol the agent mentions is either in the public DOCA
+      Rivermax surface that the skill documents (the
+      per-integration `doca_rivermax` context, per-stream
+      input / output session objects driven by the standard
+      DOCA Core context lifecycle, the
+      `doca_rivermax_*_cap_*` family for capability discovery)
+      or it is explicitly framed as pseudocode / sketch with
+      the agent telling the user to read the exact symbol
+      name from the installed headers
+      (`/opt/mellanox/doca/infrastructure/include/`) or from
+      the public DOCA Rivermax guide. A response that invents
+      symbol names like `doca_rivermax_quick_init()`,
+      `doca_rivermax_stream_easy_start()`, or that quotes a
+      Rivermax-side SDK function from memory, fails — that
+      is the baseline-agent hallucination failure mode the
+      bundle exists to prevent.
+
+  - id: "scheduling_discipline_named"
+    label: "Names real-time scheduling discipline on the streaming thread"
+    weight: 1
+    pass_when: |
+      The agent calls out that the streaming thread should
+      run at real-time priority (per the Rivermax SDK's
+      recommended scheduling discipline) for the sub-
+      microsecond-jitter property to hold, and routes the
+      canonical scheduling guidance to the public Rivermax
+      SDK guide via `doca-public-knowledge-map` rather than
+      inventing scheduler flags from memory. A response that
+      omits the scheduling-discipline concern entirely, or
+      that quotes a specific `sched_setscheduler` /
+      `chrt` invocation as if it were Rivermax's official
+      recommendation, fails.
+
+  - id: "version_overlay_named"
+    label: "Quotes pkg-config --modversion doca-rmax AND surfaces the Rivermax SDK version as a second axis"
+    weight: 1
+    pass_when: |
+      The agent surfaces TWO version axes: (a) the DOCA-side
+      version via `pkg-config --modversion doca-rmax`
+      (confirmed against `doca_caps --version`) before
+      claiming a capability is available, AND (b) the
+      Rivermax SDK version is a second compatibility axis
+      because the underlying timing-precise engine ships
+      with the Rivermax SDK on its own version schedule. The
+      agent should also name that the device-side cap query
+      against `doca_devinfo` is the runtime authority on top
+      of both. A response that quotes a DOCA version pin from
+      memory, or that promises a feature without naming
+      either the version anchor or the cap query, or that
+      treats the DOCA-side `.pc` version as the only axis,
+      fails.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from doca-rmax to vanilla doca-eth and identifies what stays the same vs changes"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it generalizes from the SMPTE ST 2110 video
+      Rivermax worked example to a DIFFERENT use of vanilla
+      `doca-eth` (best-effort packet I/O on the same queue,
+      with no Rivermax integration), and identifies which
+      parts STAY THE SAME (the DOCA Core lifecycle per
+      context, the `doca_*_cap_*` capability-query rule
+      against `doca_devinfo`, the env preconditions checked
+      FIRST, the single-packet / single-frame smoke before
+      scale-up, the queue lives in `doca-eth` and the
+      steering lives in `doca-flow` regardless of whether
+      Rivermax is layered on top) versus which CHANGE (the
+      Rivermax SDK + license precondition disappears
+      entirely for vanilla `doca-eth`; timing precision is
+      NOT preserved — best-effort `doca-eth` makes no
+      sub-microsecond-jitter guarantee; the real-time
+      scheduling discipline is no longer a hard requirement
+      but a best practice; the `doca_rivermax_*_cap_*`
+      family is replaced by `doca_eth_*_cap_*`). A response
+      that walks only the Rivermax case and is silent on
+      generalization fails this criterion.

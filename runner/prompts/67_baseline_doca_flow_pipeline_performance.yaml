@@ -1,0 +1,367 @@
+id: "67_baseline_doca_flow_pipeline_performance"
+name: "Measure baseline doca-flow pipeline performance for a class-of-traffic workload and produce a methodologically defensible perf number — class-shaped"
+description: |
+  Class-shaped host-side Flow-perf baseline prompt. The
+  HEADLINE is the class ("measure baseline doca-flow pipeline
+  performance for a class-of-traffic workload using
+  `doca_flow_perf`, and produce a methodologically defensible
+  rule-install / delete / query rate number on this hardware
+  with this DOCA version"); the worked example is a 5-tuple
+  match-and-hairpin workload on BlueField-3 because the
+  shipped `configs/` library expresses that class directly
+  and it is one of the most common reference workloads for
+  the host-side Flow path. The newly-covered tool is
+  `skills/tools/doca-flow-perf`.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how
+  to drive ANY host-side Flow-perf-baseline question:
+  identify which shipped `configs/` JSON policy expresses
+  the operator's traffic class; commit to a backend (DPDK or
+  DOCA) and explicitly report which one; capture the
+  four-tuple (DOCA version, BlueField generation, firmware
+  version, JSON policy contents, backend choice,
+  worker / queue / burst / iteration config); refuse to
+  invent CLI flag spellings or JSON schema keys; refuse to
+  quote published Kops/sec numbers from memory as
+  authoritative; route the measurement-vs-optimization
+  boundary to `doca-flow-tune`; route the host-vs-DPA-path
+  boundary to `doca-flow-dpa-perf`; route the
+  end-to-end-throughput question OUT of flow-perf entirely
+  (that is NOT what flow-perf measures); enforce
+  smoke-before-bulk; iterate the scaled measurement enough
+  times to establish variance; cross-check against the
+  `doca-flow` library's own view; generalize to another
+  shipped policy class or another platform generation.
+
+  A baseline agent without skills typically: defaults to a
+  flag string from a blog post that may not match the
+  shipped binary's `--help`; invents JSON schema keys not in
+  any shipped `configs/` exemplar; reports a single-iteration
+  Kops/sec number as defensible; silently picks a backend
+  (or worse, doesn't say which one); conflates flow-perf
+  with flow-tune ("measure to optimize"); claims flow-perf
+  measures end-to-end throughput; treats published Kops/sec
+  in release notes as comparable across DOCA versions /
+  BlueField generations / firmware versions; runs the
+  scaled measurement straight away without a smoke; doesn't
+  cross-check against the underlying `doca-flow` library's
+  own counter / inspector view.
+
+prompt: |
+  I have a BlueField-3 with DOCA installed, and I am being
+  asked to produce a "host-side rules-per-second" number for
+  our `doca-flow` pipeline so my team can compare it across
+  our matrix of DOCA versions and firmware versions over
+  time. The workload class is a basic 5-tuple match (src-IP,
+  dst-IP, src-port, dst-port, protocol) with a hairpin
+  forwarding action between two ports on the same device. I
+  have `doca_flow_perf` available on the install.
+
+  Walk me through:
+
+  1. First, is `doca_flow_perf` actually the right tool for
+     this question? Be honest about its perimeter — tell me
+     what `doca_flow_perf` MEASURES and what it does NOT
+     measure. In particular: do you measure end-to-end
+     packet throughput across the rules? Do you measure
+     dataplane packet latency? Do you measure anything
+     dataplane-side at all, or only the control-plane cost
+     of installing / deleting Flow rules? Be explicit — if my
+     real question is "how fast does the dataplane forward
+     packets through these rules", say so and tell me what
+     I should reach for instead.
+  2. Differentiate `doca_flow_perf` from `doca_flow_tune` and
+     from `doca_flow_dpa_perf` for me. They all mention
+     `doca-flow` in their names; when do I reach for each?
+     Specifically (a) measurement-vs-optimization (flow-perf
+     vs flow-tune), and (b) host / DPU-CPU path vs.
+     DPA-offloaded path (flow-perf vs flow-dpa-perf). If my
+     pipeline is supposed to run on DPA, I am asking the
+     wrong tool.
+  3. Locate the AUTHORITATIVE policy JSON for my 5-tuple
+     hairpin workload. I have heard of the `configs/`
+     library shipped with the tool. Which canned JSON do I
+     start from, what do I copy / edit forward to my
+     per-run working file, and which fields am I safe to
+     edit (entry count? value steps?) versus which fields
+     change the workload class entirely? I do NOT want you
+     to invent JSON keys that aren't in any shipped exemplar
+     — if I ask for a field you don't see in the shipped
+     `configs/`, tell me you don't see it and tell me where
+     to look (the public DOCA Flow Perf guide on
+     `docs.nvidia.com`).
+  4. Walk me through the BACKEND decision. The tool ships
+     two backends behind the same JSON contract — DPDK and
+     DOCA. Which one do I pick and why? What does each
+     backend's path actually exercise? And critically —
+     why do I have to REPORT which backend I picked when I
+     publish the resulting Kops/sec number? Do NOT silently
+     default to one backend; surface the choice as the
+     operator's.
+  5. Walk me through the methodology knobs I have to commit
+     to: number of workers, queue size, burst size,
+     iteration count, `num_inserted_entries`. For each one,
+     tell me how it affects what I am measuring and whether
+     varying it across runs invalidates the comparison.
+  6. Tell me the FIRST thing I should run on this hardware.
+     I want the cheapest single-iteration smoke that proves
+     the JSON policy parses, the underlying `doca-flow`
+     library can create the pipeline, and the device can
+     install the rules. Then — and ONLY then — walk me
+     through scaling up to my full workload and iterating
+     enough times to establish variance. Tell me what
+     passing each step looks like, what failing looks like,
+     and what to do next in each case. Do NOT skip the
+     smoke and go straight to the scaled run.
+  7. Tell me what I MUST CAPTURE alongside the reported
+     number for it to be defensible. The bundle calls this
+     a "four-tuple" (actually it's broader than four — call
+     it the capture set). Walk me through every leg of it:
+     DOCA version, BlueField generation, firmware version,
+     the JSON policy contents verbatim, the backend choice,
+     the worker / queue / burst / iteration configuration,
+     the per-iteration cycle output. Why is each leg
+     required for someone else to either reproduce my
+     number or rule out a difference between our runs?
+  8. If the scaled run reports `num_failed > 0`, or the
+     per-iteration variance is too high to give a
+     defensible number, or the number is implausibly
+     different from the reference numbers I see in NVIDIA's
+     release notes — walk me through the layered diagnosis.
+     I want to know which layer I am in
+     (tool-not-installed / JSON-malformed /
+     pipeline-creation-failed / insertion-rate-failure /
+     iteration-variance-too-high / version /
+     cross-cutting) and which skill or public doc I should
+     be reading at each layer. Tell me when I am supposed
+     to STOP retrying and escalate. And tell me explicitly
+     that the release-notes published numbers are NOT
+     directly comparable across DOCA versions / BlueField
+     generations / firmware versions — the agent must
+     refuse to claim they are.
+
+  After that, briefly generalize: name ONE OTHER instance
+  of this class — for example, switching from the 5-tuple
+  match-and-hairpin workload to a VXLAN-decap workload on
+  the same BlueField-3 (different shipped `configs/`
+  policy), OR keeping the 5-tuple workload but switching
+  from BlueField-3 to ConnectX-7 (different device
+  generation, same workload class) — and identify which
+  parts of your answer above STAY THE SAME (the
+  smoke-before-bulk loop, the four-tuple capture rule, the
+  per-iteration variance rule, the backend-report rule,
+  the no-end-to-end-throughput rule) versus which CHANGE
+  (which shipped `configs/` JSON applies, which device-mode
+  preconditions apply, which matchers / actions the device
+  supports, which published reference number is
+  comparable).
+
+context:
+  audience: "intermediate"
+  intent: "baseline_host_side_doca_flow_rule_rate"
+  prior_knowledge: "has DOCA installed on a BlueField-3, has a 5-tuple match-and-hairpin workload class in mind, has heard of doca-flow-perf and the configs/ JSON library, wants to baseline a number for cross-release comparison, has not run doca-flow-perf before, may confuse it with doca-flow-tune or with end-to-end throughput measurement"
+  baseline_artifact: "doca-flow-perf"
+  changed_skill_in_pr: "tools/doca-flow-perf"
+  expected_skill_co_load:
+    - "doca-flow-perf"
+    - "doca-flow"
+    - "doca-flow-tune"
+    - "doca-flow-dpa-perf"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+    - "doca-hardware-safety"
+
+criteria:
+  - id: "perimeter_what_flow_perf_does_and_does_not_measure"
+    label: "Explicitly states the flow-perf perimeter — control-plane rule rate, NOT dataplane throughput / latency"
+    weight: 3
+    pass_when: |
+      In response to question 1, the agent explicitly states
+      that `doca_flow_perf` measures the CONTROL-PLANE cost
+      of installing, deleting, and (optionally) querying
+      Flow rules — i.e. the rule-install / delete / query
+      rate — and that it does NOT measure dataplane packet
+      throughput, end-to-end packet latency, or
+      hardware-side rule execution rate. If the user's real
+      question is end-to-end throughput, the agent must say
+      so and route OUT of flow-perf (e.g. to a packet-side
+      measurement layered on `doca-flow`, NOT to flow-perf).
+      A response that claims flow-perf measures dataplane
+      throughput or end-to-end latency, or that omits the
+      perimeter, fails.
+
+  - id: "measurement_vs_optimization_vs_dpa_boundaries"
+    label: "Differentiates flow-perf from flow-tune and flow-dpa-perf"
+    weight: 3
+    pass_when: |
+      In response to question 2, the agent draws two
+      boundaries clearly: (a) measurement vs.
+      optimization — flow-perf measures, flow-tune
+      optimizes a deployed pipeline; the agent must say
+      "if the user wants to OPTIMIZE the pipeline rather
+      than MEASURE it, route to `doca-flow-tune`"; and (b)
+      host / DPU-CPU path vs. DPA-offloaded path —
+      flow-perf measures the path on the host or DPU-CPU,
+      flow-dpa-perf measures the path that executes on the
+      DPA processor; the agent must say "if the target
+      pipeline is supposed to run on DPA, route to
+      `doca-flow-dpa-perf`". A response that conflates
+      flow-perf with flow-tune, or that treats flow-perf
+      as the right tool for the DPA-offloaded path, fails.
+
+  - id: "configs_json_library_as_schema_by_example"
+    label: "Routes JSON policy authoring through the shipped configs/ exemplars and refuses to invent JSON keys"
+    weight: 3
+    pass_when: |
+      In response to question 3, the agent points the user
+      to the shipped `configs/` directory of canned JSON
+      policies as the schema by example. The agent names a
+      concrete candidate (e.g. a `5_tuple_hairpin`-class or
+      similar JSON in `configs/`) but treats the file name
+      as a placeholder for the operator to confirm against
+      the actual install, not as a memorized fact. The
+      agent distinguishes safe edits (entry count, value
+      steps) from edits that change the workload class
+      (match field structure, action list). The agent
+      explicitly REFUSES to invent JSON keys not present in
+      any shipped exemplar; if the operator wants a field
+      the agent cannot point to in the shipped exemplars,
+      the agent says so and routes to the public DOCA Flow
+      Perf guide on `docs.nvidia.com` (via
+      `doca-public-knowledge-map ## DOCA tools`). A
+      response that invents JSON keys, that omits the
+      `configs/` library, or that asserts a specific
+      memorized JSON file name as authoritative without
+      asking the user to confirm, fails.
+
+  - id: "backend_choice_must_be_reported"
+    label: "Surfaces the DPDK vs DOCA backend choice as load-bearing and requires it to be reported"
+    weight: 3
+    pass_when: |
+      In response to question 4, the agent explicitly
+      surfaces that `doca_flow_perf` ships TWO backends
+      behind the same JSON contract — DPDK and DOCA — and
+      that the implementation path differs even when the
+      JSON workload description is identical. The agent
+      must NOT silently default to one backend; it must
+      require the operator to commit to one and REPORT
+      which one in the captured methodology. The agent
+      explains what each backend's path exercises (DPDK
+      backend: rule path via `rte_flow`; DOCA backend:
+      rule path via native `doca-flow` programming). A
+      response that omits the backend choice, that
+      silently defaults to one, or that fails to require
+      the operator to report it, fails.
+
+  - id: "smoke_before_bulk_loop"
+    label: "Walks single-iteration smoke BEFORE the scaled measurement, then iterates for variance"
+    weight: 3
+    pass_when: |
+      In response to questions 5 and 6, the agent walks
+      the explicit ordered flow: (a) FIRST run a
+      single-iteration smoke at small entry count + small
+      iteration count on the chosen JSON policy; (b) THEN
+      confirm `num_failed == 0` and the underlying
+      `doca-flow` library view agrees; (c) THEN scale up
+      to the operator's full workload; (d) THEN repeat the
+      scaled run multiple times (3-10) to establish
+      variance; (e) THEN report a number with variance
+      bounds, NOT a single-iteration result. The agent
+      must explicitly state that a single-iteration
+      result is NOT defensible and that variance must be
+      established before reporting. A response that
+      collapses the sequence, that skips the smoke, or
+      that reports a single-iteration number as
+      defensible, fails.
+
+  - id: "four_tuple_capture_for_defensibility"
+    label: "Requires capturing the four-tuple (DOCA version, BlueField generation, firmware, JSON, backend, workload knobs) alongside every reported number"
+    weight: 3
+    pass_when: |
+      In response to question 7, the agent enumerates the
+      capture set required for every reported flow-perf
+      number: DOCA version, BlueField / ConnectX
+      generation, firmware version, BlueField mode, the
+      JSON policy contents verbatim (not paraphrased), the
+      backend choice (DPDK or DOCA), the worker / queue /
+      burst / iteration configuration, the per-iteration
+      cycle output. The agent must explain why each leg
+      is required for someone else to reproduce or
+      compare. The agent must NOT treat the capture as
+      optional and must explicitly state that a flow-perf
+      number lacking any leg of the capture set is not
+      defensible. A response that omits the capture set,
+      that lists only a subset of the legs, or that
+      treats capture as a post-hoc nicety, fails.
+
+  - id: "layered_error_taxonomy_and_release_notes_warning"
+    label: "Walks the layered error taxonomy AND refuses to claim release-notes numbers are cross-comparable"
+    weight: 3
+    pass_when: |
+      In response to question 8, the agent walks the
+      layered error taxonomy in order: tool-not-installed
+      → JSON-malformed → pipeline-creation-failed →
+      insertion-rate-failure → iteration-variance-too-high
+      → version → cross-cutting. For each layer the agent
+      names which skill or public doc to consult
+      (`doca-setup`, `doca-flow`, `doca-version`,
+      `doca-debug`). Critically, the agent must
+      EXPLICITLY refuse to claim NVIDIA-published
+      release-notes Kops/sec numbers are directly
+      comparable across DOCA versions / BlueField
+      generations / firmware versions — the four-tuple
+      must match for a comparison to be apples-to-apples;
+      the agent must say so. A response that omits any
+      layer, that asserts release-notes numbers are
+      cross-comparable, or that treats variance as
+      something to silently average away, fails.
+
+  - id: "no_invented_flags_or_json_keys"
+    label: "Does not invent CLI flag spellings, JSON schema keys, or default Kops/sec numbers"
+    weight: 3
+    pass_when: |
+      The agent does NOT quote a specific `doca_flow_perf`
+      CLI flag spelling, a JSON schema key, or a
+      published Kops/sec number from memory as
+      authoritative. Instead the agent states that the
+      authoritative source for flag spellings is the
+      installed binary's `--help` plus the public DOCA
+      Flow Perf guide on `docs.nvidia.com` (reachable via
+      `doca-public-knowledge-map ## DOCA tools`), the
+      authoritative source for JSON schema is the shipped
+      `configs/` exemplars on the user's install, and
+      published reference numbers live in the release
+      notes per the matching four-tuple. If the agent
+      DOES surface a candidate flag or JSON key, it must
+      frame it as a sketch / placeholder with the user
+      told to verify it against `--help` / the shipped
+      `configs/`. Inventing a flag spelling, a JSON key,
+      or a Kops/sec value and presenting it as
+      authoritative fails — that is the canonical
+      hallucination failure mode for this skill.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from 5-tuple-hairpin on BlueField-3 to another policy class or another platform generation"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the generalization
+      part of the prompt: it walks at least ONE OTHER
+      instance — either switching the workload class
+      (e.g. to a VXLAN-decap shipped policy in the same
+      `configs/` library, on the same BlueField-3), OR
+      keeping the 5-tuple workload class but switching the
+      platform generation (e.g. from BlueField-3 to
+      ConnectX-7 or a newer BlueField) — and identifies
+      which parts STAY THE SAME (the smoke-before-bulk
+      loop, the four-tuple capture rule, the
+      per-iteration variance rule, the backend-report
+      rule, the no-end-to-end-throughput perimeter rule)
+      versus which CHANGE (which shipped `configs/` JSON
+      applies, which device-mode preconditions apply,
+      which matchers / actions the device supports, which
+      published reference number is comparable). A
+      response that walks only the worked example and is
+      silent on the broader class fails this criterion.
