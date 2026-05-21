@@ -158,7 +158,7 @@ layers the agent should distinguish, in escalating order:
    counter set / column set / kernel-identifier shape it
    reports disagrees with what the host-side `doca-pcc`
    library actually exposed at runtime. Cause: the counter
-   tool and the `doca-pcc.so` came from different DOCA
+   tool and the `libdoca_pcc.so` came from different DOCA
    installs (DOCA upgraded, the PCC subpackage did not, or
    vice versa). This is the partial-install hazard the
    version overlay above is for; route to

@@ -7,8 +7,16 @@ kind: tool
 # DOCA SHA Offload Engine
 
 **Where to start:** This is a tool skill for the OpenSSL
-ENGINE shipped under `doca/tools/sha_offload_engine/`
-(`libdoca_sha_offload_engine.so`). It is **not a CLI** —
+ENGINE shipped in the DOCA SOURCE tree under
+`doca/tools/sha_offload_engine/` and INSTALLED on the host
+under `${DOCA_DIR}/tools/doca_sha_offload_engine/` as
+`libdoca_sha_offload_engine.so`. The directory-name shift
+(`sha_offload_engine` in the source layout vs
+`doca_sha_offload_engine` in the install layout) is an
+NVIDIA packaging convention, not a bundle inconsistency;
+both forms appear below and are the same artifact at
+different lifecycle stages — quote whichever the prompt is
+about (build-from-source vs runtime-load). It is **not a CLI** —
 it is a shared object loaded by an OpenSSL-based
 application or by `openssl` itself, that re-routes SHA-1 /
 SHA-256 / SHA-512 (one-shot only, via the `EVP_Digest`

@@ -60,9 +60,9 @@ if [[ "${1:-}" == "--self-test" ]]; then
 
     # Each entry: "label|path|sed-pattern-to-break"
     perturbations=(
-        "AGENTS.md verification contract|AGENTS.md|s/^### The universal verification contract$/### BROKEN VC HEADER/"
-        "AGENTS.md debug-loop contract|AGENTS.md|s/^### The universal debug-loop contract$/### BROKEN DLC HEADER/"
-        "AGENTS.md binding stanza|AGENTS.md|s/^### Hardware binding-layer command stanza$/### BROKEN BS HEADER/"
+        "AGENTS.md verification contract|AGENTS.md|s/^## The universal verification contract$/## BROKEN VC HEADER/"
+        "AGENTS.md debug-loop contract|AGENTS.md|s/^## The universal debug-loop contract$/## BROKEN DLC HEADER/"
+        "AGENTS.md binding stanza|AGENTS.md|s/^## Hardware binding-layer command stanza$/## BROKEN BS HEADER/"
         "AGENTS.md canonical teasers (Step 4)|AGENTS.md|s/^### Canonical answer-shape teasers/### BROKEN CT HEADER/"
         "doca-setup deploy-loop bridge (Step 4)|skills/doca-setup/CAPABILITIES.md|s/^### Deploy-loop bridge/### BROKEN DLB HEADER/"
         "doca-setup verification contract|skills/doca-setup/CAPABILITIES.md|s/^## Universal verification contract$/## BROKEN UVC HEADER/"
@@ -209,15 +209,15 @@ printf '=== AGENTS.md cross-cutting trigger keystones ===\n'
 check 'AGENTS.md ## Cross-cutting overlay activation triggers' \
     "${BUNDLE_ROOT}/AGENTS.md" \
     '^## Cross-cutting overlay activation triggers$'
-check 'AGENTS.md ### The universal verification contract' \
+check 'AGENTS.md ## The universal verification contract' \
     "${BUNDLE_ROOT}/AGENTS.md" \
-    '^### The universal verification contract$'
-check 'AGENTS.md ### The universal debug-loop contract' \
+    '^## The universal verification contract$'
+check 'AGENTS.md ## The universal debug-loop contract' \
     "${BUNDLE_ROOT}/AGENTS.md" \
-    '^### The universal debug-loop contract$'
-check 'AGENTS.md ### Hardware binding-layer command stanza' \
+    '^## The universal debug-loop contract$'
+check 'AGENTS.md ## Hardware binding-layer command stanza' \
     "${BUNDLE_ROOT}/AGENTS.md" \
-    '^### Hardware binding-layer command stanza$'
+    '^## Hardware binding-layer command stanza$'
 check 'AGENTS.md ### Canonical answer-shape teasers (Step 4)' \
     "${BUNDLE_ROOT}/AGENTS.md" \
     '^### Canonical answer-shape teasers'

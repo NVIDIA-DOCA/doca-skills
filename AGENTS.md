@@ -85,7 +85,7 @@ The agent MUST:
 3. **Cite the overlay in the answer.** When the agent loaded an overlay because of a trigger, the answer must say so explicitly (e.g. *"because this touches `mlxconfig`, the answer follows the `doca-hardware-safety ## modify` discipline — pre-flight inventory, out-of-band, maintenance window, apply, verify, rollback"*). This makes the activation auditable.
 4. **Refuse to proceed when an overlay's hard rule is violated.** If `doca-hardware-safety` says *"refuse-and-escalate when no rollback exists"*, and the user's setup has no rollback, the agent must stop and say so. It must NOT proceed with the change because the user pushed back.
 
-### The universal verification contract
+## The universal verification contract
 
 Every answer that recommends a change (build, deploy, configure, modify) MUST end with the **5-step universal verification contract** defined in [`doca-setup CAPABILITIES.md ## Universal verification contract`](skills/doca-setup/CAPABILITIES.md#universal-verification-contract):
 
@@ -109,9 +109,9 @@ An answer that runs only `doca_caps --version` (a version probe) and declares th
 
 ## Deploy-loop bridge
 
-**Not-green at step 5 is the debug-loop trigger.** Real deploys frequently land on not-green at step 5 (`Ready 0/1`, port `Down`, counter flat, log line absent, `systemd active (running)` followed by repeated restarts) and the failure mode is to *declare done anyway* because the change "looks applied." Every change-recommending answer MUST treat "step 5 observability did NOT reach the named green signal within the expected window" — or "step 3 smoke probe itself did not return green" — as the symptom that fires the [universal debug-loop contract](#the-universal-debug-loop-contract) on the change-not-converging symptom. The agent walks the 5-phase debug-loop on the not-green observability surface (layer identification → triple capture → single-variable mutation smaller than the original change → re-capture → exit), bounded to one iteration before the rollback path documented at step 1 is walked. See [`doca-setup CAPABILITIES.md ## Deploy-loop bridge`](skills/doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger) for the full bridge table. This converts deploy / configure / install / upgrade prompts that previously stopped at *"watch the metric for green"* into prompts that say *"watch the metric for green; if not-green within X, walk the debug-loop on the not-green symptom; if the loop's second iteration does not converge, walk the rollback path."*
+**Not-green at step 5 is the debug-loop trigger.** Real deploys frequently land on not-green at step 5 (`Ready 0/1`, port `Down`, counter flat, log line absent, `systemd active (running)` followed by repeated restarts) and the failure mode is to *declare done anyway* because the change "looks applied." Every change-recommending answer MUST treat "step 5 observability did NOT reach the named green signal within the expected window" — or "step 3 smoke probe itself did not return green" — as the symptom that fires the [`## The universal debug-loop contract`](#the-universal-debug-loop-contract) on the change-not-converging symptom. The agent walks the 5-phase debug-loop on the not-green observability surface (layer identification → triple capture → single-variable mutation smaller than the original change → re-capture → exit), bounded to one iteration before the rollback path documented at step 1 is walked. See [`doca-setup CAPABILITIES.md ## Deploy-loop bridge`](skills/doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger) for the full bridge table. This converts deploy / configure / install / upgrade prompts that previously stopped at *"watch the metric for green"* into prompts that say *"watch the metric for green; if not-green within X, walk the debug-loop on the not-green symptom; if the loop's second iteration does not converge, walk the rollback path."*
 
-### The universal debug-loop contract
+## The universal debug-loop contract
 
 Every answer that diagnoses a symptom (build error, link error, runtime error, `DOCA_ERROR_*`, segfault, hang, *"does nothing on the wire"*, *"counter didn't increment"*) MUST instantiate the **5-phase debug-loop contract** defined in [`doca-debug CAPABILITIES.md ## Universal debug-loop contract`](skills/doca-debug/CAPABILITIES.md#universal-debug-loop-contract):
 
@@ -173,7 +173,7 @@ Every orientation or first-app answer MUST surface the two canonical patterns ex
 
 Both teasers must appear in any orientation / first-app answer, in addition to the routing pointer (which skill to load next once the user names a library). Skipping the build-line teaser is the failure mode that previously left orientation answers PARTIAL on the build-wrappers criterion; skipping the first-app teaser is the failure mode that drops the agent into prose code-synthesis (forbidden by ground rule 5).
 
-### Hardware binding-layer command stanza
+## Hardware binding-layer command stanza
 
 Every hardware-touching answer (system recognition, representor configuration, NUMA / IRQ / queue pinning, *"does nothing on the wire"* runtime debug, any `doca-hardware-safety`-triggering change) MUST instantiate the **binding-layer command stanza** defined in [`doca-setup CAPABILITIES.md ## Hardware binding-layer command stanza`](skills/doca-setup/CAPABILITIES.md#hardware-binding-layer-command-stanza). The stanza is read-only — running it is always safe — and consists of six rows:
 

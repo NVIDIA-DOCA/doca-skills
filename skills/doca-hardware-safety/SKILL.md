@@ -89,7 +89,7 @@ is the same one referenced from
 mirrored here so a per-artifact skill that already loaded this skill
 has the activation rule at hand.
 
-### Agent activation checklist — load this skill at the START of the answer when any cell below is true
+## Agent activation checklist — load this skill at the START of the answer when any cell below is true
 
 | Trigger class | Concrete prompt-side signals (any one fires the overlay) |
 | --- | --- |
@@ -105,7 +105,7 @@ When any cell above fires, the agent MUST load this skill **before** composing t
 
 The activation is **mandatory, not advisory.** The most common failure mode this overlay prevents is *"the agent recommended a `mlxconfig` change with no maintenance window, no out-of-band path, and no rollback statement, the user applied it, the management link dropped, and the box was unrecoverable without a physical console."* The cost of one unjustified activation (a few extra paragraphs in the answer) is trivial compared to the cost of one missed activation.
 
-### Refuse-and-escalate is a hard rule
+## Refuse-and-escalate is a hard rule
 
 If any of the following is true, the agent MUST stop and refuse to recommend the change — not soften the warning, not proceed with a *"this is risky but here's how"* answer, not defer the rollback question to *"you should think about that"*:
 

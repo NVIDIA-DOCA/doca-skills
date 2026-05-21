@@ -6,7 +6,7 @@ description: |
   coverage from 1 -> 2 for the May-2026 reviewer-feedback wave. The
   variant-C bundle must route the agent through tools/doca-telemetry-utils/SKILL.md ->
   CAPABILITIES.md -> TASKS.md AND emit the universal verification
-  contract from AGENTS.md ### The universal verification contract
+  contract from AGENTS.md ## The universal verification contract
   (5 steps: env precondition, cap query, smoke before bulk, contract
   surface, observability). The variant-A baseline typically skips the
   contract entirely and emits unverified function names or pkg-config
@@ -34,7 +34,7 @@ criteria:
     weight: 2
     pass_when: |
       The agent applies the 5-step universal verification contract from
-      AGENTS.md ### The universal verification contract: env precondition,
+      AGENTS.md ## The universal verification contract: env precondition,
       capability query, smoke before bulk, contract surface, observability.
       A response that gives only one or two of the five steps fails.
 
