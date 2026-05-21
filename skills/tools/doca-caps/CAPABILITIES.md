@@ -115,15 +115,31 @@ the agent should distinguish, in escalating order:
      surface until upgraded.
    - (c) **Partial install on a host that DOES have `doca-common`**
      — `pkg-config --modversion doca-common` returns a version ≥
-     2.6.0 but the `doca-tools` package was not installed alongside
+     2.6.0 but the per-tool package that ships `doca_caps` (on
+     DOCA 3.3+ this is the granular `doca-caps` package; on older
+     releases it shipped via the legacy `doca-tools` meta-package
+     that no longer exists on 3.3+) was not installed alongside
      `doca-common`. This is the most common cause on lab boxes and
      CI containers that pinned a minimal install. Confirm via:
      `pkg-config --modversion doca-common` succeeds AND `ls
-     /opt/mellanox/doca/tools/` is empty or absent. Routing: targeted
-     `apt install doca-tools` (or the platform's equivalent) — NOT
-     a full `doca-all` reinstall, and NOT a version downgrade. See
+     /opt/mellanox/doca/tools/doca_caps` errors. Routing: confirm
+     the package name with `apt-cache policy doca-caps` FIRST, then
+     run `apt install doca-caps` (or, on older releases, the legacy
+     `apt install doca-tools`) — NOT a full `doca-all` reinstall,
+     and NOT a version downgrade. See
      [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)
      partial-install table.
+   - (c2) **Package installed, binary off-PATH (DOCA 3.3+ default).**
+     `dpkg -l doca-caps` shows the package as `ii` AND
+     `ls /opt/mellanox/doca/tools/doca_caps` succeeds, but
+     `command -v doca_caps` and a bare `doca_caps --version` both
+     report "not found." On DOCA 3.3+, per-tool binaries land under
+     `/opt/mellanox/doca/tools/` and are NOT symlinked into
+     `/usr/bin/`. This is NOT a partial install — it is a `$PATH`
+     hygiene issue. Routing: invoke by absolute path
+     (`/opt/mellanox/doca/tools/doca_caps --version`) or extend
+     `PATH` (`export PATH=/opt/mellanox/doca/tools:$PATH`) once at
+     the start of the session. Do NOT re-`apt install`.
    - (d) The install path was changed by the operator. Confirm via
      `pkg-config --variable=prefix doca-common` and check whether
      `doca_caps` exists under that prefix's `tools/`. Routing: ask
