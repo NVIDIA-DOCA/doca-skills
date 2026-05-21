@@ -107,7 +107,7 @@ capture doca-caps-devs.txt "doca_caps --list-devs"    bash -c "command -v doca_c
 #  it. Do NOT substitute `mlxprivhost` or `bfb-info` — those are explicitly
 #  banned by the bundle (mlxprivhost configures privileged-host mode and
 #  bfb-info is not a real NVIDIA-documented tool).
-capture bfver-on-host.txt  "bfver (host-side; expected MISSING)" bash -c "command -v bfver >/dev/null 2>&1 && bfver || echo 'bfver intentionally not on host PATH — per the bundle it ships on the BlueField Arm console only. To exercise the BFB-version leg, the harness must route via /dev/rshim<N> to the BlueField Arm side; that route is a separate (opt-in) stage.'"
+capture bfver-on-host.txt  "bfver (host-side; may be MISSING on a partial install)" bash -c "command -v bfver >/dev/null 2>&1 && bfver || echo 'bfver not on host PATH. Per the bundle (doca-version/CAPABILITIES.md and TASKS.md): bfver is documented in TWO scopes — (a) on the BlueField Arm console against the running image, and (b) on the host against a standalone BFB file. Its absence here usually means the host-side DOCA install is partial (no bfb-install package). To exercise scope (a), route via /dev/rshim<N> to the BlueField Arm side; that is a separate (opt-in) stage. Do NOT substitute mlxprivhost or bfb-info — both are explicitly banned in the bundle as common hallucinations.'"
 capture host-mlnx-rel-bfb.txt "host /etc/mlnx-release (NOTE: this is the HOST mlnx-release, NOT the BlueField BFB)" bash -c "cat /etc/mlnx-release 2>/dev/null || echo 'host /etc/mlnx-release not present (Ubuntu default install often lacks it; this is informational only)'"
 
 # --- 6. Firmware version (per-device) — flint -d <bdf> q -------------------

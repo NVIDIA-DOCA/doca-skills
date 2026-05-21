@@ -241,15 +241,32 @@ this skill does not duplicate it.
   the unit's `Environment=` will silently use the release
   flavor and the operator's *"I'm running the trace build"*
   assumption is false.
-- **Host x86 install version and BlueField firmware version are
-  BOTH version anchors.** Same four-way overlay every per-library
-  skill carries. The host-side `pkg-config --modversion
-  doca-common` is the binary's link / runtime anchor; the
-  BlueField's firmware version (per the documented `mlxconfig
-  query` / firmware-tool surface) is the device-side anchor.
+- **Host x86 install version and BlueField device anchors are
+  BOTH version anchors — and the device side splits into TWO
+  distinct legs.** Same four-way overlay every per-library skill
+  carries. The host-side `pkg-config --modversion doca-common`
+  is the binary's link / runtime anchor; the device side splits
+  into (i) NIC *firmware version* read via `flint -d <bdf> q`
+  (look for the `FW Version:` line — this is the firmware image
+  the silicon runs) and (ii) BFB-image DOCA version read via
+  `bfver` + `cat /etc/mlnx-release` on the BlueField Arm
+  console (this is the DOCA userland inside the BFB). Do NOT
+  substitute `mlxconfig -d <bdf> q` for the FW-version leg —
+  `mlxconfig` returns the firmware *configuration* dump
+  (NV-config toggles like `LINK_TYPE_P1`, `INTERNAL_CPU_MODEL`),
+  NOT the firmware version. Do NOT substitute `mlxprivhost`
+  (configures privileged-host mode, not BFB version) or
+  `bfb-info` (not a real NVIDIA-documented tool) for the
+  BFB-image leg — both are common hallucinations explicitly
+  banned in [`doca-version CAPABILITIES.md ## Capabilities and
+  modes`](../doca-version/CAPABILITIES.md#capabilities-and-modes).
   Mismatched anchors are the canonical *"the docs say this
-  should work but it does not"* failure mode. Capture both
-  before debugging.
+  should work but it does not"* failure mode. Capture all three
+  (host pkg-config, per-device `flint q`, per-BlueField
+  `bfver`) before debugging — and capture per-device, not
+  globally, because BF2 and BF3 (or two BF3s from different
+  procurement waves) on the same host are independent silicon
+  with independent FW levels.
 
 ## Error taxonomy
 

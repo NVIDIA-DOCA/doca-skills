@@ -212,6 +212,14 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
    sessions, and the failure mode this bundle exists to prevent. The
    canonical first-app workflow lives in
    `doca-programming-guide ## modify`; library skills overlay it.
+   **Stop condition: if `ls /opt/mellanox/doca/samples/` returns `No
+   such file or directory` (or is empty) on a host where `pkg-config
+   --modversion doca-common` succeeds — i.e. partial install with no
+   `doca-samples` package — the modify-from-sample workflow cannot
+   apply on this host.** Say so explicitly to the user, do NOT
+   scaffold a sample from memory, and route to one of the unblock
+   paths in [`doca-setup CAPABILITIES.md ## Error taxonomy`](skills/doca-setup/CAPABILITIES.md#error-taxonomy)
+   (install `doca-samples`, pivot to NGC container, or both).
 6. **Never hardcode install-layout values; delegate to the install's own
    source of truth.** The DOCA install layout can drift across versions
    and install profiles (host vs DPU, full vs minimal, container vs

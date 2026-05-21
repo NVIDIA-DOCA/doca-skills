@@ -102,9 +102,33 @@ takes no configuration, and does no orchestration. The error layers
 the agent should distinguish, in escalating order:
 
 1. **Tool-not-installed.** `doca_caps` does not exist at
-   `/opt/mellanox/doca/tools/doca_caps`. Cause: DOCA is not installed
-   on this host, the install is < 2.6.0, or the path was changed by
-   the operator. Routing: [`doca-setup ## install`](../../doca-setup/TASKS.md#configure).
+   `/opt/mellanox/doca/tools/doca_caps`. Causes (distinguish before
+   routing):
+   - (a) DOCA is not installed on this host at all — `pkg-config
+     --modversion doca-common` errors with `Package 'doca-common' was
+     not found`. Routing: full install via
+     [`doca-setup ## install`](../../doca-setup/TASKS.md#configure).
+   - (b) The install is < DOCA 2.6.0 (the first release that ships
+     `doca_caps`). `pkg-config --modversion doca-common` returns
+     `2.5.x` or earlier. Routing: upgrade to ≥ 2.6.0, or use the
+     per-library `doca_<library>_cap_*` C API as the cap-discovery
+     surface until upgraded.
+   - (c) **Partial install on a host that DOES have `doca-common`**
+     — `pkg-config --modversion doca-common` returns a version ≥
+     2.6.0 but the `doca-tools` package was not installed alongside
+     `doca-common`. This is the most common cause on lab boxes and
+     CI containers that pinned a minimal install. Confirm via:
+     `pkg-config --modversion doca-common` succeeds AND `ls
+     /opt/mellanox/doca/tools/` is empty or absent. Routing: targeted
+     `apt install doca-tools` (or the platform's equivalent) — NOT
+     a full `doca-all` reinstall, and NOT a version downgrade. See
+     [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)
+     partial-install table.
+   - (d) The install path was changed by the operator. Confirm via
+     `pkg-config --variable=prefix doca-common` and check whether
+     `doca_caps` exists under that prefix's `tools/`. Routing: ask
+     the operator for the correct path or restore the canonical
+     install layout.
 2. **Permission / driver layer.** Tool runs but cannot enumerate
    devices because the underlying driver stack (`mlx5_core`, IB
    stack, etc.) is not loaded, the user lacks the privileges the
