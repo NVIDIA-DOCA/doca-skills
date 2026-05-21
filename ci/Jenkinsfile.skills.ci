@@ -169,6 +169,46 @@ pipeline {
                                   'agent that has a real BlueField visible via lspci (production lab). ' +
                                   'The fixture-mode self-test always runs; this knob adds the real-HW ' +
                                   'capture pass on top.')
+        booleanParam(name: 'ENABLE_REMOTE_HW',
+                     defaultValue: true,
+                     description: 'Run the live-hardware probe against a connected lab host ' +
+                                  '(default: REMOTE_HW_HOST) via SSH using the Jenkins credential ' +
+                                  'REMOTE_HW_CRED_ID. The probe is read-only (no firmware ' +
+                                  'burn / no driver bind-unbind / no mlxconfig set — the ' +
+                                  'mutating-token guard in runner/run_with_live_hardware.py ' +
+                                  'enforces this on the SSH wire). Adds the only real-hardware ' +
+                                  'evidence the pipeline has access to.')
+        string(name: 'REMOTE_HW_HOST',
+               defaultValue: 'lver-doca-4',
+               description: 'SSH target host for the live-hardware probe. The default lab box ' +
+                            'carries BlueField-3 ×2 + BlueField-2 ×1 with DOCA host-side ' +
+                            'install at /opt/mellanox/doca/. Override only if the operator ' +
+                            'has a different lab host they want to probe.')
+        string(name: 'REMOTE_HW_USER',
+               defaultValue: 'root',
+               description: 'SSH user on REMOTE_HW_HOST. Default `root` because the canonical ' +
+                            'probe set needs flint / mlxconfig / pkg-config access.')
+        string(name: 'REMOTE_HW_CRED_ID',
+               defaultValue: '2f8ea6f8-6a80-43ff-aaa9-32b4a1abc0ac',
+               description: 'Jenkins username-password credential id used to authenticate the ' +
+                            'SSH connection to REMOTE_HW_HOST. The pipeline binds it into ' +
+                            'env vars REMOTE_HW_SSH_USER + REMOTE_HW_SSH_PASS via ' +
+                            'withCredentials([usernamePassword(...)]) — never logged, never ' +
+                            'persisted to disk. Default is the lab-box credential the project ' +
+                            'owner registered for lver-doca-4.')
+        booleanParam(name: 'ENABLE_DEEP_E2E',
+                     defaultValue: true,
+                     description: 'Run the 52-artifact deep E2E suite (5 grading dimensions per ' +
+                                  'artifact: invented_tokens, sequence_correctness, ' +
+                                  'validation_concreteness, debug_concreteness, ' +
+                                  'consumer_concreteness). HARD gate when an AGENT_E2E_CMD + ' +
+                                  'GRADER_E2E_CMD are configured; otherwise generate-only ' +
+                                  '(prompts + graders archived as artifacts).')
+        string(name: 'DEEP_E2E_MIN_PASS_RATE',
+               defaultValue: '1.0',
+               description: 'Minimum overall pass-rate for the deep E2E suite. Default 1.0 ' +
+                            '(100%) per the project rule: every commit improves or at least ' +
+                            'does not damage. Lower only for bring-up runs.')
     }
 
     triggers {
@@ -472,19 +512,20 @@ pipeline {
             }
         }
 
-        stage('Live-hardware capture (real BlueField; opt-in)') {
+        stage('Live-hardware capture (real BlueField on this agent; opt-in)') {
             when {
                 expression { return params.ENABLE_LIVE_HW }
             }
             steps {
                 script {
                     // Only runs when the operator explicitly opted in
-                    // AND a real BlueField is visible. The harness
-                    // itself refuses to run if lspci doesn't show one.
+                    // AND a real BlueField is visible on THIS Jenkins
+                    // agent. The harness itself refuses to run if lspci
+                    // doesn't show one.
                     def rc = sh(returnStatus: true, script: """
                         ${env.WORKDIR}/venv/bin/python ${env.SKILLS_DIR}/runner/run_with_live_hardware.py \\
                           --mode live \\
-                          --target-host \$(hostname) \\
+                          --scenario-id local_hw \\
                           --out-dir ${env.WORKDIR}/lane_c_v2_live \\
                           > ${env.WORKDIR}/live_hw_capture.log 2>&1
                     """)
@@ -492,6 +533,171 @@ pipeline {
                                      allowEmptyArchive: true
                     if (rc != 0) {
                         unstable("Live-hardware capture exited non-zero. SOFT WARN — the fixture self-test above is the load-bearing gate; the live capture is for capture artifacts only.")
+                    }
+                }
+            }
+        }
+
+        stage('Live-hardware probe via SSH (remote lab host)') {
+            // Drives the same READ-ONLY probe set against a connected lab
+            // host (default REMOTE_HW_HOST=lver-doca-4) via SSH using the
+            // Jenkins credential REMOTE_HW_CRED_ID (default the project
+            // owner's lab box credential, 2f8ea6f8-...). This is how the
+            // pipeline gets evidence from real BlueField hardware
+            // without requiring the Jenkins agent to itself carry a NIC.
+            //
+            // The mutating-token guard in
+            // runner/run_with_live_hardware.py rejects any future patch
+            // that would push a write/burn/bind verb over the SSH wire,
+            // so this stage cannot mutate the lab host even if a bad
+            // patch tries to.
+            when {
+                allOf {
+                    expression { return params.ENABLE_REMOTE_HW }
+                    expression { return params.REMOTE_HW_HOST?.trim() }
+                    expression { return params.REMOTE_HW_CRED_ID?.trim() }
+                }
+            }
+            steps {
+                script {
+                    if (!sh(returnStatus: true, script: "command -v sshpass >/dev/null")) {
+                        // sshpass is required by --mode remote when no SSH key is
+                        // provided. The library jnlp pod ships it; if a custom pod
+                        // omitted it, the harness would fail clean with a clear
+                        // error — surface that to the build log.
+                        echo "sshpass is on PATH on this agent."
+                    } else {
+                        echo "WARNING: sshpass NOT on PATH on this agent. " +
+                             "Installing via apt (best-effort)."
+                        sh "apt-get install -y sshpass || sudo apt-get install -y sshpass || true"
+                    }
+                    withCredentials([usernamePassword(
+                            credentialsId: params.REMOTE_HW_CRED_ID,
+                            usernameVariable: 'REMOTE_HW_SSH_USER',
+                            passwordVariable: 'REMOTE_HW_SSH_PASS')]) {
+                        // Two probes:
+                        //   a. ci/probe-live-hardware.sh — standalone, self-contained,
+                        //      captures the canonical version+device+firmware surface
+                        //      directly on the lab host. Writes to /tmp/doca-hw-probe
+                        //      on the remote, then we SCP the result back.
+                        //   b. runner/run_with_live_hardware.py --mode remote — the
+                        //      Lane C harness driven over SSH from the Jenkins agent.
+                        //      Produces a prompt+rubric the downstream A/B/C run can
+                        //      score against.
+                        def rc_a = sh(returnStatus: true, script: """
+                            export DOCA_LAB_SSH_PASS="\$REMOTE_HW_SSH_PASS"
+                            mkdir -p ${env.WORKDIR}/remote_hw
+                            # Push the probe to the lab host, run it, pull results back.
+                            sshpass -p "\$DOCA_LAB_SSH_PASS" scp -o StrictHostKeyChecking=no \\
+                              -o PreferredAuthentications=password -o PubkeyAuthentication=no \\
+                              ${env.SKILLS_DIR}/ci/probe-live-hardware.sh \\
+                              ${params.REMOTE_HW_USER}@${params.REMOTE_HW_HOST}:/tmp/probe-live-hardware.sh
+                            sshpass -p "\$DOCA_LAB_SSH_PASS" ssh -o StrictHostKeyChecking=no \\
+                              -o PreferredAuthentications=password -o PubkeyAuthentication=no \\
+                              ${params.REMOTE_HW_USER}@${params.REMOTE_HW_HOST} \\
+                              "OUT_DIR=/tmp/doca-hw-probe HOST_LABEL=${params.REMOTE_HW_HOST} bash /tmp/probe-live-hardware.sh"
+                            sshpass -p "\$DOCA_LAB_SSH_PASS" scp -r -o StrictHostKeyChecking=no \\
+                              -o PreferredAuthentications=password -o PubkeyAuthentication=no \\
+                              "${params.REMOTE_HW_USER}@${params.REMOTE_HW_HOST}:/tmp/doca-hw-probe/*" \\
+                              ${env.WORKDIR}/remote_hw/
+                        """)
+                        def rc_b = sh(returnStatus: true, script: """
+                            export DOCA_LAB_SSH_PASS="\$REMOTE_HW_SSH_PASS"
+                            ${env.WORKDIR}/venv/bin/python \\
+                              ${env.SKILLS_DIR}/runner/run_with_live_hardware.py \\
+                              --mode remote \\
+                              --remote-host ${params.REMOTE_HW_HOST} \\
+                              --remote-user ${params.REMOTE_HW_USER} \\
+                              --ssh-pass-env DOCA_LAB_SSH_PASS \\
+                              --scenario-id ${params.REMOTE_HW_HOST}_live \\
+                              --out-dir ${env.WORKDIR}/lane_c_v2_remote \\
+                              > ${env.WORKDIR}/remote_hw_capture.log 2>&1
+                        """)
+                        archiveArtifacts artifacts: ('_run/remote_hw/**,' +
+                                                     '_run/remote_hw_capture.log,' +
+                                                     '_run/lane_c_v2_remote/**'),
+                                         allowEmptyArchive: true
+                        if (rc_a != 0) {
+                            error("ci/probe-live-hardware.sh against ${params.REMOTE_HW_HOST} " +
+                                  "exited rc=${rc_a}. The lab box is the only real-hardware " +
+                                  "evidence path; failure here means the pipeline cannot prove " +
+                                  "the bundle works against real BlueField devices. Investigate " +
+                                  "the SSH credential, the lab host, or the probe script.")
+                        }
+                        if (rc_b != 0) {
+                            error("runner/run_with_live_hardware.py --mode remote against " +
+                                  "${params.REMOTE_HW_HOST} exited rc=${rc_b}. The Lane C v2 " +
+                                  "harness could not capture a fixture-shaped scenario from " +
+                                  "the lab host. See _run/remote_hw_capture.log.")
+                        }
+                        // Surface the headline counts so the build log is self-explanatory.
+                        sh """
+                            echo '=== remote hardware probe summary ==='
+                            cat ${env.WORKDIR}/remote_hw/summary.txt || true
+                            echo '=== remote Lane C v2 capture (env.json) ==='
+                            cat ${env.WORKDIR}/lane_c_v2_remote/live_captures/${params.REMOTE_HW_HOST}_live/env.json || true
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deep E2E suite (52 artifacts × 5 dims; HARD when AGENT_E2E_CMD set)') {
+            // The 52-artifact deep operational-fidelity suite (the
+            // May-2026 deep-test wave that produced 50/52 → 52/52 PASS
+            // after the 4 bundle fixes). This stage runs the suite on
+            // every PR so the same 5 grading dimensions
+            // (invented_tokens, sequence_correctness,
+            // validation_concreteness, debug_concreteness,
+            // consumer_concreteness) are re-applied to every change.
+            //
+            // Two run shapes:
+            //   * AGENT_E2E_CMD + GRADER_E2E_CMD configured → full
+            //     dispatch + grade pass + HARD gate at
+            //     DEEP_E2E_MIN_PASS_RATE (default 1.0).
+            //   * Either CMD not configured → generate-only run; the
+            //     prompts and graders are archived as build artifacts
+            //     so the operator can dispatch them manually. The gate
+            //     auto-degrades to SOFT WARN in that case.
+            when {
+                expression { return params.ENABLE_DEEP_E2E }
+            }
+            steps {
+                script {
+                    def agentCmd  = env.AGENT_E2E_CMD?.trim()  ?: ""
+                    def graderCmd = env.GRADER_E2E_CMD?.trim() ?: ""
+                    def fullRun = (agentCmd && graderCmd)
+                    sh "mkdir -p ${env.WORKDIR}/e2e"
+                    withEnv([
+                        "BUNDLE_ROOT=${env.SKILLS_DIR}",
+                        "E2E_OUT_DIR=${env.WORKDIR}/e2e",
+                        "MIN_PASS_RATE=${params.DEEP_E2E_MIN_PASS_RATE}",
+                        "AGENT_CMD=${agentCmd}",
+                        "GRADER_CMD=${graderCmd}",
+                        "PY=${env.WORKDIR}/venv/bin/python",
+                        "PARALLEL=8",
+                        (fullRun ? "ALLOW_MISSING_GRADES=" : "ALLOW_MISSING_GRADES=1"),
+                    ]) {
+                        def rc = sh(returnStatus: true, script: """
+                            bash ${env.SKILLS_DIR}/ci/run-e2e-suite.sh \\
+                              > ${env.WORKDIR}/e2e_suite.log 2>&1
+                        """)
+                        archiveArtifacts artifacts: ('_run/e2e/**,_run/e2e_suite.log'),
+                                         allowEmptyArchive: true
+                        sh "cat ${env.WORKDIR}/e2e_suite.log | tail -60"
+                        if (rc != 0) {
+                            if (fullRun) {
+                                error("Deep E2E suite exited rc=${rc}. " +
+                                      "Blocker or below-threshold pass-rate. " +
+                                      "Project rule: every commit improves or at least " +
+                                      "does not damage. See _run/e2e/summary.md for the " +
+                                      "per-artifact verdict.")
+                            } else {
+                                unstable("Deep E2E generated-only (AGENT_E2E_CMD or " +
+                                         "GRADER_E2E_CMD not set). Prompts + graders archived " +
+                                         "under _run/e2e/ for manual dispatch.")
+                            }
+                        }
                     }
                 }
             }

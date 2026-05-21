@@ -34,6 +34,24 @@ Three explicit modes:
                       Lane C v1 (`run_with_fixtures.py`). Provided for
                       bit-for-bit reproducibility against prior Lane C runs.
 
+  --mode remote       NEW (May-2026 hardware-lab wave). The harness runs
+                      LOCALLY but every read-only probe command is shelled
+                      OVER SSH against --remote-host (default user: root,
+                      override via --remote-user). The remote host is
+                      expected to carry the BlueField hardware; this lets
+                      the CI driver (a sandboxed Jenkins agent) reuse the
+                      same harness against a connected lab box without
+                      requiring the BlueField to live on the build agent
+                      itself. SSH auth comes from --ssh-pass-env (an env
+                      var name holding the password; default
+                      `DOCA_LAB_SSH_PASS` — Jenkins binds the cred id
+                      `2f8ea6f8-6a80-43ff-aaa9-32b4a1abc0ac` into this env
+                      var via the `withCredentials([usernamePassword(...)])`
+                      block in `Jenkinsfile.skills.ci`).
+                      Same READ-ONLY guard as --mode live: every argv goes
+                      through `is_read_only_argv()` before being sent over
+                      the wire.
+
 Live capture writes to:
 
   <out-dir>/live_captures/<scenario_id>/<one file per stanza row>
@@ -63,17 +81,24 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "devops" / "runner"))
+REPO_ROOT = Path(__file__).resolve().parent.parent  # doca-skills/
+RUNNER_DIR = REPO_ROOT / "runner"
+sys.path.insert(0, str(RUNNER_DIR))
 
 # Re-use the v1 stanza catalogue + scenario object + prompt/rubric builders.
 # The v2 contract is "produce a fixture-shaped scenario directory; then call
 # the v1 builders". Importing keeps the two harnesses in lockstep.
+#
+# History note: pre-May-2026 the bundle had a sister `devops/` directory
+# containing runner + fixtures. That directory has been merged into
+# `doca-skills/` and the import path was updated accordingly. Any leftover
+# `from devops.runner import ...` style call sites are now incorrect.
 try:
     import run_with_fixtures as v1  # noqa: E402
 except ImportError as exc:  # pragma: no cover - import-time sanity
     raise SystemExit(
-        f"run_with_live_hardware.py requires run_with_fixtures.py as a sibling: {exc}"
+        f"run_with_live_hardware.py requires run_with_fixtures.py as a sibling "
+        f"under {RUNNER_DIR}: {exc}"
     )
 
 
@@ -104,19 +129,19 @@ class StanzaCmd:
 
 LIVE_STANZA = [
     StanzaCmd("lspci.txt",                 "PCIe presence",
-              ["lspci", "-d", "15b3:"]),
+              ["lspci", "-d", "15b3:"], required=True),
     StanzaCmd("devlink-dev.txt",           "Driver / device state",
-              ["devlink", "dev", "show"]),
+              ["devlink", "dev", "show"], required=True),
     StanzaCmd("devlink-port.txt",          "Driver / device state (ports)",
-              ["devlink", "port", "show"]),
+              ["devlink", "port", "show"], required=True),
     StanzaCmd("numa.txt",                  "NUMA topology (numactl -H)",
-              ["numactl", "-H"]),
+              ["numactl", "-H"], required=False),
     StanzaCmd("mlxconfig-q.txt",           "Firmware / config snapshot (mlxconfig -d <bdf> q)",
               ["mlxconfig", "-d", "{bdf}", "q"], required=False),
     StanzaCmd("lsmod.txt",                 "Kernel module state",
-              ["lsmod"]),  # post-filtered to mlx5_* in render
+              ["lsmod"], required=True),  # post-filtered to mlx5_* in render
     StanzaCmd("pkg-config.txt",            "Version (env-side, pkg-config --list-all | grep doca)",
-              ["pkg-config", "--list-all"]),  # post-filtered to doca-* in render
+              ["pkg-config", "--list-all"], required=True),  # post-filtered to doca-* in render
     StanzaCmd("doca_caps.txt",             "Version (DOCA-side, doca_caps --version)",
               ["doca_caps", "--version"], required=False),
     StanzaCmd("doca_caps-list-devs.txt",   "Capabilities (DOCA enumerator)",
@@ -139,6 +164,150 @@ def is_read_only_argv(argv: list[str]) -> bool:
         if tok.lower() in MUTATING_TOKENS:
             return False
     return True
+
+
+# --- remote-host SSH helpers (--mode remote) -------------------------------
+#
+# Used by Jenkins to drive the same READ-ONLY probe set against a connected
+# lab host (default: lver-doca-4 — BlueField-3 ×2 + BlueField-2 ×1)
+# without requiring the Jenkins build agent itself to carry hardware.
+#
+# Auth: password is read from an environment variable name supplied via
+# --ssh-pass-env (default DOCA_LAB_SSH_PASS). Jenkins exports the var via
+# `withCredentials([usernamePassword(credentialsId: '2f8ea6f8-...', ...)])`.
+# We never log the password. We require `sshpass` on PATH; if it's missing
+# the harness fails clean and prints the install hint rather than silently
+# falling back to interactive prompting (which would hang in CI).
+
+def _ssh_argv(remote_user: str, remote_host: str, ssh_pass_env: str | None,
+              identity: str | None) -> list[str]:
+    """Build the SSH argv prefix used to wrap every probe command."""
+    base = ["ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "PreferredAuthentications=password,publickey",
+            "-o", "BatchMode=no",
+            "-o", "ConnectTimeout=10",
+            "-o", "NumberOfPasswordPrompts=1",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "LogLevel=ERROR",
+            "-T",
+            f"{remote_user}@{remote_host}"]
+    if identity:
+        # Key-based auth still goes through the same wrapper so the
+        # mutating-token guard runs on remote argvs too.
+        base = (base[:1]
+                + ["-o", "PreferredAuthentications=publickey",
+                   "-o", "IdentitiesOnly=yes",
+                   "-i", identity]
+                + base[1:])
+        return base
+    if ssh_pass_env:
+        if not shutil.which("sshpass"):
+            raise SystemExit(
+                "ERROR: --mode remote with --ssh-pass-env requires `sshpass` "
+                "on PATH (install: apt-get install -y sshpass / brew install "
+                "esolitos/ipa/sshpass). Refusing to fall back to interactive "
+                "prompt — would hang in CI.")
+        pw = os.environ.get(ssh_pass_env, "")
+        if not pw:
+            raise SystemExit(
+                f"ERROR: --ssh-pass-env={ssh_pass_env} is not set in the "
+                f"environment. Jenkins must bind credential id "
+                f"`2f8ea6f8-6a80-43ff-aaa9-32b4a1abc0ac` into ${ssh_pass_env} "
+                f"via withCredentials([usernamePassword(..., passwordVariable: "
+                f"'{ssh_pass_env}')]).")
+        return ["sshpass", "-p", pw] + base
+    return base
+
+
+def detect_remote_capability(remote_user: str, remote_host: str,
+                             ssh_pass_env: str | None,
+                             identity: str | None) -> tuple[bool, list[str]]:
+    """Equivalent of detect_live_capability() but executes the test commands
+    on the remote host over SSH. Returns the same (capable, missing) shape."""
+    missing: list[str] = []
+    ssh_prefix = _ssh_argv(remote_user, remote_host, ssh_pass_env, identity)
+    # 1. Connectivity smoke test.
+    try:
+        out = subprocess.run(
+            ssh_prefix + ["echo OK"],
+            capture_output=True, text=True, check=False, timeout=20,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        missing.append(f"ssh connectivity failed: {exc}")
+        return False, missing
+    if out.returncode != 0 or "OK" not in (out.stdout or ""):
+        err_excerpt = (out.stderr or "").strip().splitlines()[:3]
+        missing.append(
+            f"ssh smoke test failed (rc={out.returncode}): "
+            + "; ".join(err_excerpt)
+        )
+        return False, missing
+    # 2. Remote `lspci -d 15b3:` must show at least one device.
+    out = subprocess.run(
+        ssh_prefix + ["lspci -d 15b3:"],
+        capture_output=True, text=True, check=False, timeout=30,
+    )
+    if out.returncode != 0 or not (out.stdout or "").strip():
+        missing.append("remote `lspci -d 15b3:` returned no Mellanox/NVIDIA device")
+        return False, missing
+    # 3. Required remote binaries on PATH. We only require the LOAD-BEARING
+    #    binding-layer probes — lspci, devlink, lsmod, pkg-config. Anything
+    #    else (numactl, mlxconfig, doca_caps) is treated as optional so a
+    #    partial-install lab host (no DOCA tools, no numactl) still passes
+    #    the capability gate — the captures will simply record their
+    #    absence, which is itself useful signal for the agent.
+    required = ["lspci", "devlink", "lsmod", "pkg-config"]
+    optional = ["numactl", "mlxconfig", "doca_caps", "flint", "mst",
+                "bfver", "rshim", "mlxprivhost"]
+    all_bins = required + optional
+    check_expr = ("bash -c '"
+                  + "; ".join(f'command -v {b} >/dev/null && echo HAVE:{b} || echo MISSING:{b}'
+                              for b in all_bins)
+                  + "'")
+    bin_check = subprocess.run(
+        ssh_prefix + [check_expr],
+        capture_output=True, text=True, check=False, timeout=30,
+    )
+    have_set = set()
+    for line in (bin_check.stdout or "").splitlines():
+        line = line.strip()
+        if line.startswith("HAVE:"):
+            have_set.add(line.split(":", 1)[1])
+    for b in required:
+        if b not in have_set:
+            missing.append(f"remote {b} not on PATH (required)")
+    # Report optional gaps as informational only, not failure.
+    optional_missing = [b for b in optional if b not in have_set]
+    if optional_missing:
+        print(f"[remote-detect] optional binaries missing on remote (informational): "
+              f"{', '.join(optional_missing)}", file=sys.stderr)
+    capable = not any("required" in m for m in missing)
+    return capable, missing
+
+
+def run_cmd_remote(argv: list[str], ssh_prefix: list[str],
+                   timeout: int = 30) -> tuple[int, str]:
+    """Run argv on the remote host over SSH. Read-only guard is re-applied
+    here so a future patch can't add a mutating verb only on the remote
+    leg."""
+    if not is_read_only_argv(argv):
+        return 99, f"REJECTED (remote): argv contains a mutating token: {argv}"
+    # Build a remote bash command line. Quote each token individually with
+    # shlex.quote so embedded spaces / shell metachars are safe.
+    import shlex
+    remote_cmdline = " ".join(shlex.quote(t) for t in argv)
+    full = ssh_prefix + [remote_cmdline]
+    try:
+        out = subprocess.run(
+            full, capture_output=True, text=True, check=False, timeout=timeout,
+        )
+        body = out.stdout if out.stdout else out.stderr
+        return out.returncode, body
+    except subprocess.TimeoutExpired:
+        return 124, f"TIMEOUT after {timeout}s: ssh {argv}"
+    except Exception as exc:  # pragma: no cover - defensive
+        return 1, f"unexpected error (remote): {exc}"
 
 
 # --- live detection --------------------------------------------------------
@@ -166,21 +335,34 @@ def detect_live_capability() -> tuple[bool, list[str]]:
         missing.append("no 15b3:* device returned by lspci -d 15b3: (host has no BlueField / ConnectX visible)")
         return False, missing
 
+    # Only the LOAD-BEARING binding-layer probes are required. Any optional
+    # row (numactl, mlxconfig, doca_caps, ...) being absent is captured as
+    # an "informational gap" and reported below, but does NOT fail the
+    # capability gate — the bundle's safety nets are explicitly designed
+    # to handle partial-install hosts.
     for cmd in LIVE_STANZA:
         bin_name = cmd.argv_template[0]
         if not shutil.which(bin_name):
             tag = "(required)" if cmd.required else "(optional)"
             missing.append(f"{bin_name} {tag}")
 
-    capable = not any("required" in m for m in missing)
+    capable = not any(m.endswith("(required)") for m in missing)
     return capable, missing
 
 
-def pick_first_bdf() -> str | None:
-    out = subprocess.run(
-        ["lspci", "-d", "15b3:"],
-        capture_output=True, text=True, check=False, timeout=10,
-    )
+def pick_first_bdf(ssh_prefix: list[str] | None = None) -> str | None:
+    """Find the first 15b3:* BDF, locally or remotely. If `ssh_prefix` is
+    set, the lookup is shelled over SSH."""
+    if ssh_prefix is not None:
+        out = subprocess.run(
+            ssh_prefix + ["lspci -d 15b3:"],
+            capture_output=True, text=True, check=False, timeout=20,
+        )
+    else:
+        out = subprocess.run(
+            ["lspci", "-d", "15b3:"],
+            capture_output=True, text=True, check=False, timeout=10,
+        )
     if out.returncode != 0 or not out.stdout.strip():
         return None
     line = out.stdout.strip().splitlines()[0]
@@ -218,10 +400,22 @@ def post_filter(fname: str, body: str) -> str:
     return body
 
 
-def capture_live(scenario_id: str, out_root: Path, dry_run: bool) -> dict:
-    bdf = pick_first_bdf()
+def capture_live(scenario_id: str, out_root: Path, dry_run: bool,
+                 ssh_prefix: list[str] | None = None,
+                 remote_label: str | None = None) -> dict:
+    """Capture the full LIVE_STANZA into a scenario directory.
+
+    If `ssh_prefix` is supplied (set by --mode remote), every probe is shelled
+    over SSH to the remote host instead of locally. The output shape is
+    identical so the downstream `build_scenario_artifacts()` does not care
+    where the captures came from.
+    """
+    bdf = pick_first_bdf(ssh_prefix)
     if bdf is None:
-        raise SystemExit("live capture requires at least one 15b3:* device; none visible")
+        where = f"remote host {remote_label}" if ssh_prefix else "local host"
+        raise SystemExit(
+            f"live capture requires at least one 15b3:* device on {where}; none visible"
+        )
 
     scenario_dir = out_root / "live_captures" / scenario_id
     scenario_dir.mkdir(parents=True, exist_ok=True)
@@ -242,7 +436,10 @@ def capture_live(scenario_id: str, out_root: Path, dry_run: bool) -> dict:
         if not is_read_only_argv(argv):
             rejected.append({"file": cmd.fname, "argv": argv, "reason": "mutating token in argv"})
             continue
-        rc, body = run_cmd(argv)
+        if ssh_prefix is not None:
+            rc, body = run_cmd_remote(argv, ssh_prefix)
+        else:
+            rc, body = run_cmd(argv)
         if rc != 0:
             if cmd.required:
                 skipped.append({"file": cmd.fname, "argv": argv, "rc": rc,
@@ -261,6 +458,10 @@ def capture_live(scenario_id: str, out_root: Path, dry_run: bool) -> dict:
         (scenario_dir / cmd.fname).write_text(body if body.endswith("\n") else body + "\n")
         captured.append({"file": cmd.fname, "argv": argv, "rc": 0, "bytes": len(body)})
 
+    capture_origin = ("live-shell over SSH to "
+                      f"{remote_label}; first device picked: {bdf}") if ssh_prefix \
+        else f"live-shell on local host; first device picked: {bdf}"
+
     # synthesize env.json so the v1 builders can render the prompt+rubric
     env = {
         "scenario_id": scenario_id,
@@ -274,17 +475,19 @@ def capture_live(scenario_id: str, out_root: Path, dry_run: bool) -> dict:
                                  "depending on user intent; the live host is recognize-able and "
                                  "the agent must walk the recognize front door before proposing "
                                  "a deploy shape"),
-        "synthesized_from": ("live-shell of binding-layer stanza on host with BlueField; "
-                             f"first device picked: {bdf}"),
+        "synthesized_from": capture_origin,
         "expected_agent_findings": {
             "pcie_visible": True,
             "live_capture": True,
             "first_device_bdf": bdf,
+            "remote_host": remote_label,
             "next_step": ("agent reads captured stanza output; routes to recognize; "
                           "does not re-prescribe stanza"),
         },
         "_v2_meta": {
             "dry_run": dry_run,
+            "remote": bool(ssh_prefix),
+            "remote_host": remote_label,
             "captured": captured,
             "skipped_required": skipped,
             "rejected_mutating": rejected,
@@ -300,6 +503,8 @@ def capture_live(scenario_id: str, out_root: Path, dry_run: bool) -> dict:
         "skipped_required": skipped,
         "rejected_mutating": rejected,
         "dry_run": dry_run,
+        "remote": bool(ssh_prefix),
+        "remote_host": remote_label,
     }
 
 
@@ -327,20 +532,50 @@ def materialize_fixtures_scenarios(fixtures_root: Path, out_root: Path) -> list[
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("--mode", choices=["auto", "live", "dry-run", "fixtures"],
+    p.add_argument("--mode", choices=["auto", "live", "dry-run", "fixtures", "remote"],
                    default="auto",
-                   help="Live capture vs fall-back vs dry-run (default: auto).")
+                   help="Live capture vs fall-back vs dry-run vs remote-SSH "
+                        "capture (default: auto).")
     p.add_argument("--scenario-id", default="live_host",
                    help="Scenario id to use for live capture (default: live_host). "
                         "Ignored in --mode fixtures.")
     p.add_argument("--fixtures-root", type=Path,
-                   default=REPO_ROOT / "devops" / "fixtures" / "hardware",
+                   default=REPO_ROOT / "fixtures" / "hardware",
                    help="Path to the v1 fixture pack; used in --mode fixtures and as the auto fall-back.")
     p.add_argument("--out-dir", required=True, type=Path,
                    help="Output dir for prompts / scoring / dispatch_manifest / live_captures.")
+
+    # --- --mode remote args (May-2026 lab-host wave) -----------------------
+    p.add_argument("--remote-host", default=None,
+                   help="--mode remote target host (e.g. lver-doca-4). "
+                        "Required when --mode remote.")
+    p.add_argument("--remote-user", default="root",
+                   help="SSH user on --remote-host (default: root).")
+    p.add_argument("--ssh-pass-env", default="DOCA_LAB_SSH_PASS",
+                   help="Env var name containing the SSH password for "
+                        "--mode remote. Jenkins binds the cred id "
+                        "`2f8ea6f8-6a80-43ff-aaa9-32b4a1abc0ac` into this "
+                        "env var via withCredentials([usernamePassword(...)]) "
+                        "(default: DOCA_LAB_SSH_PASS).")
+    p.add_argument("--ssh-identity", default=None,
+                   help="Optional SSH identity file. When set, password env "
+                        "is ignored. Useful for non-Jenkins runs where the "
+                        "operator already has key-based access.")
     args = p.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- build SSH prefix once for remote mode -----------------------------
+    ssh_prefix: list[str] | None = None
+    remote_label: str | None = None
+    if args.mode == "remote":
+        if not args.remote_host:
+            print("ERROR: --mode remote requires --remote-host.", file=sys.stderr)
+            return 2
+        remote_label = f"{args.remote_user}@{args.remote_host}"
+        ssh_prefix = _ssh_argv(args.remote_user, args.remote_host,
+                               args.ssh_pass_env if not args.ssh_identity else None,
+                               args.ssh_identity)
 
     chosen = args.mode
     if chosen == "auto":
@@ -357,8 +592,21 @@ def main() -> int:
             print("ERROR: --mode live requires live capability:", file=sys.stderr)
             for m in missing:
                 print(f"  - {m}", file=sys.stderr)
-            print("  Re-run with --mode auto (fall back to fixtures if no HW) or --mode fixtures "
-                  "(skip live entirely).", file=sys.stderr)
+            print("  Re-run with --mode auto (fall back to fixtures if no HW), "
+                  "--mode fixtures (skip live entirely), or --mode remote "
+                  "--remote-host <lab-host> (drive a remote host over SSH).",
+                  file=sys.stderr)
+            return 2
+    elif chosen == "remote":
+        capable, missing = detect_remote_capability(
+            args.remote_user, args.remote_host,
+            args.ssh_pass_env if not args.ssh_identity else None,
+            args.ssh_identity,
+        )
+        if not capable:
+            print(f"ERROR: --mode remote {remote_label} not capable:", file=sys.stderr)
+            for m in missing:
+                print(f"  - {m}", file=sys.stderr)
             return 2
     elif chosen == "dry-run":
         # dry-run still needs lspci to pick a bdf for the synthesized argvs;
@@ -373,6 +621,12 @@ def main() -> int:
     if chosen == "live":
         live_summary = capture_live(args.scenario_id, args.out_dir, dry_run=False)
         summary["live"] = live_summary
+        scenario_root = args.out_dir / "live_captures"
+    elif chosen == "remote":
+        live_summary = capture_live(args.scenario_id, args.out_dir, dry_run=False,
+                                    ssh_prefix=ssh_prefix, remote_label=remote_label)
+        summary["live"] = live_summary
+        summary["live"]["remote_host"] = remote_label
         scenario_root = args.out_dir / "live_captures"
     elif chosen == "dry-run":
         live_summary = capture_live(args.scenario_id, args.out_dir, dry_run=True)
@@ -407,9 +661,10 @@ def main() -> int:
     for entry in manifest:
         print(f"  {entry['scenario_id']:<28}  prompt={Path(entry['prompt_file']).name}")
     print(f"\nMode chosen: {chosen}")
-    if chosen in ("live", "dry-run"):
+    if chosen in ("live", "dry-run", "remote"):
         live = summary.get("live", {})
-        print(f"Live capture summary: bdf={live.get('bdf')} "
+        origin = f" via SSH to {live.get('remote_host')}" if live.get("remote") else ""
+        print(f"Live capture summary{origin}: bdf={live.get('bdf')} "
               f"captured={len(live.get('captured', []))} "
               f"skipped_required={len(live.get('skipped_required', []))} "
               f"rejected_mutating={len(live.get('rejected_mutating', []))}")

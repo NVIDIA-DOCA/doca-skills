@@ -4,6 +4,11 @@
 .DS_Store
 **/.DS_Store
 
+# Python bytecode caches — produced by the runner/ scripts on first use.
+__pycache__/
+**/__pycache__/
+*.pyc
+
 # Per-run measurement artifacts produced by runner/ab_runner.py and the
 # ad-hoc A/B/C subagent driver. Each run produces a dated directory
 # (runner/reports/<YYYY-MM-DD_runid>/) containing subagent prompts,

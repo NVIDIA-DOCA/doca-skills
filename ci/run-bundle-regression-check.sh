@@ -132,6 +132,35 @@ if [[ -f "${CI_DIR}/check-frontmatter-kind.py" ]]; then
     fi
 fi
 
+# Jenkinsfile syntax gate (catches Groovy-side breakage before it lands in
+# Jenkins). Requires `groovy` on PATH; if absent, skips with a hint so
+# Linux CI hosts without Groovy don't spuriously fail the bundle gate.
+if [[ -x "${CI_DIR}/check-jenkinsfile-syntax.sh" ]]; then
+    if command -v groovy >/dev/null 2>&1; then
+        if ! run_gate 'gate-4c: Jenkinsfile syntax (Groovy parse of ci/Jenkinsfile.skills.ci)' \
+                bash "${CI_DIR}/check-jenkinsfile-syntax.sh"; then
+            overall_fail=1
+        fi
+    else
+        separator
+        printf '== gate-4c: Jenkinsfile syntax — SKIPPED (groovy not on PATH; install Groovy 4.x to enable) ==\n'
+    fi
+fi
+
+# Deep E2E generate gate. The generator alone (no agent dispatch) is enough
+# to catch packaging regressions like "skill dir present but no SKILL.md"
+# or "SKILL.md frontmatter unparseable". The full grade+aggregate run is
+# the Jenkins stage `Deep E2E suite` — too heavy for the local pre-push
+# orchestrator, but the generator itself is fast.
+if [[ -f "${REPO_ROOT}/runner/e2e_generate.py" ]]; then
+    if ! run_gate 'gate-4d: deep-E2E generate (prompts + graders for every shipping skill)' \
+            python3 "${REPO_ROOT}/runner/e2e_generate.py" \
+                --bundle-root "${REPO_ROOT}" \
+                --out-dir "$(mktemp -d -t e2e-gen-XXXXXX)"; then
+        overall_fail=1
+    fi
+fi
+
 # No-regression gate — compares the latest grades-on-disk (if any) against
 # the frozen baseline in runner/baseline_grades.json. Skipped when no
 # current grades dir is present (so the gate does not block PRs that
