@@ -1,0 +1,324 @@
+id: "69_measure_kernel_initiated_rdma_write_latency_on_gpu_nic_pair"
+name: "Measure GPU-kernel-initiated RDMA-WRITE latency on a GPU-NIC pair and pick the right runtime surface — class-shaped"
+description: |
+  Class-shaped tool-invocation prompt for the GPI-flavored
+  `ib_write_lat` benchmark shipped at
+  `doca/tools/gpi_ib_write_lat/`. The HEADLINE is the class
+  ("measure GPU-kernel-initiated RDMA-WRITE latency on a
+  GPU-NIC pair and decide whether the GPI path is the right
+  runtime surface for a class of workload"); the worked
+  example is a single (GPU model × NIC model × workload class)
+  the agent picks. The bundle MUST teach the agent to (a)
+  surface the runtime-surface choice (GPI vs GPUNetIO vs
+  CPU-initiated `perftest`) BEFORE recommending GPI, (b) apply
+  the GPU-NIC pairing precondition as a hardware-topology
+  precondition (NOT a workaround), (c) name the half-iter /
+  full-iter / CUDA-side columns and refuse to quote a number
+  without naming which column, (d) cross-link the GPUNetIO
+  sister tool for the same physical operation on the
+  alternative runtime, and (e) refuse to invent flag strings
+  / GPI symbols / latency literals.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how
+  to drive this benchmark class against ANY GPU + NIC pair
+  that the user's install supports — H100 + ConnectX-7, A100
+  + ConnectX-6, BlueField-3 + host-side GPU, etc. The bundle
+  proves this by asking the agent to walk the class shape
+  end-to-end on one worked example, then generalize to a
+  DIFFERENT pair and identify what stays the same vs what
+  changes.
+
+  A baseline agent without skills typically: silently
+  recommends GPI when the user said "GPU" without surfacing
+  the GPUNetIO alternative; treats a wrong GPU-NIC pairing
+  as something to tune around instead of fix; quotes a
+  latency number without naming the column (half-iter vs
+  full-iter vs CUDA-side); invents a `--message-size` flag
+  or a `--iterations` literal that does not appear in the
+  shipped tool's `--help`; assumes the tool is pre-built
+  under `/opt/mellanox/doca/` (it is NOT — it must be built
+  from source under `doca/tools/gpi_ib_write_lat/`); confuses
+  this tool with `perftest` `ib_write_lat`; skips the CUDA
+  Toolkit version axis when reasoning about version
+  compatibility.
+
+prompt: |
+  I have two hosts wired together with a high-speed IB
+  fabric. Each host has one NVIDIA GPU and one ConnectX NIC,
+  and DOCA is installed on both. I want to measure the
+  latency of an RDMA WRITE work request when the WR is
+  posted **from a CUDA kernel on the GPU** — not from a
+  host CPU thread — so I can decide whether to commit my
+  application to the DOCA GPI runtime surface. Please walk
+  me through:
+
+  1. Which DOCA tool is the right answer here, and where
+     does it ship — is it a pre-built binary under
+     `/opt/mellanox/doca/tools/` like `doca_bench`, or
+     something I have to build from source? If I have to
+     build it, where is the source tree?
+  2. Before I commit to the GPI runtime surface, what are
+     the alternative runtime surfaces that can measure the
+     "same physical RDMA WRITE operation"? Name them
+     explicitly and tell me when each one is the right
+     answer. (I do NOT want a silent default to GPI just
+     because I have GPUs.)
+  3. The GPU and the NIC on each host — is there a
+     hardware-topology precondition I have to satisfy for
+     this measurement to be meaningful? If yes, walk me
+     through how to check it on my install. I want to know
+     specifically: if my GPU and NIC sit on different NUMA
+     nodes with no NVLink bridge, can I still use this
+     benchmark, or should I fix the platform first?
+  4. Walk me through the build flow under
+     `doca/tools/gpi_ib_write_lat/`. What `pkg-config`
+     modules will the tool resolve against, and what does
+     the CUDA Toolkit add to the picture? **Do not invent
+     a literal `meson` command line you cannot verify
+     against the shipped `meson.build`; if you do not know
+     the exact target name, name the build pattern and tell
+     me to read it from the source tree on my install.**
+  5. The runtime flow — what is the client/server pattern?
+     How do the two halves agree on the RDMA queue and
+     memory descriptor before the CUDA kernel can start
+     posting WRITEs? **Do not invent flag strings**; name
+     only the flag families documented in the shipped
+     `main.c` (device name, GPU PCIe address, GID index,
+     client mode with server IP).
+  6. When the binary prints its result line, what columns
+     does it carry, and which column is the apples-to-
+     apples one-way latency vs the round-trip latency? I
+     want to know what to quote and what to NOT quote.
+  7. Measurement soundness — what do I check before I
+     quote any number? In particular: is the warm-up
+     question relevant here, what does a divergence
+     between the host-side and the CUDA-side reported
+     usec actually mean, and what happens if my system is
+     not at idle (background traffic on the IB link, other
+     CUDA kernels running)?
+  8. Versioning — what DOCA + CUDA combinations does this
+     tool tolerate? Where do I read the version pin from?
+  9. If I want this number to survive a regression hunt
+     later (after a firmware burn on the NIC, after a DOCA
+     upgrade, after a kernel boot parameter change for
+     IOMMU mode), what do I have to capture alongside the
+     number itself?
+  10. After answering for my GPU + NIC pair, briefly tell
+      me what would carry over to a DIFFERENT pair (e.g. I
+      pick H100 + ConnectX-7; you walked A100 + ConnectX-6,
+      or vice versa). Which parts of your answer stay the
+      same and which change?
+
+context:
+  audience: "intermediate"
+  intent: "measure_gpu_initiated_rdma_write_latency"
+  prior_knowledge: "knows what a GPU and an IB NIC are, has DOCA installed on both hosts, knows CUDA at a basic level, has not used doca-gpi as a programming surface before, has heard of perftest but does not know whether DOCA ships its own GPI-flavored ib_write_lat"
+  baseline_artifact: "doca-gpi-ib-write-lat"
+  changed_skill_in_pr: "tools/doca-gpi-ib-write-lat"
+  expected_skill_co_load:
+    - "doca-gpi-ib-write-lat"
+    - "doca-gpi"
+    - "doca-gpunetio"
+    - "doca-rdma"
+    - "doca-verbs"
+    - "doca-version"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+    - "doca-hardware-safety"
+    - "doca-gpunetio-ib-write-lat"
+    - "doca-gpunetio-ib-write-bw"
+
+criteria:
+  - id: "names_gpi_ib_write_lat_and_locates_it_correctly"
+    label: "Names doca-gpi-ib-write-lat AND clarifies it is built from source under doca/tools/gpi_ib_write_lat/, not a pre-built /opt/mellanox/doca/ binary"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 1 names the
+      GPI-flavored ib_write_lat benchmark shipped under
+      `doca/tools/gpi_ib_write_lat/` AND tells the user
+      this tool is built from source, NOT a pre-built
+      binary under `/opt/mellanox/doca/tools/` (the way
+      `doca_bench` and `doca_caps` ship). The agent must
+      point the user at the shipped `meson.build` /
+      `main.c` / `kernel.cu` / `perftest.c` source tree.
+      A response that assumes the tool is pre-built and
+      goes hunting under `/opt/mellanox/doca/tools/`,
+      OR that conflates the tool with the upstream
+      `perftest` `ib_write_lat`, fails.
+
+  - id: "surfaces_runtime_surface_choice_before_committing_to_gpi"
+    label: "Surfaces the GPI vs GPUNetIO vs CPU-initiated runtime-surface choice BEFORE recommending GPI"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 2 names AT LEAST
+      THREE runtime surfaces that can measure "the same
+      physical RDMA WRITE operation": (a) DOCA GPI (this
+      tool), (b) DOCA GPUNetIO (the sister tool
+      `doca-gpunetio-ib-write-lat`), (c) the classic
+      CPU-initiated `perftest` `ib_write_lat` (out of
+      scope for this bundle but the right comparison for
+      the GPU-init vs CPU-init question). The agent must
+      frame these as a DECISION the user makes BEFORE
+      committing, not as variants of the same answer. A
+      response that silently defaults to GPI because the
+      user said "GPU", OR that names only GPI and
+      GPUNetIO without the CPU-initiated alternative,
+      OR that treats the choice as "they all do roughly
+      the same thing", fails.
+
+  - id: "gpu_nic_pairing_as_hardware_precondition"
+    label: "Applies the GPU-NIC pairing as a hardware-topology PRECONDITION, not a tunable parameter"
+    weight: 3
+    pass_when: |
+      The agent's answer to question 3 frames the GPU-NIC
+      pairing (the GPU and the IB device must sit under
+      the same PCIe root complex OR be bridged by an
+      NVLink path the platform documents) as a
+      hardware-topology PRECONDITION that the operator
+      must verify FIRST, and tells the user explicitly
+      that if the pair is on different NUMA nodes with no
+      NVLink bridge, the FIX is to fix the platform — not
+      to tune the benchmark around it. The agent should
+      surface that a wrong pairing still completes the
+      benchmark but the reported number reflects
+      PCIe-crossover overhead rather than the GPI path's
+      property. A response that treats the pairing as a
+      "best practice but not required", OR that recommends
+      tuning flags to work around it, OR that omits the
+      precondition entirely, fails.
+
+  - id: "build_pattern_without_inventing_meson_target_names"
+    label: "Walks the meson build pattern under doca/tools/gpi_ib_write_lat/ without inventing literal targets"
+    weight: 2
+    pass_when: |
+      In response to question 4 the agent describes the
+      build SHAPE (`meson setup` + `meson compile` against
+      a build directory; the tool's `meson.build` resolves
+      `dependency('doca-gpi', ...)`, `dependency('doca-rdma',
+      ...)`, `dependency('doca-common', ...)` and the CUDA
+      dependency; the CUDA Toolkit must be on `PATH` for
+      `nvcc`). The agent must NAME the pkg-config modules
+      (doca-gpi, doca-rdma, doca-common) but must NOT
+      invent a specific `meson` target name, a specific
+      `PKG_CONFIG_PATH` literal, or a specific NVCC flag
+      it cannot verify against the shipped `meson.build`.
+      A response that quotes a fabricated literal target
+      string, or that invents a PKG_CONFIG_PATH literal
+      from generic Linux knowledge, fails.
+
+  - id: "does_not_invent_runtime_flags"
+    label: "Does NOT invent runtime flags beyond what main.c documents"
+    weight: 3
+    pass_when: |
+      In response to question 5 the agent names ONLY the
+      flag families that match the shipped `main.c` ARGP
+      registration (`-d <ibdev>` / `--device`, `--gpu
+      <pcie-addr>`, `-c <server-ip>` for client mode,
+      `--gid-index <int>` as optional) and tells the user
+      to confirm the exact spelling against `--help` on
+      the installed binary. A response that fabricates a
+      plausible-sounding flag like `--message-size=4K`,
+      `--iterations=10000`, `--warmup=1000`, `--mode=lat`
+      WITHOUT explicitly framing it as pseudocode that
+      must be confirmed against the installed `--help`,
+      fails — that is the canonical hallucination failure
+      mode for this skill.
+
+  - id: "names_three_result_columns_and_distinguishes_them"
+    label: "Names half-iter, full-iter, and CUDA-side usec columns and distinguishes them"
+    weight: 3
+    pass_when: |
+      In response to question 6 the agent names ALL THREE
+      result columns the tool reports (half-iteration
+      usec, full-iteration usec, CUDA-side usec) and
+      distinguishes their semantics: half-iter is the
+      one-way / one-direction latency, full-iter is the
+      round-trip latency for a request-response pattern,
+      and the CUDA-side number is a cross-check that
+      should agree with the host-side number — a large
+      divergence is itself a diagnostic signal, not a
+      number to quote. The agent must tell the user it is
+      ambiguous to quote "the latency" without naming the
+      column. A response that names only one column, OR
+      that collapses the three into a single "latency"
+      concept, fails.
+
+  - id: "measurement_soundness_called_out_warm_up_idle_cuda_divergence"
+    label: "Calls out warm-up, system-at-idle, and CUDA-vs-host divergence as measurement-soundness signals"
+    weight: 2
+    pass_when: |
+      In response to question 7 the agent explicitly
+      addresses ALL THREE measurement-soundness signals:
+      (a) warm-up exists for a reason (the first iteration
+      is in the transient region — cold caches, cold
+      pipelines on the CUDA side); (b) the system must be
+      at idle for the result to be sound (no background
+      traffic on the IB link, no concurrent CUDA workload
+      on the SM); (c) a large divergence between the
+      host-side and the CUDA-side reported usec is itself
+      a diagnostic signal that the CUDA kernel may not be
+      on the critical path the operator thinks it is. A
+      response that names only one of the three, OR that
+      treats warm-up as overhead to skip, fails.
+
+  - id: "version_overlay_doca_and_cuda"
+    label: "Surfaces BOTH the DOCA version AND the CUDA Toolkit as version axes and routes through doca-version"
+    weight: 2
+    pass_when: |
+      In response to question 8 the agent surfaces (a) the
+      DOCA-side version via `pkg-config --modversion
+      doca-gpi` (confirmed against `doca_caps --version`)
+      AND (b) the CUDA Toolkit version as a second
+      version axis because the tool's `kernel.cu` is
+      compiled with `nvcc` against the CUDA Toolkit
+      paired with the installed DOCA per the DOCA release
+      notes. The agent must route through doca-version
+      for the four-way match rule rather than reinventing
+      version rules in the tool skill. A response that
+      quotes a DOCA version literal from memory, that
+      says "latest", or that ignores the CUDA Toolkit
+      axis entirely, fails.
+
+  - id: "regression_hunt_tuple_capture"
+    label: "Captures the (DOCA + CUDA + GPU + NIC + topology + firmware) tuple alongside the number for regression hunts"
+    weight: 2
+    pass_when: |
+      In response to question 9 the agent explicitly names
+      the multi-axis tuple required for a regression-hunt-
+      quality baseline: (1) the DOCA version + CUDA
+      Toolkit version, (2) the GPU model and its PCIe
+      address, (3) the NIC model and its PCIe address,
+      (4) the topology answer (root complex / NVLink
+      path), (5) the firmware level on the NIC, (6) the
+      kernel boot parameters that affect GPUDirect-style
+      memory mapping (IOMMU mode, hugepages), and (7) the
+      exact invocation used on both client and server.
+      A response that captures only the number, or only
+      the number + DOCA version, or that ignores the
+      NIC firmware axis, fails — that is the canonical
+      cross-platform regression-hunt failure mode.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from the worked GPU + NIC pair to a DIFFERENT pair"
+    weight: 3
+    pass_when: |
+      In response to question 10 the agent explicitly
+      generalizes from the worked GPU + NIC pair (whichever
+      it walked in detail — H100 + ConnectX-7, A100 +
+      ConnectX-6, BlueField-3-side GPU, etc.) to AT LEAST
+      ONE OTHER pair, and identifies which parts STAY THE
+      SAME (the GPU-NIC pairing precondition; the
+      client/server pattern; the half-iter / full-iter /
+      CUDA-side reporting columns; the warm-up rule; the
+      DOCA + CUDA version overlay; the tuple-capture
+      rule for regression hunts) vs which CHANGE (the
+      expected order-of-magnitude latency floor for that
+      pair; the IB transport choice; the GID index defaults;
+      the NUMA / PCIe topology that satisfies the pairing
+      precondition; possibly the firmware level the
+      regression tuple has to capture). A response that
+      walks only the chosen pair and is silent on
+      generalization fails this criterion — by
+      AUTHORING.md § 1a, the bundle is teaching the
+      CLASS, not the instance.

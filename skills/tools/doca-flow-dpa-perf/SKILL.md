@@ -1,7 +1,7 @@
 ---
 name: doca-flow-dpa-perf
 description: NVIDIA DOCA Flow DPA Perf (`doca_flow_dpa_perf`) — performance measurement tool for the DPA-accelerated path of `doca-flow` ("DOCA Flow DPA Provider"). Distinct from `doca-flow-perf`: this tool measures rule-update / rule-disable rates when the DOCA Flow pipeline executes on the DPA processor on a DPA-capable device (ConnectX-7 and above, BlueField-3), where `doca-flow-perf` measures the host or DPU-CPU execution path. Teach: what DPA-offload buys (offloaded Flow rule update path), when this tool is the right surface (DPA-capable hardware, VNF Flow mode, PSL/hash-pipe class of workloads), the DPA preconditions (DPA-capable device, DPA programming runtime, link to `doca-dpa`), how the active / passive device split works, and how to interpret the measurement (Kops/sec, iteration statistics, self-test). Pairs with `doca-flow`, `doca-dpa`, `doca-flow-perf`, `doca-version`, `doca-debug`.
-kind: library
+kind: tool
 ---
 
 # DOCA Flow DPA Perf (`doca_flow_dpa_perf`)

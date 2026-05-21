@@ -1,7 +1,7 @@
 ---
 name: doca-comm-channel-admin
 description: NVIDIA DOCA Comm Channel Admin Tool — the operator-facing CLI shipped under `/opt/mellanox/doca/tools/` for inspecting, draining, and restarting host-DPU control channels created by the DOCA Comch library (renamed from DOCA Comm Channel in DOCA 2.5). Read-only enumeration and inspection are safe and form the smoke-before-bulk preamble; drain and restart are state-changing operations the agent must gate on a clean inspection first. Runs from either the host or BlueField Arm side; pairs with the doca-comch library skill, which owns the API surface the channels were created against. The canonical public source is the DOCA Comm Channel Admin Tool guide; flag names, subcommands, and output column names come from that guide and the installed `--help`, not from agent memory.
-kind: library
+kind: tool
 ---
 
 # DOCA Comm Channel Admin Tool

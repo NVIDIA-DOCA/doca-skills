@@ -124,7 +124,7 @@ This skill carries only the Compress-specific overlay:
 | --- | --- | --- |
 | `pkg-config` module name | `doca-compress` | The library's `.pc` file installed by the DOCA host packages. Wrong module name = `pkg-config: Package 'doca-compress' was not found` |
 | Required runtime libs | `libdoca-common`, `libdoca-compress`, plus whatever `pkg-config --libs doca-compress` resolves transitively | Compress depends on Core; the link line should not pull in unrelated DOCA libraries |
-| Header check | The DOCA Compress public header resolvable under `/opt/mellanox/doca/infrastructure/include/` | If `pkg-config --cflags doca-compress` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
+| Header check | The public header that `pkg-config --cflags` for this artifact resolves to actually exists on disk at the path pkg-config reports (do not hardcode the include path) | If `pkg-config --cflags doca-compress` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-compress`; never hardcode in build files | Cross-version build/runtime mixing breaks per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
 
 For non-C consumers (Rust, Go, Python), the link surface is the
@@ -350,6 +350,91 @@ cross-cutting runtime to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug).
 
+**5-phase universal debug-loop instantiation (Compress).** Layer
+identification above is phase 1 of the
+[universal debug-loop contract](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract).
+The agent MUST walk the remaining four phases on every Compress
+debug answer before declaring done:
+
+1. **Layer identification** — above (capability / lifecycle /
+   data-path).
+2. **Triple capture (READ-ONLY).** Capture (a) capability map:
+   `doca_compress_cap_task_compress_deflate_is_supported(devinfo)`
+   + `doca_compress_cap_*` max buffer / algorithm support on the
+   actual devinfo, (b) submitted-task vs completed-task counters
+   from `doca_pe_progress` callback log, (c) DOCA log at
+   `DOCA_LOG_LEVEL=DEBUG` for the offending task with the
+   request / response buffer addresses. The triple is the
+   rollback target.
+3. **Single-variable mutation SMALLER than the original
+   change.** Examples: shrink the input buffer to a single
+   compressible payload (not the production batch); switch
+   `doca_mmap` to a fresh pinned region (not the production
+   pool); reduce parallelism to one outstanding task (not the
+   pipeline depth). Larger mutations void the experiment.
+4. **Re-capture and compare.** Re-run the triple; the
+   request/response counter diff IS the evidence.
+5. **Exit with named green signal OR escalate.** Green = one
+   round-trip (compress → decompress) returns bytes-equal at
+   the source. If two consecutive iterations don't change
+   anything, escalate via the layer route table above with the
+   captured triple.
+
+## rollback
+
+Compress contexts are stateful (started context + registered
+mmap regions + in-flight tasks on the progress engine) and the
+agent's failure mode is to leave in-flight tasks dangling on a
+context that is being torn down, returning
+`DOCA_ERROR_BAD_STATE` on the next program run. The
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer; this is the
+Compress instantiation.
+
+**Snapshot before mutate.** Before any change-recommending
+Compress answer, capture (a) the started-context registration
+map (mmap region IDs + task-type conf flags from `## configure`
+step 3), (b) the outstanding-task count from
+`doca_pe_progress`, and (c) the input/output buffer ownership
+list. The triple IS the rollback target.
+
+1. **Drain outstanding tasks FIRST.** Walk
+   `doca_pe_progress` until the outstanding-task counter is
+   zero. Do NOT submit new tasks after rollback intent is
+   declared. If the drain stalls (counter not decrementing
+   within the bounded debug-loop window), fire the
+   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger)
+   on the stalled-drain symptom before continuing the rollback.
+2. **`doca_ctx_stop` on the Compress context.** Returns
+   `DOCA_ERROR_BAD_STATE` if step 1 was skipped — that is
+   diagnostic, not a retry trigger; re-walk step 1 with a
+   higher-resolution drain log.
+3. **Unregister mmap regions in reverse-register order.**
+   `doca_mmap_destroy` on every region created with
+   `doca_mmap_create_*`; the underlying host buffers may be
+   freed after this step.
+4. **Destroy the Compress context.** `doca_compress_destroy`.
+   The underlying `doca_dev` remains valid and must not be
+   torn down by this step.
+5. **Re-verify with the shipped round-trip smoke.** Re-run
+   the round-trip from [`## test`](#test) step 1 against a
+   fresh context to confirm the device + driver path is
+   intact post-rollback. If the smoke does not return
+   bytes-equal, the rollback corrupted device state —
+   surface as a residual gap, do NOT retry.
+6. **Document the rollback verb in the verification contract
+   preconditions block.** The step 1 line for a Compress add
+   reads: *"the rollback path is the five-step reversal in
+   [`## rollback`](#rollback); the agent has captured the
+   started-context registration map and outstanding-task
+   count."* Without that line, the contract is incomplete
+   and the agent is NOT eligible to declare done.
+
+The rollback is bounded — on the second non-green re-verify at
+step 5, the agent MUST surface the unresolved residual gap
+instead of recommending another Compress retry.
+
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are
@@ -416,7 +501,7 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-compress` | `## configure` step 1; `## build` slot 4 | What is the build-time DOCA Compress version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-compress` | `## build` | What include + link flags does the linker need? | Includes resolve under `/opt/mellanox/doca/infrastructure/include/`; libs include `-ldoca-compress -ldoca-common` |
+| `pkg-config --cflags --libs doca-compress` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
 | `doca_caps --list-devs` | `## configure` step 2; `## run` step 1 | Which devices on this host can be used as a `doca_dev` for Compress? | One row per visible device with PCIe address and capability flags; the agent must still run `doca_compress_cap_*` per-device to confirm per-task support |
 | `doca_caps --version` | `## configure` step 1; `## test` step 1 | What is the *runtime* DOCA version on this host? | A semver string matching `pkg-config --modversion doca-compress` |
 | `ls /opt/mellanox/doca/samples/doca_compress/` | `## modify` slot 1 | Which Compress samples ship in this install, and which is the closest starting point? | A list of sample directories named after the task direction they demonstrate (compress, decompress, or both) |

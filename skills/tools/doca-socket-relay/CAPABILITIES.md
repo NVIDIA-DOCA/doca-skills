@@ -257,13 +257,19 @@ behavior, and the DPU-side terminator's behavior, read together.
 Three primary signals the agent should reach for:
 
 - **Relay-side state.** The relay's `--help`-documented inspection
-  surface (or, for the container deployment shape, the
-  ENTRYPOINT log per
-  [`doca-container-deployment CAPABILITIES.md ## Observability`](../../doca-container-deployment/CAPABILITIES.md#observability))
+  surface — the canonical per-artifact introspection flag the
+  bundle's universal verification contract names for this tool is
+  **`--list-channels`** (see
+  [`AGENTS.md ## The universal verification contract`](../../../AGENTS.md))
+  — or, for the container deployment shape, the ENTRYPOINT log per
+  [`doca-container-deployment CAPABILITIES.md ## Observability`](../../doca-container-deployment/CAPABILITIES.md#observability),
   reports whether the relay is bound, on which socket / port /
   path, against which forwarding endpoint, with what current
   connection set. Capture this verbatim before any
-  state-changing operation.
+  state-changing operation. Do NOT substitute related-but-different
+  names such as `list-connections` or `list-relays`; the documented
+  flag is `--list-channels` and is the one the bundle has cross-
+  validated against the public DOCA Socket Relay guide.
 - **Host-application-side observability.** The host application's
   own connect / send / recv error reporting (`errno`, log lines,
   `ss` / `netstat` output for the socket the application opened,

@@ -1,7 +1,7 @@
 ---
 name: doca-bench
 description: NVIDIA DOCA Bench (`doca_bench`) — official cross-library performance / micro-benchmark harness shipped under `/opt/mellanox/doca/tools/doca_bench` since DOCA 2.7.0. Drives reproducible throughput / latency / op-rate measurements against multiple DOCA libraries (RDMA, COMPRESS, AES-GCM, SHA, DMA, EC, ETH, Comch, GPUNetIO) on host or BlueField Arm via a pipeline-of-steps model with a documented warm-up period, multi-core scaling, and a built-in query system that reports which DOCA libraries the install actually exposes. Use to size a workload, validate a tuning change, capture a baseline before a regression hunt, or answer *"what does this DOCA library actually deliver on this device"* — always alongside `doca-version` for the version overlay and the matching `libs/<library>` skill for the workload-side preconditions.
-kind: library
+kind: tool
 ---
 
 # DOCA Bench (`doca_bench`)

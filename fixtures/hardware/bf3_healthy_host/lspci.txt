@@ -1,0 +1,3 @@
+17:00.0 Ethernet controller: Mellanox Technologies MT43244 BlueField-3 SoC Flash Recovery (rev 01)
+17:00.1 Ethernet controller: Mellanox Technologies MT43244 BlueField-3 integrated ConnectX-7 network controller (rev 01)
+17:00.2 DMA controller: Mellanox Technologies MT43244 BlueField-3 SoC Management Interface (rev 01)

@@ -75,7 +75,7 @@ one referenced from
 mirrored here so the activation rule is at hand whenever this skill
 is consulted.
 
-### Agent activation checklist — load this skill at the START of the answer when any cell below is true
+## Agent activation checklist — load this skill at the START of the answer when any cell below is true
 
 | Trigger class | Concrete prompt-side signals (any one fires the overlay) |
 | --- | --- |
@@ -87,11 +87,11 @@ is consulted.
 
 When any cell above fires, the agent MUST:
 
-1. Cite the **four-source detection chain** from [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) explicitly in the answer — `pkg-config --modversion doca-common` → `cat /opt/mellanox/doca/applications/VERSION` → `doca_caps --version` → `mlxprivhost` / `bfb-info` (BlueField hosts). Do not paraphrase or summarize the chain; cite the commands by name.
+1. Cite the **four-source detection chain** from [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) explicitly in the answer — `pkg-config --modversion doca-common` → `cat /opt/mellanox/doca/applications/VERSION` → `doca_caps --version` → `bfver` plus `cat /etc/mlnx-release` (BlueField hosts). Do not paraphrase or summarize the chain; cite the commands by name. Do NOT substitute `mlxprivhost` or `bfb-info` for the BFB leg — those are common hallucinations and the bundle explicitly bans them in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
 2. State the **four-way match rule** from [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) verbatim if the prompt could possibly involve a mismatch (every deploy-shape question and every debug-shape question can; orientation-shape questions usually cannot).
 3. Refuse to invent a version string. If the agent doesn't have the actual `pkg-config --modversion` output from the user's host, the answer must say so and route to the detection chain — not assert a version from training-data recall.
 
-### Universal version-coherence trigger
+## Universal version-coherence trigger
 
 Whenever ANOTHER overlay (e.g. [`doca-setup`](../doca-setup/SKILL.md), [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md), [`doca-container-deployment`](../doca-container-deployment/SKILL.md), [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)) calls a `## test` / `## configure` / `## modify` step that requires *"the install is healthy"* or *"versions are consistent"*, that step MUST resolve to a citation of this skill's four-source detection chain and four-way match rule. The agent does NOT redefine the rule per-overlay — every step that needs a version verification must route here. This is the *only* place in the bundle that owns the rule body.
 

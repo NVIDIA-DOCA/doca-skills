@@ -52,7 +52,7 @@ The shipped DOCA samples and reference applications are C, built with meson. You
 
 DOCA does not ship official bindings in non-C languages inside this repository. The consumption path is FFI / language-specific bindings against the same `*.so` libraries the C samples link against.
 
-1. **Confirm the install host gives you the C ABI surface.** `pkg-config --cflags --libs doca-<library>` returns the include path and link flags; the headers under `/opt/mellanox/doca/infrastructure/include/` are the authoritative symbol declarations; the `*.so` files under `/opt/mellanox/doca/lib/<arch>-linux-gnu/` are what your binding loads at runtime. Verify all three are present before any binding-side work. If any of those checks fails, route to [`doca-setup ## debug`](../doca-setup/TASKS.md#debug).
+1. **Confirm the install host gives you the C ABI surface.** `pkg-config --cflags --libs doca-<library>` returns the include path and link flags; the headers under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) are the authoritative symbol declarations; the `*.so` files under `/opt/mellanox/doca/lib/<arch>-linux-gnu/` are what your binding loads at runtime. Verify all three are present before any binding-side work. If any of those checks fails, route to [`doca-setup ## debug`](../doca-setup/TASKS.md#debug).
 
 2. **Pick the binding strategy honestly.** If a community or user-built binding for the user's language exists, point at its repository (the agent **must** verify it exists by fetching its repo or package registry — never invent a binding name). Otherwise the user is doing direct FFI: `bindgen` for Rust, `cgo` for Go, `cffi` / `ctypes` for Python, equivalents for other languages.
 
@@ -264,8 +264,10 @@ Two cross-cutting rules:
   command above comes from a public source (the DOCA SDK index in
   [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md),
   the library's own `--help`, or the sample's `README`). Agent-invented
-  flags are the failure mode [AUTHORING.md § 3](../../../devops/AUTHORING.md)
-  forbids; they break trust in every other command in the same answer.
+  flags are the failure mode the
+  [AGENTS.md `## Ground rules`](../../AGENTS.md#ground-rules)
+  anti-hallucination clause forbids; they break trust in every other
+  command in the same answer.
 - **Cite the version the user is on, not "latest".** Every command
   whose output is version-dependent (the API surface, the available
   pipe types, the supported capability bits) is answered against the

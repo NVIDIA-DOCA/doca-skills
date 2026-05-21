@@ -1,7 +1,7 @@
 ---
 name: doca-caps
 description: NVIDIA DOCA Capabilities Print Tool (`doca_caps`) — read-only CLI shipped under `/opt/mellanox/doca/tools/doca_caps`. Lists DOCA devices, their representors, the DOCA libraries supported on the running OS, and per-device per-library capabilities. Available since DOCA 2.6.0; runs on host or BlueField Arm; side-effect-free, safe to call early in any DOCA workflow as a capability snapshot or install smoke-test.
-kind: library
+kind: tool
 ---
 
 # DOCA Capabilities Print Tool (`doca_caps`)

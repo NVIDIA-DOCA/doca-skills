@@ -1,7 +1,7 @@
 ---
 name: doca-spcx-cc
 description: NVIDIA DOCA SPCX Congestion-Control Tool (`doca_spcx_cc`) — operator CLI shipped under `/opt/mellanox/doca/tools/` that loads, exercises, and observes a Programmable Congestion Control (SPCX) algorithm on a live RDMA / RoCE fabric driven by a BlueField with a DPA processor. SPCX is NVIDIA's next-gen programmable-CC surface extending [`doca-pcc`](../../libs/doca-pcc/SKILL.md); the algorithm body runs on the DPA (compiled via DPACC), the host harness drives load / start / observe / stop. SPCX vs PCC is a design decision: PCC is stable and established; SPCX is the newer extension (potentially preview / limited HW). Deploying a wrong CC algorithm on production can melt the fabric — `## Safety policy` overlays the hardware-safety meta-policy, requires the live-link / contention precondition, replica-first validation, bounded blast radius, and a rehearsed rollback to factory PCC. Flags, role tokens, probe formats, and metric names are read from the public DOCA SPCX page and `--help`.
-kind: library
+kind: tool
 ---
 
 # DOCA SPCX Congestion-Control Tool

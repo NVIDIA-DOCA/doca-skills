@@ -1,7 +1,7 @@
 ---
 name: doca-gpunetio-ib-write-lat
 description: NVIDIA DOCA GPUNetIO ib_write_lat — the GPUNetIO-flavored analog of the classic `perftest` `ib_write_lat`, shipped under `doca/tools/gpunetio_ib_write_lat/` as a client + server pair where each side has its CUDA kernel post one RDMA WRITE in a ping-pong cadence through the doca-gpunetio device-side surface to measure the per-iteration latency. The skill teaches the class question of *"what GPU-init RDMA-WRITE latency / jitter can the GPUNetIO path deliver for a real-time / control-loop class workload, and how does it compare against the GPI sister tool on the same physical operation?"* — the GPU-NIC pairing precondition, the configure / build / run shape against the shipped tool tree, how to read the half-iter / full-iter / CUDA-side usec output, the latency-vs-batching trade-off intrinsic to GPU-init RDMA, the version + capability overlay against the installed DOCA + CUDA Toolkit, and how to pick GPUNetIO vs GPI vs CPU-initiated for a given runtime surface.
-kind: library
+kind: tool
 ---
 
 # DOCA GPUNetIO ib_write_lat

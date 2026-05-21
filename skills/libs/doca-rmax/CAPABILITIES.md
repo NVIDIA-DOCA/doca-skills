@@ -66,7 +66,7 @@ they are supported.
 DOCA Core context, instantiated through the per-Rivermax-
 integration context. Exact symbol names are install-bound;
 read them from the headers at
-`/opt/mellanox/doca/infrastructure/include/` rather than from
+the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) rather than from
 agent memory beyond the family pattern below.
 
 | Object | What it does | Family of calls | Sizing inputs |

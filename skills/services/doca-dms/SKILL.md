@@ -1,7 +1,7 @@
 ---
 name: doca-dms
 description: NVIDIA DOCA Management Service (DMS) — gRPC-based device-management service for BlueField networking platforms and ConnectX SmartNICs. Two-process daemon (dmsd frontend + dmspe privileged backend), gNMI for configuration (Get/Set on YANG-modeled paths) and gNOI for system operations (reboots, OS install, file transfer). Authentication modes (localhost/PAM/credentials/mTLS), dmsgroup authorization, deployment shapes (host-non-DPU, BlueField Arm, Kubernetes pod), service launch (SystemD or manual), and gNMI/gNOI client invocation patterns.
-kind: library
+kind: service
 ---
 
 # DOCA Management Service (DMS)

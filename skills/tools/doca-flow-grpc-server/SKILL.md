@@ -1,7 +1,7 @@
 ---
 name: doca-flow-grpc-server
 description: NVIDIA DOCA Flow gRPC Server (`doca_flow_grpc_server`) — the shipped DOCA tool that exposes a remote-control gRPC surface in front of `doca-flow`, letting a non-C++ client (Python, Go, Rust, Java, etc., via standard gRPC bindings) program Flow pipes, entries, and rules over RPC instead of linking `libdoca_flow.so` into a process directly. The gRPC contract is defined by the `.proto` files shipped under the tool's source tree on the user's install; that file is the authoritative API surface. Because the server controls live Flow / dataplane state, the gRPC endpoint is an admin attack surface — bind it on a trusted segment, gate it with auth + TLS, and treat every state-changing RPC the same way you would a direct `doca-flow` mutation. Pairs with `doca-flow`, `doca-version`, `doca-debug`, `doca-hardware-safety`.
-kind: library
+kind: tool
 ---
 
 # DOCA Flow gRPC Server (`doca_flow_grpc_server`)

@@ -158,8 +158,13 @@ GPUNetIO-specific material lives in two companion files:
   match, `nvidia_peermem`, CUDA buffer registration).
 - `TASKS.md` — step-by-step workflows for the six in-scope
   GPUNetIO verbs: `configure`, `build`, `modify`, `run`, `test`,
-  `debug`. Plus a `Deferred task verbs` block that points
-  out-of-scope questions at the right next skill.
+  `debug`. Plus a `## rollback` overlay (GPUNetIO-specific
+  five-step teardown that signals the persistent kernel to
+  drain, unregisters GPU buffers in reverse-register order, and
+  leaves the parent doca-eth queue intact) and the 5-phase
+  universal debug-loop instantiation appended to `## debug`.
+  Plus a `Deferred task verbs` block that points out-of-scope
+  questions at the right next skill.
 
 The skill assumes a host where DOCA is already installed at the
 standard location, an NVIDIA GPU is physically present, the CUDA

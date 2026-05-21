@@ -1,0 +1,282 @@
+id: "44_run_a_doca_library_micro_benchmark"
+name: "Run a DOCA library micro-benchmark with doca_bench"
+description: |
+  Class-shaped tool-invocation prompt for doca_bench. The HEADLINE
+  is the class ("run a DOCA library micro-benchmark with
+  doca_bench"); the worked example is a single library × workload
+  × measurement combination the agent picks (e.g. doca-comch
+  latency, doca-compress throughput, doca-rdma send throughput).
+  The bundle MUST teach the agent to treat doca_bench as a
+  cross-library harness — not as a single-library benchmarker —
+  and to commit to the three-axis configuration (target library ×
+  workload shape × measurement axis) before quoting numbers.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  drive doca_bench against ANY DOCA library it supports (AES-GCM,
+  Comch, Compress, DMA, EC, Eth, RDMA, SHA, GPUNetIO per the
+  public DOCA Bench guide). The bundle proves this by asking the
+  agent to (a) name doca_bench as a cross-library harness, (b)
+  walk the three-axis configuration explicitly, (c) probe the
+  install's granular-build inventory before assuming the target
+  library is exposed, (d) run a smoke-before-bulk flow with a
+  trivial workload, (e) call out measurement-soundness rules
+  (warm-up, steady-state, distribution-not-mean), (f) honor the
+  version overlay via doca-version, (g) refuse to invent flag
+  strings / scenario names / metric names, and (h) generalize the
+  shape to AT LEAST ONE OTHER target library.
+
+  A baseline agent without skills typically: treats doca_bench as
+  the "doca_rdma benchmarker" or "doca_compress benchmarker"
+  (collapsing the cross-library scope); invents flag strings
+  (e.g. `doca_bench --library rdma --mode throughput
+  --packet-size 1500`) that do not exist in --help; skips the
+  warm-up question entirely and quotes the first-second number
+  as steady-state; quotes a single throughput / latency number
+  without naming the (command line + DOCA version + device + as-
+  deployed environment) four-tuple; jumps to a long swept run
+  without a smoke; cannot generalize the bench shape to a second
+  DOCA library.
+
+prompt: |
+  I have a BlueField-3 with DOCA installed on the BlueField Arm
+  and I want to measure what a specific DOCA library actually
+  delivers on this device, using DOCA's own performance tool
+  rather than rolling my own harness. Please walk me through:
+
+  1. Which DOCA tool is the right answer here, and what is its
+     scope — is it specific to one DOCA library or does it cover
+     many of them? Name at least two DOCA libraries I could
+     point it at.
+  2. Before I commit to a target library, what should I check to
+     confirm this install can even drive that library through
+     the bench? (My install is "DOCA on BlueField Arm" — I do not
+     know if it was a granular-build install or the full one.)
+  3. The bench has multiple measurement modes — name them and
+     tell me which one is right when I care about (a) bandwidth,
+     (b) tail latency per job, (c) a balance with a distribution
+     rather than a single number. Are these modes interchangeable?
+  4. Walk me through the three-axis configuration I have to
+     commit to before running anything: target library, workload
+     shape, measurement axis. For ONE library of your choice
+     (e.g. doca-comch for a latency story, doca-compress for a
+     throughput story, doca-rdma for a send-rate story — you
+     pick), sketch the SHAPE of the bench invocation. **Do not
+     invent flag strings you cannot verify — if you do not know
+     the exact flag name from the public DOCA Bench guide or
+     --help, name the parameter family and tell me to confirm
+     against --help on my installed binary.**
+  5. What is the smoke-before-bulk flow? I do not want to kick
+     off a long sweep on the wrong configuration and burn an
+     hour.
+  6. Measurement soundness — what should I check before I quote
+     a number to anyone? In particular, what is the warm-up
+     about and why does it exist, and what is the difference
+     between "the run completed" and "the run produced a number
+     I should quote"?
+  7. If I want this number to survive a regression hunt later
+     (e.g. after a firmware update), what do I have to capture
+     alongside the number itself?
+  8. Versioning — what does the version of doca_bench have to
+     line up with on this host, and where does the version live?
+  9. After answering for that one library, briefly tell me what
+     would carry over to a DIFFERENT DOCA library (pick one you
+     did NOT walk in detail). Which parts of your three-axis
+     answer stay the same and which change?
+
+context:
+  audience: "intermediate"
+  intent: "run_micro_benchmark"
+  prior_knowledge: "knows BlueField + DOCA, has DOCA installed at a recent version, has not used doca_bench before, wants a defensible number not a marketing headline"
+  baseline_artifact: "doca-bench"
+  changed_skill_in_pr: "tools/doca-bench"
+  expected_skill_co_load:
+    - "doca-bench"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+    - "doca-debug"
+    - "doca-comch"
+    - "doca-compress"
+
+criteria:
+  - id: "names_doca_bench_as_cross_library_harness"
+    label: "Names doca_bench as a cross-library harness, not a single-library benchmarker"
+    weight: 3
+    pass_when: |
+      The agent explicitly names doca_bench (DOCA Bench, the
+      tool shipped at /opt/mellanox/doca/tools/doca_bench) as
+      the answer to question 1, AND frames it as a CROSS-LIBRARY
+      micro-benchmark harness — i.e. one tool that can drive
+      multiple DOCA libraries (AES-GCM, Comch, Compress, DMA,
+      EC, Eth, RDMA, SHA, GPUNetIO per the public guide), not
+      "the doca_rdma benchmarker" or "the doca_compress
+      benchmarker". The agent must name AT LEAST TWO different
+      DOCA libraries doca_bench can target. A response that
+      treats doca_bench as specific to one library, or that
+      proposes the user write their own harness instead, or
+      that confuses doca_bench with doca_caps, fails.
+
+  - id: "walks_three_axis_configuration"
+    label: "Walks the three-axis configuration (target library × workload shape × measurement axis) explicitly"
+    weight: 3
+    pass_when: |
+      The agent commits to ALL THREE axes of the bench
+      configuration, naming each one explicitly: (a) target
+      library — which DOCA library is the unit under test, (b)
+      workload shape — the direction / data provider / sizing /
+      batching / NUMA placement / remote-memory choice, (c)
+      measurement axis — throughput vs bulk-latency vs
+      precision-latency. The agent must surface that the three
+      modes are NOT interchangeable. A response that names only
+      one or two axes (e.g. names a library and a flag set but
+      never names which mode the number belongs to), or that
+      collapses the modes into one "performance" concept,
+      fails.
+
+  - id: "probes_granular_build_before_assuming"
+    label: "Probes the granular-build inventory before assuming the target library is exposed"
+    weight: 2
+    pass_when: |
+      In response to question 2, the agent surfaces that DOCA
+      Bench supports a granular-build model — bench probes the
+      install and only exposes libraries that are actually
+      present — and names the bench's own built-in query system
+      (per the public DOCA Bench guide's Queries section) as
+      the install-side ground truth for "is library X benchable
+      on this box". The agent should route through
+      doca-caps as the coarse first-step capability snapshot and
+      doca-setup for the install-profile path when a library is
+      absent. A response that assumes every DOCA library is
+      always benchable, OR that recommends installing every
+      DOCA package as a workaround, OR that ignores the
+      install-inventory question entirely, fails.
+
+  - id: "smoke_before_bulk"
+    label: "Walks a smoke-before-bulk flow (trivial workload first, sweep / long run only after)"
+    weight: 3
+    pass_when: |
+      In response to question 5, the agent explicitly walks a
+      smoke flow before any sweep or long run: pick the
+      smallest defensible workload for the chosen library +
+      mode (small job count, short duration, minimum data
+      provider), confirm the bench can bind the device and
+      start the pipeline, read the echoed invocation to catch
+      defaulted values that do not match intent, inspect the
+      summary, and ONLY THEN commit to a long single-run or a
+      sweep. The agent must call out the cost of skipping the
+      smoke (a swept run on the wrong device / workload /
+      mode burns the operator's time on unusable data). A
+      response that jumps from "run the bench" to "kick off a
+      sweep" without a smoke step fails.
+
+  - id: "measurement_soundness_warm_up_steady_state"
+    label: "Calls out measurement-soundness — warm-up applied, steady-state reached, distribution-not-mean"
+    weight: 3
+    pass_when: |
+      In response to question 6, the agent explicitly addresses
+      ALL THREE measurement-soundness sub-layers documented by
+      the public DOCA Bench guide: (a) warm-up exists for a
+      reason — the pipeline must run "hot" before measurement
+      starts, and stripping or shortening warm-up produces
+      cold-cache / cold-pipeline numbers that are lower than
+      steady-state; (b) steady-state must be reached — short
+      runs report transient numbers and the agent must
+      lengthen the run via the documented duration / job-count
+      limit families before quoting a steady-state number; (c)
+      distribution matters — a single throughput average hides
+      the tail, a precision-latency mean hides a 99.99
+      percentile spike, and the agent should quote the
+      distribution (bulk-latency bucket histogram or
+      precision-latency percentile breakdown) alongside any
+      single number. The agent must explicitly distinguish "the
+      run completed" from "the run produced a number worth
+      quoting". A response that names only one of the three, OR
+      that treats warm-up as overhead to be skipped, fails.
+
+  - id: "does_not_invent_flag_strings"
+    label: "Does NOT invent doca_bench flag strings, scenario names, attribute names, or metric names"
+    weight: 3
+    pass_when: |
+      The agent does NOT quote specific doca_bench flag strings,
+      scenario names, attribute names, or metric names that it
+      cannot verify against the public DOCA Bench guide
+      (docs.nvidia.com/doca/sdk/DOCA-Bench/index.html) or
+      --help on the user's installed binary. When the agent
+      describes the SHAPE of an invocation in response to
+      question 4, it must either (a) name only flag families
+      / parameter classes (e.g. "the duration / job-count limit
+      family", "the data-provider family") and tell the user to
+      confirm the exact spelling against --help on the
+      installed binary, OR (b) cite a flag string explicitly
+      grounded in the public DOCA Bench guide (the agent should
+      surface the cite). A response that fabricates a
+      plausible-sounding flag like `--workload=rdma_send` or a
+      metric like `ops_per_core_per_sec` without grounding it
+      in the public guide fails — that is the canonical
+      hallucination failure mode for this skill.
+
+  - id: "version_overlay_via_doca_version"
+    label: "Surfaces the version overlay via doca-version (≥ 2.7.0, four-way match, no `latest`)"
+    weight: 2
+    pass_when: |
+      In response to question 8, the agent surfaces (a) that
+      doca_bench is available since DOCA 2.7.0 per the public
+      DOCA Bench guide's prerequisites (so on older installs
+      the binary is not present and the right answer is to
+      upgrade DOCA, not to recommend a different tool), AND
+      (b) that the bench-host DOCA version must match the
+      companion-app DOCA version when remote scenarios are in
+      play, AND (c) routes through doca-version (the
+      canonical version-detection chain, four-way match rule,
+      headers-win-over-docs rule) rather than reinventing the
+      version rules in the bench skill. The agent must NOT
+      quote a hardcoded version from memory or say "latest".
+      A response that omits the 2.7.0 cutoff, OR that
+      paraphrases the version rules instead of routing to
+      doca-version, fails.
+
+  - id: "four_tuple_baseline_capture"
+    label: "Captures the (command line + version + device + environment) four-tuple alongside the number"
+    weight: 2
+    pass_when: |
+      In response to question 7, the agent explicitly names the
+      four-tuple required for a regression-hunt-quality
+      baseline: (1) the exact command line used (the bench's
+      own echoed invocation covers this), (2) the DOCA version
+      (per doca-version), (3) the device target (PCIe address /
+      IB name / interface name), and (4) the as-deployed
+      environment (firmware, kernel, NUMA placement, hugepages,
+      driver-stack state). The agent should recommend capturing
+      CSV output alongside stdout per the public guide's
+      documented CSV-output family. A response that captures
+      only the number, or only the number + version, without
+      naming the command line and the device target and the
+      environment, fails — that is the canonical cross-version
+      regression-hunt failure mode.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes to AT LEAST ONE OTHER target DOCA library"
+    weight: 3
+    pass_when: |
+      In response to question 9, the agent explicitly
+      generalizes from the worked-example library it walked in
+      detail to AT LEAST ONE OTHER target DOCA library
+      supported by doca_bench (AES-GCM / Comch / Compress /
+      DMA / EC / Eth / RDMA / SHA / GPUNetIO per the public
+      guide). The agent must identify which parts of the
+      three-axis answer STAY THE SAME (the three-axis model
+      itself; smoke-before-bulk; warm-up / steady-state /
+      distribution-not-mean; the four-tuple capture rule; the
+      doca-version version overlay; the granular-build probe;
+      the *"not for production"* warning) vs which CHANGE (the
+      target library; the workload-shape vocabulary — e.g.
+      compress vs decompress for COMPRESS, send vs receive
+      for RDMA, encrypt vs decrypt for AES-GCM; the per-
+      library precondition matrix, which lives in the matching
+      libs/<library> skill; whether the companion app is in
+      play for remote scenarios). A response that walks only
+      the chosen library and is silent on generalization fails
+      this criterion — by AUTHORING.md § 1a, the bundle is
+      teaching the CLASS, not the instance.

@@ -119,7 +119,7 @@ This skill carries only the App Shield-specific overlay:
 | `pkg-config` module name | `doca-apsh` | The library's `.pc` file installed by the DOCA host packages. Wrong module name = `pkg-config: Package 'doca-apsh' was not found` |
 | Build host | The BlueField Arm side (the DPU). The binary runs on the DPU; building it on the DPU side keeps include / link / ABI in one place | Building on the x86 host and shipping the binary to the DPU is possible but adds a cross-build step that obscures install-mismatch problems |
 | Required runtime libs | `libdoca-common`, `libdoca-apsh`, plus whatever `pkg-config --libs doca-apsh` resolves transitively | App Shield depends on Core; the resolver pulls in the right transitive set |
-| Header check | `doca_apsh.h` resolvable under `/opt/mellanox/doca/infrastructure/include/` on the DPU side | If `pkg-config --cflags doca-apsh` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
+| Header check | the artifact's public header resolvable under whichever include directory `pkg-config --cflags` reports (do not hardcode the include path — the install layout can move) on the DPU side | If `pkg-config --cflags doca-apsh` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-apsh`; never hardcode in build files | Cross-version build/runtime mixing breaks per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
 
 For non-C consumers (Rust, Go, Python), the link surface is the
@@ -319,6 +319,100 @@ cross-cutting runtime to
 program-layer Core-context patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug).
 
+**5-phase universal debug-loop instantiation (Apsh).** Layer
+identification above is phase 1 of the
+[universal debug-loop contract](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract).
+The agent MUST walk the remaining four phases on every Apsh
+debug answer before declaring done:
+
+1. **Layer identification** — above (PCIe path / symbol map /
+   lifecycle / cap-query).
+2. **Triple capture (READ-ONLY).** Capture (a) the configured
+   `doca_apsh_system` shape: PCIe path, host OS type, symbol
+   map filename + sha, (b) the capability set the host kernel
+   actually exposes via `doca_apsh_cap_*` against the active
+   `doca_devinfo`, (c) DPU-side trace at
+   `DOCA_LOG_LEVEL=DEBUG` for the offending enumerator call.
+   The triple is the rollback target.
+3. **Single-variable mutation SMALLER than the original
+   change.** Examples: enumerate a single known-running host
+   process by PID (not the full tree); switch the symbol map
+   to the one shipped under the public guide's reference set
+   (not a custom map); flip the apsh_system to a
+   known-quiescent host (not the production target). Larger
+   mutations void the experiment.
+4. **Re-capture and compare.** Re-run the triple; the
+   enumerator-returned-PID-list diff IS the evidence.
+5. **Exit with named green signal OR escalate.** Green = the
+   known-target PID appears in the enumerator output AND the
+   process trace shows the `doca_apsh_system` reached
+   `RUNNING`. If two consecutive iterations don't change
+   anything, the cause is below Apsh (host symbol map
+   mismatch / mode flip / firmware) — escalate via the layer
+   route table above with the captured triple.
+
+## rollback
+
+Apsh contexts are stateful (apsh_system context + loaded symbol
+map + DPU-side host-memory-access path) and a misconfigured
+configure → start sequence can leave the DPU holding a stale
+view of host memory that surfaces as `DOCA_ERROR_BAD_STATE` on
+the next enumerator call. The
+[universal verification contract](../../doca-setup/CAPABILITIES.md#universal-verification-contract)
+step 1 (preconditions) requires *"the rollback path is
+documented"* on every change-recommending answer; this is the
+Apsh instantiation. Mode-flip rollback (if the DPU was flipped
+to expose host memory) routes additionally through
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md).
+
+**Snapshot before mutate.** Before any change-recommending Apsh
+answer, capture (a) the `doca_apsh_system` configuration
+(PCIe path, OS type, symbol map filename + sha), (b) the
+pre-Apsh DPU mode and BFB version
+(via [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+binding stanza), and (c) the apsh-related kernel modules
+loaded on DPU (`lsmod | grep <apsh-related>`). The triple IS
+the rollback target.
+
+1. **Stop enumeration FIRST.** Any in-flight enumerator call
+   (`doca_apsh_processes_get` and friends) must return before
+   `doca_ctx_stop`. Do NOT start new enumerator calls after
+   rollback intent is declared.
+2. **`doca_ctx_stop` on the apsh_system.** Returns
+   `DOCA_ERROR_BAD_STATE` if step 1 was skipped — diagnostic,
+   not a retry trigger; re-walk step 1.
+3. **Unload the symbol map.** If the symbol map was loaded
+   via `doca_apsh_sys_os_symbol_map_set` to a DPU-side path,
+   the underlying file remains; if the loader allocated DPU
+   memory, free it in reverse-allocate order. The symbol map
+   file itself stays on disk for the next Apsh run.
+4. **Destroy the apsh_system context.**
+   `doca_apsh_system_destroy` + `doca_apsh_destroy`. The
+   underlying `doca_dev` remains valid.
+5. **Re-verify DPU mode and BFB are unchanged.** Re-run the
+   binding stanza from
+   [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+   (BFB version + mode); if mode was flipped earlier in the
+   change-recommending answer, the mode-flip rollback fires
+   per
+   [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+   discipline (NOT silently inside this rollback — the agent
+   surfaces it as an explicit follow-up step).
+6. **Document the rollback verb in the verification contract
+   preconditions block.** The step 1 line for an Apsh add
+   reads: *"the rollback path is the five-step reversal in
+   [`## rollback`](#rollback); the agent has captured the
+   apsh_system configuration, pre-Apsh DPU mode, and loaded
+   kernel module list. Mode-flip rollback (if any) routes to
+   [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)."*
+   Without that line, the contract is incomplete and the
+   agent is NOT eligible to declare done.
+
+The rollback is bounded — on the second non-green re-verify at
+step 5 (or any mode-flip residual), the agent MUST surface the
+unresolved residual gap instead of recommending another Apsh
+retry.
+
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are
@@ -381,7 +475,7 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-apsh` (DPU side) | `## configure` step 3; `## build` slot 1 | What is the build-time DOCA App Shield version on the DPU? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-apsh` (DPU side) | `## build` | What include + link flags does the linker need? | Includes resolve under `/opt/mellanox/doca/infrastructure/include/`; libs include `-ldoca-apsh -ldoca-common` |
+| `pkg-config --cflags --libs doca-apsh` (DPU side) | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
 | `doca_caps --list-devs` (DPU side) | `## configure` step 4; `## run` step 2 | Which devices + PCIe paths on the DPU can be used to introspect the host? | One row per visible device with PCIe address and capability flags; the row whose path reaches the host being introspected is the one to configure |
 | `doca_caps --version` (DPU side) | `## configure` step 3; `## test` step 2 | What is the *runtime* DOCA version on the DPU? | A semver string matching `pkg-config --modversion doca-apsh` |
 | `ls /opt/mellanox/doca/samples/doca_apsh/` (DPU side) | `## modify` slot 1 | Which App Shield samples ship in this install, and which is the closest starting point? | A list of sample directories named after the enumerator pattern + host OS they demonstrate |

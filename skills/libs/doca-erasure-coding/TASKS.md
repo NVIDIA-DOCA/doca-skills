@@ -143,7 +143,7 @@ This skill carries only the EC-specific overlay:
 | --- | --- | --- |
 | `pkg-config` module name | `doca-erasure-coding` | The library's `.pc` file installed by the DOCA host packages. Wrong module name = `pkg-config: Package 'doca-erasure-coding' was not found` |
 | Required runtime libs | `libdoca-common`, `libdoca-erasure-coding`, plus whatever `pkg-config --libs doca-erasure-coding` resolves transitively | EC depends on Core; the link line should not pull in unrelated DOCA libraries |
-| Header check | The DOCA EC public header resolvable under `/opt/mellanox/doca/infrastructure/include/` | If `pkg-config --cflags doca-erasure-coding` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
+| Header check | The public header that `pkg-config --cflags` for this artifact resolves to actually exists on disk at the path pkg-config reports (do not hardcode the include path) | If `pkg-config --cflags doca-erasure-coding` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-erasure-coding`; never hardcode in build files | Cross-version build/runtime mixing breaks per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
 
 For non-C consumers (Rust, Go, Python), the link surface is the
@@ -476,7 +476,7 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-erasure-coding` | `## configure` step 1; `## build` slot 4 | What is the build-time DOCA EC version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-erasure-coding` | `## build` | What include + link flags does the linker need? | Includes resolve under `/opt/mellanox/doca/infrastructure/include/`; libs include `-ldoca-erasure-coding -ldoca-common` |
+| `pkg-config --cflags --libs doca-erasure-coding` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
 | `doca_caps --list-devs` | `## configure` step 2; `## run` step 1 | Which devices on this host can be used as a `doca_dev` for EC? | One row per visible device with PCIe address and capability flags; the agent must still run `doca_ec_cap_*` per-device to confirm per-task and matrix-type support |
 | `doca_caps --version` | `## configure` step 1; `## test` step 1 | What is the *runtime* DOCA version on this host? | A semver string matching `pkg-config --modversion doca-erasure-coding` |
 | `ls /opt/mellanox/doca/samples/doca_erasure_coding/` | `## modify` slot 1 | Which EC samples ship in this install, and which is the closest starting point? | A list of sample directories named after the task direction they demonstrate (create / recover / update) |

@@ -1,7 +1,7 @@
 ---
 name: doca-bench-extension
 description: NVIDIA DOCA Bench Extension — the in-tree extension / plug-in framework that lets `doca-bench` measure workload classes its built-in modes do not cover, by loading a versioned shared library exposing a small `DOCA_EXPERIMENTAL`-marked C entry-point surface. The reference extension shipped under `doca/tools/doca-bench-extension/` is `doca_bench_cuda_impl` — a CUDA / GPU-side extension driving DOCA GPUNetIO RX / TX / bidir / NOP kernels — and is the worked example for any custom extension. Teach: when an extension is the right answer (workload has no built-in mode); the API surface (shipped `doca_bench_cuda/` headers are the source of truth; surface is `DOCA_EXPERIMENTAL`); the build / registration / discovery flow (Meson-built versioned `.so` that `doca-bench` loads); the parent-tool relationship (extensions plug INTO `doca-bench`). Pairs with `doca-bench`, `doca-version`, `doca-gpunetio` (GPU offload), `doca-debug`.
-kind: library
+kind: tool
 ---
 
 # DOCA Bench Extension

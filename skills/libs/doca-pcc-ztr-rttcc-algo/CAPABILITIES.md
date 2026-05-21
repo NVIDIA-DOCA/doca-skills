@@ -268,7 +268,7 @@ lives there; this skill does not duplicate it.
   programming guide and the *DOCA PCC Application Guide*
   (the latter referenced explicitly by the shipped README
   at
-  <https://docs.nvidia.com/doca/sdk/nvidia+doca+pcc+application+guide/index.html>).
+  <https://docs.nvidia.com/doca/sdk/DOCA+PCC+Application+Guide.md>).
   Route through
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
   rather than quoting URLs from memory.

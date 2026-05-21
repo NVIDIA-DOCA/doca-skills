@@ -1,0 +1,80 @@
+id: "80_pin_an_ngc_tag_without_guessing"
+name: "Reviewer prompt variant — pin an NGC DOCA tag without guessing"
+description: |
+  Adversarial reviewer-feedback variant focused exclusively on the
+  NGC tag selection rule. The user pressures the agent for "the
+  latest" tag, which is the exact failure mode the reviewer
+  flagged ("standard wording for choosing an NGC tag without
+  guessing one"). Any answer that hardcodes a tag without pointing
+  at the rule, the NGC catalog, or asking the user, fails.
+
+prompt: |
+  I'm scripting a CI job that pulls the NGC DOCA container. What's
+  the exact image tag I should pin? Just give me the latest one.
+
+context:
+  audience: "intermediate"
+  intent: "ngc_tag_pinning_for_ci"
+  prior_knowledge: "knows docker / CI; doesn't know DOCA versioning conventions"
+  changed_skill_in_pr: "doca-setup"
+  baseline_artifact: "doca-setup"
+
+criteria:
+  - id: "cites_ngc_tag_rule"
+    label: "Cites the deterministic 'How to pick an NGC tag without guessing' rule"
+    weight: 2
+    pass_when: |
+      The agent names or quotes the "How to pick an NGC tag without
+      guessing" rule from skills/doca-setup/TASKS.md (or
+      README.md) and applies it. A response that omits the rule
+      entirely fails. THIS IS THE HEADLINE REVIEWER REGRESSION
+      GUARD.
+
+  - id: "refuses_to_guess_a_tag"
+    label: "Refuses to hardcode a tag the agent has not actually verified"
+    weight: 2
+    pass_when: |
+      The agent does NOT hand back a tag like "3.3.0" or "latest"
+      as authoritative without either (a) telling the user it
+      pulled the tag from the NGC catalog page (with the URL), or
+      (b) asking the user which DOCA version they want, or (c)
+      providing a one-liner that asks the registry for the tag at
+      build time. A bare "use 3.3.0" or "use latest" fails.
+
+  - id: "names_real_ngc_repo"
+    label: "Names the actual NGC repo (nvcr.io/nvidia/doca/doca)"
+    weight: 1
+    pass_when: |
+      The agent's image reference uses the literal string
+      nvcr.io/nvidia/doca/doca. Made-up repo names
+      (nvidia/doca, doca/sdk, nvcr.io/nvidia-doca) fail. Same
+      anti-hallucination criterion as prompt 02.
+
+  - id: "warns_against_latest_for_ci"
+    label: "Warns that ':latest' is the wrong shape for a CI pin"
+    weight: 1
+    pass_when: |
+      The agent flags that pinning :latest in a CI job is fragile
+      because the underlying image can change without notice, and
+      recommends a specific dated / versioned tag from the NGC
+      catalog instead. A response that just hands back :latest
+      because the user asked for it fails.
+
+  - id: "verify_after_pull"
+    label: "Recommends a post-pull verification command inside the container"
+    weight: 1
+    pass_when: |
+      After the pin recommendation, the agent recommends running
+      pkg-config --modversion doca-common (or doca_caps --version)
+      inside the container to confirm the actual installed DOCA
+      version matches what the CI job expected. A response that
+      stops at "docker pull <tag>" fails.
+
+  - id: "no_invented_symbols"
+    label: "Does not emit unverified DOCA function names or library names"
+    weight: 1
+    pass_when: |
+      The agent's response does NOT contain doca_version(),
+      -ldoca_common, #include <doca.h>, or pkg-config doca-<X>
+      for X that is not actually shipped. Same anti-hallucination
+      criterion as prompt 02.

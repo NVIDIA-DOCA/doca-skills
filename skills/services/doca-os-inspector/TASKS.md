@@ -77,7 +77,7 @@ of scope for the external operator).
    Inspector / App Shield Agent guidance for the operator's
    DOCA release; do NOT memorize or invent the tag. The
    container tag is the runtime version anchor per
-   [`CAPABILITIES.md ## Version compatibility`](#version-compatibility).
+   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility).
 6. **Capture the install baseline.** Record which DOCA release
    is installed on the BlueField, which OS Inspector container
    tag was pulled, which DTS release is deployed, which

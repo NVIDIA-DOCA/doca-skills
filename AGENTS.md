@@ -85,11 +85,11 @@ The agent MUST:
 3. **Cite the overlay in the answer.** When the agent loaded an overlay because of a trigger, the answer must say so explicitly (e.g. *"because this touches `mlxconfig`, the answer follows the `doca-hardware-safety ## modify` discipline — pre-flight inventory, out-of-band, maintenance window, apply, verify, rollback"*). This makes the activation auditable.
 4. **Refuse to proceed when an overlay's hard rule is violated.** If `doca-hardware-safety` says *"refuse-and-escalate when no rollback exists"*, and the user's setup has no rollback, the agent must stop and say so. It must NOT proceed with the change because the user pushed back.
 
-### The universal verification contract
+## The universal verification contract
 
 Every answer that recommends a change (build, deploy, configure, modify) MUST end with the **5-step universal verification contract** defined in [`doca-setup CAPABILITIES.md ## Universal verification contract`](skills/doca-setup/CAPABILITIES.md#universal-verification-contract):
 
-1. **Preconditions.** What must be true *before* applying the change. (Versions match? Hardware visible? Required packages installed?)
+1. **Preconditions.** What must be true *before* applying the change. (Versions match? Hardware visible? Required packages installed? Rollback path documented?)
 2. **Smoke build / smoke spawn.** A minimal observable signal that the change can be applied at all. (Build one sample, dry-run the manifest, start one replica.)
 3. **Smoke probe.** A read-only check that confirms the change took effect at the smallest scale. (One packet, one query, one log line.)
 4. **Bulk / production scale.** Apply at the real scale only after smoke passes.
@@ -97,7 +97,21 @@ Every answer that recommends a change (build, deploy, configure, modify) MUST en
 
 The agent must walk all five steps; skipping any step makes the answer ineligible to declare the task done. The per-artifact `## test` anchor in every library / service / tool skill is the artifact-specific instantiation of this contract.
 
-### The universal debug-loop contract
+**Per-artifact citation requirement (mandatory for every verification-bearing answer).** When the prompt names a specific library / service / tool, the answer MUST cite the per-artifact skill files it is pulling guidance from by their **bundle-relative paths** — `libs/<lib>/SKILL.md`, `libs/<lib>/CAPABILITIES.md ## <anchor>`, `libs/<lib>/TASKS.md ## <anchor>`, `services/<svc>/SKILL.md`, `tools/<tool>/TASKS.md ## <anchor>`. Abstract references like *"the skill"*, *"the bundle"*, *"the per-library overlay"*, or *"per-library `## rollback` snapshot-and-replay table"* (without naming the per-library file) are insufficient and unverifiable — they make the answer's provenance impossible for the user to audit. The first time the answer references the per-artifact workflow it MUST do so by full bundle path; subsequent shorthand (`doca-<lib> TASKS.md ## <anchor>`, `doca-<lib> CAPABILITIES.md ## <anchor>`) is fine. The graders are `routes_through_doca_<lib>_skill` / `routes_through_doca_<svc>_skill` / `routes_through_doca_<tool>_skill`.
+
+**Per-artifact capability-query requirement (every verification-bearing answer must include one).** Step 1 of the contract requires a precondition check; verification answers MUST include an artifact-specific *capability* query against the **live device or live install**, in addition to the four-source version chain. The four-source chain (`pkg-config --modversion doca-common` → `cat /opt/mellanox/doca/applications/VERSION` → `doca_caps --version` → BFB version) is the *version* check; it is NOT a substitute for the per-artifact cap query. The shape of the per-artifact cap query depends on the artifact class:
+
+- **Libraries** — at least one `doca_<lib>_cap_*` / `doca_<lib>_get_supported_*` getter against the active `doca_devinfo` (e.g. `doca_sha_cap_is_algorithm_supported(devinfo, DOCA_SHA_ALGORITHM_SHA256)`, `doca_flow_cap_get_*`, `doca_rdma_cap_task_*_is_supported`). Each per-library `CAPABILITIES.md ## Capabilities and modes` documents the supported getter set.
+- **Services** — the documented runtime probe of the container or daemon: image-inspect on the container tag against the NGC catalog, the service's `--help` / `--version` invocation inside the container, the documented config-validation invocation (e.g. JSON-policy dry-run for OS Inspector, `--list-pipes` for Flow Inspector). The per-service `CAPABILITIES.md` enumerates which one is authoritative for that service.
+- **Tools** — the installed binary's `--help` / `--version` / `--list-<noun>` flag set quoted from the running binary, plus the documented config-introspection (e.g. gRPC reflection / `.proto` introspection for `doca-flow-grpc-server`, `--list-channels` for `doca-socket-relay`, `--show-config` for capability-shaped tools). The per-tool `CAPABILITIES.md` says which.
+
+An answer that runs only `doca_caps --version` (a version probe) and declares the change "verified" fails the per-artifact cap-query criterion — version match is a precondition for cap query, never a replacement for it. The grader is `calls_capability_query_for_doca_<artifact>`.
+
+## Deploy-loop bridge
+
+**Not-green at step 5 is the debug-loop trigger.** Real deploys frequently land on not-green at step 5 (`Ready 0/1`, port `Down`, counter flat, log line absent, `systemd active (running)` followed by repeated restarts) and the failure mode is to *declare done anyway* because the change "looks applied." Every change-recommending answer MUST treat "step 5 observability did NOT reach the named green signal within the expected window" — or "step 3 smoke probe itself did not return green" — as the symptom that fires the [`## The universal debug-loop contract`](#the-universal-debug-loop-contract) on the change-not-converging symptom. The agent walks the 5-phase debug-loop on the not-green observability surface (layer identification → triple capture → single-variable mutation smaller than the original change → re-capture → exit), bounded to one iteration before the rollback path documented at step 1 is walked. See [`doca-setup CAPABILITIES.md ## Deploy-loop bridge`](skills/doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger) for the full bridge table. This converts deploy / configure / install / upgrade prompts that previously stopped at *"watch the metric for green"* into prompts that say *"watch the metric for green; if not-green within X, walk the debug-loop on the not-green symptom; if the loop's second iteration does not converge, walk the rollback path."*
+
+## The universal debug-loop contract
 
 Every answer that diagnoses a symptom (build error, link error, runtime error, `DOCA_ERROR_*`, segfault, hang, *"does nothing on the wire"*, *"counter didn't increment"*) MUST instantiate the **5-phase debug-loop contract** defined in [`doca-debug CAPABILITIES.md ## Universal debug-loop contract`](skills/doca-debug/CAPABILITIES.md#universal-debug-loop-contract):
 
@@ -109,7 +123,57 @@ Every answer that diagnoses a symptom (build error, link error, runtime error, `
 
 The agent must walk all five phases; pointing at the 7-layer ladder once and stopping is forbidden. The per-library `## debug` anchor in every library / service / tool skill is the artifact-specific instantiation of this contract — for Flow it adds `doca_flow_aggr_query` counters to the triple; for RDMA it adds QP-state dumps; for Comch it adds the channel statistics — but the universal spine is non-optional.
 
-### Hardware binding-layer command stanza
+**Link-error three-skill co-load rule (mandatory on every link / `undefined reference` answer).** Any answer to a link-time symptom (`undefined reference to doca_*`, `/usr/bin/ld:` errors, `collect2: error: ld returned 1 exit status`, *"compiles but won't link"*, library-not-found symptoms) MUST visibly co-load **three** skills and reference at least one concrete element from each:
+
+1. [`doca-debug`](skills/doca-debug/SKILL.md) — the 7-layer ladder (layer 4 = Link), the read-only-first capture stance, the rule that `pkg-config --libs doca-<lib>` is the source of truth for the link line, the `doca-<lib>-trace` build flavor for the layer-5 follow-up.
+2. [`doca-version`](skills/doca-version/SKILL.md) — the four-source detection chain on this exact symptom, since the cross-train mixed-install case ("headers from DOCA X, runtime `*.so` from DOCA Y") is the second-most-common cause of `undefined reference` for symbols the docs say exist; it masquerades as layer 4 and any layer-4-only fix is wasted work.
+3. [`doca-programming-guide`](skills/doca-programming-guide/SKILL.md) — the env-then-program investigation order (link errors are env-class until proven otherwise), the build-flag rules (`-DALLOW_EXPERIMENTAL_API`, etc.), and the rule that the agent never rewrites the sample's `main.c` from API memory just because the link is broken (ground rule 5).
+
+An answer that walks only the debug ladder *without* ever pointing at the env-then-program order, the install layout, OR the version-chain four-way match fails the link-error co-load contract. The grader is `04_link_error_debug::co_loads_three_skills`. This is the bundle's separation-of-concerns being exercised — without it, link-error answers regress into single-skill responses that miss the cross-train install class.
+
+### Per-library rollback overlay — mandatory on stateful-context changes
+
+Every change-recommending answer that brings up, modifies, or tears down a stateful per-library context (e.g. `doca_flow_pipe`, `doca_rdmi_connection`, `doca_gpu` registration + persistent kernel, `doca_compress` started context + mmap, `doca_apsh_system` + symbol map) MUST cite the per-library `## rollback` overlay (or `## flow-ct` overlay for the CT case in `doca-flow`) in the verification contract preconditions block. The per-library overlay is the artifact-specific instantiation of the *"rollback path is documented"* clause from the universal verification contract step 1 — without it, the contract is incomplete and the agent is NOT eligible to declare done.
+
+| Library | Overlay anchor | When it fires |
+| ------- | -------------- | -------------- |
+| `doca-flow` (stateless pipeline edits — VLAN push/pop, encap/decap, modify-header, mirror, sample, NAT-without-CT, hairpin attach) | [`doca-flow TASKS.md ## rollback`](skills/libs/doca-flow/TASKS.md#rollback) | Any pipe / entry / action add on an already-up port. Snapshot via `doca_flow_pipe_dump` + counter baseline + cap snapshot. |
+| `doca-flow` (CT) | [`doca-flow TASKS.md ## flow-ct`](skills/libs/doca-flow/TASKS.md#flow-ct) (rollback overlay sub-section) | Any CT-aware pipe wrap on a stateless port. Snapshot via `doca_flow_pipe_dump` of the stateless scheme + four-step CT reversal. |
+| `doca-rdmi` | [`doca-rdmi TASKS.md ## rollback`](skills/libs/doca-rdmi/TASKS.md#rollback) | Any RDMI connection / poster / DPA-attach / MR registration add. Snapshot via verbs context + connection state + MR list, both peers. |
+| `doca-gpunetio` | [`doca-gpunetio TASKS.md ## rollback`](skills/libs/doca-gpunetio/TASKS.md#rollback) | Any persistent-kernel + GPU buffer registration add on top of doca-eth. Signal kernel drain FIRST, unregister buffers reverse-order, leave doca-eth parent intact. |
+| `doca-compress` | [`doca-compress TASKS.md ## rollback`](skills/libs/doca-compress/TASKS.md#rollback) | Any started Compress context + mmap registration + in-flight tasks add. Drain `doca_pe_progress` outstanding count to zero FIRST. |
+| `doca-apsh` | [`doca-apsh TASKS.md ## rollback`](skills/libs/doca-apsh/TASKS.md#rollback) | Any `doca_apsh_system` configure → start + symbol map load. Stop enumeration FIRST; mode-flip residual routes through `doca-hardware-safety`. |
+| (other libraries — staged backlog) | per-library `## rollback` overlay (planned, not shipped) | When a per-library deep-dive prompt for that library lands; the lane stages adding the same shape to the remaining libraries that need it. |
+
+Two failure modes this overlay table replaces:
+
+1. *"Reverse what you did"* — unfalsifiable, no snapshot referenced, no green re-verify named. The overlay forces a snapshot-first discipline so *"restore the pre-edit state"* is a diff against a captured baseline, not a wish.
+2. *"It'll be fine to retry"* — the overlay is bounded. On the second non-green re-verify, the agent MUST surface the unresolved residual gap instead of recommending another retry. This is the same shape as `doca-hardware-safety`'s *"named rollback path or refuse-and-escalate"* discipline, applied to pipeline-edit / library-context-edit changes where no hardware mutation is involved.
+
+### Beginner-orientation staged-roadmap rule (Stage 1 → Stage 2)
+
+When the prompt is beginner-shaped (*"I am new to DOCA, guide me to my first app"*, *"how do I start with DOCA"*, *"I have docker on my mac, what now"*, *"follow the local doca-skills bundle"* — anything where the user is asking *where to go* before *what to type*), the agent's answer MUST follow the **three-element opener contract** in this order, BEFORE any command, BEFORE any container pull, BEFORE the staged-roadmap table itself:
+
+1. **Open with what DOCA is, in 1–3 sentences of plain language** — e.g. *"DOCA is NVIDIA's data-center acceleration framework for BlueField DPUs and ConnectX NICs, exposing C/C++ libraries that let you offload networking, storage, security, and compute work onto the DPU."* The roadmap establishes *where you are going*; the definition establishes *what you are doing it on*. An opener that says *"this bundle is built for your question"* / *"the most useful thing I can give you is where you're going"* / *"every 'I'm new with DOCA' answer in this bundle opens with…"* without ever saying what DOCA IS in plain language fails this contract. The grader is `01_orientation::defines_doca`.
+2. **Then** the two-row Stage-1 / Stage-2 staged-roadmap table from [`doca-setup TASKS.md ## no-install` → *Stage 1 vs Stage 2*](skills/doca-setup/TASKS.md#stage-1-vs-stage-2-open-every-i-am-new-to-doca-answer-with-the-staged-roadmap). Beginners overwhelm easily when the first thing the agent emits is a stack of commands; the staged roadmap establishes *where the user is going* (Stage 1: container learning → Stage 2: hardware runtime) and *the resume point inside the container* before *what to type next*. If the agent's first emitted command block is a `docker pull` / `pkg-config` / `meson` invocation rather than the staged-roadmap table, the answer is mis-shaped — back up.
+3. **At least one canonical `docs.nvidia.com/doca/sdk/` URL** somewhere in the answer body. Every beginner-orientation answer MUST include a full URL on the `docs.nvidia.com/doca/sdk/` subtree (the SDK index, an overview page, or a matching library / service / tool guide page). NGC catalog URLs (`catalog.ngc.nvidia.com/...`), developer.nvidia.com marketing pages, and the developer-forum URL are *additions*, not replacements — `docs.nvidia.com/doca/sdk/` is the canonical reference index the user will keep returning to. See [`doca-public-knowledge-map ## Public documentation entry points`](skills/doca-public-knowledge-map/SKILL.md#public-documentation-entry-points). The grader is `01_orientation::cites_docs_url`.
+
+When the agent then drops into the Path-0 NGC container recommendation, it MUST also walk the **NGC tag selection rule** from [`doca-setup TASKS.md ## no-install` → *How to pick an NGC tag without guessing*](skills/doca-setup/TASKS.md#how-to-pick-an-ngc-tag-without-guessing). Fabricating a tag string (`doca:3.5.0-arm64-ubuntu22.04`, `doca:latest`, anything not copied verbatim from <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/doca/containers/doca/tags>) is a release-blocker — it violates [ground rule 3](#ground-rules-every-agent-must-follow). If the agent cannot reach the catalog page from this session, the agent says so explicitly and asks the user to paste the candidate tag — never inventing one.
+
+### Canonical answer-shape teasers — orientation and first-app prompts
+
+Orientation prompts (*"I'm new with DOCA, can you guide me?"*, *"what's DOCA, where do I start?"*, *"is there a Hello World?"*) and first-app prompts (*"give me my first DOCA app"*, *"I have docker — make me a DOCA app"*) reach the bundle BEFORE any specific library / service / tool skill has been picked. The agent's failure mode on these prompts is to skip the canonical build and first-app patterns because they "feel premature" — and the answer becomes a routing-only paragraph that fails the build-wrappers and first-app criteria the user actually needs.
+
+Every orientation or first-app answer MUST surface the two canonical patterns explicitly, even before the agent knows which library is in scope:
+
+| Canonical pattern | One-line teaser the orientation answer MUST carry | Drill-down anchor |
+| --- | --- | --- |
+| **Canonical build line** (every DOCA application in any language) | "Every DOCA application builds via `pkg-config --cflags --libs doca-<library>` discovered by `meson setup /tmp/build-<project> && ninja -C /tmp/build-<project>` (C/C++ Track 1), or via FFI / bindings against the same `*.so` libraries the C samples link against (Track 2 — Rust `bindgen`, Go `cgo`, Python `cffi`/`ctypes`). Never hand-type `-l` flags; the `pkg-config` module is the source of truth for include paths and link flags." | [`doca-programming-guide ## build`](skills/doca-programming-guide/TASKS.md#build) (Track 1 + Track 2) |
+| **Canonical first-app pattern** (every DOCA library, language-agnostic mental model) | "First DOCA app = copy a shipped sample from `/opt/mellanox/doca/samples/<library>/<sample_name>/`, fill the 5-slot modify-from-sample schema (which sample, what fields change, what stays, the smoke probe, the rollback), build via the line above, run the smoke from the matching library skill's `## test` anchor. The agent never authors a `main.c` / `Makefile` / `Dockerfile` from API memory — that is ground rule 5 of this file and the single most expensive failure mode for *agent helps me with DOCA* sessions." | [`doca-programming-guide ## modify`](skills/doca-programming-guide/TASKS.md#modify) + [`## build`](skills/doca-programming-guide/TASKS.md#build) |
+
+Both teasers must appear in any orientation / first-app answer, in addition to the routing pointer (which skill to load next once the user names a library). Skipping the build-line teaser is the failure mode that previously left orientation answers PARTIAL on the build-wrappers criterion; skipping the first-app teaser is the failure mode that drops the agent into prose code-synthesis (forbidden by ground rule 5).
+
+## Hardware binding-layer command stanza
 
 Every hardware-touching answer (system recognition, representor configuration, NUMA / IRQ / queue pinning, *"does nothing on the wire"* runtime debug, any `doca-hardware-safety`-triggering change) MUST instantiate the **binding-layer command stanza** defined in [`doca-setup CAPABILITIES.md ## Hardware binding-layer command stanza`](skills/doca-setup/CAPABILITIES.md#hardware-binding-layer-command-stanza). The stanza is read-only — running it is always safe — and consists of six rows:
 
@@ -130,7 +194,7 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
    public hosts: `docs.nvidia.com`, `developer.nvidia.com`,
    `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
    `forums.developer.nvidia.com`, `nvcr.io`. Anything else is rejected
-   by `ci/check-skill.sh`.
+   by NVIDIA's internal release CI before the bundle ships.
 2. **Prefer the local install over the web.** When DOCA is installed at
    `/opt/mellanox/doca`, those files *are* the release. Web docs describe a
    release.
@@ -148,37 +212,72 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
    sessions, and the failure mode this bundle exists to prevent. The
    canonical first-app workflow lives in
    `doca-programming-guide ## modify`; library skills overlay it.
+   **Stop condition: if `ls /opt/mellanox/doca/samples/` returns `No
+   such file or directory` (or is empty) on a host where `pkg-config
+   --modversion doca-common` succeeds — i.e. partial install with no
+   `doca-samples` package — the modify-from-sample workflow cannot
+   apply on this host.** Say so explicitly to the user, do NOT
+   scaffold a sample from memory, and route to one of the unblock
+   paths in [`doca-setup CAPABILITIES.md ## Error taxonomy`](skills/doca-setup/CAPABILITIES.md#error-taxonomy)
+   (install `doca-samples`, pivot to NGC container, or both).
+6. **Never hardcode install-layout values; delegate to the install's own
+   source of truth.** The DOCA install layout can drift across versions
+   and install profiles (host vs DPU, full vs minimal, container vs
+   bare-metal). Skills must teach the agent *which* source of truth to
+   consult, not what the value will be on any specific install:
+   - **Include paths** — derive via `pkg-config --variable=includedir
+     doca-<lib>` (or `pkg-config --cflags doca-<lib>` if the agent only
+     needs the compiler flag). Never quote `/opt/mellanox/doca/<...>/include`
+     as if it were universal.
+   - **Link flags** — derive via `pkg-config --libs doca-<lib>`. Never
+     predict the `-l<name>` form by hand: `.so` basenames use
+     underscores on every DOCA release where we have ground truth
+     (`libdoca_flow.so`, `libdoca_common.so`), while `.pc` package names
+     use hyphens (`doca-flow.pc`, `doca-common.pc`). Hand-crafted `-l`
+     lines silently break the moment DOCA upgrades; `pkg-config` is the
+     only translator that survives.
+   - **Shared-object filenames** — confirm via `ldconfig -p | grep
+     doca_<lib>` rather than asserting a specific `libdoca*.so` name.
+   - **`PKG_CONFIG_PATH`** — common location is
+     `/opt/mellanox/doca/infrastructure/lib/pkgconfig/`, but if that
+     path does not exist the bundle's `doca-setup` skill walks the
+     agent through `find /opt -name 'doca-*.pc' -path '*/pkgconfig/*'`
+     to discover the real location.
+   - **DOCA version** — always derive via `pkg-config --modversion
+     doca-<lib>` + `doca_caps --version`; never hardcode a "current"
+     version in skill prose.
+
+   The bundle's anti-pattern is the line *"Includes resolve under `/opt/...`;
+   libs include `-ldoca-foo -ldoca-common`"* in a build table. That line
+   purports to tell the agent what `pkg-config` will output — but the
+   bundle has no way to know the install profile, the DOCA major, or the
+   underlying packaging convention. The correct shape is *"Whatever
+   `pkg-config --cflags --libs doca-foo` produces on this install;
+   do not predict or hand-craft."*
 
 ## Conformance
 
-`ci/check-skill.sh` enforces the rules every skill in
-`skills/` must satisfy. Three layers, all gating:
+NVIDIA's internal release CI enforces — on every commit, before the
+bundle is shipped to `ai-mvp-with-files` — three layers of
+conformance over every skill file in `skills/`:
 
 1. **Structural.** Frontmatter validity, required H2 anchors in
    `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, cross-anchor labels in
-   `TASKS.md` resolve, no symlinks. Run by default, no network needed.
-2. **Public-sources.** Any `*.nvidia.com` URL whose host isn't on a
+   `TASKS.md` resolve, no symlinks.
+2. **Public-sources.** Any `*.nvidia.com` URL whose host isn't on the
    small public allowlist (`docs.nvidia.com`, `developer.nvidia.com`,
    `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
    `forums.developer.nvidia.com`, `nvcr.io`) fails. Internal-tooling
    vocabulary in URL or path context (`gerrit`, `nvbugs`,
    `*.internal.*`, `gitlab-master`, `labhome`, …) fails. This is the
-   automated counterpart to ground rules 1 and 3 above. Run by
-   default, no network needed.
-3. **URL HEAD validity.** Opt-in via `--check-urls`; HEADs every URL
-   in every skill file and fails on non-`2xx`/`3xx`. Use this to
-   catch the *page renamed* / *page deleted* failure mode (e.g. the
-   pre-3.x DOCA Samples Overview URL the agent previously got a 404
-   on). Requires outbound network; CI should run with `--check-urls`
-   when network is available.
+   automated counterpart to ground rules 1 and 3 above.
+3. **URL HEAD validity.** Every URL in every skill file HEAD-checks
+   to a `2xx`/`3xx`. Catches the *page renamed* / *page deleted*
+   failure mode (e.g. the pre-3.x DOCA Samples Overview URL).
 
-Run locally before opening a PR that touches any skill file:
-
-```bash
-ci/check-skill.sh --all                # structural + public-sources
-ci/check-skill.sh --all --check-urls   # also URL HEAD validity
-ci/check-skill.sh --self-test          # confirm every gating check still trips
-```
+What this means for you as a consumer: every commit on
+`ai-mvp-with-files` ships a bundle that has already passed those
+gates. You do not need to run any of them yourself.
 
 ## Non-goals (questions the agent should recognize and refuse politely)
 
@@ -186,10 +285,10 @@ This bundle is the **public, vendor-shipped** skills bundle for the NVIDIA DOCA 
 
 1. **Cross-vendor comparisons.** *"DOCA vs DPDK vs OvS-DPDK vs kernel offload vs Intel IPU SDK vs AMD Pensando vs …"* The bundle is DOCA-specific by design and does not ship competitive content. A vendor-shipped skills bundle synthesizing comparisons against competing stacks would be inappropriate; refer the user to independent sources (their own benchmarks, third-party analyst reports, the NVIDIA Developer Forum for architectural questions on the DOCA side).
 2. **Commercial support contracts, SLAs, and procurement.** The bundle's support-surface coverage is the **public** NVIDIA DOCA Developer Forum at <https://forums.developer.nvidia.com/c/infrastructure/doca/370>. Commercial support contracts, response-time SLAs, escalation paths to NVIDIA engineering, and license pricing are out of scope; refer the user to NVIDIA sales for that conversation.
-3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by `ci/check-skill.sh` and is not what this bundle is for. The bundle ships only public surfaces.
+3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by NVIDIA's internal release CI and is not what this bundle is for. The bundle ships only public surfaces.
 4. **Pre-release or unreleased DOCA content.** The bundle's URL allowlist (rule 1) is the *public* documentation set; if a release is not yet public, the bundle has nothing to say about it. Refer the user to the public release-notes channel.
 5. **Code synthesis from prose.** Ground rule 5 above. The agent never scaffolds DOCA code from doc prose. *This is a methodology constraint, not a question-class refusal* — but it is the most operationally important non-goal in practice and so is listed here for visibility.
 6. **Security architecture claims the bundle is not authorized to make.** Side-channel guarantees, isolation guarantees on shared accelerators, FIPS / Common Criteria assertions, and similar properties of the DOCA crypto / DPA engines are not the bundle's to assert. Frame the question; route to NVIDIA security architecture material (Confidential Computing mode pages, BlueField secure-boot guides) and the Developer Forum; do not synthesize an isolation claim.
-7. **Externally-productized NVIDIA networking software not in the DOCA monorepo.** This bundle is **strictly 1:1 with `doca/{libs,services,tools}`** at the currently-aligned DOCA release (enforced by [`devops/ci/check-doca-inventory.sh`](../devops/ci/check-doca-inventory.sh)). Products that NVIDIA productizes externally to the monorepo — DOCA Telemetry Service (DTS) as deployed, DOCA HBN Service, DOCA BlueMan Service, DOCA SNAP Services, DOCA Virtio-net Service, DOCA-DPACC-Compiler, DPA-Tools (GDB Server / PS / Statistics), DOCA-DPU-CLI, DOCA-Ngauge, the `doca-hugepages` helper, and similar — are out of scope by design. The right next step for a question on one of these is the public NVIDIA documentation on `docs.nvidia.com/doca/sdk/` for that specific product, plus the public DOCA Developer Forum for help. Do NOT synthesize answers about these products from training knowledge; recognize the class, name the boundary, and route.
+7. **Externally-productized NVIDIA networking software not in the DOCA monorepo.** This bundle is **strictly 1:1 with `doca/{libs,services,tools}`** at the currently-aligned DOCA release (enforced by NVIDIA's internal CI on every commit). Products that NVIDIA productizes externally to the monorepo — DOCA Telemetry Service (DTS) as deployed, DOCA HBN Service, DOCA BlueMan Service, DOCA SNAP Services, DOCA Virtio-net Service, DOCA-DPACC-Compiler, DPA-Tools (GDB Server / PS / Statistics), DOCA-DPU-CLI, DOCA-Ngauge, the `doca-hugepages` helper, and similar — are out of scope by design. The right next step for a question on one of these is the public NVIDIA documentation on `docs.nvidia.com/doca/sdk/` for that specific product, plus the public DOCA Developer Forum for help. Do NOT synthesize answers about these products from training knowledge; recognize the class, name the boundary, and route.
 
 The shape of a good agent response to a non-goal class question is *"this bundle does not cover X (here is why); the right next step is Y (here is the route)"* — not silence and not improvisation.

@@ -1,14 +1,22 @@
 ---
 name: doca-sha-offload-engine
 description: NVIDIA DOCA SHA Offload Engine — an OpenSSL dynamic ENGINE (`libdoca_sha_offload_engine.so`) shipped under `doca/tools/sha_offload_engine/` that lets unmodified OpenSSL-based applications offload one-shot SHA-1 / SHA-256 / SHA-512 (EVP_Digest) onto the DOCA SHA hardware path without rewriting against doca-sha directly. Requires OpenSSL ≥ 1.1.1. The skill teaches when the engine is the right surface (existing OpenSSL pipeline; no code changes) vs when to use doca-sha directly (new pipeline; fine-grained control), the load / registration mechanics (`openssl engine dynamic`, the `set_pci_addr` ctrl, the `-engine_impl` flag that disables OpenSSL software fallback), the message-size window in which offload is a perf win vs CPU SHA, and the runtime sanity-check pattern (the SHA-224 negative test — force the engine with `-engine_impl` on an algorithm DOCA SHA does not implement, expect failure — proving the engine was actually called and not silently bypassed).
-kind: library
+kind: tool
 ---
 
 # DOCA SHA Offload Engine
 
 **Where to start:** This is a tool skill for the OpenSSL
-ENGINE shipped under `doca/tools/sha_offload_engine/`
-(`libdoca_sha_offload_engine.so`). It is **not a CLI** —
+ENGINE shipped in the DOCA SOURCE tree under
+`doca/tools/sha_offload_engine/` and INSTALLED on the host
+under `${DOCA_DIR}/tools/doca_sha_offload_engine/` as
+`libdoca_sha_offload_engine.so`. The directory-name shift
+(`sha_offload_engine` in the source layout vs
+`doca_sha_offload_engine` in the install layout) is an
+NVIDIA packaging convention, not a bundle inconsistency;
+both forms appear below and are the same artifact at
+different lifecycle stages — quote whichever the prompt is
+about (build-from-source vs runtime-load). It is **not a CLI** —
 it is a shared object loaded by an OpenSSL-based
 application or by `openssl` itself, that re-routes SHA-1 /
 SHA-256 / SHA-512 (one-shot only, via the `EVP_Digest`

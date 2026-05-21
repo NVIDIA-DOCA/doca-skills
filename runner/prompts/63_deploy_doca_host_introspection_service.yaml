@@ -1,0 +1,490 @@
+id: "63_deploy_doca_host_introspection_service"
+name: "Deploy a DPU-side host-OS introspection service against a running host kernel and validate it — class-shaped"
+description: |
+  Class-shaped service-deployment prompt. The HEADLINE is the
+  class ("deploy a DPU-side out-of-band host-OS introspection
+  service against a running host kernel and validate it is
+  actually reading the host kernel state correctly"); the worked
+  example is bringing up DOCA OS Inspector on a BlueField-3
+  paired with a Linux host (RHEL 9.4) and confirming the feed
+  into DTS actually reflects the host's running process / loaded-
+  module / loaded-library state, because that is the newly-
+  covered service in skills/services/doca-os-inspector.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  deploy ANY DOCA service that is shaped as a container on
+  BlueField Arm AND that introspects host state over the
+  BlueField PCIe DMA path (OS Inspector today; future
+  introspection-shaped services on the same APSH-style surface).
+  The bundle proves this on OS Inspector by asking the agent
+  to walk: recognize this is a SERVICE deployment (container +
+  config + symbol-map + memory-regions + scan-policy mounts) AND
+  that for a deployable introspection feed the agent should
+  recommend OS Inspector (packaged) FIRST instead of building
+  from doca-apsh (library); recognize that OS Inspector is the
+  RAW-INTROSPECTION surface, distinct from doca-argus which is
+  the RUNTIME-SECURITY-FINDINGS surface — and route the user
+  correctly between them; name the five configuration axes (DMA
+  device + host VUID, OS type, host kernel symbol map + memory
+  regions, scan policy, scan interval) as the up-front decision;
+  treat the host kernel symbol map as a HOST-OS-VERSION-SPECIFIC
+  artifact that silently invalidates on every host kernel
+  upgrade; hold the minimum-exposure-by-default stance on the
+  scan policy (the project's own off-by-default structs are
+  `privileges_info`, `processes_envars_info`,
+  `processes_handles_info` for a reason); walk the public
+  Container Deployment Guide as canonical for the deployment
+  pattern; perform a KNOWN-RUNNING-TARGET smoke (the smoke
+  pattern App Shield itself teaches — pick one target the
+  operator can independently confirm is on the host, e.g. init /
+  systemd) before any wide enumeration; require an end-to-end
+  DTS-side ingest confirmation BEFORE enabling production
+  consumer pipelines; refuse to invent container image names or
+  tags; and generalize to doca-apsh (the library equivalent for
+  custom tooling) by identifying what stays the same vs what
+  changes.
+
+  A baseline agent without skills typically: walks the user into
+  building their own DPU-side scanner loop on doca-apsh as the
+  default answer for a deployable introspection feed, rather
+  than reaching for the packaged OS Inspector service first;
+  conflates OS Inspector with doca-argus and treats them as
+  interchangeable runtime-security services; treats OS Inspector
+  as a library to link against; invents a container image tag
+  and `docker run` invocation; collapses the five configuration
+  axes into one "OS Inspector config" blob with no five-axis
+  rule; is silent on the host kernel symbol-map prerequisite OR
+  treats it as a one-time install task rather than a per-host-
+  kernel-change rollover; silently widens the scan policy to
+  turn on the off-by-default structs without flagging the data-
+  exposure expansion; jumps straight to a broad enumeration
+  without a known-running-target smoke first; declares the
+  deployment ready when the OS Inspector container is green
+  without ever verifying that DTS actually received and
+  forwarded a recognizable event for an independently-confirmed
+  host target.
+
+prompt: |
+  I have a BlueField-3 DPU paired with a Linux host running
+  RHEL 9.4 (kernel 5.14.0-427.x). DOCA is installed on the
+  BlueField Arm and the BlueField is configured in a mode that
+  exposes the host-memory-access surface. I need to bring up
+  DOCA OS Inspector on the BlueField to publish an agent-less
+  host-OS introspection feed (processes, threads, loaded
+  libraries, loaded kernel modules) into the DOCA Telemetry
+  Service that's already running on the BlueField; a downstream
+  Splunk consumer will pick the feed up from DTS via the DTS
+  forwarder for our security team's host-fleet inventory and
+  ad-hoc analyst queries. I do NOT want to install anything on
+  the host itself — the whole point is agent-less.
+
+  Walk me through the deploy:
+
+  1. Confirm whether DOCA OS Inspector is actually the right
+     answer here, OR whether I should be reaching for
+     `doca-apsh` to build something custom instead, OR whether
+     I should be deploying `doca-argus` instead because that's
+     the runtime-security findings service. I want you to be
+     honest about which one I should reach for first for a
+     deployable raw-introspection feed like this.
+  2. What kind of artifact is OS Inspector — am I linking a
+     library, deploying a container, or running a host daemon?
+     Walk the deployment shape.
+  3. Which configuration axes do I have to decide BEFORE
+     starting the container, and what happens if I get any of
+     them wrong?
+  4. There's a host-kernel-specific artifact that App Shield
+     (which OS Inspector wraps) needs on the BlueField side
+     before any of this works. Name it, name when it
+     invalidates, and tell me what my runbook needs to do about
+     it on every host kernel patch cycle.
+  5. The default scan policy in the project's own config has
+     some APSH structs ON and some OFF. Walk me through which
+     ones are on and off by default and tell me honestly
+     whether I should be flipping the off-by-default ones ON
+     for a production deployment, or whether the defaults are
+     the safety floor.
+  6. Where does the canonical container deployment pattern
+     live — I don't want you to invent a `docker run` line; I
+     want to know which public doc you'd consult and why.
+  7. What smoke test would you recommend BEFORE I enable
+     production Splunk consumption on top of this channel? I
+     want to actually VERIFY (not just claim) that OS Inspector
+     is reading the host kernel state correctly — pick a smoke
+     that would distinguish "the container is green but the
+     feed is garbage" from "the feed is actually reflecting the
+     host".
+  8. If the smoke comes back empty / corrupt, walk me through
+     the layered debug ladder — which layer should I check
+     first, second, third, and what's the FIRST thing I should
+     check after my host's next kernel patch round?
+  9. Don't quote container image tags or registry paths from
+     memory. If you don't know the exact tag, say so and tell
+     me where to look it up.
+
+  After that, briefly tell me which parts of your answer would
+  carry over to `doca-apsh` (the library I'd reach for instead
+  of OS Inspector if I were actually building a custom
+  DPU-side introspection tool of my own). Identify which parts
+  STAY THE SAME (the BlueField-side observation of host state
+  over PCIe, the host kernel symbol-map prerequisite, the
+  known-target smoke before broad scan, the "DPU reads host
+  memory so the host runs nothing" architectural shape, the
+  per-host-kernel-change symbol-map rollover, env preconditions
+  on DOCA being installed on the BlueField Arm) vs which CHANGE
+  (OS Inspector is a packaged service the operator deploys with
+  a documented scan policy and DTS-targeted output; apsh is a
+  C library the developer builds custom tooling on top of with
+  their own scanner loop and their own output surface; OS
+  Inspector ships APSH-event publication into DTS out of the
+  box, apsh emits raw APSH objects the consumer's code has to
+  read directly).
+
+context:
+  audience: "intermediate"
+  intent: "deploy_service"
+  prior_knowledge: "knows what a DPU and a BlueField are, has a BlueField-3 with DOCA installed on the BlueField Arm paired with a RHEL 9.4 host (kernel 5.14.0-427.x), has DTS already running on the BlueField with a downstream Splunk forwarder the security team triages on, has heard of DOCA App Shield conceptually but has never deployed App Shield-derived host introspection before, has heard of doca-apsh and doca-argus but is unsure which of the three (OS Inspector / apsh / Argus) is the right surface for a deployable raw-introspection feed"
+  baseline_artifact: "doca-os-inspector"
+  changed_skill_in_pr: "services/doca-os-inspector"
+  expected_skill_co_load:
+    - "doca-os-inspector"
+    - "doca-apsh"
+    - "doca-argus"
+    - "doca-container-deployment"
+    - "doca-telemetry"
+    - "doca-telemetry-exporter"
+    - "doca-version"
+    - "doca-hardware-safety"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "recommends_os_inspector_over_apsh_for_deployable_feed"
+    label: "FIRST recommends OS Inspector (packaged service) over doca-apsh (library) for a deployable introspection feed"
+    weight: 3
+    pass_when: |
+      In response to question 1 of the prompt, the agent
+      explicitly identifies OS Inspector as the right FIRST
+      answer for a deployable, container-shaped host-OS
+      introspection feed flowing into DTS. The agent must
+      explicitly contrast OS Inspector (the PACKAGED service —
+      APSH context, per-iteration scanner, scan-policy schema,
+      telemetry-exporter publication into DTS ship as one
+      operationally-ready container) against `doca-apsh` (the
+      LOWER-LEVEL LIBRARY a developer would use to BUILD
+      custom DPU-side introspection tooling with their own
+      scanner loop and their own output surface). The agent
+      must NOT walk the user into building their own scanner
+      loop on apsh as the default answer for a deployable
+      introspection feed — apsh is reserved for users who are
+      genuinely building a custom DPU-side introspection
+      product of their own. A response that recommends
+      building from scratch on apsh first, OR that treats
+      OS Inspector and apsh as interchangeable without naming
+      the packaged-vs-library distinction, fails.
+
+  - id: "distinguishes_os_inspector_from_argus"
+    label: "Distinguishes OS Inspector (raw introspection) from doca-argus (runtime-security findings) and routes correctly"
+    weight: 2
+    pass_when: |
+      In response to question 1 of the prompt, the agent
+      explicitly distinguishes OS Inspector (the RAW-
+      INTROSPECTION packaged surface — APSH-shaped enumerations
+      with no detection logic of its own; the consumer side
+      decides what to do with the feed) from `doca-argus` (the
+      RUNTIME-SECURITY-FINDINGS packaged surface — ships
+      detection policy + finding emission + SIEM forwarding as
+      one unit, with a calibration period). For the worked
+      example, the agent recommends OS Inspector because the
+      user's stated need is a raw-introspection feed into a
+      DTS pipeline for the consumer side (Splunk +
+      analyst-query workflow) to act on, not a tuned
+      detection / alerting workflow. A response that conflates
+      OS Inspector with Argus, OR that recommends Argus
+      because "it's a security service" without recognizing
+      that the user asked for raw introspection rather than
+      findings, OR that omits the OS-Inspector-vs-Argus
+      distinction entirely, fails.
+
+  - id: "recognizes_service_deployment_with_apsh_prereqs"
+    label: "Recognizes this is a service deployment (container + scan policy + symbol map + memory regions mounts), not a library link"
+    weight: 2
+    pass_when: |
+      In response to question 2 of the prompt, the agent
+      explicitly names that DOCA OS Inspector is a long-
+      running CONTAINER that ships from NGC and runs on
+      BlueField Arm, not a library the user links against and
+      not a host-side daemon the user installs as a host
+      package. The agent must walk the deployment shape: pull
+      the image per the public OS Inspector / App Shield
+      Agent guidance, mount the scan-policy JSON, the
+      operator-supplied symbol-map and memory-regions files,
+      the params / arguments file, the BlueField hugepages
+      volume, the DTS-side IPC socket volume, and the shared-
+      memory volume at the documented mount paths; start
+      under the BlueField container runtime per the public
+      Container Deployment Guide. A response that treats
+      OS Inspector as a `lib*.so` to link against, or that
+      proposes to build OS Inspector from source as the
+      operator workflow, or that omits the container nature
+      entirely and treats it as a host daemon, fails.
+
+  - id: "five_axis_config_named"
+    label: "Names DMA device + host VUID, OS type, symbol map + memory regions, scan policy, scan interval as the five-axis up-front decision"
+    weight: 3
+    pass_when: |
+      The agent explicitly names FIVE configuration axes that
+      must be decided BEFORE starting the container, and
+      names what each one is for: (a) DMA device (the
+      BlueField IBdev name) + host VUID — the BlueField PCIe
+      path that attaches the host's memory; (b) OS type
+      (Linux vs Windows) — drives which APSH telemetry-event
+      registration the scanner uses; (c) host kernel symbol
+      map + memory-regions file — host-OS-version-specific
+      artifacts the APSH library needs to interpret host
+      kernel memory; (d) scan policy — which APSH structs the
+      scanner enumerates and publishes each iteration; (e)
+      scan interval — the cadence at which the scanner re-
+      walks every enabled struct. The agent must explicitly
+      call out that a mismatch on any one axis breaks the
+      deployment in a different way (no enumeration / wrong
+      host / wrong-shaped enumeration / wrong feed shape /
+      performance impact). A response that collapses the
+      axes into one "OS Inspector config" blob, or that names
+      only some of them and silently drops the symbol map or
+      the scan policy, or that does not call out that each
+      axis has a distinct failure mode, fails.
+
+  - id: "symbol_map_is_host_os_version_specific_and_must_be_refreshed"
+    label: "Names the host kernel symbol map as a host-OS-version-specific artifact that MUST be refreshed on every host kernel change"
+    weight: 3
+    pass_when: |
+      In response to question 4 of the prompt, the agent
+      explicitly states that the host kernel symbol map (and
+      the memory-regions file) is HOST-OS-VERSION-SPECIFIC:
+      it is generated against the EXACT host kernel build
+      currently running, and a host kernel upgrade silently
+      invalidates the map. The container keeps running, the
+      scanner keeps iterating, but the feed quietly stops
+      representing reality. The agent must explicitly state
+      that the operator's runbook MUST treat refreshing the
+      symbol map as a MANDATORY step on every host kernel
+      change (the host's normal patch / reboot rotation is
+      the trigger), and that the right place to look for the
+      generation procedure is the public DOCA App Shield
+      guidance. A response that is silent on the symbol-map
+      lifecycle, OR that treats the symbol map as a
+      one-time-install artifact, OR that mentions the map
+      but does not name the per-host-kernel-change rollover
+      as the operator's standing responsibility, fails. This
+      is the canonical "container is green but the feed is
+      wrong" failure mode the OS Inspector skill exists to
+      keep from being silent.
+
+  - id: "minimum_exposure_scan_policy_floor"
+    label: "Holds the minimum-exposure-by-default stance on the scan policy (off-by-default structs are the safety floor)"
+    weight: 2
+    pass_when: |
+      In response to question 5 of the prompt, the agent
+      explicitly states that the project's defaults for the
+      scan policy are a deliberate MINIMUM-EXPOSURE stance:
+      `processes_info`, `threads_info`, `libs_info`,
+      `vads_info`, and `system_modules_info` are ON by
+      default; `privileges_info`, `processes_envars_info`,
+      and `processes_handles_info` are OFF by default
+      because they carry the highest-sensitivity host data
+      (process command-line / environment variables, open
+      handles, security privileges). The agent must explain
+      that the right move for a production deployment is to
+      KEEP the off-by-default structs OFF unless there is a
+      documented downstream consumer that actually requires
+      the data AND a documented data-sensitivity sign-off on
+      the now-widened feed. The agent must NOT recommend
+      flipping the off-by-default structs ON as a "might as
+      well" expansion. A response that recommends turning on
+      `processes_envars_info` / `processes_handles_info` /
+      `privileges_info` by default for production, OR that is
+      silent on the asymmetry between the on-by-default and
+      off-by-default structs, OR that does not surface the
+      data-sensitivity widening that flipping any of them on
+      represents, fails.
+
+  - id: "known_target_smoke_before_broad_enumeration"
+    label: "Recommends a KNOWN-RUNNING-TARGET smoke (e.g. init / systemd) before any broad enumeration"
+    weight: 3
+    pass_when: |
+      In response to question 7 of the prompt, the agent
+      explicitly recommends a smoke that picks ONE target the
+      operator can INDEPENDENTLY CONFIRM is running on the
+      host (e.g. `init` / `systemd` by name for a Linux host)
+      as the FIRST functional test, BEFORE any wide
+      enumeration. A successful known-target smoke proves the
+      DMA path + host VUID + OS type + symbol map + memory
+      regions + APSH context are all correctly configured;
+      the broad enumeration inherits that confidence. The
+      agent must NOT propose a smoke that consists of
+      "container is green and a high event count is hitting
+      DTS" — a wrong symbol map can produce a high event
+      count of garbage. The smoke MUST be that an
+      independently-confirmed-on-the-host target shows up
+      with recognizable identifying fields in the
+      OS Inspector → DTS → consumer pipeline. A response
+      that jumps straight to "now turn on the full scan
+      policy and watch the event count rise" without naming
+      a known-target verification, OR that proposes a smoke
+      whose pass criterion is event volume rather than
+      target identifiability, fails. This is the discipline
+      App Shield itself teaches that OS Inspector inherits
+      unchanged.
+
+  - id: "end_to_end_pipeline_smoke_to_consumer"
+    label: "Recommends end-to-end smoke through DTS to the downstream consumer (Splunk) before enabling production consumption"
+    weight: 2
+    pass_when: |
+      In response to question 7 of the prompt, the agent
+      recommends a smoke sequence that verifies the FULL
+      pipeline END-TO-END, covering at minimum: (a)
+      OS Inspector container running and not restart-looping;
+      (b) the documented startup banner, APSH-context-
+      created, and telemetry-source-started lines visible
+      in the container's log; (c) the scanner iteration loop
+      running against the configured DMA device + VUID + OS
+      type + symbol map + memory regions; (d) a known-running
+      target on the host appears in the OS Inspector → DTS
+      feed; (e) the same target reaches the downstream Splunk
+      consumer surface via DTS forwarding. Only after the
+      end-to-end smoke passes does the agent enable
+      production Splunk consumption on top. A response that
+      stops at "OS Inspector emitted an event" without
+      requiring DTS-side and Splunk-side confirmation, OR
+      that jumps from "container started" to "enable
+      production consumer alerting" without an explicit
+      end-to-end smoke to the consumer surface, fails. The
+      pipeline has four legs (OS Inspector → APSH → DTS →
+      consumer); naming only one is how the channel silently
+      breaks.
+
+  - id: "layered_debug_ladder_named_with_symbol_map_first_after_kernel_change"
+    label: "Walks the layered debug ladder with symbol-map / host-kernel-version FIRST after a host kernel change"
+    weight: 2
+    pass_when: |
+      In response to question 8 of the prompt, the agent
+      walks a layered debug ladder (container runtime →
+      hardware path → symbol map + memory regions → scan
+      policy → telemetry pipeline → performance → version)
+      and explicitly names that AFTER A HOST KERNEL PATCH
+      ROUND, the FIRST thing to check is whether the
+      symbol-map and memory-regions files on the BlueField
+      were regenerated against the post-patch host kernel
+      build. The agent must explicitly tell the user NOT to
+      respond to a post-kernel-change "empty feed" symptom by
+      changing the scan policy or by widening the
+      enumeration — that is the wrong layer. A response that
+      jumps to the scan policy or to the container tag as
+      the first thing to check after a host kernel change,
+      OR that walks a flat ladder without distinguishing the
+      layers, fails.
+
+  - id: "no_invented_container_image_or_tag"
+    label: "Does not invent OS Inspector container image names, tags, or registry paths"
+    weight: 2
+    pass_when: |
+      The agent does NOT quote a specific OS Inspector
+      container image string or tag from memory (e.g.
+      `nvcr.io/nvidia/doca/doca-os-inspector:latest`, a
+      specific version tag, or any other concrete tag).
+      Instead the agent states that the authoritative source
+      for the image string and tag is the public DOCA
+      OS Inspector / App Shield Agent guidance (reachable
+      through `doca-public-knowledge-map ## DOCA services`)
+      and the public Container Deployment Guide for the
+      operator's DOCA release, and explicitly tells the user
+      to look the tag up there rather than memorize it. If
+      the agent DOES surface an image string, it must
+      clearly frame it as a placeholder / sketch with the
+      agent telling the user to replace it with the value
+      from the live guidance. Inventing a specific tag from
+      memory and presenting it as the answer fails — that is
+      the canonical service-skill hallucination failure
+      mode.
+
+  - id: "container_deployment_guide_canonical"
+    label: "Walks the public Container Deployment Guide as canonical for the deployment pattern"
+    weight: 1
+    pass_when: |
+      In response to question 6 of the prompt, the agent
+      references the public Container Deployment Guide (or
+      the public OS Inspector / App Shield Agent guidance
+      that points to it) as the canonical source for the
+      deployment recipe — how to pull the image, where to
+      mount the scan-policy / symbol-map / memory-regions /
+      params files, which BlueField container runtime to
+      use, what the start / status / logs commands look
+      like. The agent should route via the
+      `doca-container-deployment` skill and
+      `doca-public-knowledge-map ## DOCA services` rather
+      than paraphrase the deployment commands from memory.
+      A response that invents a `docker run` invocation or a
+      Pod spec without citing the public guidance as the
+      authoritative source fails.
+
+  - id: "no_hallucinated_apsh_struct_or_argument"
+    label: "Does not invent OS Inspector arguments, APSH struct names, or telemetry event field names"
+    weight: 2
+    pass_when: |
+      Every OS Inspector argument, APSH struct name (e.g.
+      `processes_info`, `threads_info`, `libs_info`,
+      `vads_info`, `system_modules_info`, `privileges_info`,
+      `processes_envars_info`, `processes_handles_info`),
+      and telemetry-event field the agent mentions is one
+      that actually exists in the public OS Inspector / App
+      Shield Agent guidance OR in the public DOCA App
+      Shield library guide, OR it is explicitly framed as
+      pseudocode / sketch with the agent telling the user to
+      confirm the exact name from the live guidance. A
+      response that invents OS Inspector arguments like
+      `--quick-scan` / `--easy-mode` / `--auto-detect-host`,
+      OR that invents APSH struct names that are not in the
+      public guidance, OR that quotes a telemetry-event
+      field shape from memory and presents it as the
+      contract, fails — that is the baseline-agent
+      hallucination failure mode the bundle exists to
+      prevent.
+
+  - id: "generalizes_beyond_worked_example"
+    label: "Generalizes from OS Inspector to doca-apsh (library equivalent for custom tooling) and identifies what stays the same vs changes"
+    weight: 2
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it generalizes from the OS Inspector / DTS /
+      Splunk / RHEL 9.4 worked example to `doca-apsh` as
+      the LIBRARY EQUIVALENT for users who are genuinely
+      building a custom DPU-side introspection tool of their
+      own. The agent must identify which parts STAY THE
+      SAME (BlueField-side observation of host state over
+      PCIe, the host kernel symbol-map prerequisite, the
+      per-host-kernel-change symbol-map rollover, the
+      known-running-target smoke before broad scan, the
+      `NOT_FOUND-is-a-normal-answer-for-an-absent-target`
+      rule, the "DPU reads host memory so the host runs
+      nothing" architectural shape, env preconditions on
+      DOCA being installed on the BlueField Arm, the
+      version-handling story extended with the host-kernel-
+      build axis) vs which CHANGE (OS Inspector is a
+      packaged service the operator deploys with a
+      documented scan policy and a DTS-targeted output
+      pipeline; apsh is a C library the developer builds
+      custom tooling on top of with their own scanner loop
+      and their own output surface; OS Inspector ships APSH-
+      event publication into DTS out of the box, apsh emits
+      raw `doca_apsh_*` objects the consumer's code has to
+      read directly; OS Inspector's operator workflow is a
+      deploy-and-tune cycle against a scan policy, apsh's
+      developer workflow is a custom-tool development cycle
+      end-to-end). A response that walks only OS Inspector
+      and is silent on the apsh generalization, OR that
+      conflates OS Inspector and apsh into a single thing,
+      OR that fails to surface the stays-the-same / changes
+      contrast explicitly, fails this criterion.

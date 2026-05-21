@@ -1,0 +1,17 @@
+$ doca_caps --version
+doca_caps version: 2.9.0
+doca-common: 2.9.0
+doca-flow: 2.9.0
+doca-rdma: 2.9.0
+build: production
+$ cat /opt/mellanox/doca/applications/VERSION
+2.9.0
+$ # BFB version on the BlueField (queried via `bfver` on the BlueField Arm console
+$ # and `cat /etc/mlnx-release` on the BlueField Arm side; do NOT use the
+$ # outdated/incorrect `mlxprivhost` or `bfb-info` placeholders that pre-date
+$ # this fixture's bundle-wide cleanup)
+$ bfver
+BlueField Boot Stream Version: BF-Bundle 3.0.0
+BSP version:                   4.7.0
+$ cat /etc/mlnx-release
+BlueField-3.0.0-DOCA-3.0.0-Ubuntu22.04

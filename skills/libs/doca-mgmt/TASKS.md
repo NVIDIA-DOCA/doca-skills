@@ -489,7 +489,7 @@ manual command in the row.
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-mgmt` | [`## install`](#install) step 1; [`## configure`](#configure) step 1 | What is the build-time DOCA Management version? | A semver matching `doca_caps --version`. Disagreement = partial install; route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
 | `pkg-config --modversion doca-common doca-mgmt` | [`## install`](#install) step 2 | Do both `.pc` files agree on the same DOCA semver? | A single semver repeated twice. Any disagreement is the partial-install pattern |
-| `pkg-config --cflags --libs doca-mgmt` | [`## build`](#build) | What include + link flags does the linker need? | Includes resolve under the installed DOCA infrastructure include tree; libs include `-ldoca_mgmt -ldoca_common` |
+| `pkg-config --cflags --libs doca-mgmt` | [`## build`](#build) | What include + link flags does the linker need? | Includes resolve under whichever include directory `pkg-config --cflags` reports on this install (do not hardcode the path); libs include `-ldoca_mgmt -ldoca_common` |
 | `doca_caps --list-devs` | [`## configure`](#configure) step 2 | Which devices on this host can be used as a `doca_dev` for management operations? | One row per visible device with PCIe address and capability flags |
 | `doca_caps --version` | [`## install`](#install) step 1 | What is the *runtime* DOCA version on this host? | A semver matching `pkg-config --modversion doca-mgmt` |
 | `cat /opt/mellanox/doca/applications/VERSION` | [`## install`](#install) step 1; [`## debug`](#debug) layer 1 | What does the install tree itself claim its version is? | A semver matching the other version sources |

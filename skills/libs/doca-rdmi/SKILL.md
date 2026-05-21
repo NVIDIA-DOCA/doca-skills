@@ -155,8 +155,11 @@ material lives in two companion files:
   responder's memory.
 - `TASKS.md` — step-by-step workflows for the eight in-scope verbs:
   `install`, `configure`, `build`, `modify`, `run`, `test`,
-  `debug`, `use`. Plus a `Deferred task verbs` block that points
-  out-of-scope questions at the right next skill.
+  `debug`, `use`. Plus a `## rollback` overlay (RDMI-specific
+  five-step teardown for the verbs / connection / DPA-attach /
+  MR stack) and the 5-phase universal debug-loop instantiation
+  appended to `## debug`. Plus a `Deferred task verbs` block
+  that points out-of-scope questions at the right next skill.
 
 The skill assumes a host or BlueField where DOCA is already
 installed at the standard location and the user has the privileges

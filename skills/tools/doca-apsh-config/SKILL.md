@@ -1,7 +1,7 @@
 ---
 name: doca-apsh-config
 description: NVIDIA DOCA App Shield Configuration Tool (`doca_apsh_config.py`) — host-side Python script shipped under `/opt/mellanox/doca/tools/` that produces the host-OS profile artifacts (kernel symbol map, memory-regions descriptor, optional Linux-only KPGD anchor, optional per-process hash bundle) the DPU-side [`doca-apsh`](../../libs/doca-apsh/SKILL.md) library must load before it can interpret host kernel state. Profiles are host-OS-version-specific and must be regenerated on every host kernel upgrade, patch, or security-update reboot — a stale profile is the canonical silent-bug failure mode (queries return garbage, wrong-symbol offsets, or `DOCA_ERROR_NOT_FOUND` on running processes). The tool shells out to the public `dwarf2json` (Linux) or `pdbparse-to-json.py` (Windows) for kernel symbol extraction. Public source of truth is the DOCA App Shield page on `docs.nvidia.com`; subcommand names, outputs, and option strings are read from the live guide and `--help`, not copied here.
-kind: library
+kind: tool
 ---
 
 # DOCA App Shield Configuration Tool

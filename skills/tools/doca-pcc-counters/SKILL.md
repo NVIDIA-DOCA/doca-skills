@@ -1,7 +1,7 @@
 ---
 name: doca-pcc-counters
 description: NVIDIA DOCA PCC Counter Tool — the operator-facing diagnostic CLI shipped under `/opt/mellanox/doca/tools/` that inspects Programmable Congestion Control counters on a BlueField port, paired with the `doca-pcc` library that loads custom congestion-control kernels onto the BlueField DPA. The counter tool is read-only and side-effect-free — its job is to list available counters, snapshot per-flow / per-port / per-kernel counters, watch a sweep, and diff snapshots so the agent can localize where a custom PCC algorithm is (or is not) modulating RDMA / RoCE traffic. Runs from the host or BlueField Arm side. The canonical public source is the DOCA PCC Counter Tool guide on `docs.nvidia.com`. Subcommand names, flag strings, and counter column names come from that guide and the installed `--help`, never from agent memory — misreading a counter into a CC tuning decision can destabilize a fleet.
-kind: library
+kind: tool
 ---
 
 # DOCA PCC Counter Tool

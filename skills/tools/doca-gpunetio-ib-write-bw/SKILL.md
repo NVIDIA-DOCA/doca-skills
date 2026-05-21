@@ -1,7 +1,7 @@
 ---
 name: doca-gpunetio-ib-write-bw
 description: NVIDIA DOCA GPUNetIO ib_write_bw — the GPUNetIO-flavored analog of the classic `perftest` `ib_write_bw`, shipped under `doca/tools/gpunetio_ib_write_bw/` as a client + server pair built with `meson` against the installed DOCA, where the server-side CUDA kernel posts RDMA WRITE work requests through the doca-gpunetio device-side surface to drive sustained throughput between two GPU + IB device pairs. The skill teaches the class question of *"what sustained RDMA-WRITE BW can the GPUNetIO path deliver on this GPU-NIC pair, and where is the bottleneck — GPU compute occupancy, NIC issue rate, or link saturation?"* — the GPU-NIC pairing precondition, the configure / build / run shape against the shipped tool tree, how to read the throughput output, the version + capability overlay against the installed DOCA + CUDA Toolkit, and how the result reads against the GPI sister tool `doca-gpi-ib-write-lat` and the upstream CPU-initiated `perftest` `ib_write_bw`.
-kind: library
+kind: tool
 ---
 
 # DOCA GPUNetIO ib_write_bw

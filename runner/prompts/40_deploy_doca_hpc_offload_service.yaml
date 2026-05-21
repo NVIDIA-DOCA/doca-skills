@@ -1,0 +1,332 @@
+id: "40_deploy_doca_hpc_offload_service"
+name: "Deploy a DOCA HPC offload service on the BlueField (executor side of remote memory operations) — class-shaped"
+description: |
+  Class-shaped service-deployment prompt. The HEADLINE is the class
+  ("deploy a DOCA HPC offload service on the BlueField — the executor
+  side of remote memory operations the paired host-side library
+  enqueues"); the worked example is bringing up the DOCA UROM Service
+  on each BlueField in an MPI cluster so that host MPI processes
+  using the host-side `doca-urom` library can offload their
+  all-reduce collectives to the DPUs, because UROM Service + UROM
+  library is the canonical publisher / executor pair the bundle
+  teaches for HPC offload.
+
+  Per AUTHORING.md § 1a, the bundle MUST teach the agent how to
+  deploy ANY DOCA service that is the EXECUTOR side of a paired
+  host-library + DPU-service contract (UROM Service + doca-urom
+  library; telemetry-exporter library + DTS service; and analogous
+  pairings). The bundle proves this by asking the agent to walk:
+  recognize this is the EXECUTOR side (the DPU-side daemon that
+  receives offloaded operations) vs the PUBLISHER side (the
+  host-side library that enqueues them); FIRST confirm the
+  library / service version contract (a mismatch is a subtle,
+  hard-to-bisect failure mode for a paired contract); name
+  doca-rdma as the underlying transport substrate the service
+  uses to actually move bytes; treat DPU-side compute / memory
+  budget as a precondition that can fail an under-resourced
+  BlueField at deploy time; cap-query at service deploy time
+  against the BlueField generation; recommend a smoke (one host
+  enqueue → one service execution → one completion observed on
+  the host) BEFORE scaling to a full collective pattern across the
+  cluster; refuse to invent container image names or tags; and
+  generalize to ONE OTHER DOCA library / service pair (e.g.
+  telemetry-exporter library + DTS service) — same SHAPE (paired
+  contract, version coupling, smoke-before-scale) vs different
+  SHAPE (HPC-domain semantics vs telemetry semantics; in-band
+  transport on the existing RDMA fabric vs out-of-band telemetry
+  channel; per-host-endpoint authentication vs per-telemetry-stream
+  authentication).
+
+  A baseline agent without skills typically: treats the service as
+  a library to link against, or as the same artifact as the
+  host-side `doca-urom`; invents a container image tag and
+  `docker run` invocation; never surfaces the library / service
+  version-pairing rule and so misses the canonical subtle-failure
+  mode; ignores the underlying RDMA substrate entirely and treats
+  the service as if it had its own transport; skips the cap-query
+  at deploy time and is surprised when the BlueField generation
+  cannot host the intended offload surface; jumps straight to
+  driving the full collective pattern without a single-operation
+  smoke between two nodes; cannot generalize the
+  paired-publisher / executor shape to a different DOCA library /
+  service pair.
+
+prompt: |
+  I have an HPC cluster: each node has a host with a BlueField DPU
+  plugged in over PCIe, DOCA already installed both on the host
+  and on the BlueField Arm, and the cluster's inter-node RDMA
+  fabric (RoCE) already up and routing between BlueFields. The host
+  fleet's MPI application links the host-side DOCA `doca-urom`
+  library and wants to offload its all-reduce collectives to the
+  BlueField DPUs so the host CPUs are freed for compute. The
+  host-side library does the ENQUEUE — but I gather there is a
+  separate DPU-side artifact that does the EXECUTION, and I need to
+  deploy that on each BlueField in the cluster.
+
+  Walk me through the deploy:
+
+  1. Confirm what kind of artifact I'm actually deploying on the
+     BlueField. Is this a library I link, the same thing as
+     `doca-urom` on the host, a host daemon, or a container on the
+     BlueField Arm? Walk the deployment shape, and be explicit
+     about the PUBLISHER (host-side) vs EXECUTOR (DPU-side) split.
+  2. Before I touch any BlueField, what do I have to check about
+     the version pair between the host-side `doca-urom` library
+     and this DPU-side service? I'm worried about subtle failures
+     that won't show up until the workload runs.
+  3. How does this service relate to the underlying RDMA fabric on
+     my cluster? Does it replace `doca-rdma`, layer on top, or
+     something else — and what happens to the host's view of
+     UROM operations if the RDMA substrate goes south?
+  4. The BlueField generation in my cluster has a finite compute
+     and memory budget. How do I check, BEFORE deploying, that the
+     BlueField can actually host the offload surface my MPI
+     all-reduce wants — and what should I cap-query against?
+  5. Where does the canonical container deployment pattern live?
+     I don't want you to invent a `docker run` line or a container
+     image tag; tell me which public doc I should consult and
+     why.
+  6. What single smoke test would you recommend BEFORE I scale to
+     the full all-reduce collective pattern across all the nodes
+     in my cluster? I'm specifically asking for the cheapest test
+     that proves the DPU-side service is actually executing
+     operations the host-side library enqueues end-to-end.
+  7. Don't quote container image tags or registry paths from
+     memory. If you don't know the exact tag, say so and tell me
+     where to look it up.
+
+  After that, briefly tell me which parts of your answer would
+  carry over to a DIFFERENT paired DOCA library + service pair
+  (for example, the host-side DOCA telemetry-exporter library
+  paired with the DOCA Telemetry Service on the BlueField).
+  Identify which parts STAY THE SAME (the publisher / executor
+  paired-contract shape, the version-coupling rule between the
+  host library and the DPU-side service, the
+  smoke-before-scale discipline, the container is a long-running
+  artifact on BlueField Arm deployed via the public Container
+  Deployment Guide, env preconditions checked first via
+  `doca-setup`) vs which CHANGE (the per-service problem domain —
+  HPC offload of remote memory operations vs telemetry collection;
+  the transport substrate — HPC offload rides on the same
+  inter-node RDMA fabric the workload already uses (in-band) vs
+  telemetry rides on a separate out-of-band telemetry channel;
+  the authorization shape — UROM is per-host-endpoint
+  authentication, telemetry is per-telemetry-stream
+  authentication).
+
+context:
+  audience: "intermediate"
+  intent: "deploy_hpc_offload_service"
+  prior_knowledge: "knows what a DPU and a BlueField are, has a multi-node BlueField + host cluster with RoCE already up, has done at least one MPI application build before, knows that doca-urom is a host-side library their MPI stack uses to enqueue remote memory operations, has not deployed the DPU-side DOCA UROM Service before"
+  baseline_artifact: "doca-urom-svc"
+  changed_skill_in_pr: "services/doca-urom-svc"
+  expected_skill_co_load:
+    - "doca-urom-svc"
+    - "doca-urom"
+    - "doca-rdma"
+    - "doca-version"
+    - "doca-structured-tools-contract"
+    - "doca-programming-guide"
+    - "doca-public-knowledge-map"
+    - "doca-setup"
+
+criteria:
+  - id: "recognizes_executor_not_publisher"
+    label: "Recognizes this is the EXECUTOR side (DPU service) vs the PUBLISHER side (host-side doca-urom library)"
+    weight: 3
+    pass_when: |
+      The agent explicitly names that the DPU-side artifact being
+      deployed is the DOCA UROM Service — a long-running container
+      that runs on the BlueField Arm and EXECUTES remote memory
+      operations the host-side `doca-urom` library ENQUEUES. The
+      agent walks the publisher / executor split: `doca-urom` (on
+      the host) is the publisher / enqueue side; the DOCA UROM
+      Service (on the BlueField) is the executor side; the two are
+      a paired contract and neither half is operationally
+      meaningful alone. A response that treats the DPU-side service
+      as the same thing as `doca-urom` fails. A response that
+      treats it as a library the operator links against fails. A
+      response that has the publisher / executor sides swapped
+      (claims the library executes on the DPU, or the service
+      enqueues from the host) fails. A response that recommends
+      operating / deploying the service through the host-side
+      library API also fails — service deployment goes through
+      the public DOCA UROM Service Guide and the BlueField
+      container runtime, not through `doca_urom_*` host-side
+      calls.
+
+  - id: "version_contract_confirmed_first"
+    label: "FIRST confirms the library / service version contract — mismatch = subtle failures"
+    weight: 3
+    pass_when: |
+      The agent's FIRST substantive deploy-check is to confirm the
+      version pair between the host-side `doca-urom` library and
+      the DPU-side service's container tag, AND surfaces that a
+      mismatch produces SUBTLE failures — not a loud refusal at
+      deploy time, but `DOCA_ERROR_NOT_SUPPORTED` on operations
+      one side believes the pair supports, OR silent stalls on
+      collectives, OR runtime cap-query disagreements. The agent
+      must name both anchors: `pkg-config --modversion doca-urom`
+      on the host fleet AND the container tag pulled on each
+      BlueField. The agent must route the cross-check to the DOCA
+      Compatibility Policy (and ideally name `doca-version` as
+      the bundle's source-of-truth for the four-way match rule).
+      A response that walks straight to container deployment
+      without naming the paired-version contract fails. A response
+      that mentions versioning only in passing as an afterthought
+      after walking through deployment steps also fails — the
+      version-pair check must come FIRST, before any deploy
+      action. A response that names the version contract but
+      claims a mismatch would fail loudly at deploy time
+      misrepresents the subtle-failure shape and fails.
+
+  - id: "rdma_substrate_named"
+    label: "Names doca-rdma as the underlying transport substrate the service uses (not replaces)"
+    weight: 2
+    pass_when: |
+      The agent explicitly names `doca-rdma` (or the equivalent
+      underlying RDMA / RoCE / IB transport surface) as the
+      substrate the service uses on the BlueField to actually
+      move bytes once a host enqueue has been received, AND
+      surfaces that the service does NOT replace RDMA — it sits
+      on top of it. The agent must surface that a failing RDMA
+      fabric will surface inside the service as stalled
+      completions AND at the host's `doca-urom` API as
+      `DOCA_ERROR_IO_FAILED`, and that the right diagnostic is at
+      the substrate layer, not in the service config. A response
+      that claims the service replaces doca-rdma fails. A response
+      that does not mention any underlying RDMA / substrate
+      surface at all (treats the service as if it had its own
+      transport) fails. A response that recommends fixing a
+      substrate-layer failure inside the service config (e.g. by
+      reducing queue depth or restarting the container) fails.
+
+  - id: "dpu_resource_precondition_named"
+    label: "Treats DPU-side compute / memory budget as a precondition (deploy can fail on under-resourced BF)"
+    weight: 2
+    pass_when: |
+      The agent explicitly names that the BlueField generation in
+      use has a finite compute / memory budget AND that the
+      service deploy can fail on an under-resourced BlueField —
+      either at container start (resource exhaustion at the
+      runtime layer) or at first host enqueue (the BlueField
+      cannot actually execute the intended offload surface). The
+      agent must NOT assume any BlueField generation can host any
+      UROM offload pattern; the answer must be conditional on the
+      BlueField generation in the cluster. A response that
+      treats the BlueField as an unconditional offload target
+      without naming the resource budget fails. A response that
+      conflates "DOCA installed on the BlueField" with "BlueField
+      can host this offload surface" fails.
+
+  - id: "cap_query_at_deploy_time"
+    label: "Cap-queries at service deploy time against the BlueField generation"
+    weight: 2
+    pass_when: |
+      The agent says the operator MUST run a capability query at
+      service deploy time to confirm the BlueField generation +
+      DOCA install + intended service version actually support
+      the UCX components / collectives the host workload wants to
+      offload, BEFORE the service is declared ready. The agent
+      surfaces that the cap surface is multi-axis: the BlueField
+      / device axis (what the hardware can do), the DOCA-install
+      axis (what the on-BlueField DOCA exposes), AND the
+      paired-service axis (what the running service container
+      exposes — which is an independent axis that can disagree
+      with the host's `doca_urom_cap_*` answer). The agent should
+      name `doca_urom_cap_*` (or an equivalent capability query
+      against `doca_devinfo`) as the host-side anchor, AND name
+      the service-side exposed surface in the service config as
+      the DPU-side anchor, AND say the two must agree. A response
+      that does not mention any cap query / capability check at
+      service deploy time fails. A response that names only the
+      host-side cap query without acknowledging that the service's
+      exposed surface is an independent axis fails.
+
+  - id: "single_op_smoke_before_collective"
+    label: "Recommends a smoke (one host enqueue → one service execution → one completion observed) before scaling to the full collective"
+    weight: 2
+    pass_when: |
+      The agent recommends a SINGLE-OPERATION smoke as the FIRST
+      functional test before scaling to the full collective
+      pattern: from ONE paired host, enqueue ONE remote memory
+      operation (a put or get with a small payload between two
+      nodes), observe the service-side log line that the
+      operation was received and executed, AND observe the
+      completion fire on the host's progress engine. The agent
+      must surface that the single-operation smoke is the
+      cheapest place to identify container / authorization /
+      version-pair / substrate gaps before any HPC stack effort
+      is wasted on a full all-reduce collective. A response that
+      jumps from `container started` to "now run the full
+      all-reduce" without the single-operation smoke fails. A
+      response that proposes a smoke on a SINGLE node (no peer)
+      fails — UROM needs a peer for the operation to mean
+      anything, and a single-node smoke cannot identify
+      substrate / version-pair gaps. A response that proposes
+      jumping straight to the small collective (e.g. a small
+      all-reduce on 2-4 nodes) as the first smoke also fails —
+      the single-op smoke is cheaper still and isolates more
+      layers.
+
+  - id: "no_invented_container_image_or_tag"
+    label: "Does not invent service container image names, tags, or registry paths"
+    weight: 1
+    pass_when: |
+      The agent does NOT quote a specific container image string
+      or tag from memory for the DOCA UROM Service (e.g. a
+      `nvcr.io/...` path with a specific tag, a `:latest`
+      pseudo-tag, or any other concrete tag). Instead the agent
+      states that the authoritative source for the image string
+      and tag is the public DOCA UROM Service Guide (reachable
+      through `doca-public-knowledge-map ## DOCA services`) for
+      the operator's host library version pair, AND explicitly
+      tells the user to look the tag up there rather than
+      memorize it. If the agent DOES surface an image string,
+      it must clearly frame it as a placeholder / sketch with
+      the agent telling the user to replace it with the value
+      from the live guide. Inventing a specific tag from memory
+      and presenting it as the answer fails — that is the
+      canonical service-skill hallucination failure mode, and
+      for this paired-contract service it can simultaneously
+      cause a layer-5 version-pair mismatch.
+
+  - id: "generalizes_to_other_paired_pair"
+    label: "Generalizes to one other DOCA library / service pair (e.g. telemetry-exporter library + DTS service) — same paired-contract shape, different per-service domain"
+    weight: 3
+    pass_when: |
+      The agent explicitly addresses the second part of the
+      prompt: it generalizes from the UROM-library + UROM-Service
+      pair to AT LEAST ONE OTHER DOCA library + service pair (the
+      prompt names DOCA telemetry-exporter library + DOCA
+      Telemetry Service as the canonical example; analogous
+      paired shapes are acceptable). The agent identifies which
+      parts STAY THE SAME — the publisher / executor paired-contract
+      shape (host library enqueues / produces; DPU service
+      executes / consumes), the version-coupling rule between
+      host library and DPU service per the DOCA Compatibility
+      Policy, the container-on-BlueField-Arm deployment via the
+      public Container Deployment Guide, env preconditions
+      checked first via `doca-setup`, smoke-before-scale before
+      driving the full workload — and which parts CHANGE — the
+      per-service problem DOMAIN (HPC offload of remote memory
+      operations vs telemetry collection vs device management
+      etc.); the TRANSPORT SUBSTRATE shape (UROM rides in-band on
+      the same inter-node RDMA fabric the HPC workload already
+      uses, vs telemetry rides on an out-of-band telemetry
+      channel that is logically separate from the data plane);
+      the AUTHORIZATION model (UROM is per-host-endpoint
+      authentication — a host either may offload through this
+      service or may not — vs telemetry is per-telemetry-stream
+      authentication — distinct streams have distinct access
+      rules); the per-service config schema and observability
+      surface. A response that walks only UROM-Service and is
+      silent on generalization fails. A response that generalizes
+      to a non-paired service (e.g. a service with no host-side
+      library counterpart) fails — the generalization must
+      preserve the paired-contract shape. A response that names a
+      paired pair but does not articulate at least the in-band-vs-
+      out-of-band transport difference AND the per-endpoint-vs-
+      per-stream authorization difference (or analogous concrete
+      per-service-domain differences) fails — these are the
+      load-bearing CHANGE-axes the prompt is testing.

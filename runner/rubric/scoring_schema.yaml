@@ -1,0 +1,194 @@
+id: "doca-skills-rubric-v1"
+name: "doca-skills A/B scoring schema (v1)"
+description: |
+  How the ab_runner interprets the criteria embedded in each
+  devops/runner/prompts/<id>.yaml file. Per-prompt criteria define
+  *what* to check; this schema defines *how* to score them
+  consistently across prompts and across the 3 agent variants
+  (baseline / previous / current).
+
+  Versioned so that a future change to the scoring model can be
+  isolated from the prompt files (which describe DOCA, not scoring).
+
+# --- Variant matrix --------------------------------------------------------
+# The runner invokes the SAME prompt against THREE agent variants.
+# All three see the same web access; the only difference is which
+# skill bundle (if any) is loaded into the agent's context.
+variants:
+  - id: "baseline"
+    label: "No skills"
+    description: |
+      The agent runs with no doca-skills bundle in context. This is
+      the control: it shows what an off-the-shelf coding agent does
+      with the same prompt and the same web access. Equivalent to
+      asking a fresh Claude / GPT / Gemini agent the prompt cold.
+    skills_dir: null
+
+  - id: "previous"
+    label: "Skills @ HEAD~1"
+    description: |
+      The agent runs with the doca-skills bundle as it was at the
+      parent commit of the PR under test. This is the regression
+      reference: if the PR introduces new or changed skills, the
+      'previous' variant tells us how the bundle scored before the
+      change.
+    skills_dir: "_resolved_at_runtime_to_HEAD_minus_1"
+
+  - id: "current"
+    label: "Skills @ HEAD (PR)"
+    description: |
+      The agent runs with the doca-skills bundle as proposed by the
+      PR. This is the artifact under test.
+    skills_dir: "_resolved_at_runtime_to_PR_HEAD"
+
+# --- Per-criterion scoring --------------------------------------------------
+# Each criterion in a prompt YAML has:
+#   - id, label, weight (integer, default 1)
+#   - pass_when (natural-language description of pass condition)
+# The runner produces one of three statuses per criterion per variant:
+scoring_states:
+  - id: "PASS"
+    numeric_value: 1.0
+    description: "Criterion is satisfied per pass_when."
+  - id: "FAIL"
+    numeric_value: 0.0
+    description: "Criterion is not satisfied per pass_when."
+  - id: "INCONCLUSIVE"
+    numeric_value: 0.0   # treated as FAIL for aggregate scoring
+    description: |
+      Judge could not determine PASS or FAIL from the agent's
+      response. Reported separately in the report so reviewers can
+      tell signal failure from real failure. NEVER auto-promotes to
+      PASS.
+
+# Per-criterion score = numeric_value × weight.
+# Per-prompt score = sum of criteria scores.
+# Per-variant aggregate = sum of per-prompt scores.
+
+# --- Judge ------------------------------------------------------------------
+# The runner judges each (prompt, variant) response using an LLM judge
+# that is given the criterion's pass_when description and the agent's
+# response, and returns one of {PASS, FAIL, INCONCLUSIVE} plus a
+# one-sentence rationale. The judge model is a config option of the
+# runner (see devops/runner/ab_runner.py); the same judge model is used
+# for all three variants in a single run, so judge bias is constant
+# across variants and cancels out in the comparison.
+judge:
+  required: true
+  contract: |
+    Given a criterion (label + pass_when text) and an agent response,
+    return JSON: {"status": "PASS|FAIL|INCONCLUSIVE", "rationale": "..."}.
+    The rationale is one sentence quoting the most relevant evidence
+    from the agent's response.
+  bias_control: |
+    The judge sees only the agent's response, never which variant
+    produced it. The runner shuffles variant ordering before passing
+    responses to the judge so the judge cannot infer variant from
+    position.
+
+# --- Comparison conditions --------------------------------------------------
+# The runner compares aggregate scores across the three variants.
+# Per the user's round-2 directive, ALL conditions ship as SOFT WARN.
+# After 3-5 CI runs of signal, conditions can be promoted to HARD FAIL
+# by editing this schema (NOT by editing the runner) — the runner
+# reads gate behavior from this file at startup.
+gate_conditions:
+  - id: "current_below_baseline"
+    label: "PR-current scores below the no-skills baseline on aggregate"
+    description: |
+      Worst-case condition: the PR's bundle made the agent measurably
+      worse than having no skills at all. This is the condition that
+      should never happen, and the first one to promote to HARD FAIL
+      once we have signal.
+    severity: "SOFT_WARN"   # initial; promote to HARD_FAIL after 3-5 runs of signal
+    rule: "current_aggregate < baseline_aggregate"
+
+  - id: "current_below_previous_aggregate"
+    label: "PR-current scores below skills-at-HEAD~1 on aggregate"
+    description: |
+      Aggregate regression vs the parent commit. Means the PR's
+      changes net-removed bundle value, even if no individual prompt
+      crossed below the baseline.
+    severity: "SOFT_WARN"
+    rule: "current_aggregate < previous_aggregate"
+
+  - id: "current_below_previous_per_prompt"
+    label: "PR-current scores below skills-at-HEAD~1 on at least one prompt"
+    description: |
+      Per-prompt regression vs the parent commit. Even if aggregate
+      is unchanged, this catches regressions on a specific prompt
+      that were masked by improvement elsewhere.
+    severity: "SOFT_WARN"
+    rule: "any prompt where current_score < previous_score"
+
+  - id: "current_equals_previous_aggregate"
+    label: "PR-current scores same as skills-at-HEAD~1 on aggregate"
+    description: |
+      No improvement from this PR. Not a failure (a PR may exist for
+      reasons other than scoring improvement: structural cleanups,
+      URL refresh, lint fixes), but worth surfacing so reviewers can
+      ask 'was an improvement expected?'.
+    severity: "SOFT_INFO"
+    rule: "current_aggregate == previous_aggregate"
+
+  - id: "judge_inconclusive_rate_high"
+    label: "Judge returned INCONCLUSIVE on >25% of criteria"
+    description: |
+      If the LLM judge cannot decide pass/fail on a quarter of the
+      criteria, the scoring signal itself is unreliable. The PR is
+      not at fault but the report should warn the reviewer that the
+      run is not high-confidence.
+    severity: "SOFT_WARN"
+    rule: "inconclusive_count / total_criteria > 0.25"
+
+  - id: "app_example_compile_failure"
+    label: "App example produced commands that did not compile in the NGC container"
+    description: |
+      The full_compile branch of the app-example test
+      (devops/env/ngc_container.sh + the runner's compile-and-link
+      step) failed for the 'current' variant on the changed lib /
+      service / tool. This is the headline anti-hallucination
+      regression: the agent recommended commands that do not
+      actually work against a real DOCA install.
+    severity: "SOFT_WARN"   # initial; almost certainly promotes to HARD_FAIL after signal
+    rule: "current_app_example_status == 'COMPILE_FAILED'"
+
+# --- Initial deployment ----------------------------------------------------
+deployment:
+  initial_state: "ALL_SOFT_WARN"
+  rationale: |
+    Per round-2 user directive: 'lets start with non blocking it is
+    still just us will run the job and then we will be able to get
+    better decision based on logs.' All conditions are reported but
+    do not block PR merge. After 3-5 runs across the wave 3a / 3b /
+    3c expansion commits, edit this file to promote individual
+    conditions to HARD_FAIL based on the signal/noise ratio observed.
+
+# --- App example sub-protocol -----------------------------------------------
+# The 'first app' prompt (02_first_app.yaml) has a special second-pass:
+# the runner takes the COMMANDS the agent recommended, executes them
+# inside the NGC DOCA container (devops/env/ngc_container.sh), and
+# scores whether they actually compile and link. This is the
+# 'full_compile' depth selected per round-2 Q5.
+app_example:
+  enabled: true
+  scope: "02_first_app and any prompt whose context.intent == 'first_app'"
+  protocol: |
+    1. Extract the agent's recommended shell commands from its response
+       (regex on ```bash / ```shell blocks; runner config option to
+       override pattern).
+    2. Filter to commands that are: docker pull, docker run, ls,
+       pkg-config, meson, ninja, gcc/g++. Refuse to run anything else
+       (sudo, rm -rf, mlxconfig, devlink, anything that mutates host
+       state outside the container).
+    3. Pull the NGC DOCA container per devops/env/ngc_container.sh
+       (idempotent; cached by the Jenkins agent).
+    4. Run the filtered command sequence inside the container.
+    5. Capture exit codes; the test PASSES iff every command exited 0.
+    6. Report the failing command (if any) verbatim in the report, so
+       reviewers can see exactly what the agent recommended that did
+       not work.
+  failure_examples_from_round_1:
+    - "Calls undefined doca_version() function — link error inside container."
+    - "Links -ldoca_common — pkg-config does not provide that library name."
+    - "Includes <doca.h> with the wrong path — compile error."

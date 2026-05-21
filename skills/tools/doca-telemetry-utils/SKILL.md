@@ -1,7 +1,7 @@
 ---
 name: doca-telemetry-utils
 description: NVIDIA DOCA Telemetry Utils (`doca_telemetry_utils`) — operator diagnostic CLI shipped under `/opt/mellanox/doca/tools/` that supports a DOCA Telemetry exporter / collector pipeline by translating between diagnostic-counter Data IDs and counter names, enumerating the counters DOCA's diagnostic-data surface exposes, and probing whether a device supports a counter before an exporter config commits to it. Pairs with the developer-side [`doca-telemetry`](../../libs/doca-telemetry/SKILL.md) collector / publisher libraries; it does NOT ship telemetry, configure DTS, or rewrite configs. Three invocation classes: `get-counters` (enumerate), `<name> [props]` (resolve name → Data ID with property dimensions node / pcie_index / depth / unit), `<DATA_ID>` (reverse-resolve). An optional leading `<device PCI>` runs the resolved counter against the device's capability surface. Counter names, properties, and Data IDs come from the public DOCA Telemetry guide and `--help`; a wrong Data ID silently drops the metric.
-kind: library
+kind: tool
 ---
 
 # DOCA Telemetry Utils

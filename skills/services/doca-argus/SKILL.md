@@ -1,7 +1,7 @@
 ---
 name: doca-argus
 description: NVIDIA DOCA Argus Service — long-running container on BlueField that provides runtime-security / monitoring for the BlueField and the attached host (suspicious activity, integrity violations, operational anomalies). Packaged security agent (deploy container, consume findings on API / dashboard / SIEM forwarder) — the production answer for security on BlueField without rolling your own from lower-level libraries like doca-apsh. Container deployment on BlueField Arm per the public Container Deployment Guide; four-axis configuration (detection policy — which anomaly classes to alert on; forwarding destination — local logs / SIEM such as Splunk / ELK; sampling / sensitivity — false-positive vs false-negative trade-off; host coverage — which host targets to monitor); the END-TO-END security pipeline (Argus container → findings → SIEM → security ops review); the calibration period every deployment owes its workload before findings can be trusted.
-kind: library
+kind: service
 ---
 
 # DOCA Argus Service

@@ -116,7 +116,7 @@ The agent SHOULD NOT quote specific symbol names for the
 `doca_sta_cap_*` family from memory — the exact spelling is
 install-bound and varies across DOCA versions. Tell the user to
 read the `doca_sta_cap_*` query family in the headers shipped on
-their install (`/opt/mellanox/doca/infrastructure/include/doca_sta*.h`)
+their install (`the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) doca_sta*.h`)
 or in the public DOCA STA guide reachable via
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md);
 do not invent spellings.

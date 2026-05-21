@@ -167,8 +167,13 @@ Compress-specific material lives in two companion files:
   compression or `doca-dma` for the no-compression copy case).
 - `TASKS.md` — step-by-step workflows for the six in-scope
   Compress verbs: `configure`, `build`, `modify`, `run`, `test`,
-  `debug`. Plus a `Deferred task verbs` block that points
-  out-of-scope questions at the right next skill.
+  `debug`. Plus a `## rollback` overlay (Compress-specific
+  five-step teardown that drains in-flight tasks before
+  `doca_ctx_stop`, unregisters mmap regions in reverse-register
+  order, and re-verifies the device path with the round-trip
+  smoke) and the 5-phase universal debug-loop instantiation
+  appended to `## debug`. Plus a `Deferred task verbs` block
+  that points out-of-scope questions at the right next skill.
 
 The skill assumes a host or BlueField where DOCA is already
 installed at the standard location and the user has the

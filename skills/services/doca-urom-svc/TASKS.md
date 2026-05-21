@@ -44,7 +44,7 @@ substrate before the container starts.
    for the public NGC DOCA container path.
 3. **Confirm the paired host-library version.** Per the
    version-contract rule in
-   [`CAPABILITIES.md ## Version compatibility`](#version-compatibility),
+   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility),
    the host-side `doca-urom` library version and this service's
    container tag are a paired contract. Walk the host fleet:
    capture `pkg-config --modversion doca-urom` on the hosts

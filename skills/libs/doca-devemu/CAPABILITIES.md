@@ -203,7 +203,7 @@ there; this skill does not duplicate it.
   [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)
   catches the partial-install case where the umbrella is
   installed but a sub-library is not.
-- **Headers in `/opt/mellanox/doca/infrastructure/include/`
+- **Headers in the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile)
   win over docs.** Per the headers-win-over-docs rule in
   [`doca-version`](../../doca-version/SKILL.md), if a public
   Device Emulation doc page mentions a `doca_devemu_*` symbol

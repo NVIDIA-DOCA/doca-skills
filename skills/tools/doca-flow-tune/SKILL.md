@@ -1,7 +1,7 @@
 ---
 name: doca-flow-tune
 description: NVIDIA DOCA Flow Tune (`doca_flow_tune`) — the unified tool for offline and online tuning of a live `doca-flow` pipeline (throughput, lookup latency, rule-install rate, table sizing, HW vs SW steering placement). The artifact is ONE binary with TWO internal roles: a server role (sits next to / inside a Flow app, snapshots and exposes pipe / counter / KPI state through local IPC) and a client / consumer role (dumps, analyzes, visualizes, recommends parameter changes against captured or live state). One artifact, one skill; the historical *server* / *client* split lives INSIDE this artifact, not as separate executables. Pairs with `doca-flow`, `doca-flow-perf` (measure baselines; flow-tune optimizes on top), `doca-version`, `doca-debug`. Mutating recommendations are dataplane-affecting; smoke-before-bulk and a clean read-only snapshot are mandatory before any state-changing application.
-kind: library
+kind: tool
 ---
 
 # DOCA Flow Tune (`doca_flow_tune`)
