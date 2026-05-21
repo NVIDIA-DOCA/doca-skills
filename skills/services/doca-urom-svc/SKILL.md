@@ -1,7 +1,7 @@
 ---
 name: doca-urom-svc
 description: NVIDIA DOCA UROM Service — long-running container on BlueField Arm that EXECUTES the remote memory operations (puts, gets, atomics, active messages, collective primitives) HPC / UCX / MPI host workloads enqueue through the paired host-side `doca-urom` library. This service is the DPU-side EXECUTOR; `doca-urom` is the host-side PUBLISHER; together they form the publisher / executor paired contract for HPC offload. Container deployment on BlueField Arm via the public Container Deployment Guide; configuration axes covering UCX-component / collective surface (cap-bound to the BlueField generation), enqueue-queue depth, and host-endpoint authorization. Pairs with `doca-urom` (host-side enqueue) and `doca-rdma` (the underlying RDMA substrate the service uses to move bytes). Version-bound paired contract — host library and DPU service must agree per the DOCA Compatibility Policy or operations fail subtly.
-kind: library
+kind: service
 ---
 
 # DOCA UROM Service

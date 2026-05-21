@@ -1,7 +1,7 @@
 ---
 name: doca-dpa-hl-tracer
 description: NVIDIA DOCA DPA High-Level Tracer (`doca_dpa_hl_tracer`) — diagnostic CLI shipped under `/opt/mellanox/doca/tools/` that captures, decodes, and renders DPA-side execution traces at the *"DPA programming events"* level (kernel entry / exit, sync points, comm primitives, RDMA WR submission, completion drain) rather than the raw cycle stream a low-level profiler emits. Use when a DPA kernel is suspected wrong (missed sync, comm error, ordering bug) or slow at a granularity the cycle profiler is too low-level for (kernel-entry-to-first-comm latency, WR-issue to drain gap). Two modes — `TRACE` (full) and `CRIT` (critical-only) — driven by a JSON config that pins thread priorities, core affinities, and per-file size limits with a `file_size_limit_policy`. Pair with [`doca-dpa`](../../libs/doca-dpa/SKILL.md) for the programming model and [`doca-debug`](../../doca-debug/SKILL.md) for the debug ladder. Flags, mode tokens, and event names are read from the public DOCA DPA Tools page and `--help`.
-kind: library
+kind: tool
 ---
 
 # DOCA DPA High-Level Tracer

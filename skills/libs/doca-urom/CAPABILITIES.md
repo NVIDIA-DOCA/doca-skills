@@ -56,7 +56,7 @@ Two cross-cutting rules that apply to *every* pattern above:
   three is the most common hallucination failure mode for
   UROM. Exact symbol names for the operation surface are
   install-bound and must be read from the headers under
-  `/opt/mellanox/doca/infrastructure/include/` and from the
+  the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) and from the
   shipped samples under
   `/opt/mellanox/doca/samples/doca_urom/`, not quoted from
   memory.
@@ -132,7 +132,7 @@ hallucination failure mode for UROM.
 The agent's rule: when the user asks *"what is the exact
 function name for a UROM put / atomic / collective"*, the
 authoritative answer is the header under
-`/opt/mellanox/doca/infrastructure/include/` and the shipped
+the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) and the shipped
 sample under `/opt/mellanox/doca/samples/doca_urom/` on the
 user's install, NOT this skill or agent memory.
 

@@ -1,7 +1,7 @@
 ---
 name: doca-gpi-ib-write-lat
 description: NVIDIA DOCA GPI ib_write_lat — the GPI-flavored analog of the classic `perftest` `ib_write_lat`, shipped under `doca/tools/gpi_ib_write_lat/` as a client + server pair that measures the latency of an RDMA WRITE work request when the WR is posted **from a CUDA kernel on the GPU via doca-gpi**, not from a host CPU thread. The skill teaches the class question of *"what does kernel-initiated RDMA-WR latency look like on this GPU-NIC pair?"* — the GPU-NIC pairing precondition (the GPU and the IB device must be reachable through the same PCIe / NVLink fabric for the GPI path to be efficient), the configure / build / run shape against the shipped tool tree, how to read the reported half-iteration and full-iteration usec values, the version + capability overlay against the installed DOCA + CUDA Toolkit, and how the result reads against the sister tool `doca-gpunetio-ib-write-lat` (same physical operation; different runtime framework — pick the right surface, do not mix them).
-kind: library
+kind: tool
 ---
 
 # DOCA GPI ib_write_lat

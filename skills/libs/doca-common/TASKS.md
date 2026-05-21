@@ -47,7 +47,7 @@ foundation work:
    per the four-way match rule in
    [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility).
 3. **The Common headers are resolvable** under
-   `/opt/mellanox/doca/infrastructure/include/` (`doca_buf.h`,
+   the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_buf.h`,
    `doca_ctx.h`, `doca_dev.h`, `doca_pe.h`, `doca_log.h`,
    `doca_mmap.h`, …) per the headers-win-over-docs rule in
    [`doca-version`](../../doca-version/SKILL.md).
@@ -134,7 +134,7 @@ This skill carries only the doca-common-specific overlay:
 | --- | --- | --- |
 | `pkg-config` module name | `doca-common` (always present on any healthy install; the universal anchor) | The Common surface is the foundation every higher-level library depends on. The agent's probe rule is `pkg-config --exists doca-common` first; if it fails, the install is broken (route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) layer 1) |
 | Required runtime libs | `libdoca_common` (returned by `pkg-config --libs doca-common`) | Any DOCA app links this transitively through its primary library's `.pc`, but a Common-only consumer (e.g. a device-discovery tool) links it directly |
-| Include flags | `pkg-config --cflags doca-common` resolves to includes under `/opt/mellanox/doca/infrastructure/include/` (`doca_buf.h`, `doca_ctx.h`, `doca_dev.h`, `doca_pe.h`, `doca_log.h`, `doca_mmap.h`, `doca_error.h`, `doca_types.h`, …) | Hand-typed `-I` lines drift between releases; only `pkg-config` survives a DOCA upgrade |
+| Include flags | `pkg-config --cflags doca-common` resolves to includes under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_buf.h`, `doca_ctx.h`, `doca_dev.h`, `doca_pe.h`, `doca_log.h`, `doca_mmap.h`, `doca_error.h`, `doca_types.h`, …) | Hand-typed `-I` lines drift between releases; only `pkg-config` survives a DOCA upgrade |
 | Link flags | `pkg-config --libs doca-common` returns the canonical `-l` list | Hand-typed `-l` lines are the failure mode; the order matters for static-linking and `pkg-config` knows the right shape |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-common`; never hardcode in build files | The four-way match rule in [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility) requires the build-time version to be reachable; hardcoding it breaks the chain |
 | Companion library probes (optional) | If the release exposes a standalone `doca-log.pc` (release-dependent), probe it with `pkg-config --exists doca-log` and use it for the log subsystem; otherwise the log surface ships through `doca-common` | Per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility), the agent must verify on the user's install — never quote one shape from memory |
@@ -557,11 +557,11 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-common` | [`## install`](#install) check 1; [`## configure`](#configure) step 1; [`## build`](#build) | What is the build-time doca-common version on this install? | A semver string matching `doca_caps --version` |
-| `pkg-config --cflags --libs doca-common` | [`## build`](#build) | What include + link flags does the linker need for any DOCA app? | `-I` paths under `/opt/mellanox/doca/infrastructure/include/`; `-l` line including `-ldoca_common` |
+| `pkg-config --cflags --libs doca-common` | [`## build`](#build) | What include + link flags does the linker need for any DOCA app? | `-I` paths under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile); `-l` line including `-ldoca_common` |
 | `pkg-config --exists doca-log; echo $?` | [`## build`](#build); [`## log`](#log) | Does this install publish a standalone `doca-log.pc`, or is DOCA Log folded into `doca-common.pc`? | Exit 0 means standalone; exit nonzero means use `doca-common` for the log surface too |
 | `doca_caps --version` | [`## install`](#install) check 2; [`## debug`](#debug) step 6 | What is the *runtime* DOCA version on this host? | A semver string matching `pkg-config --modversion doca-common` |
 | `doca_caps --list-devs` | [`## configure`](#configure) step 2; [`## use`](#use) step 1 | Which devices on this host can be used as a `doca_dev`? | One row per visible device with PCIe address and capability flags |
-| `ls /opt/mellanox/doca/infrastructure/include/` | [`## configure`](#configure); [`## modify`](#modify) | Which Common headers are installed (the headers-win-over-docs anchor)? | A list including `doca_buf.h`, `doca_ctx.h`, `doca_dev.h`, `doca_pe.h`, `doca_log.h`, `doca_mmap.h`, `doca_error.h` |
+| `ls "$(pkg-config --variable=includedir doca-common)/"` | [`## configure`](#configure); [`## modify`](#modify) | Which Common headers are installed (the headers-win-over-docs anchor)? | A list including `doca_buf.h`, `doca_ctx.h`, `doca_dev.h`, `doca_pe.h`, `doca_log.h`, `doca_mmap.h`, `doca_error.h` |
 | `<binary> --sdk-log-level WARNING 2> doca.log` | [`## run`](#run) step 2 | What does the SDK tier emit at WARNING (production default)? | Mostly silent on a healthy run; warnings are rare and load-bearing when they fire |
 | `<binary> --sdk-log-level DEBUG 2> doca.log` | [`## test`](#test) | What does the SDK tier emit at DEBUG (DOCA library internal trace)? | A flood of per-call DOCA library internal log lines; the user's own DEBUG lines remain controlled by the app tier and are *not* affected by this flag |
 | `DOCA_LOG_LEVEL_SDK=DEBUG <binary> 2> doca.log` | [`## run`](#run) step 2 | Same as above via env var (for samples that don't accept `--sdk-log-level`) | Same shape |
@@ -579,7 +579,7 @@ Three cross-cutting rules for this appendix:
 
 - **Never invent Common symbols or paths.** The Common ABI is
   large and version-gated; `ls
-  /opt/mellanox/doca/infrastructure/include/` on the user's install
+  the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) ` on the user's install
   and the installed `doca_*.h` headers are the only safe sources.
 - **Never paraphrase a Common `DOCA_ERROR_*`.** Quote
   `doca_error_get_descr()` verbatim — the layer-classifier in

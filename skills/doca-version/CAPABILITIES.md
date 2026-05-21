@@ -35,8 +35,9 @@ Two cross-cutting rules that apply to *every* pattern above:
   public docs URL without confirming it against the user's
   installed sources.
 - **The headers win over the docs.** The C headers under the
-  install tree's `infrastructure/include/` are the *authoritative*
-  statement of which symbols exist on this release. A public docs
+  install tree's include directory (resolved via
+  `pkg-config --variable=includedir doca-common`) are the
+  *authoritative* statement of which symbols exist on this release. A public docs
   page that mentions a symbol absent from the headers is wrong
   for *this* install — the docs describe a release; the headers
   *are* the release.
@@ -56,8 +57,8 @@ continues.
 | `pkg-config --modversion doca-<library>` | Same as above but for a specific library. Useful when the agent is reasoning about *one* library and wants to confirm the per-library `.pc` agrees with `doca-common`. | When the user's question is library-scoped (Flow, RDMA, …) and the agent has already read `doca-common`. |
 | `cat /opt/mellanox/doca/applications/VERSION` | The *install-tree* DOCA version. A flat text file written by the install scripts. Useful when `pkg-config` is missing or `PKG_CONFIG_PATH` is unconfigured (which itself is a setup problem the agent should fix first via [`doca-setup`](../doca-setup/SKILL.md)). | When `pkg-config` is not reachable. Also as the second leg of the four-way match. |
 | `doca_caps --version` | The *runtime* DOCA version. Reads the same version metadata the loaded `*.so` libraries report at runtime. The single most reliable runtime source. | After `pkg-config` — these two together establish whether build-time and runtime agree (the most common drift surface). |
-| `mlxprivhost` / `bfb-info` (BlueField only, sudo) | The *BFB-image* DOCA version on the BlueField side of a host ↔ DPU pair. Only relevant on hosts where a BlueField is present. | On BlueField hosts. The fourth leg of the four-way match. |
-| Header path `/opt/mellanox/doca/infrastructure/include/doca_version.h` | The *compile-time* DOCA version constants (`DOCA_VERSION_MAJOR / MINOR / PATCH`). Read by C programs at compile time. | When the user is reasoning about *what their program will see at compile time*; otherwise, `pkg-config` is the same information. |
+| `bfver` (BlueField Arm console; can also run from the host against a standalone BFB file) and `cat /etc/mlnx-release` (on the BlueField Arm side) | The *BFB-image* DOCA version on the BlueField side of a host ↔ DPU pair. `bfver` is the documented primary probe in the NVIDIA BlueField Platform Software Troubleshooting Guide; `cat /etc/mlnx-release` shows the full BFB image version from inside the BlueField. Only relevant on hosts where a BlueField is present. | On BlueField hosts. The fourth leg of the four-way match. Do NOT substitute `mlxprivhost` (configures privileged-host mode, not BFB version) or `bfb-info` (not a real NVIDIA-documented tool); both are common hallucinations. |
+| Header path `the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) doca_version.h` | The *compile-time* DOCA version constants (`DOCA_VERSION_MAJOR / MINOR / PATCH`). Read by C programs at compile time. | When the user is reasoning about *what their program will see at compile time*; otherwise, `pkg-config` is the same information. |
 
 **Discovery shortcut.** When the host has a structured-tools
 helper installed (per

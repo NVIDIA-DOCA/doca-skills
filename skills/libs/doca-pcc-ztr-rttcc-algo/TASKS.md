@@ -216,7 +216,19 @@ verifies each one before triggering the rebuild in
    `doca_pcc_dev_set_ztr_rttcc_params(param_id_base,
    param_num, new_param_values, params)` per the README's
    modify step 4. The framework dispatches host-set
-   parameter updates here.
+   parameter updates here. (Note: this is the call shape as
+   used from *inside* the `doca_pcc_dev_user_set_algo_params()`
+   callback, where `port_num` and `algo_slot` are already
+   resolved in the surrounding scope. The full public-header
+   signature carries those two as the first two arguments —
+   `doca_pcc_dev_set_ztr_rttcc_params(port_num, algo_slot,
+   param_id_base, param_num, new_param_values, params)` — and
+   is what
+   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+   and
+   [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+   document. Use whichever form the surrounding context
+   exposes — both are the same call.)
 5. **`build_device_code.sh` — DPACC linker flag.** Add
    `-ldoca_pcc_ztr_rttcc_algo_dev` to the `-device-libs`
    option of the DPACC compilation command, per the
@@ -499,7 +511,7 @@ than attempting an answer.
   `tune-for-workload`.** Workload-level evaluation. Route
   the user to their own measurement discipline plus the
   public DOCA PCC application guide at
-  <https://docs.nvidia.com/doca/sdk/nvidia+doca+pcc+application+guide/index.html>.
+  <https://docs.nvidia.com/doca/sdk/DOCA+PCC+Application+Guide.md>.
 - **`inspect counters` (deep / read-only).** This is the
   read-only counter CLI side; route to
   [`doca-pcc-counters`](../../tools/doca-pcc-counters/SKILL.md).

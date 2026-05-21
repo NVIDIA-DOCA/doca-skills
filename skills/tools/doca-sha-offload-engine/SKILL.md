@@ -1,7 +1,7 @@
 ---
 name: doca-sha-offload-engine
 description: NVIDIA DOCA SHA Offload Engine — an OpenSSL dynamic ENGINE (`libdoca_sha_offload_engine.so`) shipped under `doca/tools/sha_offload_engine/` that lets unmodified OpenSSL-based applications offload one-shot SHA-1 / SHA-256 / SHA-512 (EVP_Digest) onto the DOCA SHA hardware path without rewriting against doca-sha directly. Requires OpenSSL ≥ 1.1.1. The skill teaches when the engine is the right surface (existing OpenSSL pipeline; no code changes) vs when to use doca-sha directly (new pipeline; fine-grained control), the load / registration mechanics (`openssl engine dynamic`, the `set_pci_addr` ctrl, the `-engine_impl` flag that disables OpenSSL software fallback), the message-size window in which offload is a perf win vs CPU SHA, and the runtime sanity-check pattern (the SHA-224 negative test — force the engine with `-engine_impl` on an algorithm DOCA SHA does not implement, expect failure — proving the engine was actually called and not silently bypassed).
-kind: library
+kind: tool
 ---
 
 # DOCA SHA Offload Engine

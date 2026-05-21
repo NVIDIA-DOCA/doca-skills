@@ -217,8 +217,8 @@ lint_one() {
   [ -n "$DESC" ] || { echo "FAIL[$SKILL_DIR]: empty description"; return 1; }
   [ "${#DESC}" -le 1024 ] || { echo "FAIL[$SKILL_DIR]: description >1024 chars (${#DESC})"; return 1; }
   case "$KIND" in
-    knowledge|library) ;;
-    *) echo "FAIL[$SKILL_DIR]: kind must be knowledge|library, got '$KIND'"; return 1 ;;
+    knowledge|library|service|tool) ;;
+    *) echo "FAIL[$SKILL_DIR]: kind must be knowledge|library|service|tool, got '$KIND'"; return 1 ;;
   esac
 
   # 3. Universal anchor.

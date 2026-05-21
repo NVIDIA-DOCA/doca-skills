@@ -1,7 +1,7 @@
 ---
 name: doca-os-inspector
 description: NVIDIA DOCA OS Inspector Service — long-running container on BlueField that performs out-of-band, agent-less introspection of the running host kernel (process / thread / loaded-library / VAD / system-module enumeration) by wrapping the DOCA App Shield library and publishing findings into the DOCA Telemetry Service (DTS) for downstream consumption. Container deployment on BlueField Arm with NGC as the canonical image source; five-axis configuration (DMA device + host VUID; OS type — Linux / Windows; host kernel symbol map + memory regions file — host-OS-version-specific, regenerated on every host kernel upgrade; scan policy — which APSH structs to enumerate; scan interval); the END-TO-END pipeline (container → APSH reads host memory over PCIe → telemetry-exporter → DTS → SIEM / analyst surface); the path-selection rule against `doca-apsh` (the library equivalent for custom DPU-side introspection tooling) and against `doca-argus` (the packaged runtime-security findings service).
-kind: library
+kind: service
 ---
 
 # DOCA OS Inspector

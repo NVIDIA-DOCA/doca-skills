@@ -1,7 +1,7 @@
 ---
 name: doca-firefly
 description: NVIDIA DOCA Firefly Service — long-running container / daemon on BlueField that drives Precision Time Protocol (PTP) on the BlueField PTP Hardware Clock (PHC), so time-sensitive workloads (broadcast SMPTE ST 2110 over Rivermax, 5G UPF, financial trading, distributed databases needing sub-microsecond time precision) can read a disciplined time on BlueField AND on the host. Container-shaped deployment on BlueField Arm with NGC as the canonical image source; four-axis PTP configuration (role — master / slave / boundary clock / transparent clock; profile — default / SMPTE 2059-2 / G.8275.1 / G.8275.2 / custom; domain number; network interface; transport — L2 multicast vs L3 unicast vs L3 multicast); the END-TO-END time-sync discipline that the BlueField PHC, the host clock follower (chrony or `ptp4l` reading the PHC), and the downstream consumer workload jointly own.
-kind: library
+kind: service
 ---
 
 # DOCA Firefly Service

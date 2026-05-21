@@ -1,7 +1,7 @@
 ---
 name: doca-socket-relay
 description: NVIDIA DOCA Socket Relay — operator-facing tool that bridges socket-based traffic across the host ↔ BlueField DPU boundary, letting an existing socket-oriented application keep its local socket while the relay forwards the bytes to a DPU-side terminator over the DOCA fabric. Read-only inspection is safe — binding a relay endpoint, repointing a forwarding endpoint, and tearing down a running relay are state-changing operations in the data path and can silently break app connectivity when misconfigured. Pairs with doca-comch as the control-plane sibling (relay carries the data-plane bytes comch coordinates), with doca-eth as the packet-I/O layer below the socket level, and with doca-container-deployment when shipped as a service container on the BlueField. The canonical public source is the DOCA Socket Relay guide on docs.nvidia.com — binary name, flag strings, socket-path defaults, and port numbers come from that guide and the installed --help, not from agent memory.
-kind: library
+kind: tool
 ---
 
 # DOCA Socket Relay

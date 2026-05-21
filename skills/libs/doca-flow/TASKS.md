@@ -144,7 +144,7 @@ language-specific build/FFI work back to the consumer.
   `doca-flow` library. Citations belong against the public
   [DOCA Flow Programming Guide](https://docs.nvidia.com/doca/sdk/doca-flow/index.html)
   for behavior and lifecycle; the installed C headers under
-  `/opt/mellanox/doca/infrastructure/include/` (`doca_flow.h`,
+  the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_flow.h`,
   `doca_flow_*.h`) are the canonical source for symbol signatures.
   Any non-C wrapper has to honor the same lifecycle, capability gate,
   and validation rules described in

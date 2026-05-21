@@ -37,7 +37,7 @@ Steps the agent should walk the user through:
 2. **If structured helper absent, walk the manual chain.** In
    order: `pkg-config --modversion doca-common`, `cat
    /opt/mellanox/doca/applications/VERSION`, `doca_caps --version`.
-   On BlueField hosts also: `mlxprivhost` or `bfb-info` (sudo).
+   On BlueField hosts also: `bfver` (BlueField Arm console, or on the host against a standalone BFB file) and `cat /etc/mlnx-release` (BlueField Arm side). Do NOT substitute `mlxprivhost` (privileged-host configuration, not BFB version) or `bfb-info` (not a real NVIDIA-documented tool); both are common hallucinations.
    Quote the version observed from each source; never paraphrase.
    Report *"falling back to manual chain"* per the contract.
 3. **Compare the four sources.** All four must agree. If any
@@ -261,8 +261,8 @@ unprivileged user unless noted; sudo is called out per row.
 | `pkg-config --modversion doca-common` | `## configure` step 2; `## build` slot 1 | What is the build-time DOCA version? | A semver string matching `doca_caps --version` |
 | `cat /opt/mellanox/doca/applications/VERSION` | `## configure` step 2 | What does the install tree itself claim? | A semver string matching the other sources |
 | `doca_caps --version` | `## configure` step 2; `## run` step 1 | What is the runtime DOCA version? | A semver string matching `pkg-config --modversion doca-common` |
-| `mlxprivhost` (BlueField host, sudo) | `## configure` step 2 (BlueField only) | What is the BFB-side DOCA version? | A semver string matching the host package version |
-| `grep -RHn 'DOCA_VERSION_' /opt/mellanox/doca/infrastructure/include/doca_version.h` | `## configure` step 2; `## build` slot 2 | What macros does this install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR / MINOR / PATCH` triple matching the runtime version |
+| `bfver` (BlueField Arm console, or on the host against a standalone BFB file) and `cat /etc/mlnx-release` (BlueField Arm side) | `## configure` step 2 (BlueField only) | What is the BFB-side DOCA version? | A semver string from `bfver` and a full BFB image string from `/etc/mlnx-release`, both matching the host package version. Do NOT use `mlxprivhost` or `bfb-info` for this — see [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes). |
+| `grep -RHn 'DOCA_VERSION_' the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) doca_version.h` | `## configure` step 2; `## build` slot 2 | What macros does this install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR / MINOR / PATCH` triple matching the runtime version |
 | `ldconfig -p | grep doca` | `## run` step 2; `## debug` layer 2 | Which DOCA `*.so` files does the runtime linker see? | One install's set of `*.so` files; multiple installs visible = the runtime might resolve to the wrong one |
 | `ls /opt/mellanox/doca/infrastructure/lib/pkgconfig/` | `## debug` layer 2 | Which `*.pc` files does this install ship? | One `*.pc` per installed library; `doca-common.pc` MUST be present |
 | Look up capability in `version-matrix.json` if present per [`doca-structured-tools-contract`](../doca-structured-tools-contract/SKILL.md#schemas); else fetch the matching per-library docs page via [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md) and extract the *"available since"* prose | `## test` step 2 | Is capability X available on the user's installed version? | Min-version row (structured) OR quoted prose (manual) — both saying *"available since DOCA Y.Z.W"* |

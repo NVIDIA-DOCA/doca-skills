@@ -107,7 +107,9 @@ The agent must walk all five steps; skipping any step makes the answer ineligibl
 
 An answer that runs only `doca_caps --version` (a version probe) and declares the change "verified" fails the per-artifact cap-query criterion — version match is a precondition for cap query, never a replacement for it. The grader is `calls_capability_query_for_doca_<artifact>`.
 
-**Deploy-loop bridge — not-green at step 5 is the debug-loop trigger.** Real deploys frequently land on not-green at step 5 (`Ready 0/1`, port `Down`, counter flat, log line absent, `systemd active (running)` followed by repeated restarts) and the failure mode is to *declare done anyway* because the change "looks applied." Every change-recommending answer MUST treat "step 5 observability did NOT reach the named green signal within the expected window" — or "step 3 smoke probe itself did not return green" — as the symptom that fires the [universal debug-loop contract](#the-universal-debug-loop-contract) on the change-not-converging symptom. The agent walks the 5-phase debug-loop on the not-green observability surface (layer identification → triple capture → single-variable mutation smaller than the original change → re-capture → exit), bounded to one iteration before the rollback path documented at step 1 is walked. See [`doca-setup CAPABILITIES.md ## Deploy-loop bridge`](skills/doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger) for the full bridge table. This converts deploy / configure / install / upgrade prompts that previously stopped at *"watch the metric for green"* into prompts that say *"watch the metric for green; if not-green within X, walk the debug-loop on the not-green symptom; if the loop's second iteration does not converge, walk the rollback path."*
+## Deploy-loop bridge
+
+**Not-green at step 5 is the debug-loop trigger.** Real deploys frequently land on not-green at step 5 (`Ready 0/1`, port `Down`, counter flat, log line absent, `systemd active (running)` followed by repeated restarts) and the failure mode is to *declare done anyway* because the change "looks applied." Every change-recommending answer MUST treat "step 5 observability did NOT reach the named green signal within the expected window" — or "step 3 smoke probe itself did not return green" — as the symptom that fires the [universal debug-loop contract](#the-universal-debug-loop-contract) on the change-not-converging symptom. The agent walks the 5-phase debug-loop on the not-green observability surface (layer identification → triple capture → single-variable mutation smaller than the original change → re-capture → exit), bounded to one iteration before the rollback path documented at step 1 is walked. See [`doca-setup CAPABILITIES.md ## Deploy-loop bridge`](skills/doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger) for the full bridge table. This converts deploy / configure / install / upgrade prompts that previously stopped at *"watch the metric for green"* into prompts that say *"watch the metric for green; if not-green within X, walk the debug-loop on the not-green symptom; if the loop's second iteration does not converge, walk the rollback path."*
 
 ### The universal debug-loop contract
 
@@ -210,6 +212,40 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
    sessions, and the failure mode this bundle exists to prevent. The
    canonical first-app workflow lives in
    `doca-programming-guide ## modify`; library skills overlay it.
+6. **Never hardcode install-layout values; delegate to the install's own
+   source of truth.** The DOCA install layout can drift across versions
+   and install profiles (host vs DPU, full vs minimal, container vs
+   bare-metal). Skills must teach the agent *which* source of truth to
+   consult, not what the value will be on any specific install:
+   - **Include paths** — derive via `pkg-config --variable=includedir
+     doca-<lib>` (or `pkg-config --cflags doca-<lib>` if the agent only
+     needs the compiler flag). Never quote `/opt/mellanox/doca/<...>/include`
+     as if it were universal.
+   - **Link flags** — derive via `pkg-config --libs doca-<lib>`. Never
+     predict the `-l<name>` form by hand: `.so` basenames use
+     underscores on every DOCA release where we have ground truth
+     (`libdoca_flow.so`, `libdoca_common.so`), while `.pc` package names
+     use hyphens (`doca-flow.pc`, `doca-common.pc`). Hand-crafted `-l`
+     lines silently break the moment DOCA upgrades; `pkg-config` is the
+     only translator that survives.
+   - **Shared-object filenames** — confirm via `ldconfig -p | grep
+     doca_<lib>` rather than asserting a specific `libdoca*.so` name.
+   - **`PKG_CONFIG_PATH`** — common location is
+     `/opt/mellanox/doca/infrastructure/lib/pkgconfig/`, but if that
+     path does not exist the bundle's `doca-setup` skill walks the
+     agent through `find /opt -name 'doca-*.pc' -path '*/pkgconfig/*'`
+     to discover the real location.
+   - **DOCA version** — always derive via `pkg-config --modversion
+     doca-<lib>` + `doca_caps --version`; never hardcode a "current"
+     version in skill prose.
+
+   The bundle's anti-pattern is the line *"Includes resolve under `/opt/...`;
+   libs include `-ldoca-foo -ldoca-common`"* in a build table. That line
+   purports to tell the agent what `pkg-config` will output — but the
+   bundle has no way to know the install profile, the DOCA major, or the
+   underlying packaging convention. The correct shape is *"Whatever
+   `pkg-config --cflags --libs doca-foo` produces on this install;
+   do not predict or hand-craft."*
 
 ## Conformance
 

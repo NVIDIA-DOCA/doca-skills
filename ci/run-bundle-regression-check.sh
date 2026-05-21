@@ -121,6 +121,17 @@ if [[ -f "${CI_DIR}/check-reference-hygiene.py" ]]; then
     fi
 fi
 
+# Frontmatter-kind gate (catches services / tools that were spawned from a
+# library skeleton and silently inherited `kind: library` in their YAML
+# frontmatter — a real bug surfaced by the operational AI re-grade because it
+# misclassifies the artifact for every consumer of the frontmatter).
+if [[ -f "${CI_DIR}/check-frontmatter-kind.py" ]]; then
+    if ! run_gate 'gate-4b: frontmatter-kind (libs->library, services->service, tools->tool)' \
+            python3 "${CI_DIR}/check-frontmatter-kind.py"; then
+        overall_fail=1
+    fi
+fi
+
 # No-regression gate — compares the latest grades-on-disk (if any) against
 # the frozen baseline in runner/baseline_grades.json. Skipped when no
 # current grades dir is present (so the gate does not block PRs that

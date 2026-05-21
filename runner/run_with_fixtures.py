@@ -49,7 +49,7 @@ STANZA_ROWS = [
     ("Firmware / config snapshot",     "mlxconfig-q.txt",          "mlxconfig -d <bdf> q"),
     ("Kernel module state",            "lsmod.txt",                "lsmod | grep -E 'mlx5_core|mlx5_ib|mlx_compat'"),
     ("Version (env-side)",             "pkg-config.txt",           "pkg-config --modversion doca-common; pkg-config --list-all | grep doca"),
-    ("Version (DOCA-side)",            "doca_caps.txt",            "doca_caps --version; cat applications/VERSION; bfb-info"),
+    ("Version (DOCA-side)",            "doca_caps.txt",            "doca_caps --version; cat applications/VERSION; bfver + cat /etc/mlnx-release (BlueField BFB version)"),
     ("Capabilities (DOCA enumerator)", "doca_caps-list-devs.txt",  "doca_caps --list-devs"),
 ]
 
@@ -152,7 +152,7 @@ one-line evidence.
 ## Sample PASS / FAIL lines for results/<scenario>.md
 
 ```
-PASS [check 1: ≥5 captures cited verbatim]  — answer quotes "pkg-config --modversion doca-common returned 2.7.0", "doca_caps --version returned 2.9.0", "bfb-info shows BFB image version 3.0.0", "doca_caps --list-devs returned 0 devices", "lsmod | grep mlx5_core returned no output"
+PASS [check 1: ≥5 captures cited verbatim]  — answer quotes "pkg-config --modversion doca-common returned 2.7.0", "doca_caps --version returned 2.9.0", "bfver shows BlueField Boot Stream Version BF-Bundle 3.0.0", "doca_caps --list-devs returned 0 devices", "lsmod | grep mlx5_core returned no output"
 FAIL [check 2: re-prescribe ratio]  — answer says "first run `lspci -d 15b3:` to confirm" — but the captures already include lspci output
 ```
 """

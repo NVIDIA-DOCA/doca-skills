@@ -74,7 +74,7 @@ For the canonical DOCA version-detection chain (`pkg-config --modversion doca-co
 **The env-side overlay** is responsible for making the detection chain *work* on this host before any version question can be answered:
 
 - `PKG_CONFIG_PATH` must include `/opt/mellanox/doca/infrastructure/lib/pkgconfig` so that `pkg-config --modversion doca-<library>` resolves at all. The env-setup procedure in [`TASKS.md ## configure`](TASKS.md#configure) verifies this; partial-install diagnosis lives in [`doca-version TASKS.md ## debug`](../doca-version/TASKS.md#debug) layer 2.
-- The on-disk paths the detection chain reads (`/opt/mellanox/doca/applications/VERSION`, `/opt/mellanox/doca/infrastructure/include/doca_version.h`, the `*.pc` directory) are env-side artifacts — see [`## Capabilities and modes`](#capabilities-and-modes) for the install-tree layout that places them where the chain expects.
+- The on-disk paths the detection chain reads (`/opt/mellanox/doca/applications/VERSION`, `the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) doca_version.h`, the `*.pc` directory) are env-side artifacts — see [`## Capabilities and modes`](#capabilities-and-modes) for the install-tree layout that places them where the chain expects.
 - On the *no-install* path (NGC container, per [`TASKS.md ## no-install`](TASKS.md#no-install) Path 0), the env-side overlay is that the four-way match is *of the container tag* the user pulled; the container's headers, `*.so`, samples, and `doca_caps` are guaranteed consistent by construction. The agent must still report which path was used so the user knows which install they verified.
 
 ## Error taxonomy
@@ -104,7 +104,7 @@ What *"healthy install"* looks like under observation. The agent should run thes
 ```bash
 ls /opt/mellanox/doca                                  # SDK root present
 ls /opt/mellanox/doca/samples                          # samples shipped
-ls /opt/mellanox/doca/infrastructure/include/          # headers shipped
+ls the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile)           # headers shipped
 ls /opt/mellanox/doca/infrastructure/lib/pkgconfig/    # *.pc files shipped
 pkg-config --list-all | grep -i doca                   # what the build env can find
 pkg-config --modversion doca-common                    # the unified version

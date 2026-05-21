@@ -432,6 +432,27 @@ pipeline {
             }
         }
 
+        stage('Frontmatter-kind gate (HARD — catches library-skeleton inheritance bug)') {
+            steps {
+                script {
+                    // Catches services / tools whose SKILL.md was spawned
+                    // from a library skeleton and silently kept
+                    // `kind: library` in YAML frontmatter. Surfaced by the
+                    // operational AI re-grade: 24 of 24 services+tools had
+                    // wrong kind values before this gate landed. Without
+                    // the gate, every consumer of frontmatter (loader UI,
+                    // generated SKILLS.md table, agent-side classification)
+                    // misreports the artifact's category.
+                    def rc = sh(returnStatus: true, script: """
+                        python3 ${env.SKILLS_DIR}/ci/check-frontmatter-kind.py
+                    """)
+                    if (rc != 0) {
+                        error("Frontmatter-kind gate failed. Fix the listed SKILL.md files so each declares the correct kind: value.")
+                    }
+                }
+            }
+        }
+
         stage('Live-hardware harness self-test (fixtures mode; HARD)') {
             steps {
                 script {

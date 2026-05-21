@@ -1,7 +1,7 @@
 ---
 name: doca-flow-perf
 description: NVIDIA DOCA Flow Perf (`doca_flow_perf`) — the shipped tool for measuring the host / DPU-CPU execution path of a `doca-flow` pipeline. Drives a JSON-described pipeline (matchers, actions, forwarding) through repeated rule insertion / deletion / (optional) query iterations, captures CPU-cycle counts per iteration, and reports rule-install / delete rate plus iteration stats across N CPU workers. Distinct from `doca-flow-dpa-perf` (DPA-offloaded path) and from `doca-flow-tune` (optimizes a deployed pipeline). Supports DPDK and DOCA backends behind the same JSON contract; ships a `configs/` library of canned policy JSONs as starting points. Teach: methodology (what it measures vs does NOT — control-plane rule rate, NOT dataplane throughput), policy / traffic-class design, output interpretation, the four-tuple capture that makes a number defensible. Pairs with `doca-flow`, `doca-flow-tune`, `doca-flow-dpa-perf`, `doca-version`, `doca-debug`.
-kind: library
+kind: tool
 ---
 
 # DOCA Flow Perf (`doca_flow_perf`)

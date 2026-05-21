@@ -87,7 +87,7 @@ is consulted.
 
 When any cell above fires, the agent MUST:
 
-1. Cite the **four-source detection chain** from [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) explicitly in the answer — `pkg-config --modversion doca-common` → `cat /opt/mellanox/doca/applications/VERSION` → `doca_caps --version` → `mlxprivhost` / `bfb-info` (BlueField hosts). Do not paraphrase or summarize the chain; cite the commands by name.
+1. Cite the **four-source detection chain** from [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) explicitly in the answer — `pkg-config --modversion doca-common` → `cat /opt/mellanox/doca/applications/VERSION` → `doca_caps --version` → `bfver` plus `cat /etc/mlnx-release` (BlueField hosts). Do not paraphrase or summarize the chain; cite the commands by name. Do NOT substitute `mlxprivhost` or `bfb-info` for the BFB leg — those are common hallucinations and the bundle explicitly bans them in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
 2. State the **four-way match rule** from [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) verbatim if the prompt could possibly involve a mismatch (every deploy-shape question and every debug-shape question can; orientation-shape questions usually cannot).
 3. Refuse to invent a version string. If the agent doesn't have the actual `pkg-config --modversion` output from the user's host, the answer must say so and route to the detection chain — not assert a version from training-data recall.
 

@@ -247,7 +247,7 @@ contain — and pull requests should not add:
   standard DOCA Core context lifecycle).** Exact Rivermax
   symbol names are install-bound and Rivermax-SDK-version-
   bound; the agent should read them from the installed headers
-  at `/opt/mellanox/doca/infrastructure/include/` and from the
+  at the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) and from the
   public DOCA Rivermax guide rather than rely on agent memory.
 - **A `samples/`, `bindings/`, or `reference/` subtree** of
   any kind. A mock or incomplete artifact in this skill's

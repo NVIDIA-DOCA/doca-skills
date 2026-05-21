@@ -80,7 +80,7 @@ This skill carries only the RDMA-specific overlay:
 | --- | --- | --- |
 | `pkg-config` module name | `doca-rdma` | The library's `.pc` file installed by the DOCA host packages |
 | Required runtime libs | `libdoca-common`, `libdoca-rdma`, plus the device-side `*.so` referenced by `pkg-config --libs doca-rdma` | RDMA depends on Core + the rdma transport providers shipped with DOCA |
-| Header check | `doca_rdma.h` resolvable under `/opt/mellanox/doca/infrastructure/include/` | If `pkg-config --cflags doca-rdma` resolves but the include is missing, the install is partial |
+| Header check | the artifact's public header resolvable under whichever include directory `pkg-config --cflags` reports (do not hardcode the include path — the install layout can move) | If `pkg-config --cflags doca-rdma` resolves but the include is missing, the install is partial |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-rdma`; never hardcode in build files | Cross-version build/runtime mixing breaks per [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) |
 
 For non-C consumers (Rust, Go, Python), the link surface is the same
@@ -307,8 +307,8 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-rdma` | `## configure` step 1; `## build` slot 4 | What is the build-time DOCA RDMA version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-rdma` | `## build` | What include + link flags does the linker need? | Includes resolve under `/opt/mellanox/doca/infrastructure/include/`; libs include `-ldoca-rdma -ldoca-common` |
-| `grep -RHn 'DOCA_VERSION_' /opt/mellanox/doca/infrastructure/include/doca_version.h` | `## configure` step 1 | What macros does this DOCA install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR`, `MINOR`, `PATCH` triple matching the runtime version |
+| `pkg-config --cflags --libs doca-rdma` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
+| `grep -RHn 'DOCA_VERSION_' the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) doca_version.h` | `## configure` step 1 | What macros does this DOCA install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR`, `MINOR`, `PATCH` triple matching the runtime version |
 | `doca_caps --list-devs` | `## configure` step 2 | Which devices on this host can be used as a `doca_dev`? | One row per visible device with PCIe address and capability flags |
 | `doca_caps --version` | `## configure` step 1; `## test` step 1 | What is the *runtime* DOCA version on this host? | A semver string matching `pkg-config --modversion doca-rdma` |
 | `ls /opt/mellanox/doca/samples/doca_rdma/` | `## modify` slot 1 | Which RDMA samples ship in this install, and which is the closest starting point? | A list of sample directories named after the task pattern they demonstrate |

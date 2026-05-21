@@ -104,8 +104,8 @@ This skill carries only the Ethernet-specific overlay:
 | Slot | Value | Why it matters |
 | --- | --- | --- |
 | `pkg-config` module name | `doca-eth` | The library's `.pc` file installed by the DOCA host packages |
-| Include flags | `pkg-config --cflags doca-eth` | Resolves to headers under `/opt/mellanox/doca/infrastructure/include/` for the Ethernet subset |
-| Link flags | `pkg-config --libs doca-eth` | Pulls in `-ldoca-eth -ldoca-common` (plus device-side providers as the `.pc` declares them) |
+| Include flags | `pkg-config --cflags doca-eth` | Resolves to headers under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) for the Ethernet subset |
+| Link flags | `pkg-config --libs doca-eth` | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) (plus device-side providers as the `.pc` declares them) |
 | Companion libraries | `doca-flow` only if the consumer programs its own steering; `doca-argp` for argument parsing if the consumer uses the standard DOCA arg style; `doca-gpunetio` only if the consumer also uses GPU-initiated I/O on these same queues | Adding unnecessary companion libs bloats the link line and obscures real partial-install issues |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-eth`; never hardcode in build files | Cross-version build / runtime mixing breaks per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
 
@@ -365,7 +365,7 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-eth` | `## configure` step 1; `## build` slot 1 | What is the build-time DOCA Ethernet version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-eth` | `## build` | What include + link flags does the linker need? | Includes resolve under `/opt/mellanox/doca/infrastructure/include/`; libs include `-ldoca-eth -ldoca-common` |
+| `pkg-config --cflags --libs doca-eth` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
 | `ls /opt/mellanox/doca/samples/doca_eth/` | `## modify` slot 1 | Which DOCA Ethernet samples ship in this install, and which is the closest starting point? | A list of sample directories named after the queue + RX-type pattern they demonstrate |
 | `devlink dev show` (sudo) | `## configure` step 1; `## debug` layer 7 | Is the underlying port up at the driver layer? | One row per port with `state: PORT_ACTIVE`; anything else means the port is down and the queue will be silent |
 | `ip -j link show <dev>` | `## configure` step 1; `## debug` layer 7 | Does the kernel report this device as UP, and is `PROMISC` set? | `flags` contains `UP,LOWER_UP`; `promiscuity` field reflects whether promiscuous mode is on |

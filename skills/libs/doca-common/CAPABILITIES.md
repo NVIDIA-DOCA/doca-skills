@@ -4,7 +4,7 @@
 foundation**. Five subsystems live here as their own H2 anchors —
 `## log`, `## buf`, `## ctx`, `## dev`, `## progress engine` — each
 corresponds to a public-header family under
-`/opt/mellanox/doca/infrastructure/include/` and to a verb-side
+the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) and to a verb-side
 workflow in [TASKS.md](TASKS.md). The opening `## Capabilities and
 modes` is the routing layer that names which subsystem owns which
 class of question; the closing `## Version compatibility`,
@@ -52,7 +52,7 @@ Two cross-cutting rules that apply to *every* pattern above:
 ## Capabilities and modes
 
 DOCA Common is **the foundation library every other DOCA library
-depends on**. Per the [DOCA Core Programming Guide](https://docs.nvidia.com/doca/sdk/doca+core+programming+guide/index.html),
+depends on**. Per the [DOCA Core Programming Guide](https://docs.nvidia.com/doca/sdk/DOCA+Programming+Guide.md),
 the Core surface ships the universal primitives every DOCA
 application touches before specializing into any higher-level
 library. The `pkg-config` module name is `doca-common`; it is
@@ -70,7 +70,7 @@ Adjacent Common surfaces (sync events, graphs, clocks, UAR / umem,
 buf arrays, mmap advise) are mentioned where they touch one of the
 five primary subsystems. The agent's rule: when the user's question
 lands on one of those adjacent surfaces, route to the *header on the
-user's install* and to the public [DOCA Core Programming Guide](https://docs.nvidia.com/doca/sdk/doca+core+programming+guide/index.html)
+user's install* and to the public [DOCA Core Programming Guide](https://docs.nvidia.com/doca/sdk/DOCA+Programming+Guide.md)
 for the per-surface detail rather than reciting it here.
 
 ## log
@@ -364,7 +364,7 @@ there; this skill does not duplicate it.
 - **The set of `doca_*` symbols available is observable from the
   Common header set.** Per the headers-win-over-docs rule in
   [`doca-version`](../../doca-version/SKILL.md), the headers under
-  `/opt/mellanox/doca/infrastructure/include/` (`doca_buf.h`,
+  the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_buf.h`,
   `doca_ctx.h`, `doca_dev.h`, `doca_pe.h`, `doca_log.h`,
   `doca_mmap.h`, …) are the authoritative truth for what the built
   library exposes. When the user reports an `undefined reference`
@@ -386,8 +386,9 @@ there; this skill does not duplicate it.
 - **No standalone `doca-log.pc` in this contract.** Per the source
   tree on this DOCA version, the log subsystem is exposed through
   the `doca-common` `pkg-config` module (its public headers live
-  under the same `infrastructure/include/` root as the rest of the
-  Common surface). The agent's probe rule is to `pkg-config
+  under the same include root as the rest of the Common surface,
+  resolved via `pkg-config --variable=includedir doca-common`).
+  The agent's probe rule is to `pkg-config
   --exists doca-common` first; if a release exposes a standalone
   `doca-log.pc`, probe that too and report which is present. The
   build line is whichever the probe found.

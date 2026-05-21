@@ -157,7 +157,7 @@ there; this skill does not duplicate it.
   the cap query is the runtime authority — never quote a key size as
   available from agent memory.
 - **Per-device task presence is independent of the library install.**
-  An install that ships `libdoca-aes-gcm.so` does not guarantee a
+  An install that ships the `doca-aes-gcm` shared object (verify with `ldconfig -p | grep -i doca_aes_gcm`; the on-disk basename uses underscores on every DOCA release where we have ground truth) does not guarantee a
   particular device exposes both encrypt and decrypt; some device
   generations advertise only one. Confirm via
   `doca_aes_gcm_cap_task_encrypt_is_supported(devinfo)` and

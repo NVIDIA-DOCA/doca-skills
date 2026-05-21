@@ -86,8 +86,8 @@ This skill carries only the Comch-specific overlay:
 | Slot | Value | Why it matters |
 | --- | --- | --- |
 | `pkg-config` module name | `doca-comch` on installs ≥ 2.5; `doca-comm-channel` on installs < 2.5 (renamed; see [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility)) | Wrong module name = `pkg-config: Package 'doca-comch' was not found` on an old install, or *"the API I'm reading about isn't here"* on the legacy install. |
-| Include flags | `pkg-config --cflags doca-comch` | Resolves to headers under `/opt/mellanox/doca/infrastructure/include/` for the comch subset |
-| Link flags | `pkg-config --libs doca-comch` | Pulls in `-ldoca-comch -ldoca-common` |
+| Include flags | `pkg-config --cflags doca-comch` | Resolves to headers under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) for the comch subset |
+| Link flags | `pkg-config --libs doca-comch` | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) |
 | Companion libraries | `doca-argp` for argument parsing (if the consumer uses the standard DOCA arg style); `doca-rdma` only if the consumer also uses RDMA (Comch does not require it) | Adding unnecessary companion libs bloats the link line and obscures real partial-install issues |
 
 For non-C consumers (Rust, Go, Python), the wrapper consumes
@@ -311,7 +311,7 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-comch` | `## configure` step 1; `## build` slot 1 | What is the build-time DOCA Comch version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-comch` | `## build` | What include + link flags does the linker need? | Includes resolve under `/opt/mellanox/doca/infrastructure/include/`; libs include `-ldoca-comch -ldoca-common` |
+| `pkg-config --cflags --libs doca-comch` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
 | `ls /opt/mellanox/doca/samples/doca_comch/` | `## modify` | Which Comch samples ship in this install, and which is the closest starting point? | A list of sample directories named after the role + path pattern they demonstrate |
 | `ls /sys/class/net/` (DPU side) | `## configure` step 1 | Which host representors are visible to the DPU? | One entry per representor (PF / VF / SF) the host has surfaced |
 | `lspci | grep Mellanox` (host side) | `## configure` step 1 | Which BlueField PCIe addresses are reachable from the host? | One row per BlueField PF, plus VFs and SFs depending on config |

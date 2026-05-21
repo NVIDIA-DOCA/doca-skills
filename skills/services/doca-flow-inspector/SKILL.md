@@ -1,7 +1,7 @@
 ---
 name: doca-flow-inspector
 description: NVIDIA DOCA Flow Inspector Service — long-running container/daemon on BlueField that consumes mirrored flow traffic from a doca-flow (or doca-flow-ct) pipeline and exposes it for hardware-level inspection / debug of what the steering plane is actually doing. Covers the pipeline-side mirror-action contract (the user's pipeline MUST be programmed to mirror traffic to the inspector — the service does NOT capture unmirrored traffic on its own), the container deployment shape on BlueField Arm, inspection-depth modes (per-packet metadata vs per-flow aggregate vs raw sampling), the output destinations (Inspector CLI / JSON export / downstream consumer such as DTS), the smoke-before-bulk discipline for a paired pipeline + inspector setup, the mirror-overhead cost that requires disabling mirror in production once debug is over, and the cross-link to doca-debug as the broader debug toolkit Flow Inspector is one entry in.
-kind: library
+kind: service
 ---
 
 # DOCA Flow Inspector Service
