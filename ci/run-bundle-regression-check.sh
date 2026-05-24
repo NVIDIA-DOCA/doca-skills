@@ -96,6 +96,7 @@ declare -a OPTIONAL_GATES=(
     "check-public-surface-invariants.sh"
     "check-live-hardware-harness.sh"
     "check-agentskills-io-compliance.sh"
+    "check-non-goal-routing.sh"
 )
 for entry in "${OPTIONAL_GATES[@]}"; do
     script="${entry%% *}"

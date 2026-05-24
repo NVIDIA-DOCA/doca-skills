@@ -236,15 +236,15 @@ the public guides in `docs.nvidia.com/doca/sdk/`.
 
 > **Non-goals.** Externally-productized NVIDIA services that are NOT in
 > `doca/services/` at the bundle's currently-aligned DOCA release —
-> DOCA Telemetry Service (DTS), BlueMan, HBN, SNAP, Virtio-net — are
-> intentionally out of scope for this bundle, which is strictly 1:1
-> with `doca/services/`. See
+> DOCA Telemetry Service (DTS) as-deployed, BlueMan, HBN, SNAP,
+> Virtio-net — are intentionally out of scope for this bundle, which
+> is strictly 1:1 with `doca/services/`. See
 > [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals) for the policy
-> rationale. If a user asks about one of these external services,
-> route them to the public NVIDIA documentation on
-> `docs.nvidia.com/doca/sdk/` (the URL stems above remain valid for
-> reference) and explain that this bundle covers only the in-tree
-> services.
+> rationale. If a user asks about one of these external services, use
+> the **[`## Externally-productized DOCA software — not in this bundle, but here is where to route`](#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)**
+> table below to give them the authoritative public docs URL,
+> service-specific common gotchas, and the Developer Forum entry
+> point. Refusing without routing violates the bundle's own contract.
 
 The bundle covers DOCA deployment via **two sibling top-level
 cross-cutting skills**, one per deployment path, plus a front-door
@@ -328,11 +328,99 @@ own public page. Per-tool skills (where they exist) live under
 > DOCA-DPU-CLI, DOCA-Ngauge, `doca-hugepages` helper — are
 > intentionally out of scope for this bundle, which is strictly 1:1
 > with `doca/tools/`. See
-> [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals).
+> [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals). If a user
+> asks about one of these external tools, use the
+> **[`## Externally-productized DOCA software — not in this bundle, but here is where to route`](#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)**
+> table below for the authoritative docs URL, per-tool common gotchas,
+> and the Developer Forum entry point. Refusing without routing
+> violates the bundle's own contract.
 
 If the user asks about a DOCA tool that is not in this table, open the
 [**DOCA Tools** umbrella page](https://docs.nvidia.com/doca/sdk/DOCA-Tools/index.html)
 to discover it. Do not guess tool URLs.
+
+## Externally-productized DOCA software — not in this bundle, but here is where to route
+
+NVIDIA ships several DOCA-adjacent products **outside** the
+`doca/{libs,services,tools}` monorepo this bundle is 1:1 with. They are
+real, supported NVIDIA products — but because the bundle's strict
+alignment contract (see [`SKILLS.md`](../../SKILLS.md) and
+[`AGENTS.md ## Non-goals`](../../AGENTS.md#non-goals)) forbids
+synthesizing answers about them from training knowledge, the bundle's
+job for these products is to **route, not answer**.
+
+When the user asks about any product in the table below, the required
+response shape is the three-part contract spelled out in
+[`AGENTS.md ## Non-goals` #7](../../AGENTS.md#non-goals):
+
+1. **Recognize the class** — name the product and state it is out of
+   scope for this bundle, because it is not in the monorepo's
+   `doca/{services,tools}/` at the currently-aligned DOCA release.
+2. **Name the boundary honestly** — the bundle is strictly 1:1 with
+   the monorepo; products productized outside it (e.g. shipped as
+   separate NGC containers, separate packages, or separate BSP
+   utilities) are intentionally excluded.
+3. **Route with substance** — provide the authoritative
+   `docs.nvidia.com/doca/sdk/` URL for that specific product, name
+   the most common gotcha class the user's symptom (if any) is likely
+   hitting, and give the Developer Forum entry point as the
+   escalation channel.
+
+A refusal that names only (1) and (2) but skips (3) violates the
+bundle's contract. Use this table.
+
+> **Hardware-safety overlay still applies.** If the user's question
+> about an externally-productized product touches live BlueField /
+> NIC hardware state (`mlxconfig` writes, firmware burn, BFB reflash,
+> SFC mode flip during HBN setup), load
+> [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) alongside
+> this routing step. The route covers *where to read*; safety covers
+> *how to change live state* and is not waived by a non-goal refusal.
+
+| Product | Authoritative public docs | One-line WHAT it is | Common-gotcha classes worth surfacing | Forum search hint |
+| --- | --- | --- | --- | --- |
+| **DOCA SNAP Services** (umbrella: SNAP-4, SNAP-3, SNAP Virtio-fs) | <https://docs.nvidia.com/doca/sdk/DOCA-SNAP-Services/index.html> | Hardware-accelerated storage virtualization on BlueField — emulates local PCIe block/file devices to the host while forwarding I/O over a fabric. SNAP-4 = NVMe + virtio-block on BF-3; SNAP-3 = same on BF-2; SNAP Virtio-fs = file-system emulation on BF-3. | "Host can't enumerate the NVMe device" or "device shows up but won't boot" almost always traces to: (a) NIC firmware not configured for SNAP / virtio (need the protocol-specific `mlxconfig` keys per the *Firmware Configuration* section of the SNAP-4 / Virtio-fs guides; common keys: `INTERNAL_CPU_MODEL=1`, `PCI_SWITCH_EMULATION_ENABLE`, plus PF/VF hotplug keys); (b) SNAP container not running on BF (`crictl ps -a \| grep snap`); (c) no fabric target reachable from BF management VRF; (d) BF BSP / SNAP version mismatched against host DOCA release. SNAP Virtio-fs is **beta** as of DOCA 3.3. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "SNAP" |
+| **DOCA HBN Service** (Host-Based Networking) | <https://docs.nvidia.com/doca/sdk/DOCA-HBN-Service-Guide/index.html> | A "bump-in-the-wire" service that turns the BlueField into a BGP/EVPN L3 router for the host side of the network. Linux routing/bridging is accelerated into hardware tables by the `nl2docad` (Netlink-to-DOCA) daemon inside the HBN container. | "HBN routing not working" or "HBN container won't start" almost always traces to: (a) **Service Function Chaining (SFC) not enabled at BFB-install time** — HBN is bump-in-the-wire and requires SFC; you generally must reflash the BFB with SFC enabled or pass the right `bf-cfg.cfg` (see *HBN Service Requirements* and *Deploying BlueField DOCA with SFC*); (b) `br-hbn` OVS bridge missing on BF (auto-created when BFB is installed with HBN enabled — its absence is a tell that step (a) didn't happen); (c) FRR / `nl2docad` not running inside the HBN container (`docker exec` to inspect, or `crictl logs`); (d) NGC YAML config not applied / image not pulled. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "HBN" |
+| **DOCA BlueMan Service** (web dashboard for DPU health) | <https://docs.nvidia.com/doca/sdk/DOCA-BlueMan-Service-Guide/index.html> | A standalone web dashboard hosted on the BF that consolidates basic info, health, and telemetry counters. All data is pulled from the on-BF DOCA Telemetry Service (DTS). Default install path: `/opt/mellanox/doca/services/blueman/`. | "BlueMan UI shows red" or "BlueMan page is blank" almost always traces to: (a) **DTS not running on the BF** (BlueMan has no data source of its own; verify DTS pod with `crictl ps -a \| grep telemetry`); (b) the DOCA Privileged Executer (DPE) daemon not running (`systemctl status dpe`); (c) BFB image too old (BlueMan needs BFB ≥ 3.9.3.1); (d) accessing the UI from a host that isn't on the same network as the DPU OOB interface (BlueMan binds to the DPU OOB IP by default; for DPF deployments, you typically `iptables -t nat -A PREROUTING` to expose ports 443/10000). | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "BlueMan" |
+| **DOCA Virtio-net Service** (BF-3 only) | <https://docs.nvidia.com/doca/sdk/DOCA-Virtio-net-Service-Guide/index.html> | A BF-3 service that exposes virtio-net PCIe devices to the host (PFs, hotplug PFs, SR-IOV VFs). Both data-plane and control-plane are offloaded to the BF; the host sees standard virtio-net devices with no QEMU / guest-driver dependency. Driven by the `virtio-net-controller` systemd service on the BF; configured via `mlxconfig` + optional JSON at `/opt/mellanox/mlnx_virtnet/virtnet.conf`. | "Host doesn't see the virtio-net device" or "`virtnet list` returns nothing" almost always traces to: (a) `VIRTIO_NET_EMULATION_ENABLE=1` not set in `mlxconfig` (plus the hotplug-PF / SR-IOV-VF keys per the *Configuring NIC Firmware* section of the guide); (b) `virtio-net-controller` systemd service not running on the BF (`systemctl status virtio-net-controller`); (c) `/opt/mellanox/mlnx_virtnet/virtnet.conf` malformed JSON (validate with `jq` first); (d) the *user is on BF-2* — Virtio-net Service is BF-3-only as of DOCA 3.x; for BF-2 the legacy `virtio-net-controller` path under Emulated Devices is the read; (e) `mlxconfig` change applied but BF not rebooted. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "Virtio-net" or "virtnet" |
+| **DOCA Telemetry Service (DTS) — as-deployed** (distinct from the `doca-telemetry` library skill in this bundle) | <https://docs.nvidia.com/doca/sdk/DOCA-Telemetry-Service-Guide/index.html> | DTS is shipped both as a built-in BF service (auto-started via `/etc/kubelet.d/doca_telemetry_standalone.yaml`) and as a container on NGC for hosts. It aggregates metrics from built-in providers (`sysfs`, `ethtool`, `tc`) and from external apps using the `doca-telemetry-exporter` library, and exports via Prometheus (pull) or Fluent Bit (push). Config lives at `/opt/mellanox/doca/services/telemetry/config/dts_config.ini` plus `fluent_bit_configs/`. | "DTS is up but Prometheus / Grafana shows nothing" almost always traces to: (a) provider not enabled in `dts_config.ini` (each provider has its own `enable=true` knob); (b) Prometheus exporter not enabled in `dts_config.ini` (it is off by default); (c) on BF, the BlueField storage write-protect means DTS data write is disabled by default (this is intentional); (d) FluentBit config in `fluent_bit_configs/` is missing the right input → filter → output chain. **Do not confuse DTS-as-deployed with the in-tree [`doca-telemetry`](../libs/doca-telemetry/SKILL.md) library**; the library is the publisher-side API, the service is the collector/aggregator daemon. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "DOCA Telemetry" or "DTS" |
+| **DOCA DPACC Compiler** (`dpacc` + DPA toolchain) | <https://docs.nvidia.com/doca/sdk/DOCA-DPACC-Compiler/index.html> | High-level compiler for the BlueField DPA processor. Compiles C source targeted at the DPA into a DPA-executable + host library ("DPA program"), which the host application then links. Uses `dpa-clang` (LLVM-based cross-compiler) plus `dpa-ar`, `dpa-nm`, `dpa-objdump`. Installs alongside the DOCA DPA package. | "GDB can't read DPA debug info" almost always traces to: DPACC default debug standard is DWARFv5; pre-10.1 GDBs need `--devicecc-options="-gdwarf-4"`. "Where is my DPA ELF inside the host binary?" → use `dpacc-extract` from the DPACC package. "How do I link DPA code into my host app?" → use compile-and-link mode (single `dpacc` invocation with all sources + mandatory `--output-libname`). | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "DPACC" or "DPA" |
+| **DPA Tools** (`dpa-gdbserver`, `dpa-ps`, `dpa-statistics`, `dpa-eu-mgmt-tool`) | <https://docs.nvidia.com/doca/sdk/DOCA-DPA-GDB-Server-Tool/index.html> (umbrella PDF: <https://docs.nvidia.com/doca/sdk/nvidia-dpa-tools.pdf>) | The DPA-side debug / introspection toolkit. `dpa-gdbserver` provides remote-GDB debugging of FlexIO DEV programs (default TCP port 1981, default EU 29); `dpa-ps` lists DPA processes; `dpa-statistics` dumps DPA counters; `dpa-eu-mgmt-tool` manages DPA Execution Units. As of DOCA 3.x the GDB-Server tool is **beta**. | "GDB can't connect to dpa-gdbserver" → check TCP 1981 is reachable from the GDB host AND not occupied by another `dpa-gdbserver`; multiple instances need different ports + EUs (default EU 29 conflicts the same way). "GDB attaches but symbols are mangled" → use `gdb-multiarch` 9.2 or RISC-V GDB ≥ 12.1, and provide source paths with GDB's `directory` command if the GDB host is not the build host. `dpa-ps` and `dpa-statistics` are read-only and safe to run live. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "DPA GDB" or "dpa-gdbserver" |
+| **DOCA DPU CLI** | <https://docs.nvidia.com/doca/sdk/DOCA-DPU-CLI/index.html> | A single-page cheat-sheet of useful one-liners for the BlueField environment — hugepage setup, `mlxconfig` flips, `devlink` queries, BSP utilities. Not a tool you "install"; it is a curated reference of commands that already exist on a properly-installed BF. | The cheat-sheet is **version-pinned to the SDK release that publishes it** — always verify the specific command on the actual installed BSP / DOCA version before suggesting it (some commands change syntax across BSP majors). For DPDK hugepages specifically, the cheat-sheet shows the raw sysfs writes (`echo '1024' \| sudo tee /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages` + `mount -t hugetlbfs`); on BlueField Ubuntu 22.04, prefer the `doca-hugepages` helper (next row) for managed allocation. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "DPU CLI" or "BlueField CLI" |
+| **DOCA Ngauge** (`ngauge`) | <https://docs.nvidia.com/doca/archive/2-9-0/DOCA+Ngauge/index.html> | A NIC hardware-counter probing tool that stores measurements + metadata in HDF5 (`.h5`) format and prints live progress bars on the CLI. Driven by a single YAML config (output path + counter list are mandatory). Comes with a `simple_plot.py` plugin under `/usr/share/doc/ngauge/examples/plugins/`. | "`apt install ngauge` failed" → on a BlueField DPU, the package is `ngauge-dpu`, not `ngauge` (on x86 / arm64 hosts it is `ngauge`). "Empty `.h5` output" → the YAML's `id` field for each counter is the only mandatory counter field; the other fields default if omitted. "Plot won't render" → use `simple_text_plot.py` for SSH-only / no-X11 sessions. **Currently only an archived doc page exists (DOCA 2.9.0); the SDK index does not host a v3.x page yet — that's a known doc-side gap, not a tool gap.** | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "Ngauge" |
+| **`doca-hugepages` helper** (`/usr/sbin/doca-hugepages`) | <https://docs.nvidia.com/doca/archive/3-2-2/DOCA-doca-hugepages-Tool/index.html> | BSP-side managed-allocation CLI for hugepages on BlueField — `config` / `reload` / `show` / `remove` subcommands manage a database of per-application hugepage requests and apply them on driver load. Per-application config drops into `/etc/mlnx.d/`. **Supported only on Ubuntu 22.04 on BlueField.** | "I set hugepages via `doca-hugepages config` but nothing changed" → `config` only updates the database; you must `doca-hugepages reload` to actually allocate. "Hugepages are inconsistent / fighting" → do NOT mix `doca-hugepages` with raw `/sys/kernel/mm/hugepages/...` writes or `/etc/default/grub` `hugepages=N` edits; pick one ownership model. Recommended pattern for boot-time pre-allocation: per-app config file with `"is_active": "inactive"` in `/etc/mlnx.d/`, let `doca-hugepages` activate it during driver load. **Currently the `docs.nvidia.com/doca/sdk/` SDK index does not have a v3.x page — the linked URL is the 3.2.2 LTS archive, which is the most-current public doc as of this writing.** | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "doca-hugepages" or "BlueField hugepages" |
+
+**One worked example of the required response shape (for SNAP).** When
+the user asks *"how do I use DOCA SNAP to provision a host server —
+the host server never seems to be able to properly enumerate the NVMe
+device, or if it does it never is able to actually boot"*, the agent
+must answer with all three parts:
+
+1. **Recognize the class.** *"DOCA SNAP Services (SNAP-4 on BF-3, SNAP-3
+   on BF-2, SNAP Virtio-fs on BF-3) are externally-productized NVIDIA
+   services — they ship as separate NGC containers / packages and are
+   not in the `doca/services/` monorepo this bundle is 1:1 with, so I
+   don't have an in-tree SNAP skill to load."*
+2. **Name the boundary.** *"The bundle's strict-1:1 alignment with
+   `doca/{services,tools}/` (see `AGENTS.md ## Non-goals` #7)
+   intentionally excludes externally-productized services, because
+   their cadence, packaging, and support model differ from the
+   in-tree set the bundle was authored against."*
+3. **Route with substance.** *"Your symptom — host can't enumerate
+   the NVMe device, or enumerates but won't boot — is one of the
+   four most-common SNAP gotcha classes: (a) NIC firmware not
+   configured for SNAP / virtio (`mlxconfig` keys per the SNAP-4
+   *Firmware Configuration* section); (b) SNAP container not running
+   on the BF (`crictl ps -a \| grep snap`); (c) no fabric target
+   reachable from the BF management VRF; (d) BF BSP / SNAP version
+   mismatched against host DOCA. Authoritative read:
+   <https://docs.nvidia.com/doca/sdk/DOCA-SNAP-Services/index.html>
+   (drill into SNAP-4 for BF-3). For real-customer threads with
+   NVIDIA-staff answers: <https://forums.developer.nvidia.com/c/infrastructure/doca/370>,
+   search 'SNAP'."*
+
+Skipping any of the three parts is a contract violation. The bundle's
+own deep-E2E suite tests for all three.
 
 ## Public source code: GitHub
 
