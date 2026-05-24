@@ -316,6 +316,69 @@ the meta-policy.
   Guessing at a rollback in the absence of one is a user-visible
   regression dressed up as helpfulness.
 
+### Host-side cold power cycle — when it is indicated
+
+A **host** cold power cycle (full AC removal, not a warm `reboot`)
+is the right next action when any of these signals appear AFTER a
+hardware-safety-class change on the host:
+
+- An `mlxconfig` write succeeded but `mlxconfig -d <bdf> q` continues
+  to show the prior value after a warm reboot — firmware-stored
+  config commits only at cold cycle.
+- A NIC firmware burn was reported successful but `flint -d <bdf> q`
+  continues to show the previous FW version on a warm-rebooted host.
+- After a host-side DOCA / OFED upgrade reboot, `lspci -d 15b3:`
+  still lists devices but `devlink dev info` reports
+  `Link has been severed` or kernel-side `mlx5_core` complains in
+  `dmesg` about reset / probe failure that did not recur on the
+  pre-upgrade kernel.
+- Host PCIe bus enumeration is intermittently missing one or more
+  ConnectX / BlueField PFs across warm reboots.
+
+DPU-side cold-power-cycle criteria (RShim no-progress, BFB-completed-
+but-no-`Linux up`, TMFIFO down, BF PFs visible but link severed) are
+operationally similar but live in NVIDIA's BlueField BSP / DOCA
+Platform Framework documentation, not this bundle. The agent routes
+DPU-side recovery questions to those docs per
+[`AGENTS.md ## Non-goals`](../../AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely)
+item 7.
+
+### Script hygiene for hardware-touching scripts the operator runs
+
+When the answer to a hardware-safety scenario ends with the operator
+running a shell script (preflight capture, upgrade wrapper, rollback
+ladder), the agent's script-shaped guidance MUST cover three hygiene
+rules. These are not aesthetic preferences — each closes a recurring
+operational failure mode reported by real operators against earlier
+bundle revisions:
+
+- **Hand log ownership back to the invoking user.** Scripts that
+  capture under `sudo` write logs as root; later non-sudo inspection
+  by the same operator then fails with `Permission denied`. Every
+  root-running script must end with `chown -R "${SUDO_USER:-$USER}":
+  "${SUDO_USER:-$USER}" <log-dir>` (or the equivalent on the OS in
+  scope) so the operator can read their own captures without a second
+  sudo round-trip.
+- **Probe shared-fd device readers BEFORE opening them.** Single-
+  reader character devices (the canonical case is
+  `/dev/rshim0/console` on a host with RShim, but the rule
+  generalises to any device that supports only one open reader)
+  silently fail to capture when another process already holds them.
+  The agent's script must run `sudo fuser -v <device>` and surface
+  the holder before opening the device for read, and SHOULD warn
+  that opening the device under `cat` will starve other readers
+  while the script runs.
+- **Exit-zero is never the success signal alone.** An installer or
+  burn tool that exits `0` while its own log contains
+  `ERR[<class>]: ...` is NOT a successful run. Scripts must parse
+  the captured log for the documented error-class prefix(es) the
+  underlying tool emits and SHOULD return non-zero (or surface the
+  finding under a distinct status code) when one is present. This is
+  the universal-verification-contract `## step 5 — first-failure
+  ladder` rule (see [`AGENTS.md ## The universal verification
+  contract`](../../AGENTS.md#the-universal-verification-contract))
+  applied to script-shaped outputs.
+
 ### Per-artifact overlay pattern
 
 Per-artifact skills (services, libraries, tools) carry their own

@@ -268,6 +268,84 @@ this skill does not duplicate it.
   procurement waves) on the same host are independent silicon
   with independent FW levels.
 
+## Host-side DOCA upgrade workflow
+
+When the operator is moving an already-running host from one DOCA
+release to another (the canonical case: 3.1 → 3.3), the agent walks
+THIS ordered ladder before quoting any `apt install` line. The
+host-side portion is fully in-scope for this skill; the **BlueField
+BSP / BFB / RShim / TMFIFO portion is OUT OF SCOPE** for this
+bundle (per [`AGENTS.md ## Non-goals`](../../AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely)
+item 7) and the agent routes the operator to NVIDIA's BlueField
+BSP / DOCA Platform Framework documentation for those steps.
+
+1. **Audit the host's current four-source state.** Per
+   [`doca-version CAPABILITIES.md ## Version compatibility`](../doca-version/CAPABILITIES.md#version-compatibility),
+   capture all four legs. The audit is read-only and is the rollback
+   anchor — without a captured BEFORE state, "rollback" is a phrase
+   the operator says, not a thing they can do.
+2. **Verify the target release line.** Pin to a specific DOCA `X.Y.Z`
+   from NVIDIA's public release notes (route via
+   [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)
+   — do NOT invent version strings). Read off the target's required
+   OFED / kernel module version, the target BFB-image DOCA, and the
+   target NIC firmware level from the release-notes *Supported NICs
+   and Firmware* table.
+3. **Walk the apt-repo + OS-matrix preconditions BEFORE any install
+   line.** See
+   [`doca-version CAPABILITIES.md ## Apt-repo and OS-matrix preconditions`](../doca-version/CAPABILITIES.md#apt-repo-and-os-matrix-preconditions).
+   Pin the apt repo to the explicit `X.Y.Z` URL form, NOT to `latest`.
+   Run `apt-cache policy <pkg>` for every package about to be
+   installed. Confirm the host OS family AND point release is inside
+   the target's supported sub-range — if it's outside, STOP and
+   surface to the operator, do not silently proceed.
+4. **Host-side upgrade is the first mutating step.** Quote the
+   release-pinned `apt install` / `apt upgrade` line. Do NOT issue
+   `apt install doca-all` reflexively; prefer the granular per-
+   package list per the four-source partial-install table in
+   `doca-version` so absent-source recovery is a single targeted
+   install. Do NOT auto-reboot — let the operator schedule the
+   reboot inside the documented maintenance window per
+   [`doca-hardware-safety CAPABILITIES.md ## Safety policy`](../doca-hardware-safety/CAPABILITIES.md#safety-policy).
+5. **Reboot the host, then re-walk the four-source audit AFTER.**
+   The host-side upgrade is not declared "done" until the AFTER
+   audit shows (i) all four sources coherent at the target version,
+   (ii) `mlx5_core` / OFED at the target level (`modinfo mlx5_core
+   | grep ^version`), (iii) all host-side host-PF / representor
+   PCIe devices still enumerated (`lspci -d 15b3:`), (iv) host-
+   visible NIC firmware version matches the per-device target from
+   the release notes (`flint -d <bdf> q`).
+6. **Handoff to BFB install — OUT OF SCOPE here.** Once the host is
+   green, the BFB-side install (push BFB to BlueField via RShim,
+   eMMC image install, BFB-side firmware update, BFB-side OS bring-
+   up to `Linux up` / `DPU is ready`, TMFIFO recovery, BFB-side
+   apt vocabulary) lives in NVIDIA's BlueField BSP / DOCA Platform
+   Framework documentation. The agent names the boundary explicitly
+   ("the host-side ladder is complete; for the BFB push and BlueField
+   bring-up, route to the BlueField BSP docs at
+   <https://docs.nvidia.com/networking/display/BlueFieldDPUOSLatest/>
+   and the DOCA Platform Framework at
+   <https://github.com/NVIDIA/doca-platform>") and does NOT
+   synthesize BFB install / RShim / TMFIFO / `bf.cfg` mechanics
+   from training memory.
+7. **End-to-end success contract.** A DOCA host-side upgrade is
+   "done" only when, AFTER the BFB-side portion completes
+   independently, all of the following hold:
+   - Host four-source audit at target version, coherent.
+   - BlueField-side four-source audit at target version, coherent.
+   - Per-device `flint -d <bdf> q` FW Version on each BF / NIC matches
+     the release-notes target.
+   - `doca_caps --list-devs` enumerates every expected device with
+     expected capabilities.
+   - The operator's own canonical smoke (a doca-flow / doca-rdma /
+     doca-comch sample) runs end-to-end against the target install.
+
+The discipline mirrors the universal verification contract end-to-
+end: every step's preconditions established by the prior steps, no
+"upgrade complete" claimed on exit-code alone, the BFB / BSP
+boundary explicitly named and routed out rather than silently
+synthesized. See [`AGENTS.md ## The universal verification contract`](../../AGENTS.md#the-universal-verification-contract).
+
 ## Error taxonomy
 
 Bare-metal-deployment errors fall into SEVEN layers, each with its

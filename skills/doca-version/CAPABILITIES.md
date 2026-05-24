@@ -125,6 +125,63 @@ common cause of *"the program built but does nothing on the wire"*
 reports for first-time DOCA users, which is why this rule sits
 at the top of the version skill.
 
+## Apt-repo and OS-matrix preconditions
+
+Before quoting *any* `apt install` / `apt upgrade` line at the user —
+whether to fix a partial install, jump from one DOCA release to the
+next, or align host to BFB — the agent **MUST** clear two preconditions
+that are independent of the four-source chain itself. Skipping either
+turns a "should work" recommendation into a recoverable-but-painful
+failure on the user's box.
+
+1. **Apt repository pinning + `apt-cache policy <pkg>` precheck.**
+   `latest` channels and stale local repo files are the two ways an
+   apparently-correct `apt install` line resolves to the wrong release
+   on a user's host. The agent must:
+   - Prefer the explicit DOCA-release-pinned repo URL form
+     (`https://linux.mellanox.com/public/repo/doca/<X.Y.Z>/<distro>/<arch>/`)
+     over the `latest` alias for any controlled upgrade — `latest`
+     is for fresh installs, not for landing on a known target release.
+   - Recommend the user disable / remove stale earlier-release repo
+     files (e.g. a leftover DOCA 2.x `doca.sources` while installing 3.x);
+     a host with both pinned can resolve to either.
+   - **Run `apt-cache policy <pkg>` for every package about to be
+     installed BEFORE the install line is quoted.** If `Candidate:`
+     is `(none)` or `Installed: (none)` with no `Candidate:`, the
+     package name does not exist in any configured repo on this host
+     (see the run-4 lesson: legacy `doca-applications` / `doca-tools`
+     names are absent on DOCA 3.3+). That is a finding to surface,
+     not a line to ignore.
+
+2. **Host OS support-matrix gate.** Every DOCA release publishes a
+   *Supported Operating Systems* table; a host whose OS family is
+   *listed* but whose minor / point release is outside the supported
+   sub-range (the documented case: Ubuntu 24.04.x where `x ≤ 3` per
+   DOCA 3.3's matrix, on a host running 24.04.4) is a stop-and-ask,
+   NOT silent acceptance. The packages may install cleanly and the
+   userspace may even pass the four-source coherence check — and
+   then a downstream kernel-module / DKMS / OFED step quietly fails
+   in a way that takes hours to triangulate to "you are off-matrix."
+   The agent's required move:
+   - Read the target release's *Supported Operating Systems* table
+     from `docs.nvidia.com/doca/sdk/<release>-release-notes/...`
+     (route via [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)).
+   - Compare against the user's actual `lsb_release -a` / `uname -r`.
+   - If the OS family is unsupported → refuse (this is the
+     verification-contract `## step 1 — preconditions` failure mode).
+   - If the OS family is supported but the point release is outside
+     the documented sub-range → SURFACE the gap to the user verbatim
+     ("your Ubuntu 24.04.4 is outside the DOCA 3.3 supported
+     sub-range of 24.04.x for x ≤ 3 per the release notes"), name
+     the documented sub-range, and ask the user to either downgrade
+     the point release into the supported window or to accept the
+     off-matrix risk explicitly before proceeding.
+
+These two preconditions sit ABOVE the four-source chain, not inside
+it: they protect against failures that the four-source chain cannot
+detect because they occur before any DOCA package gets to claim a
+version at all.
+
 **Authoritative upstream source for compatibility windows.**
 NVIDIA's own statement of which release pairings are *intended* to
 work — quarterly GA cadence, October LTS designation (3-year
