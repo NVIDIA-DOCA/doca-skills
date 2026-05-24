@@ -216,10 +216,9 @@ the public guides in `docs.nvidia.com/doca/sdk/`.
 > **Non-goals.** Externally-productized NVIDIA services that are NOT in
 > `doca/services/` at the bundle's currently-aligned DOCA release —
 > DOCA Telemetry Service (DTS), BlueMan, HBN, SNAP, Virtio-net — are
-> intentionally out of scope for this bundle. NVIDIA's internal CI
-> enforces strict 1:1 alignment with `doca/services/` on every commit.
-> See [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals) for the
-> policy
+> intentionally out of scope for this bundle, which is strictly 1:1
+> with `doca/services/`. See
+> [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals) for the policy
 > rationale. If a user asks about one of these external services,
 > route them to the public NVIDIA documentation on
 > `docs.nvidia.com/doca/sdk/` (the URL stems above remain valid for
@@ -306,9 +305,9 @@ own public page. Per-tool skills (where they exist) live under
 > `doca/tools/` at the bundle's currently-aligned DOCA release —
 > DOCA-DPACC-Compiler, DPA-Tools (DPA GDB Server / PS / Statistics),
 > DOCA-DPU-CLI, DOCA-Ngauge, `doca-hugepages` helper — are
-> intentionally out of scope for this bundle. NVIDIA's internal CI
-> enforces strict 1:1 alignment with `doca/tools/` on every commit.
-> See [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals).
+> intentionally out of scope for this bundle, which is strictly 1:1
+> with `doca/tools/`. See
+> [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals).
 
 If the user asks about a DOCA tool that is not in this table, open the
 [**DOCA Tools** umbrella page](https://docs.nvidia.com/doca/sdk/DOCA-Tools/index.html)

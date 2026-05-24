@@ -98,14 +98,15 @@ or copy its contents into your existing `AGENTS.md`. Agents resolve
 ### Shape 3 — how skill quality is maintained behind the scenes
 
 External consumers of this bundle do not need to run any CI gates
-themselves. Skill changes are vetted by NVIDIA's internal CI before
-they land on `ai-mvp-with-files` — that pipeline enforces structural
-conformance of every `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`,
-public-sources-only references, cross-link integrity, anchor density,
-per-artifact prompt coverage, strict 1:1 alignment with the public
-`doca/{libs,services,tools}` tree at a named DOCA release, and a
-3-way agent A/B/C measurement that compares the current bundle
-against the previous release and against a no-skills baseline.
+themselves. Skill changes are vetted by an internal CI pipeline
+before they land on `ai-mvp-with-files` — that pipeline verifies
+structural conformance of every `SKILL.md` / `CAPABILITIES.md` /
+`TASKS.md`, public-sources-only references, cross-link integrity,
+anchor density, per-artifact prompt coverage, strict 1:1 alignment
+with the public `doca/{libs,services,tools}` tree at a named DOCA
+release, and a 3-way agent A/B/C measurement that compares the
+current bundle against the previous release and against a no-skills
+baseline.
 
 What this means for you as a consumer: every commit on
 `ai-mvp-with-files` you pull is a bundle state that has already
