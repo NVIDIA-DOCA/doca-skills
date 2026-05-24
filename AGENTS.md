@@ -76,7 +76,7 @@ not only when a per-artifact skill happens to link to the overlay.
 | [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) | *"where is the doc / guide / URL"*, *"is there a reference for X"*, any request for an external link. The map is the only source the agent should pull NVIDIA URLs from — direct training-data URL recall is forbidden by ground rule 1 + ground rule 3. |
 | [`doca-structured-tools-contract`](skills/doca-structured-tools-contract/SKILL.md) | the host has any of `doca-env --json`, `collect-host-state`, `collect-dpu-state`, `version-matrix.json`, or another structured-tools helper installed and the agent is about to recommend the equivalent manual command. Prefer the structured tool when it exists; the agent's answer is shorter and more verifiable. |
 
-### Overlay activation is mandatory, not advisory
+## Overlay activation is mandatory, not advisory
 
 The agent MUST:
 
@@ -131,7 +131,7 @@ The agent must walk all five phases; pointing at the 7-layer ladder once and sto
 
 An answer that walks only the debug ladder *without* ever pointing at the env-then-program order, the install layout, OR the version-chain four-way match fails the link-error co-load contract. The grader is `04_link_error_debug::co_loads_three_skills`. This is the bundle's separation-of-concerns being exercised — without it, link-error answers regress into single-skill responses that miss the cross-train install class.
 
-### Per-library rollback overlay — mandatory on stateful-context changes
+## Per-library rollback overlay — mandatory on stateful-context changes
 
 Every change-recommending answer that brings up, modifies, or tears down a stateful per-library context (e.g. `doca_flow_pipe`, `doca_rdmi_connection`, `doca_gpu` registration + persistent kernel, `doca_compress` started context + mmap, `doca_apsh_system` + symbol map) MUST cite the per-library `## rollback` overlay (or `## flow-ct` overlay for the CT case in `doca-flow`) in the verification contract preconditions block. The per-library overlay is the artifact-specific instantiation of the *"rollback path is documented"* clause from the universal verification contract step 1 — without it, the contract is incomplete and the agent is NOT eligible to declare done.
 

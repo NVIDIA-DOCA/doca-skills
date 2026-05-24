@@ -79,7 +79,7 @@ if [[ "${1:-}" == "--self-test" ]]; then
         "doca-compress 5-phase debug-loop block (Lane A)|skills/libs/doca-compress/TASKS.md|s/5-phase universal debug-loop instantiation (Compress)/BROKEN 5PHASE LABEL/"
         "doca-apsh rollback anchor (Lane A)|skills/libs/doca-apsh/TASKS.md|s/^## rollback$/## BROKEN ROLLBACK ANCHOR/"
         "doca-apsh 5-phase debug-loop block (Lane A)|skills/libs/doca-apsh/TASKS.md|s/5-phase universal debug-loop instantiation (Apsh)/BROKEN 5PHASE LABEL/"
-        "AGENTS.md per-library rollback overlay table (Lane A)|AGENTS.md|s/^### Per-library rollback overlay/### BROKEN PL ROLLBACK HEADER/"
+        "AGENTS.md per-library rollback overlay table (Lane A)|AGENTS.md|s/^## Per-library rollback overlay/## BROKEN PL ROLLBACK HEADER/"
         "AGENTS.md beginner-orientation staged-roadmap rule (review feedback)|AGENTS.md|s/^### Beginner-orientation staged-roadmap rule/### BROKEN STAGED ROADMAP HEADER/"
         "doca-setup Stage 1 vs Stage 2 table (review feedback)|skills/doca-setup/TASKS.md|s/Stage 1 vs Stage 2 — open every/BROKEN STAGE TABLE LABEL/"
         "doca-setup NGC tag selection rule (review feedback)|skills/doca-setup/TASKS.md|s/^### How to pick an NGC tag without guessing$/### BROKEN NGC TAG HEADER/"
@@ -291,9 +291,9 @@ check 'doca-apsh/TASKS.md ## rollback (Lane A)' \
 check 'doca-apsh/TASKS.md 5-phase debug-loop instantiation (Lane A)' \
     "${BUNDLE_ROOT}/skills/libs/doca-apsh/TASKS.md" \
     '5-phase universal debug-loop instantiation \(Apsh\)'
-check 'AGENTS.md ### Per-library rollback overlay table (Lane A)' \
+check 'AGENTS.md ## Per-library rollback overlay table (Lane A)' \
     "${BUNDLE_ROOT}/AGENTS.md" \
-    '^### Per-library rollback overlay'
+    '^## Per-library rollback overlay'
 
 printf '\n=== Beginner-orientation staged-roadmap + NGC tag rule (review feedback wave) ===\n'
 check 'AGENTS.md ### Beginner-orientation staged-roadmap rule (Stage 1 → Stage 2)' \

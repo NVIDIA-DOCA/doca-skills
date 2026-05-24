@@ -93,6 +93,7 @@ declare -a OPTIONAL_GATES=(
     "check-anchor-density.sh --all"
     "check-coverage.sh"
     "check-jtbd-coverage.sh"
+    "check-public-surface-invariants.sh"
     "check-live-hardware-harness.sh"
 )
 for entry in "${OPTIONAL_GATES[@]}"; do
