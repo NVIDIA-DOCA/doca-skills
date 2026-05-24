@@ -1,7 +1,32 @@
 ---
 name: doca-apsh-config
-description: NVIDIA DOCA App Shield Configuration Tool (`doca_apsh_config.py`) — host-side Python script shipped under `/opt/mellanox/doca/tools/` that produces the host-OS profile artifacts (kernel symbol map, memory-regions descriptor, optional Linux-only KPGD anchor, optional per-process hash bundle) the DPU-side [`doca-apsh`](../../libs/doca-apsh/SKILL.md) library must load before it can interpret host kernel state. Profiles are host-OS-version-specific and must be regenerated on every host kernel upgrade, patch, or security-update reboot — a stale profile is the canonical silent-bug failure mode (queries return garbage, wrong-symbol offsets, or `DOCA_ERROR_NOT_FOUND` on running processes). The tool shells out to the public `dwarf2json` (Linux) or `pdbparse-to-json.py` (Windows) for kernel symbol extraction. Public source of truth is the DOCA App Shield page on `docs.nvidia.com`; subcommand names, outputs, and option strings are read from the live guide and `--help`, not copied here.
-kind: tool
+description: >
+  Use this skill when the user is generating, refreshing, or
+  validating a DOCA App Shield host profile by running
+  doca_apsh_config.py — picking the --os axis (linux vs windows),
+  the --files set (symbols / memregions / kpgd_file / hash),
+  staging dwarf2json or pdbparse-to-json.py, rotating after a host
+  kernel change, or diagnosing DPU-side apsh consumer regressions
+  that trace back to a stale profile. Trigger even when the user
+  does not explicitly mention "doca_apsh_config" or "App Shield
+  profile" — typical implicit phrasings include "DPU apsh started
+  returning wrong data after I patched the host",
+  "DOCA_ERROR_NOT_FOUND on a process that is definitely running",
+  "dwarf2json crashed on my kernel", "pefile version pin error",
+  "regenerate the symbol map after a kernel upgrade", or "build
+  the per-PID hash bundle". Refuse and route elsewhere for
+  DPU-side doca_apsh_* API calls, DOCA install/repair, and
+  dwarf2json / pdbparse internals — owned by doca-apsh,
+  doca-setup, and the upstream Volatility Foundation repos.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed on the host at /opt/mellanox/doca
+  with the App Shield optional component; doca_apsh_config.py
+  ships at /opt/mellanox/doca/tools/doca_apsh_config.py. Python 3
+  plus operator-staged dwarf2json (Linux) or pdbparse-to-json.py
+  (Windows) required. Reads host kernel DWARF or PDB symbols;
+  produces artifacts the DPU-side doca-apsh library consumes.
 ---
 
 # DOCA App Shield Configuration Tool

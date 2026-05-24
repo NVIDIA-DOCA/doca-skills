@@ -1,7 +1,30 @@
 ---
 name: doca-flow-inspector
-description: NVIDIA DOCA Flow Inspector Service — long-running container/daemon on BlueField that consumes mirrored flow traffic from a doca-flow (or doca-flow-ct) pipeline and exposes it for hardware-level inspection / debug of what the steering plane is actually doing. Covers the pipeline-side mirror-action contract (the user's pipeline MUST be programmed to mirror traffic to the inspector — the service does NOT capture unmirrored traffic on its own), the container deployment shape on BlueField Arm, inspection-depth modes (per-packet metadata vs per-flow aggregate vs raw sampling), the output destinations (Inspector CLI / JSON export / downstream consumer such as DTS), the smoke-before-bulk discipline for a paired pipeline + inspector setup, the mirror-overhead cost that requires disabling mirror in production once debug is over, and the cross-link to doca-debug as the broader debug toolkit Flow Inspector is one entry in.
-kind: service
+description: >
+  Use this skill when the user is debugging a doca-flow or
+  doca-flow-ct pipeline on a BlueField via the DOCA Flow Inspector
+  Service container — wiring the mirror action on the pipeline side,
+  deploying the inspector container on BlueField Arm, choosing an
+  inspection depth (per-packet metadata, per-flow aggregate, or raw
+  packet sampling), picking an output destination (Inspector CLI,
+  JSON export, DTS), or interpreting what the inspector reports.
+  Trigger even when the user does not say "DOCA Flow Inspector" or
+  "mirror" — typical implicit phrasings include "is the hardware
+  seeing this 5-tuple", "container is up but I see no traffic", "want
+  to watch what my pipe is actually doing", "is my mirror action
+  firing", "inspector is too noisy at scale", or "how do I see what
+  the steering plane is doing". Refuse and route elsewhere for
+  authoring the doca-flow / doca-flow-ct pipeline itself, steady-state
+  production telemetry (route to DTS), and container-runtime
+  troubleshooting — those belong to other skills.
+metadata:
+  kind: service
+compatibility: >
+  BlueField-Arm-only DOCA service container pulled from NVIDIA NGC
+  and run under the BlueField OS container runtime; host-side DOCA
+  install is irrelevant. Meaningful only when a doca-flow /
+  doca-flow-ct pipeline is already running on the same BlueField with
+  a mirror action wired to the inspector's documented ingest target.
 ---
 
 # DOCA Flow Inspector Service

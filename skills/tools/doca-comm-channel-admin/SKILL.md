@@ -1,7 +1,31 @@
 ---
 name: doca-comm-channel-admin
-description: NVIDIA DOCA Comm Channel Admin Tool — the operator-facing CLI shipped under `/opt/mellanox/doca/tools/` for inspecting, draining, and restarting host-DPU control channels created by the DOCA Comch library (renamed from DOCA Comm Channel in DOCA 2.5). Read-only enumeration and inspection are safe and form the smoke-before-bulk preamble; drain and restart are state-changing operations the agent must gate on a clean inspection first. Runs from either the host or BlueField Arm side; pairs with the doca-comch library skill, which owns the API surface the channels were created against. The canonical public source is the DOCA Comm Channel Admin Tool guide; flag names, subcommands, and output column names come from that guide and the installed `--help`, not from agent memory.
-kind: tool
+description: >
+  Use this skill when the user needs to inspect, drain, or restart
+  a host↔DPU DOCA comch (formerly Comm Channel) control channel
+  from the outside — listing active channels on a BlueField or
+  host, reading a channel's connection state, cross-checking the
+  admin tool's view against a program's connection callback, or
+  walking the drain-vs-restart decision for a wedged channel.
+  Trigger even when the user does not explicitly mention "DOCA
+  Comm Channel Admin Tool" or "comch" — typical implicit phrasings
+  include "my Comch send-task is hanging", "producer/consumer has
+  no completions for 30 seconds", "program says CONNECTED but I
+  see no channel from the host side", "list returned empty on a
+  known-good client", or "is this channel stuck — should I drain
+  or restart it". Refuse and route elsewhere for the comch
+  programming API, library install, comch protocol design, or
+  general DOCA orientation — those belong to doca-comch,
+  doca-setup, and doca-public-knowledge-map.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with the Comm Channel tooling
+  subpackage so the CLI is present under
+  /opt/mellanox/doca/tools/. Runs from either the x86/Arm host or
+  the BlueField Arm side; a live host↔DPU comch channel created
+  via the doca-comch library is needed for non-empty inspection.
 ---
 
 # DOCA Comm Channel Admin Tool

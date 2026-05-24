@@ -1,7 +1,34 @@
 ---
 name: doca-dpa
-description: NVIDIA DOCA DPA on BlueField hosts — the host-side control library for the Data-Path Accelerator (DPA), the programmable processor inside BlueField, including the per-DPA-instance `doca_dpa` Core context, the loaded DPA application image (`doca_dpa_app`) produced by the DPACC compiler from the user's DPA-side source, DPA execution contexts (`doca_dpa_thread`), host-initiated launches of DPA kernel functions with arguments (`doca_dpa_kernel_launch_update_*`), the `doca_dpa_completion` mechanism for async DPA work, the **two-side-program model** (the host side that uses `doca-dpa` and the DPA side that is a separate translation unit compiled by `dpacc`), capability discovery via `doca_dpa_cap_*`, env preconditions (a BlueField with a DPA processor visible to the host in the right mode, a DOCA install paired with a matching DPACC compiler), and debugging `DOCA_ERROR_*` returns from the host-side DPA API including the `DOCA_ERROR_DRIVER` route to the env-side skill.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA DPA
+  host-side work on a BlueField — creating the `doca_dpa` Core
+  context, loading a DPACC-compiled DPA application image
+  (`doca_dpa_app`), creating DPA threads, launching kernels via
+  `doca_dpa_kernel_launch_update_*`, draining
+  `doca_dpa_completion`, running `doca_dpa_cap_*` discovery,
+  choosing between DPA-side companions `doca-dpa-comms`
+  (inter-DPA messaging) and `doca-dpa-verbs` (in-kernel RDMA),
+  or debugging `DOCA_ERROR_*` from `doca_dpa_*`. Trigger even
+  when the user does not say "DOCA DPA" or "Data-Path
+  Accelerator" — typical implicit phrasings include "run
+  compute on the DPA from my host", "DPA kernel hangs, no
+  completion", "DOCA_ERROR_DRIVER on launch", "DOCA/DPACC
+  version skew", or "does this BlueField expose a DPA". Refuse
+  and route elsewhere for DPA-side kernel programming itself,
+  DPACC compiler internals, host↔DPU messaging (`doca-comch`),
+  host-side RDMA (`doca-rdma`), and GPU-initiated networking
+  (`doca-gpunetio`) — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU whose
+  generation exposes the DPA processor to the host, plus the
+  matching DPACC compiler at a version listed compatible by
+  the DOCA Compatibility Policy. Reads `pkg-config --modversion
+  doca-dpa` and the installed `dpacc` version, and inspects
+  /opt/mellanox/doca/{lib,include,samples/doca_dpa,applications}.
 ---
 
 # DOCA DPA

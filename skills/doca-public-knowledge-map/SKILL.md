@@ -1,7 +1,28 @@
 ---
 name: doca-public-knowledge-map
-description: Comprehensive map of every public DOCA knowledge source — docs.nvidia.com pages, programming guides, downloads, public GitHub repos, NGC catalog, developer forum — plus the on-disk layout of an installed DOCA package, so any agent can locate authoritative information without access to the DOCA source repository.
-kind: knowledge
+description: >
+  Use this skill when the user needs to locate authoritative
+  information about NVIDIA DOCA without access to the source tree —
+  finding the right docs.nvidia.com page for a library/service/tool,
+  identifying which DOCA libraries are installed and at what version,
+  locating a sample on disk or its public GitHub source, decoding an
+  on-disk path under /opt/mellanox/doca, or recovering from a 404'd
+  or renamed doc URL. Trigger even when the user does not explicitly
+  mention 'DOCA' or 'docs.nvidia.com' — typical implicit phrasings
+  include 'where can I read about this library', 'which version do I
+  have installed', 'where is the sample for X', 'this NVIDIA URL is
+  broken what is the new one', 'what is in /opt/mellanox/doca', or
+  'where can I ask NVIDIA about this'. Refuse and route elsewhere
+  for hands-on programming patterns, env prep and install
+  verification, library API tutorials, or hardware/firmware
+  mutation — those belong to doca-programming-guide, doca-setup, the
+  per-library skills, and doca-hardware-safety.
+metadata:
+  kind: knowledge
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay
+  loaded against any DOCA artifact skill); the validation steps
+  within DO require a live DOCA install at /opt/mellanox/doca.
 ---
 
 # DOCA Public Knowledge Map
@@ -77,7 +98,7 @@ install path, and only then answer.
 4. **Public sources only.** Reference NVIDIA documentation only on the
    public hosts listed in [`AGENTS.md` ground rule #1](../../AGENTS.md).
    Anything else is not available to a customer agent and is rejected
-   by NVIDIA's internal release CI before the bundle ships.
+   by an internal CI pipeline before the bundle ships.
 5. **No source-tree paths.** Do not reference `devtools/...`, `docs/ai/...`,
    or any path that only exists inside the DOCA repository. Customers do not
    have those.
@@ -216,10 +237,9 @@ the public guides in `docs.nvidia.com/doca/sdk/`.
 > **Non-goals.** Externally-productized NVIDIA services that are NOT in
 > `doca/services/` at the bundle's currently-aligned DOCA release —
 > DOCA Telemetry Service (DTS), BlueMan, HBN, SNAP, Virtio-net — are
-> intentionally out of scope for this bundle. NVIDIA's internal CI
-> enforces strict 1:1 alignment with `doca/services/` on every commit.
-> See [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals) for the
-> policy
+> intentionally out of scope for this bundle, which is strictly 1:1
+> with `doca/services/`. See
+> [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals) for the policy
 > rationale. If a user asks about one of these external services,
 > route them to the public NVIDIA documentation on
 > `docs.nvidia.com/doca/sdk/` (the URL stems above remain valid for
@@ -306,9 +326,9 @@ own public page. Per-tool skills (where they exist) live under
 > `doca/tools/` at the bundle's currently-aligned DOCA release —
 > DOCA-DPACC-Compiler, DPA-Tools (DPA GDB Server / PS / Statistics),
 > DOCA-DPU-CLI, DOCA-Ngauge, `doca-hugepages` helper — are
-> intentionally out of scope for this bundle. NVIDIA's internal CI
-> enforces strict 1:1 alignment with `doca/tools/` on every commit.
-> See [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals).
+> intentionally out of scope for this bundle, which is strictly 1:1
+> with `doca/tools/`. See
+> [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals).
 
 If the user asks about a DOCA tool that is not in this table, open the
 [**DOCA Tools** umbrella page](https://docs.nvidia.com/doca/sdk/DOCA-Tools/index.html)
@@ -473,10 +493,9 @@ for the cross-library programming patterns it layers on top of.
 ## URL audit
 
 Every URL referenced by this routing map is HEAD-checked against the
-public NVIDIA documentation surface as part of NVIDIA's internal
-release CI; bundle commits on `ai-mvp-with-files` therefore always
-ship a routing map whose every URL was reachable at release time.
-Per-row fix history, prior-audit deltas, and quality-gate sign-off
-notes — useful only for the people maintaining this routing map — are
-kept out of this runtime skill file and live in
-[`MAINTAINERS-NOTES.md ## URL audit log`](MAINTAINERS-NOTES.md#url-audit-log).
+public NVIDIA documentation surface on every commit, so bundle
+releases always ship a routing map whose every URL was reachable at
+release time. If a URL on this page no longer resolves, that is the
+release's bug, not yours — fall back to the umbrella entry points
+listed in *Public documentation entry points* (DOCA SDK index, DOCA
+Libraries / Services / Tools umbrella pages) and search from there.

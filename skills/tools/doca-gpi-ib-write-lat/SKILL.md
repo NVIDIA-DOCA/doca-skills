@@ -1,7 +1,35 @@
 ---
 name: doca-gpi-ib-write-lat
-description: NVIDIA DOCA GPI ib_write_lat — the GPI-flavored analog of the classic `perftest` `ib_write_lat`, shipped under `doca/tools/gpi_ib_write_lat/` as a client + server pair that measures the latency of an RDMA WRITE work request when the WR is posted **from a CUDA kernel on the GPU via doca-gpi**, not from a host CPU thread. The skill teaches the class question of *"what does kernel-initiated RDMA-WR latency look like on this GPU-NIC pair?"* — the GPU-NIC pairing precondition (the GPU and the IB device must be reachable through the same PCIe / NVLink fabric for the GPI path to be efficient), the configure / build / run shape against the shipped tool tree, how to read the reported half-iteration and full-iteration usec values, the version + capability overlay against the installed DOCA + CUDA Toolkit, and how the result reads against the sister tool `doca-gpunetio-ib-write-lat` (same physical operation; different runtime framework — pick the right surface, do not mix them).
-kind: tool
+description: >
+  Use this skill when the user is building, running, or interpreting
+  doca-gpi-ib-write-lat — the client+server benchmark under
+  doca/tools/gpi_ib_write_lat/ that measures RDMA WRITE latency for a
+  WR posted from a CUDA kernel via doca-gpi: meson+nvcc build,
+  GPU-NIC PCIe/NVLink pairing, half-iter/full-iter/CUDA-usec output
+  columns, DOCA + CUDA Toolkit version overlay, and GPI vs GPUNetIO
+  vs CPU-initiated surface selection. Trigger even when the user
+  does not say
+  "doca-gpi-ib-write-lat" or "gpi_ib_write_lat" — implicit phrasings
+  include "GPU-kernel-initiated WRITE latency on H100+ConnectX",
+  "kernel.cu won't link against my DOCA",
+  "GPI or GPUNetIO for this workload",
+  "what does the half-iter column mean",
+  "OOB socket on port 5000 hangs",
+  "client and server built on different DOCA". Refuse and route for
+  doca-gpi library API debugging, the sister tool
+  doca-gpunetio-ib-write-lat, CPU-initiated perftest ib_write_lat,
+  DOCA install/setup, or app-level RDMA pipelines — those belong to
+  other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) plus an NVIDIA GPU with a
+  matched CUDA Toolkit (nvcc on PATH) and an InfiniBand-capable
+  RNIC reachable through the same PCIe complex or NVLink fabric as
+  the GPU. Reads the local install via `pkg-config doca-gpi /
+  doca-rdma / doca-common` and inspects
+  /opt/mellanox/doca/tools/gpi_ib_write_lat/{main.c,perftest.c,kernel.cu,meson.build}.
 ---
 
 # DOCA GPI ib_write_lat

@@ -116,7 +116,7 @@ Three architectural properties the operator must hold throughout:
   enumeration to feed their own detection / correlation /
   archival logic.
 
-### Deployment shape
+## Deployment shape
 
 The public Container Deployment Guide documents the container
 runtime story; the public OS Inspector / App Shield Agent

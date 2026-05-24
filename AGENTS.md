@@ -51,11 +51,18 @@ tells the agent which companion file (`CAPABILITIES.md` for
   directory. A `CLAUDE.md` at repo root exists only as a stub
   pointing back here for Claude Code's auto-discovery.
 If your runtime supports per-skill `SKILL.md` frontmatter
-auto-loading (Anthropic Skills convention), it works equally well
-under `skills/` as under `.claude/skills/`. If it does not, read
-`SKILLS.md` and load the matching skill files manually. Cross-link
-labels of the form `[<skill-name> ## <anchor>](...)` resolve by
-skill name regardless of where the skill lives in the tree.
+auto-loading (the [AgentSkills.io](https://agentskills.io/specification)
+open standard, originally introduced by Anthropic and now adopted by
+Cursor, GitHub Copilot, and others), it works equally well under
+`skills/` as under `.claude/skills/`. Every `SKILL.md` in this bundle
+validates cleanly against the official AgentSkills.io reference
+validator (`skills-ref validate`) — see the *AgentSkills.io
+open-standard compliance* section of [README.md](README.md) for
+specifics and the local re-validation recipe. If your runtime does
+NOT support frontmatter auto-loading, read `SKILLS.md` and load the
+matching skill files manually. Cross-link labels of the form
+`[<skill-name> ## <anchor>](...)` resolve by skill name regardless
+of where the skill lives in the tree.
 
 ## Cross-cutting overlay activation triggers
 
@@ -76,7 +83,7 @@ not only when a per-artifact skill happens to link to the overlay.
 | [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) | *"where is the doc / guide / URL"*, *"is there a reference for X"*, any request for an external link. The map is the only source the agent should pull NVIDIA URLs from — direct training-data URL recall is forbidden by ground rule 1 + ground rule 3. |
 | [`doca-structured-tools-contract`](skills/doca-structured-tools-contract/SKILL.md) | the host has any of `doca-env --json`, `collect-host-state`, `collect-dpu-state`, `version-matrix.json`, or another structured-tools helper installed and the agent is about to recommend the equivalent manual command. Prefer the structured tool when it exists; the agent's answer is shorter and more verifiable. |
 
-### Overlay activation is mandatory, not advisory
+## Overlay activation is mandatory, not advisory
 
 The agent MUST:
 
@@ -131,7 +138,7 @@ The agent must walk all five phases; pointing at the 7-layer ladder once and sto
 
 An answer that walks only the debug ladder *without* ever pointing at the env-then-program order, the install layout, OR the version-chain four-way match fails the link-error co-load contract. The grader is `04_link_error_debug::co_loads_three_skills`. This is the bundle's separation-of-concerns being exercised — without it, link-error answers regress into single-skill responses that miss the cross-train install class.
 
-### Per-library rollback overlay — mandatory on stateful-context changes
+## Per-library rollback overlay — mandatory on stateful-context changes
 
 Every change-recommending answer that brings up, modifies, or tears down a stateful per-library context (e.g. `doca_flow_pipe`, `doca_rdmi_connection`, `doca_gpu` registration + persistent kernel, `doca_compress` started context + mmap, `doca_apsh_system` + symbol map) MUST cite the per-library `## rollback` overlay (or `## flow-ct` overlay for the CT case in `doca-flow`) in the verification contract preconditions block. The per-library overlay is the artifact-specific instantiation of the *"rollback path is documented"* clause from the universal verification contract step 1 — without it, the contract is incomplete and the agent is NOT eligible to declare done.
 
@@ -194,7 +201,7 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
    public hosts: `docs.nvidia.com`, `developer.nvidia.com`,
    `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
    `forums.developer.nvidia.com`, `nvcr.io`. Anything else is rejected
-   by NVIDIA's internal release CI before the bundle ships.
+   by an internal CI pipeline before the bundle ships.
 2. **Prefer the local install over the web.** When DOCA is installed at
    `/opt/mellanox/doca`, those files *are* the release. Web docs describe a
    release.
@@ -257,9 +264,9 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
 
 ## Conformance
 
-NVIDIA's internal release CI enforces — on every commit, before the
-bundle is shipped to `ai-mvp-with-files` — three layers of
-conformance over every skill file in `skills/`:
+An internal CI pipeline enforces — on every commit, before each
+bundle release — three layers of conformance over every skill file
+in `skills/`:
 
 1. **Structural.** Frontmatter validity, required H2 anchors in
    `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, cross-anchor labels in
@@ -275,9 +282,9 @@ conformance over every skill file in `skills/`:
    to a `2xx`/`3xx`. Catches the *page renamed* / *page deleted*
    failure mode (e.g. the pre-3.x DOCA Samples Overview URL).
 
-What this means for you as a consumer: every commit on
-`ai-mvp-with-files` ships a bundle that has already passed those
-gates. You do not need to run any of them yourself.
+What this means for you as a consumer: every released bundle has
+already passed those gates. You do not need to run any of them
+yourself.
 
 ## Non-goals (questions the agent should recognize and refuse politely)
 
@@ -285,10 +292,10 @@ This bundle is the **public, vendor-shipped** skills bundle for the NVIDIA DOCA 
 
 1. **Cross-vendor comparisons.** *"DOCA vs DPDK vs OvS-DPDK vs kernel offload vs Intel IPU SDK vs AMD Pensando vs …"* The bundle is DOCA-specific by design and does not ship competitive content. A vendor-shipped skills bundle synthesizing comparisons against competing stacks would be inappropriate; refer the user to independent sources (their own benchmarks, third-party analyst reports, the NVIDIA Developer Forum for architectural questions on the DOCA side).
 2. **Commercial support contracts, SLAs, and procurement.** The bundle's support-surface coverage is the **public** NVIDIA DOCA Developer Forum at <https://forums.developer.nvidia.com/c/infrastructure/doca/370>. Commercial support contracts, response-time SLAs, escalation paths to NVIDIA engineering, and license pricing are out of scope; refer the user to NVIDIA sales for that conversation.
-3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by NVIDIA's internal release CI and is not what this bundle is for. The bundle ships only public surfaces.
+3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by the bundle's CI gates and is not what this bundle is for. The bundle ships only public surfaces.
 4. **Pre-release or unreleased DOCA content.** The bundle's URL allowlist (rule 1) is the *public* documentation set; if a release is not yet public, the bundle has nothing to say about it. Refer the user to the public release-notes channel.
 5. **Code synthesis from prose.** Ground rule 5 above. The agent never scaffolds DOCA code from doc prose. *This is a methodology constraint, not a question-class refusal* — but it is the most operationally important non-goal in practice and so is listed here for visibility.
 6. **Security architecture claims the bundle is not authorized to make.** Side-channel guarantees, isolation guarantees on shared accelerators, FIPS / Common Criteria assertions, and similar properties of the DOCA crypto / DPA engines are not the bundle's to assert. Frame the question; route to NVIDIA security architecture material (Confidential Computing mode pages, BlueField secure-boot guides) and the Developer Forum; do not synthesize an isolation claim.
-7. **Externally-productized NVIDIA networking software not in the DOCA monorepo.** This bundle is **strictly 1:1 with `doca/{libs,services,tools}`** at the currently-aligned DOCA release (enforced by NVIDIA's internal CI on every commit). Products that NVIDIA productizes externally to the monorepo — DOCA Telemetry Service (DTS) as deployed, DOCA HBN Service, DOCA BlueMan Service, DOCA SNAP Services, DOCA Virtio-net Service, DOCA-DPACC-Compiler, DPA-Tools (GDB Server / PS / Statistics), DOCA-DPU-CLI, DOCA-Ngauge, the `doca-hugepages` helper, and similar — are out of scope by design. The right next step for a question on one of these is the public NVIDIA documentation on `docs.nvidia.com/doca/sdk/` for that specific product, plus the public DOCA Developer Forum for help. Do NOT synthesize answers about these products from training knowledge; recognize the class, name the boundary, and route.
+7. **Externally-productized NVIDIA networking software not in the DOCA monorepo.** This bundle is **strictly 1:1 with `doca/{libs,services,tools}`** at the currently-aligned DOCA release. Products that NVIDIA productizes externally to the monorepo — DOCA Telemetry Service (DTS) as deployed, DOCA HBN Service, DOCA BlueMan Service, DOCA SNAP Services, DOCA Virtio-net Service, DOCA-DPACC-Compiler, DPA-Tools (GDB Server / PS / Statistics), DOCA-DPU-CLI, DOCA-Ngauge, the `doca-hugepages` helper, and similar — are out of scope by design. The right next step for a question on one of these is the public NVIDIA documentation on `docs.nvidia.com/doca/sdk/` for that specific product, plus the public DOCA Developer Forum for help. Do NOT synthesize answers about these products from training knowledge; recognize the class, name the boundary, and route.
 
 The shape of a good agent response to a non-goal class question is *"this bundle does not cover X (here is why); the right next step is Y (here is the route)"* — not silence and not improvisation.

@@ -1,7 +1,31 @@
 ---
 name: doca-hardware-safety
-description: Cross-cutting meta-policy for any change that touches DPU / NIC hardware state on a live system. Defines the bundle-wide discipline that wraps every hardware-touching DOCA change — pre-change PCIe / link / firmware / BFB / config inventory, out-of-band access as a precondition for any link-breaking change, maintenance-window framing, the mlxconfig cold-power-cycle rule, firmware-burn and BFB-reflash discipline, hugepages / IOMMU kernel-boot-parameter rules, replica-first validation against a non-prod twin, observability-before-workload, the explicit rollback path requirement, and the refuse-and-escalate rule when no rollback exists. Every per-artifact skill's `## Safety policy` overlays this meta-policy with artifact-specific safety; this skill defines the cross-cutting shape so the per-artifact skills do not redefine it.
-kind: library
+description: >
+  Use this skill whenever the agent is about to recommend or apply a
+  change that touches DPU / NIC hardware state on a live system —
+  mlxconfig firmware-parameter write, NIC firmware burn, BFB reflash,
+  NIC ↔ DPU mode flip, SR-IOV or device-emulation slot enable, kernel
+  boot-parameter change (IOMMU, hugepages, VFIO), PCIe rebind /
+  rescan / link-state flip, or BlueField cold reboot. Wraps the
+  change in pre-flight inventory, OOB reachability, a maintenance
+  window, the mlxconfig cold-power-cycle rule, replica rehearsal, and
+  rollback. Trigger even when the user does not say "hardware safety"
+  — implicit phrasings: "flip BlueField mode over SSH", "enable
+  SR-IOV and reboot", "burned firmware but mlxconfig shows old
+  value", "reflashed BFB and lost representors", "reflash during
+  business hours", "vendor says this is one-way". Refuse for general
+  DOCA orientation (doca-public-knowledge-map), install or env debug
+  (doca-setup), and program-side debug (doca-debug,
+  doca-programming-guide) — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay
+  loaded against any DOCA artifact skill); the validation steps
+  within DO require a live DOCA install at /opt/mellanox/doca with a
+  BlueField DPU or ConnectX NIC, plus out-of-band console
+  reachability (BMC, RShim, or operator-managed console) for any
+  link-breaking change.
 ---
 
 # DOCA hardware safety

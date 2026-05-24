@@ -1,7 +1,33 @@
 ---
 name: doca-dpdk-bridge
-description: NVIDIA DOCA DPDK Bridge on BlueField and ConnectX hosts — the interop layer that lets an EXISTING DPDK application reach DOCA libraries (most commonly DOCA Flow for hardware steering) without rewriting its data-plane in DOCA-native form, the `doca_dpdk_port` handle that surfaces a DPDK port to DOCA, the mbuf ↔ DOCA-buf conversion helpers that bridge DPDK's packet model to DOCA's mmap / `doca_buf` model, capability discovery via the `doca_dpdk_*_cap_*` pattern, the DOCA Core context lifecycle on top of an externally-owned DPDK port and EAL, the DPDK-side preconditions (DPDK installed, port bound, hugepages, EAL initialized) the bridge inherits from DPDK, the matched-pair version coupling between DPDK and DOCA that the agent must surface, the boundary against native `doca-eth` (start-fresh case), and debugging `DOCA_ERROR_*` returns from the bridge API.
-kind: library
+description: >
+  Use this skill when the user has an existing DPDK application
+  and is adding DOCA capabilities in-place — most commonly DOCA
+  Flow hardware steering — without rewriting the data-plane in
+  DOCA-native form: surfacing a DPDK port via `doca_dpdk_port`,
+  converting `rte_mbuf` ↔ `doca_buf` at the data-plane boundary,
+  querying the `doca_dpdk_*_cap_*` family, or debugging
+  `DOCA_ERROR_*` from a bridge call. Trigger even when the user
+  does not explicitly mention "DOCA DPDK Bridge" — typical
+  implicit phrasings include "how do I add DOCA Flow to my DPDK
+  app", "how do I make a DPDK port visible to DOCA", "the bridge
+  loads but every operation returns confusing errors",
+  "pkg-config --exists doca-dpdk-bridge fails", or
+  "DOCA_ERROR_NOT_FOUND on port registration". Refuse and route
+  elsewhere for fresh DOCA-native packet I/O (doca-eth),
+  flow-rule programming on its own (doca-flow), DOCA or DPDK
+  install (doca-setup), or RDMA data movement (doca-rdma) —
+  those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached, plus a separate DPDK install whose
+  version falls within the bridge's matched-pair window. Reads
+  the user's local install via `pkg-config doca-dpdk-bridge` and
+  `pkg-config libdpdk`, and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA DPDK Bridge

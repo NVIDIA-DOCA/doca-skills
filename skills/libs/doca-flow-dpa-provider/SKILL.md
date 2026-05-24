@@ -1,7 +1,35 @@
 ---
 name: doca-flow-dpa-provider
-description: NVIDIA DOCA Flow DPA Provider (pkg-config doca-flow-dpa-provider) — the host-side bridge that exports a DOCA Flow pipe and its external resources into the BlueField DPA processor's address space so that DPA-side kernel code (compiled by the DPACC compiler) can read counters, modify hash-pipe entries, and update or query index-selector / memory resources inline with the Flow datapath, plus the matching DPA-side device API (`doca_flow_pipe_hash_*`, `doca_flow_external_resource_*`, `doca_flow_queue_poll_completion`) that the exported pipe-handle and resource-handles are consumed through.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Flow DPA
+  Provider work — exporting a `doca-flow` pipe or external
+  resource (index-selector/memory) into BlueField DPA
+  address space so a DPACC-built kernel can read counters, mutate
+  hash-pipe entries, and update/read memory or index-selector
+  resources inline with Flow. Covers per-port
+  `doca_flow_dpa_ctx`, three queue types
+  (general/resources-write/resources-read), the order-sensitive
+  export handshake (`_export_prepare` → add entries → `_export` →
+  `_get_device_addr`), and DPA-side device API. Trigger even
+  when the user does not say "DOCA Flow DPA Provider" — implicit
+  phrasings include "DPA kernel never sees entries in the exported
+  pipe", "BAD_STATE from `_pipe_export`", "how do I disable a hash
+  entry from a DPA kernel", "DPA memory read returns no value", or
+  "DPA-side post keeps returning AGAIN". Refuse and route
+  elsewhere for `doca-flow` pipe construction, generic
+  host-side DPA (`doca-dpa`), or DPA-side kernel-writing — those
+  belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU exposing
+  a DPA processor visible to the host, PLUS the DPACC compiler
+  installed at a version matched to DOCA per the DOCA Compatibility
+  Policy. Reads the user's local install via `pkg-config
+  doca-flow-dpa-provider` (cross-checked with `doca-flow`,
+  `doca-dpa`, and installed `dpacc`). ConnectX-only hosts cannot
+  use this library.
 ---
 
 # DOCA Flow DPA Provider

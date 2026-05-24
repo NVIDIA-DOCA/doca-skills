@@ -59,6 +59,26 @@ Goal: detect the user's **system shape and deployment target** before any other 
 
 Goal: prepare the user's host environment so that builds can find DOCA and runs can find the resources they need. **Precondition for this verb is that the host has DOCA installed.** If it doesn't, route to [`## no-install`](#no-install) first.
 
+**Stop conditions BEFORE configure can proceed.** If any of the
+following is true on the host, configure cannot start and the agent
+must surface the gap to the user rather than push forward:
+
+- **Apt repo / package vocabulary mismatch.** A package the agent is
+  about to recommend (`doca-tools`, `doca-applications`, …) returns
+  `Candidate: (none)` or `Unable to locate package` under
+  `apt-cache policy <pkg>` on the user's host. See
+  [`doca-version CAPABILITIES.md ## Apt-repo and OS-matrix preconditions`](../doca-version/CAPABILITIES.md#apt-repo-and-os-matrix-preconditions)
+  for the precheck. Do NOT quote an install line whose packages do
+  not exist in the user's configured repos.
+- **Off-matrix host OS point release.** The host OS family is in the
+  target DOCA's *Supported Operating Systems* table but the point
+  release is outside the documented sub-range (e.g. Ubuntu 24.04.4
+  on a DOCA 3.3 host whose matrix lists 24.04.x for `x ≤ 3`). Surface
+  the gap verbatim, quote the supported sub-range from the release
+  notes, and ask the user to either downgrade or accept the off-matrix
+  risk explicitly before proceeding. Same source: [`doca-version
+  CAPABILITIES.md ## Apt-repo and OS-matrix preconditions`](../doca-version/CAPABILITIES.md#apt-repo-and-os-matrix-preconditions).
+
 Steps the agent should walk the user through:
 
 1. **Confirm install presence and version.** Use the procedure in [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md) (do not duplicate). Quote the observed `pkg-config --modversion doca-common`; do not assume *"latest"*. The version-detection rules in [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) determine whether what the user has on disk is a coherent install or a partial upgrade that needs reinstalling first.

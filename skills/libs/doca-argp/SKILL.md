@@ -1,7 +1,31 @@
 ---
 name: doca-argp
-description: NVIDIA DOCA Arg Parser (`pkg-config` module `doca-argp`) — the small foundational CLI parsing layer shared by every shipped DOCA sample, the load-bearing rule that modifications to a sample's command line reuse doca-argp instead of getopt / argparse / hand-rolled parsing, the per-option `doca_argp_param` registration model and the register-before-start lifecycle (`doca_argp_init` → register params → `doca_argp_start` → `doca_argp_destroy`), the small public parameter-type set (string, int, bool flag, JSON config file), the `--json-config <path>` file integration shipped samples use for complex configurations, the standard DOCA CLI surface (`--device`, `--representor`, `--rep-list`, `--json-config`, `--sdk-log-level`), presence + version checks via `pkg-config --exists doca-argp` / `--modversion doca-argp`, and debugging `DOCA_ERROR_*` returns from the Arg Parser (BAD_STATE / INVALID_VALUE / NOT_FOUND / IO_FAILED).
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Arg Parser
+  CLI work on a shipped DOCA sample or new DOCA-using app — adding,
+  removing, or renaming a flag; wiring `doca_argp_init` → register
+  params → `doca_argp_start` → `doca_argp_destroy` in order;
+  picking a parameter type (string, int, bool flag, JSON config
+  file); preserving the standard `--device` / `--representor` /
+  `--json-config` / `--sdk-log-level` CLI surface; or debugging
+  `DOCA_ERROR_BAD_STATE` / `INVALID_VALUE` / `NOT_FOUND` /
+  `IO_FAILED` from a `doca_argp_*` call. Trigger even when the
+  user does not say "DOCA Arg Parser" or "doca-argp" — typical
+  implicit phrasings include "add a custom flag to a DOCA sample",
+  "should I use getopt here", "BAD_STATE registering a new param",
+  "my JSON config key is rejected", "--my-flag value rejected as
+  invalid", or "my sample's --json-config is ignored". Refuse and
+  route elsewhere for variadic-flag / subcommand / shell-completion
+  features, DOCA Core context, or DOCA Log internals — those
+  belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached. Reads the user's local install via
+  `pkg-config doca-argp` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Arg Parser

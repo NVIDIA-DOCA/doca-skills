@@ -1,7 +1,35 @@
 ---
 name: doca-pcc-counters
-description: NVIDIA DOCA PCC Counter Tool — the operator-facing diagnostic CLI shipped under `/opt/mellanox/doca/tools/` that inspects Programmable Congestion Control counters on a BlueField port, paired with the `doca-pcc` library that loads custom congestion-control kernels onto the BlueField DPA. The counter tool is read-only and side-effect-free — its job is to list available counters, snapshot per-flow / per-port / per-kernel counters, watch a sweep, and diff snapshots so the agent can localize where a custom PCC algorithm is (or is not) modulating RDMA / RoCE traffic. Runs from the host or BlueField Arm side. The canonical public source is the DOCA PCC Counter Tool guide on `docs.nvidia.com`. Subcommand names, flag strings, and counter column names come from that guide and the installed `--help`, never from agent memory — misreading a counter into a CC tuning decision can destabilize a fleet.
-kind: tool
+description: >
+  Use this skill when the user is invoking the DOCA PCC Counter
+  Tool — a read-only diagnostic CLI under
+  /opt/mellanox/doca/tools/ — to inspect Programmable Congestion
+  Control counters on a BlueField port where a host-side
+  doca-pcc flow has loaded and started a custom PCC kernel.
+  Covers listing per-port / per-flow / per-kernel counters,
+  snapshotting one named counter, watching across an interval,
+  and diffing a before / after pair around a tuning attempt.
+  Trigger even when the user does not explicitly mention "DOCA
+  PCC Counter Tool" or "PCC counters" — typical implicit
+  phrasings include "my custom PCC algorithm loaded but the
+  flows look unchanged", "is the algorithm doing anything on
+  this port?", "RoCE rate-curve unchanged after kernel load",
+  "PCC counter stuck at zero", or "list returned empty after
+  attaching a PCC kernel". Refuse and route elsewhere for
+  writing a custom PCC algorithm body, the factory firmware PCC
+  algorithm, DOCA install, or fleet-wide CC tuning — those
+  belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with the PCC counter tooling
+  subpackage and a BlueField DPU exposing its DPA. Runs host-side
+  or on the BlueField Arm; counters are only meaningful once a
+  host-side doca-pcc flow has loaded and started a custom PCC
+  kernel against the target port. Read-only on the wire, but any
+  CC tuning decision derived from a counter reading is
+  fleet-impacting.
 ---
 
 # DOCA PCC Counter Tool

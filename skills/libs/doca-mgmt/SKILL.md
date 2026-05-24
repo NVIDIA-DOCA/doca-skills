@@ -1,7 +1,33 @@
 ---
 name: doca-mgmt
-description: NVIDIA DOCA Management (pkg-config doca-mgmt) — the management-plane API surface for programmatically querying and modifying device-level state on BlueField / ConnectX devices. Exposes a management device context plus representor context (doca_mgmt_dev_ctx, doca_mgmt_dev_rep_ctx), a raw command pipe (doca_mgmt_raw_cmd) with explicit command-scope classification, a general device-capabilities surface (doca_mgmt_device_caps_general_*), congestion-control global status (doca_mgmt_cc_global_status_*), diagnostics-data export (doca_mgmt_diagnostics_data_*), and ICM-quota management (doca_mgmt_icm_quota_*). This skill teaches when doca-mgmt is the right surface vs telemetry / bench / caps, the management-context lifecycle, the command-scope ladder, the cap-supported-first discipline, the rollback-before-write rule, and the layered debug ladder.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Management
+  programming against BlueField / ConnectX devices — standing up a
+  management or representor context (doca_mgmt_dev_ctx /
+  doca_mgmt_dev_rep_ctx), querying device caps (data-direct,
+  caps-general), toggling congestion-control global status, modifying
+  diagnostics-data, setting ICM quotas, or issuing a raw firmware
+  command via doca_mgmt_raw_cmd with the right scope (CONFIGURATION /
+  DEBUG_READ_ONLY / DEBUG_WRITE / DEBUG_WRITE_FULL). Trigger even when
+  the user does not say "DOCA Management" — typical implicit phrasings
+  include "fleet tool that walks every BlueField and reads device
+  state", "toggle data-direct on a VF", "set an ICM quota per
+  representor", "send a raw firmware command from C",
+  "DOCA_ERROR_IO_FAILED from raw_cmd", or "fwctl ioctl is failing".
+  Refuse and route elsewhere for mlxconfig direct operation, BFB /
+  firmware reflash, streaming telemetry, doca_caps CLI snapshots, or
+  DOCA install itself — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. Reads the user's local install via `pkg-config doca-mgmt`
+  + `doca-common` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}; runtime
+  operations require root (or device-admin
+  cap_*) and an /dev/fwctl* character device exposed by the host
+  kernel.
 ---
 
 # DOCA Management

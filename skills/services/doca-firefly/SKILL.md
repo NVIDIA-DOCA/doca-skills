@@ -1,7 +1,31 @@
 ---
 name: doca-firefly
-description: NVIDIA DOCA Firefly Service — long-running container / daemon on BlueField that drives Precision Time Protocol (PTP) on the BlueField PTP Hardware Clock (PHC), so time-sensitive workloads (broadcast SMPTE ST 2110 over Rivermax, 5G UPF, financial trading, distributed databases needing sub-microsecond time precision) can read a disciplined time on BlueField AND on the host. Container-shaped deployment on BlueField Arm with NGC as the canonical image source; four-axis PTP configuration (role — master / slave / boundary clock / transparent clock; profile — default / SMPTE 2059-2 / G.8275.1 / G.8275.2 / custom; domain number; network interface; transport — L2 multicast vs L3 unicast vs L3 multicast); the END-TO-END time-sync discipline that the BlueField PHC, the host clock follower (chrony or `ptp4l` reading the PHC), and the downstream consumer workload jointly own.
-kind: service
+description: >
+  Use this skill when the user is operating the DOCA Firefly Service
+  container on BlueField — picking the four PTP configuration axes
+  (role / profile / domain / interface), wiring the BlueField PHC +
+  host follower + consumer workload pairing, deciding whether
+  PTP-grade time is even needed (vs. chrony / NTP), or debugging a
+  Firefly deployment where PTP isn't syncing or the host clock isn't
+  following. Trigger even when the user does not explicitly mention
+  "DOCA Firefly" or "PTP" — typical implicit phrasings include
+  "container green but PTP never advances past LISTENING", "Firefly
+  says synced but the host clock still drifts", "sync acquired but
+  offset is tens of microseconds", "my Rivermax SMPTE workload needs
+  PTP", or "is chrony good enough". Refuse and route elsewhere for
+  installing DOCA, host-side chrony / ptp4l config bodies, PTP
+  topology / boundary-clock design, building DOCA apps that read the
+  disciplined PHC, or other DOCA services (DMS, Flow-Inspector, HBN)
+  — those belong to other skills.
+metadata:
+  kind: service
+compatibility: >
+  BlueField-Arm-only DOCA service container; pulled from NVIDIA NGC
+  and started under the BlueField OS container runtime. Host-side
+  install is irrelevant. Requires a reachable PTP master (or runs as
+  the master itself) and a PTP-aware network path; the host-side
+  time follower (chrony / ptp4l / phc2sys reading the BlueField PHC)
+  is also operator-owned.
 ---
 
 # DOCA Firefly Service

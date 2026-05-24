@@ -1,7 +1,27 @@
 ---
 name: doca-setup
-description: NVIDIA DOCA setup, bring-up, and the deployment-shape routing front door. Owns the `## recognize` decision tree (detect host x86 / BlueField Arm bare-metal / DPU-only / fresh laptop, ask the minimal residual dev-Q, route to either `doca-container-deployment` for the container path, `doca-bare-metal-deployment` for the bare-metal hardware path, or `## no-install` for the no-hardware fallback); env preparation (install verification, build env via `pkg-config` / headers / hugepages / devlink, runtime preconditions like representor enumeration and kernel-module visibility); env-class debugging (install / version / build / runtime layers); and the *I have no install yet* procedure with the public NGC DOCA container (`nvcr.io/nvidia/doca/doca`) as universal Stage-1 fallback for any user on macOS, Windows, or Linux without DOCA. For the canonical build pattern, the modify-a-shipped-sample first-app workflow, the cross-library `DOCA_ERROR_*` pattern, and the program-side debug order, see `doca-programming-guide`.
-kind: library
+description: >
+  Use this skill when the user is dealing with the DOCA environment
+  around their workload — verifying an install is healthy, preparing
+  the build env (pkg-config, headers, LD_LIBRARY_PATH, hugepages,
+  devlink, representors), debugging env-class failures, deciding
+  container-vs-bare-metal deployment shape, or reaching a DOCA install
+  from a host that doesn't have one yet via the NGC DOCA container
+  Stage-1 fallback. Trigger even when the user does not explicitly
+  mention "DOCA setup" — typical implicit phrasings include "I just
+  got a BlueField, what now", "my code is built, how do I run it",
+  "pkg-config can't find doca-flow", "no free 2048 kB hugepages",
+  "representor X not found", "I'm on a Mac and want to learn DOCA".
+  Refuse and route elsewhere for library API specifics (Flow pipes,
+  RDMA queues), the modify-a-sample first-app workflow or DOCA_ERROR_*
+  program-side debugging, and "where is X documented" knowledge-map
+  questions — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay loaded
+  against any DOCA artifact skill); the validation steps within DO
+  require a live DOCA install at /opt/mellanox/doca.
 ---
 
 # DOCA setup

@@ -1,7 +1,33 @@
 ---
 name: doca-caps
-description: NVIDIA DOCA Capabilities Print Tool (`doca_caps`) — read-only CLI shipped under `/opt/mellanox/doca/tools/doca_caps`. Lists DOCA devices, their representors, the DOCA libraries supported on the running OS, and per-device per-library capabilities. Available since DOCA 2.6.0; runs on host or BlueField Arm; side-effect-free, safe to call early in any DOCA workflow as a capability snapshot or install smoke-test.
-kind: tool
+description: >
+  Use this skill when the user wants to invoke the read-only
+  doca_caps CLI to ask what DOCA sees on this host — listing
+  DOCA devices and PCIe addresses, listing representor devices,
+  asking which DOCA libraries are available on the current OS,
+  checking per-device per-library capabilities, scoping output
+  to a specific PCIe address, or capturing a side-effect-free
+  capability snapshot for a debug session or install
+  smoke-test. Trigger even when the user does not explicitly
+  mention "doca_caps" or "capabilities print tool" — typical
+  implicit phrasings include "what does DOCA actually see on
+  this box", "is my BlueField PF visible to DOCA", "is Flow
+  available on my RHEL host", "enumerate VF representors for
+  pf0", "doca_caps: command not found", or "empty output for
+  RDMA, is the tool broken". Refuse and route elsewhere for
+  DOCA installation, library-internal capability matrices
+  (Flow pipe creation, RDMA verbs features), streaming
+  telemetry / DTS, or modifying the shipped binary — those
+  belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK ≥ 2.6.0 installed at /opt/mellanox/doca
+  on Linux (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField
+  DPU or ConnectX NIC; runs identically on the host or on the
+  BlueField Arm side. Invokes
+  /opt/mellanox/doca/tools/doca_caps and reads
+  `pkg-config doca-common` to confirm the install.
 ---
 
 # DOCA Capabilities Print Tool (`doca_caps`)

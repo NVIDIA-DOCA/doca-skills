@@ -40,12 +40,9 @@ skills/
 The cross-cutting skills sit at the top level because they apply *across*
 libraries / services / tools. Per-artifact skills live under the matching
 subdirectory, **strictly 1:1 with `doca/{libs,services,tools}`** at the
-DOCA release the bundle is aligned to. NVIDIA's internal CI clones
-`@doca` at the build's `DOCA_BRANCH` parameter (default `master`),
-reads `doca/VERSION`, and HARD-fails any commit that introduces a
-MISSING (in `doca/` but not in `skills/`) or EXTRA (in `skills/` but
-not in `doca/`) artifact. The bundle on `ai-mvp-with-files` is
-therefore always 1:1-aligned with the named DOCA release.
+DOCA release the bundle is aligned to. Every bundle release is verified
+to preserve this 1:1 alignment before it ships, so the bundle is always
+in lock-step with the named DOCA release.
 
 This is a *physical* convention only — agents discover skills by their
 `name:` (declared in each `SKILL.md`'s YAML frontmatter), and cross-link
@@ -80,7 +77,7 @@ routing tables so the agent can reach the skill from either entry point.
 
 The compact triple table below is the discovery surface every fresh
 agent walks. Strict 1:1 alignment with the named DOCA release is
-enforced by NVIDIA's internal CI on every commit.
+verified on every commit.
 
 **Libraries (28) — `skills/libs/<name>/`, 1:1 with `doca/libs/`** (excluding the internal-only `doca_gpunetio_internal`)
 
@@ -160,7 +157,7 @@ Telemetry-Service-as-deployed) are intentionally out of scope — see
 
 Adding or modifying a skill is governed by NVIDIA's internal author
 contract. External consumers of this bundle do not need to author
-skills themselves — `ai-mvp-with-files` already carries the
-1:1-aligned skill for every public DOCA library, service, and tool at
-the currently-aligned DOCA release, and every new release brings the
-matching skills along with it through internal CI.
+skills themselves — the bundle already carries the 1:1-aligned skill
+for every public DOCA library, service, and tool at the currently-
+aligned DOCA release, and every new release brings the matching
+skills along with it as part of the bundle alignment.

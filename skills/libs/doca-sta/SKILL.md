@@ -1,7 +1,30 @@
 ---
 name: doca-sta
-description: NVIDIA DOCA STA (Storage Transport Acceleration) on BlueField — hardware-offloaded transport layer for NVMe-over-Fabrics (NVMe-oF) initiators and targets, the per-instance `doca_sta` DOCA Core context, the NVMe queue-pair shape (one admin queue plus N I/O queues per NVMe-oF connection), the integration boundary with the user's NVMe stack (SPDK or kernel-nvme keep the NVMe semantics; doca-sta accelerates the transport handshake and per-IO encapsulation/decapsulation), capability discovery via the `doca_sta_cap_*` family for supported transport type (NVMe-over-RDMA vs NVMe-over-TCP), max I/O queue depth, max number of I/O queues, max in-flight IOs per queue, and supported NVMe-oF feature set, the substrate dependency on `doca-rdma` for NVMe-over-RDMA transport and `doca-flow` for steering NVMe traffic to the right queues, the universal DOCA Core context lifecycle, permission preconditions on the underlying `doca_dev`, and debugging `DOCA_ERROR_*` returns from the STA API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on NVMe-over-Fabrics
+  transport work on a BlueField DPU or ConnectX NIC with DOCA STA —
+  standing up a doca_sta DOCA Core context for an NVMe-oF initiator
+  or target with the transport offloaded to hardware, picking
+  NVMe-over-RDMA (on the doca-rdma substrate) vs NVMe-over-TCP via
+  doca_sta_cap_*, sizing the per-connection admin queue plus N I/O
+  queues, plugging into an SPDK or kernel-nvme stack as transport
+  provider, or debugging DOCA_ERROR_* from a STA call. Trigger even
+  when the user does not say "DOCA STA" — typical implicit phrasings
+  include "my NVMe-oF Connect never completes", "Identify Controller
+  times out over RoCE", "16 I/O queues at depth 1024 — does this
+  BlueField support that", "offload nvmf onto the DPU", or
+  "DOCA_ERROR_IO_FAILED on an NVMe read". Refuse and route elsewhere
+  for DOCA install, raw RDMA data movement, raw packet I/O,
+  flow-rule programming, or NVMe stack work above the transport
+  (SPDK or kernel-nvme owns that) — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. Reads the user's local install via `pkg-config doca-sta`
+  (and `pkg-config doca-rdma` for the NVMe-over-RDMA transport) and
+  inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA STA (Storage Transport Acceleration)

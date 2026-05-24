@@ -1,7 +1,31 @@
 ---
 name: doca-dma
-description: NVIDIA DOCA DMA on BlueField and ConnectX hosts — hardware-accelerated memcpy between two `doca_mmap` regions via the BlueField DMA engine, the single `doca_dma_task_memcpy` task type for host↔DPU and intra-host / intra-DPU bulk copies, capability discovery via the `doca_dma_cap_task_memcpy_*` query family (is-supported, max-buf-size, max-buf-list-len), the DOCA Core context lifecycle, source / destination `doca_mmap` permission rules (LOCAL_READ_ONLY for source, LOCAL_READ_WRITE for destination, plus `doca_mmap_export_*` for cross-peer copies), the path-selection rule against DOCA RDMA / Comch / CPU memcpy, and debugging DOCA_ERROR_* returns from the DMA API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA DMA
+  programming — bringing up a doca_dma context, configuring the
+  single doca_dma_task_memcpy task type, sizing buffers via the
+  doca_dma_cap_task_memcpy_* queries, setting LOCAL_READ_ONLY /
+  LOCAL_READ_WRITE permissions on source / destination doca_mmap
+  regions (plus doca_mmap_export_* for cross-peer copies),
+  driving the progress engine, or debugging DOCA_ERROR_* returns.
+  Trigger even when the user does not explicitly mention "DOCA
+  DMA" or "doca_mmap" — typical implicit phrasings include
+  "memcpy host buffer to BlueField without using the CPU",
+  "offload a bulk copy to the DPU", "copy returns NOT_PERMITTED
+  on first submit", "buffer too big for one DMA task", "task
+  submitted but no completion", or "scatter-gather copy between
+  two memory regions". Refuse and route elsewhere for
+  cross-network copies (DOCA RDMA), producer/consumer messaging
+  (DOCA Comch), DOCA Core / progress-engine internals, or DOCA
+  install — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached. Reads the user's local install via
+  `pkg-config doca-dma` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA DMA

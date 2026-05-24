@@ -1,7 +1,33 @@
 ---
 name: doca-apsh
-description: NVIDIA DOCA App Shield (pkg-config doca-apsh) — DPU-side library that introspects the host's running kernel state for agent-less security monitoring (rootkit detection, periodic process / module / library / thread enumeration, snapshot-based integrity checks). The host runs nothing; the DPU passively reads host kernel memory over PCIe. Covers the host kernel symbol map hard prerequisite (host-OS-version-specific), the doca_apsh_system / proc / module / lib / thread object family, capability discovery via the doca_apsh_cap_* surface against the active doca_devinfo, the DOCA Core context lifecycle, the DPU-side permission rule (sudo + symbol map loaded), the path-selection rule against doca-dma / doca-eth / doca-flow when the workload is bulk data or packet I/O, and debugging DOCA_ERROR_* returns from the App Shield API (including the NOT_FOUND-is-a-normal-answer rule for absent processes / modules).
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA App Shield
+  work on a BlueField DPU to introspect a paired host's kernel
+  state — standing up a doca_apsh_system, enumerating host
+  processes / kernel modules / libraries / threads from the DPU
+  side, loading the host kernel symbol map, running
+  doca_apsh_cap_* queries, or debugging DOCA_ERROR_* returns from
+  the App Shield API. Trigger even when the user does not
+  explicitly mention "DOCA App Shield" or "doca_apsh" — typical
+  implicit phrasings include "agent-less rootkit detection on
+  BlueField", "list processes on the host from the DPU",
+  "DPU-side host kernel introspection", "enumerator worked
+  yesterday, returns NOT_PERMITTED today", "process query returns
+  NOT_FOUND but ps shows it", or "kernel module integrity check
+  from the DPU". Refuse and route elsewhere for host kernel
+  symbol-map authoring, bulk host↔DPU memory copies (doca-dma),
+  packet I/O / flow steering (doca-eth / doca-flow), and
+  real-time host event streams (doca-comch) — those belong to
+  other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on the
+  BlueField DPU (Ubuntu 22.04/24.04 or RHEL/SLES on the Arm side)
+  paired with an x86/Arm host whose running kernel will be
+  introspected over PCIe. Reads the install via `pkg-config
+  doca-apsh`; requires sudo on the DPU side and a
+  host-OS-version-matching kernel symbol map loaded on the DPU.
 ---
 
 # DOCA App Shield

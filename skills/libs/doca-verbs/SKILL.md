@@ -1,7 +1,31 @@
 ---
 name: doca-verbs
-description: NVIDIA DOCA Verbs (pkg-config doca-verbs) — the lower-level ibverbs-style API beneath DOCA RDMA / DOCA Eth, exposing raw QP / CQ / PD / MR / SRQ / Address-Handle primitives inside the DOCA Core context model. The skill's primary job is to ROUTE most users back to the matching higher-level library (doca-rdma, doca-eth); it only takes the conversation when the higher-level library does not expose the specific verb / opcode / WR flag / QP attribute the user needs. Covers when to drop down vs stay up, the libibverbs-vs-doca-verbs boundary (do not mix handles), capability discovery via doca_verbs_query_device, the DOCA Core lifecycle in verbs terms, the porting path from existing libibverbs code, and debugging DOCA_ERROR_* returns from raw-verbs calls.
-kind: library
+description: >
+  Use this skill when the user is dropping below the higher-level DOCA
+  libraries (doca-rdma / doca-eth / doca-rmax) into the raw-verbs escape
+  hatch — managing QP / CQ / PD / MR / SRQ / AH / CC-group / Ethernet-SQ-RQ
+  primitives inside DOCA Core, porting libibverbs code into the DOCA Core
+  model, capability-querying a specific verb / opcode / WR flag / QP
+  attribute via doca_verbs_query_device, or debugging DOCA_ERROR_* from
+  doca_verbs_* calls. Trigger even when the user does not say "doca-verbs"
+  — implicit phrasings include "raw QP attribute the task API doesn't
+  expose", "keep my ibv_* code next to doca_* on the same QP", "IO_FAILED
+  on WR submit", "QP state transition rejected", "attach a congestion-
+  control group", or "porting my libibverbs code". The skill's first job
+  is to route MOST users back UP to the higher-level library. Refuse and
+  route elsewhere for general doca-rdma / doca-eth / doca-rmax workloads,
+  DOCA install, Core internals, and general libibverbs theory — those
+  belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC attached.
+  Reads the user's local install via `pkg-config doca-verbs` (experimental
+  ABI tier — symbols may shift between releases) and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}. The verbs headers
+  (doca_verbs.h + adjacent doca_verbs_*.h family) are the authoritative
+  symbol surface per headers-win-over-docs.
 ---
 
 # DOCA Verbs

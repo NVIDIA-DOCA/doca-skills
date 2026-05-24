@@ -1,7 +1,30 @@
 ---
 name: doca-socket-relay
-description: NVIDIA DOCA Socket Relay — operator-facing tool that bridges socket-based traffic across the host ↔ BlueField DPU boundary, letting an existing socket-oriented application keep its local socket while the relay forwards the bytes to a DPU-side terminator over the DOCA fabric. Read-only inspection is safe — binding a relay endpoint, repointing a forwarding endpoint, and tearing down a running relay are state-changing operations in the data path and can silently break app connectivity when misconfigured. Pairs with doca-comch as the control-plane sibling (relay carries the data-plane bytes comch coordinates), with doca-eth as the packet-I/O layer below the socket level, and with doca-container-deployment when shipped as a service container on the BlueField. The canonical public source is the DOCA Socket Relay guide on docs.nvidia.com — binary name, flag strings, socket-path defaults, and port numbers come from that guide and the installed --help, not from agent memory.
-kind: tool
+description: >
+  Use this skill when the operator is driving the DOCA Socket Relay
+  to bridge a socket-oriented host application onto a BlueField DPU
+  peer without rewriting it — picking the deployment shape
+  (in-process, sidecar, or BlueField service container), configuring
+  the host-side socket and the DPU-side forwarding endpoint, walking
+  the bind → connect → round-trip → admit-fleet smoke, or diagnosing
+  a stuck/silent relay. Trigger even when the user does not
+  explicitly mention "DOCA Socket Relay" — typical implicit phrasings
+  include "move my socket app onto the BlueField without rewriting
+  it", "host app gets ECONNREFUSED on the relay", "relay accepts the
+  connection but bytes never arrive on the DPU side", "first
+  round-trip works, the rest hang", "bridge a TCP/UDS service to a
+  DPU peer", or "I want a sidecar that forwards my socket to the
+  BlueField". Refuse and route elsewhere for the comch programming
+  API, line-rate raw packet I/O via doca-eth, and DOCA
+  install/bring-up — those belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU attached, plus the
+  socket-oriented host application that will be migrated onto the
+  fabric. Container-shape deployment additionally relies on the
+  BlueField kubelet-standalone runtime per doca-container-deployment.
 ---
 
 # DOCA Socket Relay

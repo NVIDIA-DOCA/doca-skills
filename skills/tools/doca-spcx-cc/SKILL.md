@@ -1,7 +1,34 @@
 ---
 name: doca-spcx-cc
-description: NVIDIA DOCA SPCX Congestion-Control Tool (`doca_spcx_cc`) — operator CLI shipped under `/opt/mellanox/doca/tools/` that loads, exercises, and observes a Programmable Congestion Control (SPCX) algorithm on a live RDMA / RoCE fabric driven by a BlueField with a DPA processor. SPCX is NVIDIA's next-gen programmable-CC surface extending [`doca-pcc`](../../libs/doca-pcc/SKILL.md); the algorithm body runs on the DPA (compiled via DPACC), the host harness drives load / start / observe / stop. SPCX vs PCC is a design decision: PCC is stable and established; SPCX is the newer extension (potentially preview / limited HW). Deploying a wrong CC algorithm on production can melt the fabric — `## Safety policy` overlays the hardware-safety meta-policy, requires the live-link / contention precondition, replica-first validation, bounded blast radius, and a rehearsed rollback to factory PCC. Flags, role tokens, probe formats, and metric names are read from the public DOCA SPCX page and `--help`.
-kind: tool
+description: >
+  Use this skill when the user is invoking `doca_spcx_cc` (the
+  host-side CLI under /opt/mellanox/doca/tools/) to load,
+  parameterize, start, observe, or stop a Programmable Congestion
+  Control (SPCX) algorithm on a BlueField with a DPA processor
+  against a live RDMA / RoCE fabric, or picking SPCX vs the
+  established `doca-pcc` surface. Trigger even when the user does
+  not say "DOCA SPCX" or "doca_spcx_cc" —
+  typical implicit phrasings include "I want to write a custom
+  RTT-based CC algorithm for my RoCE fabric", "my SPCX session
+  loaded but throughput / latency didn't change", "doca_pcc status
+  shows Active but factory CC seems to still be in charge",
+  "DOCA_PCC_PS_ERROR on start", "is the programmable-CC surface
+  available on my install", or "DPA-side algorithm image won't
+  load". Refuse and route elsewhere for DPA-side algorithm
+  authoring detail, factory PCC firmware configuration, read-only
+  PCC counter inspection, raw DPA cycle profiling, RDMA library
+  programming, or general DOCA install — those belong to other
+  skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with the SPCX optional
+  component, a BlueField exposing its DPA processor with the
+  firmware custom-PCC slot enabled, the DPACC compiler installed
+  and version-matched, and a non-prod RDMA / RoCE fabric with
+  controllable contention reachable for evaluation. Probes via
+  `pkg-config doca-pcc` and `doca_spcx_cc --help`.
 ---
 
 # DOCA SPCX Congestion-Control Tool

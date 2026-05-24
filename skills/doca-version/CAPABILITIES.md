@@ -84,22 +84,103 @@ signal* (one or more DOCA host-packages was not installed
 alongside `doca-common`), record which sources are absent in the
 captured triple, and continue with the remaining sources to pin
 down which package to add — do NOT route an absent-source case to
-a full `doca-all` reinstall when a targeted `apt install
-doca-applications doca-tools doca-samples` is the actual fix. The
-canonical partial-install pattern on a host with `doca-common`
-installed is:
+a full `doca-all` reinstall when a targeted, granular `apt install`
+is the actual fix. The canonical partial-install pattern on a host
+with `doca-common` installed is:
 
-| What the four sources say                                      | What it means                                          | Fix                                                              |
+| What the four sources say                                      | What it means                                          | Fix (DOCA 3.3+ vocabulary)                                       |
 | ---                                                            | ---                                                    | ---                                                              |
-| (a) returns *X*; (b) and (c) are *absent*                      | Only the `doca-common` host package is installed       | `apt install doca-applications doca-tools doca-samples` (+ devel)|
-| (a) returns *X*; (b) returns *X*; (c) is *absent*              | The `doca-tools` package was not installed             | `apt install doca-tools`                                         |
-| (a) returns *X*; (c) returns *X*; (b) is *absent*              | The `doca-applications` package was not installed      | `apt install doca-applications`                                  |
+| (a) returns *X*; (b) and (c) are *absent*                      | Only the `doca-common` host package is installed       | `apt install doca-samples doca-caps` (samples ships `applications/VERSION` too on 3.3+; `doca-caps` ships the `doca_caps` binary; add other per-tool packages — `doca-bench`, `doca-pcc-counters`, `doca-flow-tune`, `doca-comm-channel-admin`, `doca-apsh-config` — as the workload requires) |
+| (a) returns *X*; (b) returns *X*; (c) is *absent*              | The per-tool package(s) that ship the binary you need (e.g. `doca-caps`) were not installed | `apt install doca-caps` (or the specific per-tool package the workload needs) |
+| (a) returns *X*; (c) returns *X*; (b) is *absent*              | The `doca-samples` package (which on DOCA 3.3+ ships `/opt/mellanox/doca/applications/VERSION` as well) was not installed | `apt install doca-samples` |
 | (a) returns *X*; (b) returns *X*; (c) returns *Y* (*X ≠ Y*)    | Build-time and runtime are from *different* releases   | Reinstall consistently — this IS the case that requires `doca-all`|
+
+**Confirm package vocabulary against the host BEFORE prescribing.**
+DOCA package naming has been refactored across releases — on DOCA 3.3
+the legacy `doca-applications` and `doca-tools` meta-packages no
+longer exist (`applications/VERSION` ships inside `doca-samples`; the
+tools are granular per-binary: `doca-caps`, `doca-bench`,
+`doca-pcc-counters`, `doca-flow-tune`, `doca-comm-channel-admin`,
+`doca-apsh-config`, …). Before quoting an `apt install` line at the
+user, the agent **MUST** run `apt-cache policy <pkg>` (or
+`apt-cache search ^doca-`) on the target host to confirm the package
+name exists in that host's configured DOCA repo. A prescribed
+package name from this table that returns `Unable to locate package`
+is itself a finding to report — not silently ignored.
+
+**Binaries are not on `$PATH` by default.** Per-tool binaries
+installed by packages like `doca-caps` land under
+`/opt/mellanox/doca/tools/` (e.g. `/opt/mellanox/doca/tools/doca_caps`),
+NOT under `/usr/bin/`. `command -v doca_caps` and a bare
+`doca_caps --version` will both return "not found" on a freshly-
+installed DOCA 3.3 host even when the package IS installed. Probe
+with the absolute path (`/opt/mellanox/doca/tools/doca_caps --version`)
+or extend `PATH` (`export PATH=/opt/mellanox/doca/tools:$PATH`) before
+declaring the binary absent. Cross-check with
+`dpkg -L doca-caps | grep doca_caps` to confirm where the package
+actually placed the binary on this DOCA release.
 
 The cross-version mixing trap (last row) is the single most
 common cause of *"the program built but does nothing on the wire"*
 reports for first-time DOCA users, which is why this rule sits
 at the top of the version skill.
+
+## Apt-repo and OS-matrix preconditions
+
+Before quoting *any* `apt install` / `apt upgrade` line at the user —
+whether to fix a partial install, jump from one DOCA release to the
+next, or align host to BFB — the agent **MUST** clear two preconditions
+that are independent of the four-source chain itself. Skipping either
+turns a "should work" recommendation into a recoverable-but-painful
+failure on the user's box.
+
+1. **Apt repository pinning + `apt-cache policy <pkg>` precheck.**
+   `latest` channels and stale local repo files are the two ways an
+   apparently-correct `apt install` line resolves to the wrong release
+   on a user's host. The agent must:
+   - Prefer the explicit DOCA-release-pinned repo URL form
+     (`https://linux.mellanox.com/public/repo/doca/<X.Y.Z>/<distro>/<arch>/`)
+     over the `latest` alias for any controlled upgrade — `latest`
+     is for fresh installs, not for landing on a known target release.
+   - Recommend the user disable / remove stale earlier-release repo
+     files (e.g. a leftover DOCA 2.x `doca.sources` while installing 3.x);
+     a host with both pinned can resolve to either.
+   - **Run `apt-cache policy <pkg>` for every package about to be
+     installed BEFORE the install line is quoted.** If `Candidate:`
+     is `(none)` or `Installed: (none)` with no `Candidate:`, the
+     package name does not exist in any configured repo on this host
+     (see the run-4 lesson: legacy `doca-applications` / `doca-tools`
+     names are absent on DOCA 3.3+). That is a finding to surface,
+     not a line to ignore.
+
+2. **Host OS support-matrix gate.** Every DOCA release publishes a
+   *Supported Operating Systems* table; a host whose OS family is
+   *listed* but whose minor / point release is outside the supported
+   sub-range (the documented case: Ubuntu 24.04.x where `x ≤ 3` per
+   DOCA 3.3's matrix, on a host running 24.04.4) is a stop-and-ask,
+   NOT silent acceptance. The packages may install cleanly and the
+   userspace may even pass the four-source coherence check — and
+   then a downstream kernel-module / DKMS / OFED step quietly fails
+   in a way that takes hours to triangulate to "you are off-matrix."
+   The agent's required move:
+   - Read the target release's *Supported Operating Systems* table
+     from `docs.nvidia.com/doca/sdk/<release>-release-notes/...`
+     (route via [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)).
+   - Compare against the user's actual `lsb_release -a` / `uname -r`.
+   - If the OS family is unsupported → refuse (this is the
+     verification-contract `## step 1 — preconditions` failure mode).
+   - If the OS family is supported but the point release is outside
+     the documented sub-range → SURFACE the gap to the user verbatim
+     ("your Ubuntu 24.04.4 is outside the DOCA 3.3 supported
+     sub-range of 24.04.x for x ≤ 3 per the release notes"), name
+     the documented sub-range, and ask the user to either downgrade
+     the point release into the supported window or to accept the
+     off-matrix risk explicitly before proceeding.
+
+These two preconditions sit ABOVE the four-source chain, not inside
+it: they protect against failures that the four-source chain cannot
+detect because they occur before any DOCA package gets to claim a
+version at all.
 
 **Authoritative upstream source for compatibility windows.**
 NVIDIA's own statement of which release pairings are *intended* to
@@ -142,8 +223,8 @@ up *as* those errors.
 | Symptom | Most-likely version cause | First action |
 | --- | --- | --- |
 | `pkg-config: Package 'doca-common' was not found` | `PKG_CONFIG_PATH` is not configured OR the install is missing the `doca-common` package | Run `ls /opt/mellanox/doca/infrastructure/lib/pkgconfig/`. If `doca-common.pc` exists, fix `PKG_CONFIG_PATH` (see [`doca-setup ## configure`](../doca-setup/TASKS.md#configure)). If not, reinstall via `doca-all`. |
-| `pkg-config --modversion doca-common` returns *X*; `doca_caps --version` returns `command not found` (NOT a version disagreement; the binary is ABSENT) | Partial install: the `doca-tools` package was not installed alongside `doca-common`. NOT the same as the "build-time and runtime are from different releases" case — runtime is simply missing. | `apt install doca-tools` (NOT a full reinstall). See `## Version compatibility` partial-install table. |
-| `pkg-config --modversion doca-common` returns *X*; `cat /opt/mellanox/doca/applications/VERSION` errors with `No such file or directory` | Partial install: the `doca-applications` package was not installed alongside `doca-common`. | `apt install doca-applications`. |
+| `pkg-config --modversion doca-common` returns *X*; `doca_caps --version` returns `command not found` (NOT a version disagreement; the binary is ABSENT) | Either the per-tool package that ships the binary (e.g. `doca-caps`) was not installed, OR the package IS installed but `/opt/mellanox/doca/tools/` is not on `$PATH` (DOCA 3.3+ ships these binaries off-PATH by default). | First disambiguate: `dpkg -l doca-caps` and `ls /opt/mellanox/doca/tools/doca_caps`. If `dpkg -l` says absent → `apt install doca-caps` (NOT the legacy `doca-tools` meta, which no longer exists on 3.3+; verify with `apt-cache policy doca-caps` first). If the binary IS present at `/opt/mellanox/doca/tools/doca_caps` → it's a `$PATH` issue, not a missing-install; either invoke by absolute path or extend `PATH`. See `## Version compatibility` partial-install table. |
+| `pkg-config --modversion doca-common` returns *X*; `cat /opt/mellanox/doca/applications/VERSION` errors with `No such file or directory` | Partial install: the package that ships `applications/VERSION` was not installed. On DOCA 3.3+ this file is shipped by `doca-samples` (not by a separate `doca-applications` package, which no longer exists on 3.3+); on older DOCA releases it shipped via `doca-applications`. | `apt install doca-samples` on DOCA 3.3+ (confirm with `apt-cache policy doca-samples` first); `apt install doca-applications` on older releases that still ship that package. |
 | `pkg-config --modversion doca-common` returns *X*; `ls /opt/mellanox/doca/samples/` errors with `No such file or directory` | Partial install: the `doca-samples` package was not installed alongside `doca-common`. The bundle's modify-from-sample first-app workflow CANNOT apply on this host — the agent must say so explicitly (see [AGENTS.md `## Ground rules` rule 5](../../AGENTS.md#ground-rules-every-agent-must-follow)) rather than scaffold a sample from memory. | `apt install doca-samples` OR pivot to the NGC DOCA container via [`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install) Path 0. |
 | `pkg-config --modversion doca-common` returns *X*; `doca_caps --version` returns *Y* (*X ≠ Y*) | Partial install: build-time and runtime are from different DOCA releases | Reinstall consistently. Do NOT work around in code. See [TASKS.md ## debug](TASKS.md#debug) ladder step 2. |
 | Program compiles with `DOCA_VERSION_MAJOR = X`; same program returns `DOCA_ERROR_NOT_SUPPORTED` from a call that the docs say is available since *X* | The headers are from version *X*; the runtime `*.so` is from version *Y* < *X* | Same partial-install diagnosis as above; the header path is *not* what the runtime is. |

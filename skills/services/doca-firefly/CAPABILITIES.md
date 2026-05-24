@@ -76,7 +76,7 @@ Three architectural properties the operator must hold throughout:
   mounts into the container. The agent should NOT invent CLI flag
   names; the config file is the contract.
 
-### Deployment shape
+## Deployment shape
 
 The public Firefly Service Guide documents the container deployment
 on BlueField Arm. The shape lines up with every other DOCA service

@@ -1,7 +1,30 @@
 ---
 name: doca-telemetry-exporter
-description: NVIDIA DOCA Telemetry Exporter (pkg-config doca-telemetry-exporter) — application-side library for publishing structured telemetry (counters, gauges, events) from a DOCA-using program to an external telemetry consumer. Covers the exporter-vs-service distinction (this library is the producer; doca-telemetry-service is the receiver, out of scope here), the doca_telemetry_exporter_schema / source / type object family, the schema-register-before-emit lifecycle, capability discovery via doca_telemetry_exporter_*_get_* against the active install, the same-user-as-the-app permission rule (no sudo), the consumer-must-be-up-before-the-exporter staging rule, the hot-path drop-not-block invariant when transport is congested (DOCA_ERROR_AGAIN), and the path-selection rule against doca_log (for stdout logging), a direct Prometheus client (for non-DOCA-aware sinks), and doca-comch (for real-time event subscription back into the app).
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Telemetry
+  Exporter programming on a host where DOCA is installed — defining
+  a doca_telemetry_exporter_schema, creating sources, picking
+  counter/gauge/event types, running capability queries before
+  assuming limits, registering schemas before the first emit, or
+  debugging DOCA_ERROR_* failures from the exporter API. Trigger
+  even when the user does not explicitly mention "DOCA Telemetry
+  Exporter" or "doca_telemetry_exporter_*" — typical implicit
+  phrasings include "publishing counters from my DOCA app", "emit
+  returns AGAIN under bulk load", "consumer sees nothing but emit
+  reports success", "NOT_FOUND on first submit", or "should I link
+  the exporter or the telemetry service". Refuse and route elsewhere
+  for the receiving DOCA Telemetry Service, plain stdout logging via
+  doca_log, non-DOCA Prometheus scrape sinks, or real-time event
+  subscription back into the app via doca-comch — those belong to
+  other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. Reads the user's local install via `pkg-config
+  doca-telemetry-exporter` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Telemetry Exporter

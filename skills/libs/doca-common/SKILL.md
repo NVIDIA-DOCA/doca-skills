@@ -1,7 +1,30 @@
 ---
 name: doca-common
-description: NVIDIA DOCA Common (pkg-config doca-common) — the foundation library every other DOCA library depends on. Ships the universal primitives every DOCA application touches: doca_buf / doca_mmap (zero-copy data plane), doca_ctx (universal context lifecycle every doca_*_create returns), doca_dev / doca_dev_rep (device + representor discovery and capability gating), doca_pe (universal progress engine), doca_log (logging primitive used by every shipped DOCA library and sample). Teaches the primitives ONCE so per-library skills (doca-flow, doca-rdma, doca-eth, …) cross-link here. Covers pkg-config version-detection, the universal `DOCA_ERROR_*` taxonomy as seen from Common, and the safety policy that gates how buffers, devices, and contexts interact across libraries.
-kind: library
+description: >
+  Use this skill whenever the user is doing hands-on DOCA programming
+  on a BlueField DPU or ConnectX NIC and needs the foundation
+  primitives every per-library context rests on — walking the
+  doca_ctx lifecycle, discovering doca_dev / doca_devinfo and gating
+  on doca_*_cap_* before trusting a feature, wiring doca_mmap /
+  doca_buf_inventory / doca_buf for zero-copy I/O across libraries,
+  driving doca_pe for completions, or DOCA Log's two-tier
+  (--sdk-log-level vs app-side) model. Trigger even when the user
+  does not say "DOCA Common" — typical implicit phrasings include
+  "my tasks submit but nothing completes", "DOCA_ERROR_BAD_STATE
+  from doca_ctx_start", "--sdk-log-level does nothing for my
+  DOCA_LOG_DBG lines", "share a buf between doca_dma and doca_rdma",
+  or "crashes far from the offending line". Refuse and route
+  elsewhere for per-library questions in isolation (load doca-flow /
+  doca-rdma / doca-eth alongside), installing DOCA (doca-setup), or
+  doc lookup (doca-public-knowledge-map).
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. doca-common is present on every healthy DOCA install;
+  reads the user's local install via `pkg-config --modversion
+  doca-common` and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Common

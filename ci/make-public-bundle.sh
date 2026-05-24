@@ -72,6 +72,13 @@ done
 # Recursively strip any stray .DS_Store anywhere.
 find "$OUT_DIR" -name ".DS_Store" -delete 2>/dev/null || true
 
+# Recursively strip any MAINTAINERS-NOTES.md anywhere — these are
+# maintainer-only audit logs that self-describe as "not loaded by AI
+# agents at runtime" and may contain references to internal CI tooling
+# (Jenkinsfile, claude-skill-check, etc.). Public consumers do not need
+# them.
+find "$OUT_DIR" -name "MAINTAINERS-NOTES.md" -delete 2>/dev/null || true
+
 # 3) Sanity check: bundle must look like a public bundle.
 missing=()
 required_public=(AGENTS.md SKILLS.md README.md skills)

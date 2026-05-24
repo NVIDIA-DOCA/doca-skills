@@ -79,15 +79,14 @@ if [[ "${1:-}" == "--self-test" ]]; then
         "doca-compress 5-phase debug-loop block (Lane A)|skills/libs/doca-compress/TASKS.md|s/5-phase universal debug-loop instantiation (Compress)/BROKEN 5PHASE LABEL/"
         "doca-apsh rollback anchor (Lane A)|skills/libs/doca-apsh/TASKS.md|s/^## rollback$/## BROKEN ROLLBACK ANCHOR/"
         "doca-apsh 5-phase debug-loop block (Lane A)|skills/libs/doca-apsh/TASKS.md|s/5-phase universal debug-loop instantiation (Apsh)/BROKEN 5PHASE LABEL/"
-        "AGENTS.md per-library rollback overlay table (Lane A)|AGENTS.md|s/^### Per-library rollback overlay/### BROKEN PL ROLLBACK HEADER/"
+        "AGENTS.md per-library rollback overlay table (Lane A)|AGENTS.md|s/^## Per-library rollback overlay/## BROKEN PL ROLLBACK HEADER/"
         "AGENTS.md beginner-orientation staged-roadmap rule (review feedback)|AGENTS.md|s/^### Beginner-orientation staged-roadmap rule/### BROKEN STAGED ROADMAP HEADER/"
         "doca-setup Stage 1 vs Stage 2 table (review feedback)|skills/doca-setup/TASKS.md|s/Stage 1 vs Stage 2 — open every/BROKEN STAGE TABLE LABEL/"
         "doca-setup NGC tag selection rule (review feedback)|skills/doca-setup/TASKS.md|s/^### How to pick an NGC tag without guessing$/### BROKEN NGC TAG HEADER/"
         "README.md Beginner roadmap (review feedback)|README.md|s/^## Beginner roadmap — Stage 1/## BROKEN BEGINNER ROADMAP/"
         "README.md resume-point hand-off (review feedback)|README.md|s/Resume point inside the container/BROKEN RESUME POINT/"
         "doca-setup/TASKS.md resume-point hand-off (review feedback)|skills/doca-setup/TASKS.md|s/resume point inside the container/BROKEN_resume_point/g;s/Resume point inside the container/BROKEN Resume Point/g"
-        "doca-public-knowledge-map MAINTAINERS-NOTES sibling (audit history)|skills/doca-public-knowledge-map/MAINTAINERS-NOTES.md|s/^# Maintainer-only notes/# BROKEN MAINTAINERS HEADER/"
-        "doca-public-knowledge-map URL audit summary points at MAINTAINERS-NOTES|skills/doca-public-knowledge-map/SKILL.md|s/MAINTAINERS-NOTES\\.md#url-audit-log/BROKEN_AUDIT_LINK/"
+        "doca-public-knowledge-map MAINTAINERS-NOTES sibling (audit history; internal-only, stripped from public bundle)|skills/doca-public-knowledge-map/MAINTAINERS-NOTES.md|s/^# Maintainer-only notes/# BROKEN MAINTAINERS HEADER/"
         "AUTHORING.md vendored at bundle root|AUTHORING.md|1s/^.*$/BROKEN AUTHORING HEADER (no leading hash)/"
         "CONTRIBUTING.md vendored at bundle root|CONTRIBUTING.md|s/^# Contributing/# BROKEN CONTRIBUTING/"
         "SECURITY.md vendored at bundle root|SECURITY.md|s/^# Security Policy/# BROKEN SECURITY POLICY/"
@@ -291,9 +290,9 @@ check 'doca-apsh/TASKS.md ## rollback (Lane A)' \
 check 'doca-apsh/TASKS.md 5-phase debug-loop instantiation (Lane A)' \
     "${BUNDLE_ROOT}/skills/libs/doca-apsh/TASKS.md" \
     '5-phase universal debug-loop instantiation \(Apsh\)'
-check 'AGENTS.md ### Per-library rollback overlay table (Lane A)' \
+check 'AGENTS.md ## Per-library rollback overlay table (Lane A)' \
     "${BUNDLE_ROOT}/AGENTS.md" \
-    '^### Per-library rollback overlay'
+    '^## Per-library rollback overlay'
 
 printf '\n=== Beginner-orientation staged-roadmap + NGC tag rule (review feedback wave) ===\n'
 check 'AGENTS.md ### Beginner-orientation staged-roadmap rule (Stage 1 → Stage 2)' \
@@ -319,12 +318,12 @@ check 'doca-setup/TASKS.md "resume point inside the container" hand-off (reviewe
     '[Rr]esume point inside the container'
 
 printf '\n=== Self-containment hygiene (no internal-only path leaks; review feedback wave) ===\n'
-check 'doca-public-knowledge-map MAINTAINERS-NOTES.md sibling (audit-history moved out of SKILL.md)' \
+check 'doca-public-knowledge-map MAINTAINERS-NOTES.md sibling (audit-history moved out of SKILL.md; internal-only, stripped from public bundle by make-public-bundle.sh)' \
     "${BUNDLE_ROOT}/skills/doca-public-knowledge-map/MAINTAINERS-NOTES.md" \
     '^# Maintainer-only notes'
-check 'doca-public-knowledge-map/SKILL.md ## URL audit summary row points at MAINTAINERS-NOTES.md' \
+check 'doca-public-knowledge-map/SKILL.md ## URL audit section is present (audit-history kept in maintainer sibling, summary stays in runtime SKILL.md)' \
     "${BUNDLE_ROOT}/skills/doca-public-knowledge-map/SKILL.md" \
-    'MAINTAINERS-NOTES\.md#url-audit-log'
+    '^## URL audit'
 check 'ci/check-skill.sh vendored into bundle (self-contained CI gate)' \
     "${BUNDLE_ROOT}/ci/check-skill.sh" \
     '^#!/usr/bin/env bash'

@@ -1,7 +1,33 @@
 ---
 name: doca-devemu
-description: NVIDIA DOCA Device Emulation on BlueField — the UMBRELLA library for building emulated PCIe devices that the host sees as real PCIe peripherals while the implementation runs as DPU-side user-space code, covering three public sub-libraries (PCI Generic for raw PCIe emulation, virtio-net for emulated virtio NICs, virtio-fs for emulated virtio filesystems), the shared umbrella architecture (host binds its standard kernel driver; DPU runs the backend), the per-sub-library DOCA Core context, doorbell / DMA primitives for host ↔ DPU interaction, per-sub-library capability discovery via the `doca_devemu_*_cap_*` families, the per-sub-library `pkg-config` module selection rule, env preconditions (DPU-side privileges plus BlueField firmware-level enablement of the chosen emulation type), the distinction from the packaged services built on top (DOCA SNAP Service / DOCA Virtio-net Service), and debugging `DOCA_ERROR_*` returns from the device-emulation API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Device
+  Emulation on a BlueField DPU — exposing a custom emulated PCIe
+  device the host sees as a real peripheral while DPU-side code
+  runs the backend, picking the sub-library (PCI Generic,
+  virtio-net, virtio-fs), wiring the per-sub-library Core context
+  plus doorbell / DMA primitives, querying `doca_devemu_*_cap_*`,
+  or debugging DOCA_ERROR_* from a `doca_devemu_*` call. Trigger
+  even when the user does not say "devemu" — typical implicit
+  phrasings include "expose a custom PCIe device from BlueField to
+  the host", "host should see a virtio NIC backed by my DPU code",
+  "lspci does not show my emulated device", "device enumerated but
+  no driver binds", "DPU sees nothing when host kicks the queue",
+  or "virtio feature negotiation failed at bind". Refuse and route
+  elsewhere for the packaged DOCA SNAP / Virtio-net Services,
+  host-side virtio kernel drivers, backend body design, or standard
+  BlueField NIC behavior — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on BOTH the
+  host AND the BlueField DPU (Ubuntu 22.04/24.04 or RHEL/SLES),
+  with the per-sub-library firmware-level emulation type (PCI
+  Generic / virtio-net / virtio-fs) enabled in BlueField firmware
+  and the host kernel shipping the matching standard driver
+  (virtio_net / virtio_fs / generic PCIe). Reads the local install
+  via the per-sub-library pkg-config module and inspects
+  /opt/mellanox/doca/{lib,include,samples/doca_device_emulation}.
 ---
 
 # DOCA Device Emulation

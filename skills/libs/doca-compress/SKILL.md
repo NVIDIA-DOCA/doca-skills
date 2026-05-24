@@ -1,7 +1,31 @@
 ---
 name: doca-compress
-description: NVIDIA DOCA Compress on BlueField and ConnectX hosts — hardware-accelerated bulk (de)compression with the DEFLATE algorithm, the `doca_compress_task_compress_deflate` vs `doca_compress_task_decompress_deflate` task split (including decompression-only as a valid standalone shape), per-task buffer-sizing capability discovery via `doca_compress_cap_*`, the DOCA Core context lifecycle for the `doca_compress` context, source / destination mmap permission pair, the asymmetric submit-then-progress completion surface, the size-threshold path-selection rule (don't offload tiny inputs where CPU compression beats DMA-to-accelerator overhead), and debugging DOCA_ERROR_* returns from the Compress API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Compress
+  programming on a BlueField DPU, ConnectX NIC, or host with
+  DOCA — enabling the compress-deflate or decompress-deflate
+  task on a doca_compress context, sizing source / destination
+  doca_buf against the per-task cap query, setting mmap
+  permissions, deciding whether to offload versus CPU zlib /
+  zstd, validating with a round-trip smoke, or debugging
+  DOCA_ERROR_* from a Compress call. Trigger even when the user
+  does not say "DOCA Compress" or "DEFLATE" — typical implicit
+  phrasings include "should I offload this gzip to the
+  BlueField", "I just need to decompress incoming network data",
+  "compress task returns INVALID_VALUE on alloc_init",
+  "submitted a task but no completion arrives", or "is zlib
+  faster on the CPU for this 64-byte buffer". Refuse and route
+  elsewhere for non-DEFLATE algorithms (zstd / LZ4 / Snappy),
+  pure mmap-to-mmap copies (use doca-dma), or cross-library
+  DOCA Core lifecycle and DOCA_ERROR_* taxonomy internals.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached. Reads the user's local install via
+  `pkg-config doca-compress` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Compress

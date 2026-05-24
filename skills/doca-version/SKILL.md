@@ -1,7 +1,29 @@
 ---
 name: doca-version
-description: Single source of truth for DOCA version handling across the bundle — the canonical version-detection chain (pkg-config --modversion + cat applications/VERSION + doca_caps --version, plus BFB version on BlueField hosts), the four-way match rule, NGC container version semantics, the headers-win-over-docs rule, partial-install detection, the per-library version-compatibility overlay pattern that every library / service / tool skill follows, and the routing to the DOCA Compatibility Policy.
-kind: library
+description: >
+  Use this skill when the user is doing DOCA version handling —
+  detecting the installed release, validating the four-way match
+  across pkg-config doca-common, applications/VERSION, doca_caps
+  --version, and bfver/mlnx-release on BlueField, reasoning about
+  NGC container tags, looking up whether a capability is on the
+  installed release, or diagnosing build-vs-runtime drift. Trigger
+  even when the user does not explicitly say "DOCA version" or
+  "four-way match" — typical implicit phrasings include "program
+  built but does nothing on the wire", "undefined reference to a
+  symbol the docs claim exists", "DOCA_ERROR_NOT_SUPPORTED at
+  runtime", "counter didn't increment", "what does `latest` mean
+  for this tag", or "is my LTS still supported". Refuse and route
+  elsewhere for installing or choosing DOCA packages (doca-setup),
+  per-library API/capability questions (matching library skill),
+  the cross-library DOCA_ERROR_* taxonomy (doca-programming-guide),
+  or the general debug ladder (doca-debug) — those belong to other
+  skills.
+metadata:
+  kind: library
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay
+  loaded against any DOCA artifact skill); the validation steps
+  within DO require a live DOCA install at /opt/mellanox/doca.
 ---
 
 # DOCA version

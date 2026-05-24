@@ -1,7 +1,31 @@
 ---
 name: doca-urom
-description: NVIDIA DOCA UROM (Unified Communication Remote Memory Operations) library on BlueField + host pairs — the host-side library that HPC / UCX / MPI stacks link against to OFFLOAD remote memory operations (puts, gets, atomics, active messages, collective primitives) to the BlueField DPU so host CPUs are freed for compute, the per-instance `doca_urom` Core context attached to a `doca_dev` mapping to the BlueField, the host-enqueue-side primitives and the progress / completion surface integrated with the DOCA progress engine, capability discovery via `doca_urom_cap_*`, env preconditions (the DOCA UROM Service must be DEPLOYED and RUNNING on the DPU side — this library cannot offload to a service that is not there), the distinction from the DOCA UROM Service which is a separate artifact on the DPU side, the pairing with `doca-rdma` as the underlying RDMA transport substrate, and debugging `DOCA_ERROR_*` returns from the host-side UROM API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA UROM library
+  work from the host side — wiring doca-urom under an HPC / UCX /
+  MPI stack to OFFLOAD remote memory operations (puts, gets, atomics,
+  active messages, collective primitives) onto a BlueField DPU,
+  creating a per-BlueField doca_urom Core context, running
+  doca_urom_cap_* capability queries, progressing completions on the
+  DOCA progress engine, or debugging DOCA_ERROR_* from a doca_urom_*
+  call. Trigger even when the user does not explicitly mention
+  "DOCA UROM" — typical implicit phrasings include "MPI all-reduce
+  burning host CPU I want for compute", "push UCX traffic onto the
+  BlueField", "first doca_urom call returns NOT_PERMITTED", "is
+  fetch-and-add supported on this BF for an MPI window", "host
+  library and DPU service look out of sync". Refuse and route
+  elsewhere for DOCA UROM Service deployment / operation on the DPU
+  side, MPI / UCX collective algorithm design, and RDMA / RoCE / IB
+  substrate bring-up — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) on a host paired with a BlueField DPU
+  running the DOCA UROM Service at a compatible version. Reads the
+  user's local install via `pkg-config doca-urom` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}; underlying
+  RDMA fabric between host and BlueField must be healthy.
 ---
 
 # DOCA UROM
