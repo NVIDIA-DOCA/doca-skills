@@ -77,7 +77,7 @@ install path, and only then answer.
 4. **Public sources only.** Reference NVIDIA documentation only on the
    public hosts listed in [`AGENTS.md` ground rule #1](../../AGENTS.md).
    Anything else is not available to a customer agent and is rejected
-   by NVIDIA's internal release CI before the bundle ships.
+   by an internal CI pipeline before the bundle ships.
 5. **No source-tree paths.** Do not reference `devtools/...`, `docs/ai/...`,
    or any path that only exists inside the DOCA repository. Customers do not
    have those.
@@ -472,10 +472,9 @@ for the cross-library programming patterns it layers on top of.
 ## URL audit
 
 Every URL referenced by this routing map is HEAD-checked against the
-public NVIDIA documentation surface as part of NVIDIA's internal
-release CI; bundle commits on `ai-mvp-with-files` therefore always
-ship a routing map whose every URL was reachable at release time.
-Per-row fix history, prior-audit deltas, and quality-gate sign-off
-notes — useful only for the people maintaining this routing map — are
-kept out of this runtime skill file and live in
-[`MAINTAINERS-NOTES.md ## URL audit log`](MAINTAINERS-NOTES.md#url-audit-log).
+public NVIDIA documentation surface on every commit, so bundle
+releases always ship a routing map whose every URL was reachable at
+release time. If a URL on this page no longer resolves, that is the
+release's bug, not yours — fall back to the umbrella entry points
+listed in *Public documentation entry points* (DOCA SDK index, DOCA
+Libraries / Services / Tools umbrella pages) and search from there.

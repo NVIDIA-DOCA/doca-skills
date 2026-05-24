@@ -115,7 +115,7 @@ the BlueField / how do I configure which UCX components it
 exposes / how do I authorize a host endpoint"*, that is this
 skill's scope. Two distinct artifacts; two distinct surfaces.
 
-### Deployment shape
+## Deployment shape
 
 The public DOCA UROM Service Guide documents the container
 deployment on BlueField Arm. The shape lines up with every

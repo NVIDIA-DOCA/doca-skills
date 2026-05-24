@@ -85,7 +85,7 @@ operational data).
 Quote concrete paths only when they are in the public guide. Refuse to
 invent paths.
 
-### Deployment shapes
+## Deployment shapes
 
 The public guide documents three deployment shapes:
 

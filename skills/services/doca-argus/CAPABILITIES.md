@@ -87,7 +87,7 @@ Three architectural properties the operator must hold throughout:
   them to the DOCA Telemetry Service via
   [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services).
 
-### Deployment shape
+## Deployment shape
 
 The public DOCA Argus Service Guide documents the container
 deployment on BlueField Arm. The shape lines up with every other

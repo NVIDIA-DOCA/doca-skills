@@ -86,8 +86,7 @@ if [[ "${1:-}" == "--self-test" ]]; then
         "README.md Beginner roadmap (review feedback)|README.md|s/^## Beginner roadmap — Stage 1/## BROKEN BEGINNER ROADMAP/"
         "README.md resume-point hand-off (review feedback)|README.md|s/Resume point inside the container/BROKEN RESUME POINT/"
         "doca-setup/TASKS.md resume-point hand-off (review feedback)|skills/doca-setup/TASKS.md|s/resume point inside the container/BROKEN_resume_point/g;s/Resume point inside the container/BROKEN Resume Point/g"
-        "doca-public-knowledge-map MAINTAINERS-NOTES sibling (audit history)|skills/doca-public-knowledge-map/MAINTAINERS-NOTES.md|s/^# Maintainer-only notes/# BROKEN MAINTAINERS HEADER/"
-        "doca-public-knowledge-map URL audit summary points at MAINTAINERS-NOTES|skills/doca-public-knowledge-map/SKILL.md|s/MAINTAINERS-NOTES\\.md#url-audit-log/BROKEN_AUDIT_LINK/"
+        "doca-public-knowledge-map MAINTAINERS-NOTES sibling (audit history; internal-only, stripped from public bundle)|skills/doca-public-knowledge-map/MAINTAINERS-NOTES.md|s/^# Maintainer-only notes/# BROKEN MAINTAINERS HEADER/"
         "AUTHORING.md vendored at bundle root|AUTHORING.md|1s/^.*$/BROKEN AUTHORING HEADER (no leading hash)/"
         "CONTRIBUTING.md vendored at bundle root|CONTRIBUTING.md|s/^# Contributing/# BROKEN CONTRIBUTING/"
         "SECURITY.md vendored at bundle root|SECURITY.md|s/^# Security Policy/# BROKEN SECURITY POLICY/"
@@ -319,12 +318,12 @@ check 'doca-setup/TASKS.md "resume point inside the container" hand-off (reviewe
     '[Rr]esume point inside the container'
 
 printf '\n=== Self-containment hygiene (no internal-only path leaks; review feedback wave) ===\n'
-check 'doca-public-knowledge-map MAINTAINERS-NOTES.md sibling (audit-history moved out of SKILL.md)' \
+check 'doca-public-knowledge-map MAINTAINERS-NOTES.md sibling (audit-history moved out of SKILL.md; internal-only, stripped from public bundle by make-public-bundle.sh)' \
     "${BUNDLE_ROOT}/skills/doca-public-knowledge-map/MAINTAINERS-NOTES.md" \
     '^# Maintainer-only notes'
-check 'doca-public-knowledge-map/SKILL.md ## URL audit summary row points at MAINTAINERS-NOTES.md' \
+check 'doca-public-knowledge-map/SKILL.md ## URL audit section is present (audit-history kept in maintainer sibling, summary stays in runtime SKILL.md)' \
     "${BUNDLE_ROOT}/skills/doca-public-knowledge-map/SKILL.md" \
-    'MAINTAINERS-NOTES\.md#url-audit-log'
+    '^## URL audit'
 check 'ci/check-skill.sh vendored into bundle (self-contained CI gate)' \
     "${BUNDLE_ROOT}/ci/check-skill.sh" \
     '^#!/usr/bin/env bash'

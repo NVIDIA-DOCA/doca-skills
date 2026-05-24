@@ -120,7 +120,7 @@ the right answer is *"point your monitoring at DTS directly; do
 not stand the inspector up as a permanent forwarder"* — see
 [`## Safety policy`](#safety-policy) mirror-overhead rule.
 
-### Deployment shape
+## Deployment shape
 
 The public guide documents one canonical deployment shape:
 

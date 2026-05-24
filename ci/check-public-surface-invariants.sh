@@ -61,7 +61,7 @@ public_find_lines() {
 # I1: internal-CI process trivia leak
 # -----------------------------------------------------------------------
 echo "== I1: no internal-CI process trivia in public surface =="
-matches="$(public_find_lines "NVIDIA's internal CI|DOCA_BRANCH|enforced by.+internal CI|through internal CI" 2>/dev/null)"
+matches="$(public_find_lines "NVIDIA's internal( release)? CI|DOCA_BRANCH|enforced by.+internal CI|through internal CI" 2>/dev/null)"
 # README.md is allowed ONE softened mention ("an internal CI pipeline").
 i1_bad="$(echo "$matches" | grep -v "^$" | grep -v 'README.md.*an internal CI pipeline' || true)"
 if [ -n "$i1_bad" ]; then

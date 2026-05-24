@@ -194,7 +194,7 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
    public hosts: `docs.nvidia.com`, `developer.nvidia.com`,
    `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
    `forums.developer.nvidia.com`, `nvcr.io`. Anything else is rejected
-   by NVIDIA's internal release CI before the bundle ships.
+   by an internal CI pipeline before the bundle ships.
 2. **Prefer the local install over the web.** When DOCA is installed at
    `/opt/mellanox/doca`, those files *are* the release. Web docs describe a
    release.
@@ -257,9 +257,9 @@ Mentioning hardware ("you'll want to pin to the right NUMA node") without naming
 
 ## Conformance
 
-NVIDIA's internal release CI enforces — on every commit, before the
-bundle is shipped to `ai-mvp-with-files` — three layers of
-conformance over every skill file in `skills/`:
+An internal CI pipeline enforces — on every commit, before each
+bundle release — three layers of conformance over every skill file
+in `skills/`:
 
 1. **Structural.** Frontmatter validity, required H2 anchors in
    `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, cross-anchor labels in
@@ -275,9 +275,9 @@ conformance over every skill file in `skills/`:
    to a `2xx`/`3xx`. Catches the *page renamed* / *page deleted*
    failure mode (e.g. the pre-3.x DOCA Samples Overview URL).
 
-What this means for you as a consumer: every commit on
-`ai-mvp-with-files` ships a bundle that has already passed those
-gates. You do not need to run any of them yourself.
+What this means for you as a consumer: every released bundle has
+already passed those gates. You do not need to run any of them
+yourself.
 
 ## Non-goals (questions the agent should recognize and refuse politely)
 
@@ -285,7 +285,7 @@ This bundle is the **public, vendor-shipped** skills bundle for the NVIDIA DOCA 
 
 1. **Cross-vendor comparisons.** *"DOCA vs DPDK vs OvS-DPDK vs kernel offload vs Intel IPU SDK vs AMD Pensando vs …"* The bundle is DOCA-specific by design and does not ship competitive content. A vendor-shipped skills bundle synthesizing comparisons against competing stacks would be inappropriate; refer the user to independent sources (their own benchmarks, third-party analyst reports, the NVIDIA Developer Forum for architectural questions on the DOCA side).
 2. **Commercial support contracts, SLAs, and procurement.** The bundle's support-surface coverage is the **public** NVIDIA DOCA Developer Forum at <https://forums.developer.nvidia.com/c/infrastructure/doca/370>. Commercial support contracts, response-time SLAs, escalation paths to NVIDIA engineering, and license pricing are out of scope; refer the user to NVIDIA sales for that conversation.
-3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by NVIDIA's internal release CI and is not what this bundle is for. The bundle ships only public surfaces.
+3. **Internal NVIDIA tools, bug trackers, source trees.** Anything inside the NVIDIA firewall (NVBugs, internal Gerrit, internal GitLab, `*.nvidia.internal`, labhome, etc.) is rejected by the bundle's CI gates and is not what this bundle is for. The bundle ships only public surfaces.
 4. **Pre-release or unreleased DOCA content.** The bundle's URL allowlist (rule 1) is the *public* documentation set; if a release is not yet public, the bundle has nothing to say about it. Refer the user to the public release-notes channel.
 5. **Code synthesis from prose.** Ground rule 5 above. The agent never scaffolds DOCA code from doc prose. *This is a methodology constraint, not a question-class refusal* — but it is the most operationally important non-goal in practice and so is listed here for visibility.
 6. **Security architecture claims the bundle is not authorized to make.** Side-channel guarantees, isolation guarantees on shared accelerators, FIPS / Common Criteria assertions, and similar properties of the DOCA crypto / DPA engines are not the bundle's to assert. Frame the question; route to NVIDIA security architecture material (Confidential Computing mode pages, BlueField secure-boot guides) and the Developer Forum; do not synthesize an isolation claim.
