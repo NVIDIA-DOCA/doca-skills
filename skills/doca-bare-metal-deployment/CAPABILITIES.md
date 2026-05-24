@@ -315,19 +315,30 @@ BSP / DOCA Platform Framework documentation for those steps.
    PCIe devices still enumerated (`lspci -d 15b3:`), (iv) host-
    visible NIC firmware version matches the per-device target from
    the release notes (`flint -d <bdf> q`).
-6. **Handoff to BFB install — OUT OF SCOPE here.** Once the host is
-   green, the BFB-side install (push BFB to BlueField via RShim,
-   eMMC image install, BFB-side firmware update, BFB-side OS bring-
-   up to `Linux up` / `DPU is ready`, TMFIFO recovery, BFB-side
-   apt vocabulary) lives in NVIDIA's BlueField BSP / DOCA Platform
-   Framework documentation. The agent names the boundary explicitly
-   ("the host-side ladder is complete; for the BFB push and BlueField
-   bring-up, route to the BlueField BSP docs at
-   <https://docs.nvidia.com/networking/display/BlueFieldDPUOSLatest/>
-   and the DOCA Platform Framework at
-   <https://github.com/NVIDIA/doca-platform>") and does NOT
-   synthesize BFB install / RShim / TMFIFO / `bf.cfg` mechanics
-   from training memory.
+6. **Handoff to BFB install — OUT OF SCOPE here, route per the contract.**
+   Once the host is green, the BFB-side install (push BFB to BlueField via
+   RShim, eMMC image install, BFB-side firmware update, BFB-side OS bring-
+   up to `Linux up` / `DPU is ready`, TMFIFO recovery, BFB-side apt
+   vocabulary, `bf.cfg`) is **externally-productized** (BlueField BSP layer
+   plus, for fleet-scale deployments, DOCA Platform Framework). It is out
+   of scope for this bundle's strict-1:1 monorepo alignment, but the
+   bundle's `AGENTS.md ## Non-goals #7` contract still applies: the agent
+   MUST produce the three-part response shape (recognize + name boundary
+   + **route with substance**). For step (c), consult the per-product
+   rows in the `doca-public-knowledge-map` routing table:
+   [BlueField BSP / BFB / `bfb-install` / RShim / TMFIFO / `bf.cfg`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   for the single-host case, and [DOCA Platform Framework (DPF)](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   for fleet-scale K8s-driven DPU provisioning. If the BFB-install symptom
+   touches firmware state (`mlxconfig` / `flint` / `mlxfwmanager`), also
+   load the [NVIDIA Firmware Tools (MFT)](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   row. If the BFB-install left the BlueField unreachable, the recovery
+   path is the [BlueField BMC](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   row. The agent **must** name the symptom-matching gotcha class from the
+   relevant row (e.g. "`bfb-install` exit 0 with `NIC firmware update failed`
+   is the BSP row's #1 partial-failure signature — bisect with `flint -d
+   <bdf> q`") rather than handing the user a bare URL. The agent does NOT
+   synthesize BFB install / RShim / TMFIFO / `bf.cfg` mechanics from
+   training memory.
 7. **End-to-end success contract.** A DOCA host-side upgrade is
    "done" only when, AFTER the BFB-side portion completes
    independently, all of the following hold:
