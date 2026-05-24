@@ -48,6 +48,21 @@ PRODUCTS=(
   "DOCA-DPU-CLI|DOCA-DPU-CLI|DOCA DPU CLI"
   "DOCA-Ngauge|DOCA-Ngauge|DOCA Ngauge"
   "doca-hugepages|doca-hugepages|doca-hugepages"
+  "BlueField BSP / BFB / bfb-install / RShim|BlueField BSP / BFB|BlueField BSP / BFB"
+  "DOCA Platform Framework (DPF)|DOCA Platform Framework (DPF)|DOCA Platform Framework \\(DPF\\)"
+  "NVIDIA Network Operator|NVIDIA Network Operator|NVIDIA Network Operator"
+  "MLNX_OFED separately installed|MLNX_OFED|MLNX_OFED"
+  "NVIDIA UFM|NVIDIA UFM|NVIDIA UFM"
+  "NVIDIA Cumulus Linux|NVIDIA Cumulus Linux|NVIDIA Cumulus Linux"
+  "NVIDIA Firmware Tools (MFT)|NVIDIA Firmware Tools (MFT|NVIDIA Firmware Tools \\(MFT"
+  "NVIDIA Rivermax SDK|NVIDIA Rivermax SDK|NVIDIA Rivermax SDK"
+  "BlueField BMC software|BlueField BMC software|BlueField BMC Software"
+  "DOCA Privileged Executor (DPE)|DOCA Privileged Executor (DPE)|DOCA Privileged Executor \\(DPE\\)"
+  "NIC Configuration Operator|NIC Configuration Operator|NIC Configuration Operator"
+  "NVIDIA NetQ|NVIDIA NetQ|NVIDIA NetQ"
+  "NVIDIA NVOS|NVIDIA NVOS|NVIDIA NVOS"
+  "NVIDIA Spectrum-X Validated Solution Stack|NVIDIA Spectrum-X Validated Solution Stack|NVIDIA Spectrum-X Validated Solution Stack"
+  "NVIDIA GPU Operator|NVIDIA GPU Operator|NVIDIA GPU Operator"
 )
 
 FAILS=0
@@ -120,8 +135,8 @@ done
 # ---------------------------------------------------------------------
 # Count table rows (lines that start with "| **" — the product column).
 TABLE_ROWS="$(grep -cE '^\| \*\*' <<<"$ROUTING_TABLE" || true)"
-if [[ "$TABLE_ROWS" -lt 10 ]]; then
-  echo "FAIL: routing table has $TABLE_ROWS product rows; expected at least 10"
+if [[ "$TABLE_ROWS" -lt 25 ]]; then
+  echo "FAIL: routing table has $TABLE_ROWS product rows; expected at least 25"
   FAILS=$((FAILS+1))
 fi
 
@@ -171,4 +186,4 @@ if [[ "$FAILS" -gt 0 ]]; then
   exit 1
 fi
 
-echo "OK: non-goal routing contract is in sync (10 products covered in AGENTS.md + routing table; every row has docs.nvidia.com + forums.developer.nvidia.com URLs)"
+echo "OK: non-goal routing contract is in sync (${#PRODUCTS[@]} products covered in AGENTS.md + routing table; every row has a docs.nvidia.com / network.nvidia.com URL + forums.developer.nvidia.com URL)"

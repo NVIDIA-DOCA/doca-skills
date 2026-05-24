@@ -29,7 +29,7 @@ SKILLS_ROOT="${SKILLS_ROOT:-${REPO_ROOT}/skills}"
 # --- non-public references ---------------------------------------------------
 # Public NVIDIA hostnames the skills may reference. Any other *.nvidia.com /
 # *.ngc.nvidia.com host fails check_non_public.
-ALLOWED_NVIDIA_HOSTS_RE='^(nvidia\.com|www\.nvidia\.com|docs\.nvidia\.com|developer\.nvidia\.com|developer\.download\.nvidia\.com|catalog\.ngc\.nvidia\.com|ngc\.nvidia\.com|forums\.developer\.nvidia\.com|nvidianews\.nvidia\.com|nvcr\.io)$'
+ALLOWED_NVIDIA_HOSTS_RE='^(nvidia\.com|www\.nvidia\.com|docs\.nvidia\.com|developer\.nvidia\.com|developer\.download\.nvidia\.com|catalog\.ngc\.nvidia\.com|ngc\.nvidia\.com|forums\.developer\.nvidia\.com|nvidianews\.nvidia\.com|network\.nvidia\.com|nvcr\.io)$'
 
 # URL- / path-shaped patterns that ALWAYS fail. Patterns are URL-shaped on
 # purpose so prose mentions of "Gerrit"/"NVBugs" in AGENTS.md ground rules
