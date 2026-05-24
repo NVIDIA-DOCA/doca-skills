@@ -90,7 +90,7 @@ For the structured one-shot form of this inventory, see the
 the agent prefers the structured tool when present and falls back to
 the manual chain documented there otherwise.
 
-### Out-of-band access classes
+## Out-of-band access classes
 
 Several change classes can break the link the operator is using to
 manage the BlueField. For those, the agent requires an out-of-band
