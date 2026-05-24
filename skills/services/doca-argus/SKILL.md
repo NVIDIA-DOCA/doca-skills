@@ -1,7 +1,29 @@
 ---
 name: doca-argus
-description: NVIDIA DOCA Argus Service — long-running container on BlueField that provides runtime-security / monitoring for the BlueField and the attached host (suspicious activity, integrity violations, operational anomalies). Packaged security agent (deploy container, consume findings on API / dashboard / SIEM forwarder) — the production answer for security on BlueField without rolling your own from lower-level libraries like doca-apsh. Container deployment on BlueField Arm per the public Container Deployment Guide; four-axis configuration (detection policy — which anomaly classes to alert on; forwarding destination — local logs / SIEM such as Splunk / ELK; sampling / sensitivity — false-positive vs false-negative trade-off; host coverage — which host targets to monitor); the END-TO-END security pipeline (Argus container → findings → SIEM → security ops review); the calibration period every deployment owes its workload before findings can be trusted.
-kind: service
+description: >
+  Use this skill when the user is deploying or operating the DOCA Argus
+  Service — the packaged BlueField-side runtime-security container that
+  watches the BlueField and attached host for suspicious activity,
+  integrity violations, and operational anomalies, and forwards findings
+  to a SIEM (Splunk / ELK / Sentinel / syslog). Covers the four-axis
+  config (detection policy, forwarding, sampling, host coverage),
+  running the NGC container on BlueField Arm, wiring the forwarder, and
+  walking the calibration period. Trigger even without "DOCA Argus" by
+  name — typical implicit phrasings: "container green but no findings
+  arrive", "false-positive flood in Splunk", "findings not reaching my
+  SIEM", "host CPU up since the security agent started", or "runtime
+  security on a fleet of BlueField-3s". Refuse and route elsewhere for
+  installing DOCA, SIEM-side ingest stanzas (Splunk / Logstash /
+  Sentinel), pre-baked detection-rule packs, custom DPU-side security
+  tools (doca-apsh), and metrics-shaped observability (DOCA Telemetry).
+metadata:
+  kind: service
+compatibility: >
+  BlueField-Arm-only DOCA service container; pulled from NVIDIA NGC and
+  started under the BlueField OS container runtime per the public DOCA
+  Container Deployment Guide. Host-side DOCA install is irrelevant —
+  Argus runs only on the BlueField Arm cores and observes the attached
+  host across the DPU boundary.
 ---
 
 # DOCA Argus Service

@@ -1,7 +1,33 @@
 ---
 name: doca-flow-grpc-server
-description: NVIDIA DOCA Flow gRPC Server (`doca_flow_grpc_server`) — the shipped DOCA tool that exposes a remote-control gRPC surface in front of `doca-flow`, letting a non-C++ client (Python, Go, Rust, Java, etc., via standard gRPC bindings) program Flow pipes, entries, and rules over RPC instead of linking `libdoca_flow.so` into a process directly. The gRPC contract is defined by the `.proto` files shipped under the tool's source tree on the user's install; that file is the authoritative API surface. Because the server controls live Flow / dataplane state, the gRPC endpoint is an admin attack surface — bind it on a trusted segment, gate it with auth + TLS, and treat every state-changing RPC the same way you would a direct `doca-flow` mutation. Pairs with `doca-flow`, `doca-version`, `doca-debug`, `doca-hardware-safety`.
-kind: tool
+description: >
+  Use this skill when the user is bringing up, configuring,
+  hardening, or debugging `doca_flow_grpc_server` — the
+  DOCA-shipped gRPC remote-control surface in front of
+  `doca-flow` that lets non-C++ clients (Python, Go, Rust,
+  Java) program Flow pipes and entries over RPC instead of
+  linking `libdoca_flow.so` directly. Trigger even when the
+  user does not explicitly mention "doca-flow-grpc-server"
+  or "gRPC" — typical implicit phrasings include "program
+  Flow rules from Python on a different host", "remotely
+  configure pipes on the BlueField", "client times out
+  connecting to the Flow server", "where is the .proto file
+  for Flow", "mTLS / token auth for the Flow control plane",
+  "UNAUTHENTICATED / FAILED_PRECONDITION on a Flow RPC", or
+  "control many BlueFields from one place". Refuse and route
+  elsewhere for questions about the underlying doca-flow API
+  itself, generic gRPC tooling (`protoc`, language bindings,
+  auth design at grpc.io), or DOCA install / BFB bring-up —
+  those belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached. The `doca_flow_grpc_server` binary
+  and its shipped `.proto` contract live under
+  /opt/mellanox/doca; reads the user's local install via
+  `pkg-config doca-flow` and the tool's source tree.
 ---
 
 # DOCA Flow gRPC Server (`doca_flow_grpc_server`)

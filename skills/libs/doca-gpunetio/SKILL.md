@@ -1,7 +1,35 @@
 ---
 name: doca-gpunetio
-description: NVIDIA DOCA GPUNetIO on BlueField and ConnectX hosts — GPU-initiated networking that lets a CUDA kernel running on an NVIDIA GPU submit and receive packets directly via `doca_gpu_eth_rxq` / `doca_gpu_eth_txq` handles layered on top of an existing doca-eth queue pair, the per-CUDA-device `doca_gpu` context, the persistent-kernel pattern (one long-running CUDA kernel drains the GPU-visible RX queue in place rather than launching one kernel per packet), dual-axis capability discovery (DOCA cap-query via `doca_gpu_eth_rxq_cap_is_supported` plus the CUDA device query via `cudaGetDeviceProperties`), the env preconditions (matched CUDA toolkit + DOCA install per the DOCA Compatibility Policy, `nvidia_peermem` loaded for GPUDirect RDMA, CUDA buffers registered with DOCA via the `doca_buf_arr_create_*` pattern), and debugging `DOCA_ERROR_*` returns from the GPUNetIO API including the CUDA-driver-layer `DOCA_ERROR_DRIVER` route to `doca-setup`.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA GPUNetIO
+  programming — wiring a CUDA kernel on an NVIDIA GPU to a doca-eth
+  queue via doca_gpu_eth_rxq / doca_gpu_eth_txq, standing up the
+  per-CUDA-device doca_gpu context, designing the persistent CUDA
+  kernel that drains the GPU-visible queue, running the dual
+  capability check (DOCA cap-query plus cudaGetDeviceProperties),
+  registering cudaMalloc pools via doca_buf_arr_create_*, or
+  debugging DOCA_ERROR_* returns from the GPUNetIO API. Trigger
+  even when the user does not explicitly mention "DOCA GPUNetIO"
+  or "persistent kernel" — typical implicit phrasings include
+  "CUDA kernel reading packets directly from the NIC",
+  "GPU-initiated networking on BlueField", "DOCA_ERROR_DRIVER on
+  doca_gpu_create", "nvidia_peermem not loaded",
+  "kernel-per-packet is too slow", or "which GPU supports GPU-side
+  packet I/O". Refuse and route elsewhere for general CUDA
+  programming, DOCA Ethernet queue bring-up, DOCA DPA, or
+  DOCA install — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached. Reads the user's local install via
+  `pkg-config doca-gpunetio` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}. Requires
+  NVIDIA GPU with CUDA toolkit installed (matched to DOCA per the
+  DOCA Compatibility Policy) and the `nvidia_peermem` kernel
+  module loaded for GPUDirect RDMA; some samples need an
+  InfiniBand-capable RNIC.
 ---
 
 # DOCA GPUNetIO

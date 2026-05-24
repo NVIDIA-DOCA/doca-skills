@@ -1,7 +1,34 @@
 ---
 name: doca-rmax
-description: NVIDIA DOCA Rivermax on BlueField and ConnectX hosts — DOCA's integration with the separately-installed NVIDIA Rivermax SDK for timing-precise, sub-microsecond-jitter media / data over IP (SMPTE ST 2110 audio + video, real-time market data, scientific instrument streams), the hard external Rivermax SDK + license precondition that gates every other concern, per-stream input / output session objects driven by the DOCA Core context lifecycle, capability discovery via the `doca_rivermax_*_cap_*` family, the pairing with `doca-eth` (queue surface) + `doca-flow` (steering rules), the real-time scheduling discipline recommended on streaming threads, and debugging `DOCA_ERROR_*` returns that span the DOCA-side wrapper and the underlying Rivermax stack.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Rivermax work on
+  a BlueField DPU or ConnectX host — standing up per-stream input
+  (receive) or output (transmit) sessions for timing-precise
+  media-over-IP (SMPTE ST 2110 video/audio, market data, scientific
+  feeds), confirming the Rivermax SDK + license precondition before
+  any DOCA-side code, running `doca_rivermax_*_cap_*` cap queries,
+  pairing with `doca-eth` queues and `doca-flow` steering, or
+  debugging `DOCA_ERROR_*` from a Rivermax call. Trigger even when the
+  user does not explicitly mention "DOCA Rivermax" or "rmax" —
+  implicit phrasings include "ST 2110 receive isn't getting frames",
+  "sub-microsecond jitter on BlueField", "NOT_PERMITTED on first
+  rivermax create", "no recv events after stream start", or "license
+  check failing on a media receiver". Refuse and route elsewhere for
+  installing the Rivermax SDK or its license, programming the
+  underlying queue (`doca-eth`), steering rules (`doca-flow`), or
+  best-effort packet I/O — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached, AND the separately-installed NVIDIA Rivermax SDK with a
+  valid Rivermax license file readable by the running user — DOCA
+  does NOT bundle Rivermax. Reads the user's local install via
+  `pkg-config doca-rmax` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}; route
+  Rivermax-SDK install / license questions to the public Rivermax
+  guide.
 ---
 
 # DOCA Rivermax

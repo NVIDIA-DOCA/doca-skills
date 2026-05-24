@@ -1,7 +1,30 @@
 ---
 name: doca-telemetry
-description: NVIDIA DOCA Telemetry (pkg-config doca-telemetry) — the collection / consumption surface of the DOCA telemetry ecosystem, distinct from doca-telemetry-exporter (the application-side publisher). Covers the collector-vs-exporter role split (this library is the receiver / aggregator side; mixing the two is the #1 first-app failure), the DOCA Core lifecycle for a collector context, schema-query primitives for discovering the shape of incoming events, the schema-must-match contract with the publisher (silent loss on mismatch), capability discovery via doca_telemetry_*_cap_* (supported incoming transports — local socket / NetFlow / IPFIX, max in-flight events, sampling policy, schema versions), transport-endpoint permission rules (socket / port-binding), the consumer-queue-full back-pressure rule on DOCA_ERROR_AGAIN, integration with the DOCA Telemetry Service (DTS) as the canonical aggregator on BlueField, and path-selection against doca-telemetry-exporter, doca-log, and standalone Prometheus / OTLP collectors.
-kind: library
+description: >
+  Use this skill when the user is building a DOCA telemetry collector
+  — consuming structured telemetry events via `pkg-config
+  doca-telemetry`. Covers the collector context lifecycle,
+  schema-query discovery of publisher event shapes, capability
+  discovery for incoming transports (local socket / NetFlow / IPFIX),
+  the schema-must-match contract, the AGAIN-means-consumer-queue-full
+  back-pressure rule, transport-endpoint permissions, DOCA Telemetry
+  Service (DTS) attachment on BlueField, and debugging DOCA_ERROR_*
+  from collector calls. Trigger even when the user does not say "DOCA
+  Telemetry" or "collector" — typical implicit phrasings include
+  "publisher emits but agent sees nothing", "AGAIN on consume / queue
+  fills", "NOT_FOUND on schema query", "daemon to receive counter
+  events from my BlueField app", or "ingest NetFlow/IPFIX into my
+  analyzer". Refuse and route elsewhere for the publishing side
+  (doca-telemetry-exporter), DTS deployment, plain stdout logging,
+  and non-DOCA sources — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. Reads the user's local install via `pkg-config
+  doca-telemetry` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Telemetry

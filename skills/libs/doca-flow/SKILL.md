@@ -1,7 +1,28 @@
 ---
 name: doca-flow
-description: NVIDIA DOCA Flow on BlueField — port and representor setup, pipe creation, match/action specifications, pipe validation before hardware programming, counter and trace inspection, version compatibility, and debugging DOCA_ERROR_* failures from the Flow API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Flow programming
+  on a BlueField DPU or ConnectX NIC — defining match/action pipes,
+  configuring ports / representors, validating a pipe before hardware
+  programming, reading flow counters and traces, picking the right
+  Flow version against an installed DOCA, or debugging DOCA_ERROR_*
+  failures from the Flow API. Trigger even when the user does not
+  explicitly mention "DOCA Flow" or "pipe" — typical implicit phrasings
+  include "packets aren't reaching my representor", "rule isn't
+  matching on the BF", "PMD reports init failed", "match/action drop
+  on egress", "how do I steer this 5-tuple to a queue", "ConnectX
+  hairpin routing on Linux", or any flow-steering / packet-classifier
+  question where DOCA is installed. Refuse and route elsewhere for
+  questions about non-Flow pipelines (DPDK rte_flow without DOCA,
+  kernel TC offload, OVS), BFB bring-up, or DPU OS install — those
+  belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. Reads the user's local install via `pkg-config doca-flow`
+  and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Flow

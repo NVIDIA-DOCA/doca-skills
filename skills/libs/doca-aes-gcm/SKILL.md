@@ -1,7 +1,33 @@
 ---
 name: doca-aes-gcm
-description: NVIDIA DOCA AES-GCM on BlueField and ConnectX hosts — hardware-accelerated AEAD (authenticated encryption with associated data), the `doca_aes_gcm_task_encrypt` vs `doca_aes_gcm_task_decrypt` task split, the AES-GCM key-size capability surface (128 / 192 / 256), capability discovery via `doca_aes_gcm_cap_*`, the DOCA Core context lifecycle for the AES-GCM context, source / destination mmap permission pair, the security-critical auth-tag verification on decrypt, key-handling cautions, and debugging DOCA_ERROR_* returns from the AES-GCM API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA AES-GCM work
+  on a BlueField DPU or ConnectX NIC — configuring
+  `doca_aes_gcm_task_encrypt` / `_task_decrypt`, querying
+  `doca_aes_gcm_cap_*` for key-size (128 / 192 / 256) and per-task
+  support, sizing plaintext against the max-buf cap, setting source
+  / destination mmap permissions, validating with a NIST GCMVS or
+  RFC 5288 vector, or debugging DOCA_ERROR_* returns including the
+  security-critical tag-verification-failed outcome on decrypt.
+  Trigger even when the user does not explicitly mention "DOCA
+  AES-GCM" or "AEAD" — typical implicit phrasings include "decrypt
+  completion reports IO_FAILED", "auth tag isn't verifying",
+  "DOCA_ERROR_NOT_PERMITTED on my encrypt buffer", "is AES-192-GCM
+  available on this BlueField", or "encrypted record came back
+  tampered". Refuse and route elsewhere for non-GCM AES modes
+  (CBC / CTR / XTS — CPU + OpenSSL), key management (KMS / HSM /
+  rotation), SHA hashing (doca-sha), or general AEAD background —
+  those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached. Reads the user's local install via
+  `pkg-config doca-aes-gcm` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}; the
+  accelerator must advertise the desired key size at runtime via
+  `doca_aes_gcm_cap_is_key_size_supported`.
 ---
 
 # DOCA AES-GCM

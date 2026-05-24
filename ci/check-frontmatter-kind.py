@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """Gate: every artifact under skills/{libs,services,tools}/<name>/SKILL.md
-must declare the correct `kind:` value in its YAML frontmatter:
+must declare the correct `kind` value in its YAML frontmatter:
   libs/*    -> kind: library
   services/* -> kind: service
   tools/*   -> kind: tool
+
+Per the AgentSkills.io spec (https://agentskills.io/specification), the
+bundle's `kind` routing contract lives under the spec-allowed `metadata:`
+extension point (the spec rejects unknown top-level frontmatter fields).
+This gate accepts both placements during the transition:
+  1) New (spec-compliant):  metadata.kind: library|service|tool
+  2) Legacy (top-level):    kind: library|service|tool
+
+After the full migration, the legacy top-level form will be removed.
 
 Catches the systematic copy-paste error where service / tool skills were
 spawned from a library skeleton and inherited `kind: library`.
@@ -42,13 +51,26 @@ def main() -> int:
             if not m:
                 bad.append((art, "no YAML frontmatter", expected_kind, "missing"))
                 continue
-            km = re.search(r"^kind:\s*(\S+)", m.group(1), re.MULTILINE)
+            fm = m.group(1)
+            # Spec-compliant placement first: metadata.kind (under metadata: block).
+            # Match `metadata:` then look for `  kind: <value>` on a subsequent
+            # line indented by 2+ spaces (still inside the mapping).
+            km = re.search(
+                r"^metadata:\s*\n(?:[ \t]+[a-z_-]+:.*\n)*?[ \t]+kind:\s*(\S+)",
+                fm,
+                re.MULTILINE,
+            )
+            placement = "metadata.kind"
             if not km:
-                bad.append((art, "no kind field in frontmatter", expected_kind, "missing"))
+                # Legacy top-level placement (deprecated, still accepted).
+                km = re.search(r"^kind:\s*(\S+)", fm, re.MULTILINE)
+                placement = "top-level"
+            if not km:
+                bad.append((art, "no kind field in frontmatter (looked for both metadata.kind and top-level kind)", expected_kind, "missing"))
                 continue
             actual = km.group(1).strip()
             if actual != expected_kind:
-                bad.append((art, "wrong kind value", expected_kind, actual))
+                bad.append((art, f"wrong kind value (placement={placement})", expected_kind, actual))
 
     if bad:
         print(f"FAIL: {len(bad)} of {total} artifact SKILL.md files have wrong/missing kind frontmatter:")

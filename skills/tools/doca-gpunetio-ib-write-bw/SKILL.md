@@ -1,7 +1,32 @@
 ---
 name: doca-gpunetio-ib-write-bw
-description: NVIDIA DOCA GPUNetIO ib_write_bw — the GPUNetIO-flavored analog of the classic `perftest` `ib_write_bw`, shipped under `doca/tools/gpunetio_ib_write_bw/` as a client + server pair built with `meson` against the installed DOCA, where the server-side CUDA kernel posts RDMA WRITE work requests through the doca-gpunetio device-side surface to drive sustained throughput between two GPU + IB device pairs. The skill teaches the class question of *"what sustained RDMA-WRITE BW can the GPUNetIO path deliver on this GPU-NIC pair, and where is the bottleneck — GPU compute occupancy, NIC issue rate, or link saturation?"* — the GPU-NIC pairing precondition, the configure / build / run shape against the shipped tool tree, how to read the throughput output, the version + capability overlay against the installed DOCA + CUDA Toolkit, and how the result reads against the GPI sister tool `doca-gpi-ib-write-lat` and the upstream CPU-initiated `perftest` `ib_write_bw`.
-kind: tool
+description: >
+  Use this skill when the user is building, running, or interpreting
+  the doca/tools/gpunetio_ib_write_bw client+server benchmark — a CUDA
+  kernel on the server posts RDMA WRITE work requests through the
+  doca-gpunetio device-side surface to measure sustained GPU-driven
+  WRITE bandwidth on a GPU+IB-device pair. Trigger even when the user
+  does not explicitly mention "doca-gpunetio-ib-write-bw" or
+  "GPUNetIO" — typical implicit phrasings include "measure WRITE BW
+  when the GPU posts the WRs", "BW swings between runs on the same
+  flags", "is the NIC saturated or am I CPU-bound on the CUDA
+  kernel", "meson compile fails for the GPUNetIO bw tool",
+  "nvidia_peermem isn't picking up my GPU buffer", or "GPU-initiated
+  WRITE throughput vs CPU-initiated perftest". Refuse and route
+  elsewhere for general doca-gpunetio library work, DOCA install, the
+  GPU-initiated WRITE latency analog, the CPU-initiated upstream
+  perftest, or application-level end-to-end throughput — those belong
+  to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC. Reads
+  `pkg-config doca-gpunetio doca-rdma doca-common` and inspects
+  /opt/mellanox/doca/tools/gpunetio_ib_write_bw/. Requires an NVIDIA
+  GPU with CUDA toolkit + nvcc installed, the `nvidia_peermem` kernel
+  module loaded, and an InfiniBand-capable RNIC paired with the GPU on
+  a common PCIe/NVLink fabric.
 ---
 
 # DOCA GPUNetIO ib_write_bw

@@ -1,7 +1,28 @@
 ---
 name: doca-debug
-description: NVIDIA DOCA cross-cutting debug skill. Symptom triage, the layered debug ladder (install → version → build → link → runtime → program), public DOCA debug tooling (`gdb`, `valgrind`, `ldd`, `strace`, `dmesg`, `journalctl`, `doca_caps`, `doca-flow-tune`, `doca-flow-inspector`, `doca-bench`), DOCA's logging surface (`DOCA_LOG_LEVEL`, `--sdk-log-level`, the `doca-<lib>-trace` build flavor), how to capture a reproducible state, container-specific debug constraints, and where to ask for help on the public Developer Forum. Cross-cuts every DOCA library; per-library debug overlays (Flow pipe-trace, RDMA QP-state, Comch channel-stats, etc.) live in the matching library skill. Env-class debug stays in `doca-setup`; program-class debug stays in `doca-programming-guide` — this skill is the cross-cutting reference both of those redirect to for the canonical debug surface.
-kind: library
+description: >
+  Use this skill when the user is debugging any DOCA symptom — a build
+  that won't compile, a link step that can't resolve a doca_* symbol,
+  a runtime call returning DOCA_ERROR_*, a silent service or tool, or
+  a stack trace / valgrind / core dump — and needs the layered ladder
+  (install → version → build → link → runtime → program → driver),
+  verbosity controls (--sdk-log-level, DOCA_LOG_LEVEL, the
+  doca-<lib>-trace flavor), container-debug constraints, or how to
+  capture state for a Developer Forum post. Trigger even when the user
+  does not say "DOCA debug" — implicit phrasings include "undefined
+  reference to doca_*", "how do I get more logs", "packets aren't
+  reaching the wire", "doca_caps returned nothing", or "hugepages
+  empty in the container". Refuse and route elsewhere for
+  library-specific debug (Flow pipe trace, RDMA QP, Comch stats),
+  env-class pkg-config or hugepages symptoms, the DOCA_ERROR_*
+  taxonomy and lifecycle interpretation, and performance or
+  incident-response work — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay loaded
+  against any DOCA artifact skill); the validation steps within DO
+  require a live DOCA install at /opt/mellanox/doca.
 ---
 
 # DOCA debug

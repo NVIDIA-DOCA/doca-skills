@@ -1,7 +1,32 @@
 ---
 name: doca-bench
-description: NVIDIA DOCA Bench (`doca_bench`) — official cross-library performance / micro-benchmark harness shipped under `/opt/mellanox/doca/tools/doca_bench` since DOCA 2.7.0. Drives reproducible throughput / latency / op-rate measurements against multiple DOCA libraries (RDMA, COMPRESS, AES-GCM, SHA, DMA, EC, ETH, Comch, GPUNetIO) on host or BlueField Arm via a pipeline-of-steps model with a documented warm-up period, multi-core scaling, and a built-in query system that reports which DOCA libraries the install actually exposes. Use to size a workload, validate a tuning change, capture a baseline before a regression hunt, or answer *"what does this DOCA library actually deliver on this device"* — always alongside `doca-version` for the version overlay and the matching `libs/<library>` skill for the workload-side preconditions.
-kind: tool
+description: >
+  Use this skill when the user is running `doca_bench` — the
+  cross-library micro-benchmark harness shipped under DOCA ≥
+  2.7.0 — to measure throughput, bulk-latency, or
+  precision-latency of a DOCA library (RDMA, COMPRESS, AES-GCM,
+  SHA, DMA, EC, ETH, Comch, GPUNetIO) on host or BlueField Arm,
+  probe the granular-build query for which libraries the install
+  exposes, capture a baseline four-tuple (command, version,
+  device, environment), or diagnose a bench failure in the
+  config-syntax, device-binding, library/workload-precondition,
+  or measurement-soundness layer. Trigger even if the user
+  does not say "doca_bench" or "benchmark" — typical implicit
+  forms include "how fast is compress on my BlueField",
+  "what RDMA throughput can this NIC do", "measure AES-GCM
+  latency", "first-run differs from steady-state", or "baseline
+  before a firmware update". Refuse and route elsewhere for
+  application-level end-to-end timing, custom benchmark
+  programs, DOCA install/upgrade, or patching the bench binary.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK ≥ 2.7.0 installed at /opt/mellanox/doca on
+  Linux (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached and the `doca_bench` binary present at
+  /opt/mellanox/doca/tools/doca_bench. Companion app must run on
+  the far side for remote-memory / RDMA / Eth scenarios; host and
+  BlueField-Arm execution both supported.
 ---
 
 # DOCA Bench (`doca_bench`)

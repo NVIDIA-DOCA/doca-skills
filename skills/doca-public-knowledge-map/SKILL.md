@@ -1,7 +1,28 @@
 ---
 name: doca-public-knowledge-map
-description: Comprehensive map of every public DOCA knowledge source — docs.nvidia.com pages, programming guides, downloads, public GitHub repos, NGC catalog, developer forum — plus the on-disk layout of an installed DOCA package, so any agent can locate authoritative information without access to the DOCA source repository.
-kind: knowledge
+description: >
+  Use this skill when the user needs to locate authoritative
+  information about NVIDIA DOCA without access to the source tree —
+  finding the right docs.nvidia.com page for a library/service/tool,
+  identifying which DOCA libraries are installed and at what version,
+  locating a sample on disk or its public GitHub source, decoding an
+  on-disk path under /opt/mellanox/doca, or recovering from a 404'd
+  or renamed doc URL. Trigger even when the user does not explicitly
+  mention 'DOCA' or 'docs.nvidia.com' — typical implicit phrasings
+  include 'where can I read about this library', 'which version do I
+  have installed', 'where is the sample for X', 'this NVIDIA URL is
+  broken what is the new one', 'what is in /opt/mellanox/doca', or
+  'where can I ask NVIDIA about this'. Refuse and route elsewhere
+  for hands-on programming patterns, env prep and install
+  verification, library API tutorials, or hardware/firmware
+  mutation — those belong to doca-programming-guide, doca-setup, the
+  per-library skills, and doca-hardware-safety.
+metadata:
+  kind: knowledge
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay
+  loaded against any DOCA artifact skill); the validation steps
+  within DO require a live DOCA install at /opt/mellanox/doca.
 ---
 
 # DOCA Public Knowledge Map

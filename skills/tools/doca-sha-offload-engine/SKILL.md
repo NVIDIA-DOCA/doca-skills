@@ -1,7 +1,37 @@
 ---
 name: doca-sha-offload-engine
-description: NVIDIA DOCA SHA Offload Engine — an OpenSSL dynamic ENGINE (`libdoca_sha_offload_engine.so`) shipped under `doca/tools/sha_offload_engine/` that lets unmodified OpenSSL-based applications offload one-shot SHA-1 / SHA-256 / SHA-512 (EVP_Digest) onto the DOCA SHA hardware path without rewriting against doca-sha directly. Requires OpenSSL ≥ 1.1.1. The skill teaches when the engine is the right surface (existing OpenSSL pipeline; no code changes) vs when to use doca-sha directly (new pipeline; fine-grained control), the load / registration mechanics (`openssl engine dynamic`, the `set_pci_addr` ctrl, the `-engine_impl` flag that disables OpenSSL software fallback), the message-size window in which offload is a perf win vs CPU SHA, and the runtime sanity-check pattern (the SHA-224 negative test — force the engine with `-engine_impl` on an algorithm DOCA SHA does not implement, expect failure — proving the engine was actually called and not silently bypassed).
-kind: tool
+description: >
+  Use this skill when wiring the DOCA SHA Offload Engine
+  (an OpenSSL ENGINE) into an existing OpenSSL pipeline
+  to offload one-shot SHA-1, SHA-256, or SHA-512
+  (EVP_Digest) onto DOCA SHA hardware without rewriting
+  against doca-sha. Covers engine load mechanics
+  (`openssl engine dynamic`, `set_pci_addr` ctrl,
+  `-engine_impl`), the SHA-224 negative test that proves
+  offload engaged, the message-size window where offload
+  beats CPU SHA, and engine-vs-library selection.
+  Trigger even when the user does not say "DOCA SHA
+  Offload Engine" or "OpenSSL ENGINE" — typical implicit
+  phrasings: "speed up openssl SHA on BlueField",
+  "offload SHA without code changes", "is openssl using
+  the accelerator or falling back to software", "prove
+  DOCA SHA actually ran", "openssl dgst hashed but I'm
+  not sure it was offloaded". Refuse and route elsewhere
+  for new SHA pipelines (use doca-sha), MD5 / SHA-3 /
+  SHA-224 / HMAC-SHA offload, incremental hashing via
+  chained `EVP_DigestUpdate`, or OpenSSL PROVIDER authoring.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on
+  Linux (Ubuntu 22.04/24.04 or RHEL/SLES) with a
+  BlueField DPU or ConnectX NIC attached, plus OpenSSL
+  ≥ 1.1.1 and libssl-dev (or distro equivalent) on the
+  build host. The engine ships under
+  /opt/mellanox/doca/tools/doca_sha_offload_engine/ as
+  libdoca_sha_offload_engine.so; reads the user's local
+  install via `pkg-config doca-sha` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA SHA Offload Engine

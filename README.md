@@ -112,6 +112,39 @@ has already passed those gates. You don't need any of the CI tooling
 to load and use the skills — just clone the repo and point your
 agent at it.
 
+### AgentSkills.io open-standard compliance
+
+Every `SKILL.md` in this bundle conforms to the **[AgentSkills.io](https://agentskills.io/specification)**
+open standard for agent skills. That means any AgentSkills.io-aware
+client — Anthropic Claude Code, Cursor, GitHub Copilot, custom
+in-house LLMs — can discover, route to, and load these skills
+without any DOCA-specific glue:
+
+- Each skill ships a YAML frontmatter block with the spec-mandated
+  fields: `name` (matches the directory name), `description`
+  (imperative *"Use this skill when..."* phrasing per the
+  [optimizing-descriptions guidance](https://agentskills.io/skill-creation/optimizing-descriptions),
+  ≤ 1024 chars), `metadata` (for our `kind` routing contract), and
+  `compatibility` (environment requirements — DOCA install path,
+  Linux distro, BlueField / ConnectX requirements).
+- Every release runs the official reference validator
+  ([`skills-ref validate`](https://github.com/agentskills/agentskills/tree/main/skills-ref))
+  against all 61 skills as an internal CI gate before tagging. A
+  green validator is a merge precondition.
+- The directory layout (`skills/<name>/SKILL.md` with companion
+  `CAPABILITIES.md` + `TASKS.md`) is exactly the AgentSkills.io
+  recommended *progressive-disclosure* shape: agents read the
+  frontmatter first to decide whether to load, then drill into the
+  body and companions only when activated.
+
+You can re-validate locally with:
+
+```bash
+git clone https://github.com/agentskills/agentskills.git /tmp/agentskills
+cd /tmp/agentskills/skills-ref && uv sync
+.venv/bin/skills-ref validate /path/to/doca-skills/skills/libs/doca-flow
+```
+
 **Ground rules every agent follows** (full list in `AGENTS.md`): public sources only — never reference internal NVIDIA hostnames; prefer the local install at `/opt/mellanox/doca` over the web; never invent symbols, URLs, paths, or package names; always check the installed DOCA version before quoting API names.
 
 ---

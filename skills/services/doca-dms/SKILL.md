@@ -1,7 +1,31 @@
 ---
 name: doca-dms
-description: NVIDIA DOCA Management Service (DMS) — gRPC-based device-management service for BlueField networking platforms and ConnectX SmartNICs. Two-process daemon (dmsd frontend + dmspe privileged backend), gNMI for configuration (Get/Set on YANG-modeled paths) and gNOI for system operations (reboots, OS install, file transfer). Authentication modes (localhost/PAM/credentials/mTLS), dmsgroup authorization, deployment shapes (host-non-DPU, BlueField Arm, Kubernetes pod), service launch (SystemD or manual), and gNMI/gNOI client invocation patterns.
-kind: service
+description: >
+  Use this skill when the user is operating NVIDIA DOCA Management
+  Service (DMS) on a BlueField DPU, BlueField Arm host, x86 host, or
+  Kubernetes pod — bringing up the `dmsd` frontend and `dmspe`
+  privileged backend, picking a deployment shape, choosing an auth
+  mode (localhost / PAM / credentials / mTLS), wiring `dmsgroup`
+  authorization, issuing gNMI `Get`/`Set` on YANG paths, invoking
+  gNOI for reboot, OS install, factory-reset, file transfer,
+  `mlxconfig`, or `containerz`, or debugging frontend-vs-backend
+  errors and DMS logs. Trigger even when the user does not say "DMS"
+  or "dmsd" — typical implicit phrasings include "manage a remote
+  BlueField over gRPC", "set MTU on a ConnectX from a controller",
+  "gNOI reboot from my orchestrator", "OS install over gRPC to a
+  SmartNIC", "fleet management of DPUs", or "`mlxconfig` failed
+  through the daemon". Refuse and route for gNMI Subscribe streaming
+  telemetry (use DTS), DOCA install, and library-API or sample-build
+  questions — those belong to other skills.
+metadata:
+  kind: service
+compatibility: >
+  DOCA service shipped with the DOCA install at /opt/mellanox/doca
+  on the management endpoint (x86 host (non-DPU), BlueField Arm, or
+  Kubernetes pod) on Linux (Ubuntu 22.04/24.04 or RHEL/SLES); `dmsd`
+  + `dmspe` run there, and DMS is also pulled as an NGC container
+  image. Verify the public DMS guide version matches the installed
+  DOCA release before quoting flags or YANG paths.
 ---
 
 # DOCA Management Service (DMS)

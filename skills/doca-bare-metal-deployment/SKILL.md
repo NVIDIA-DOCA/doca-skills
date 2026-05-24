@@ -1,7 +1,30 @@
 ---
 name: doca-bare-metal-deployment
-description: DOCA bare-metal deployment pattern — the non-container parallel of doca-container-deployment for a DOCA-linked binary on hardware. Covers the host-x86 path (DOCA host install talking to a remote BlueField NIC over PCIe) and the BlueField-Arm bare-metal path (DOCA app on the DPU Arm cores); three launch modes (direct, tmux/screen, systemd); hardware-resource binding (PF/VF/representor enumeration, NUMA topology, CPU pinning, IRQ affinity); per-tenant isolation (cgroup-v2, network namespaces, numactl/taskset); restart/recovery semantics; the four-way version match plus the link-time-pkg-config-vs-runtime-LD_LIBRARY_PATH overlay; a seven-layer error taxonomy (won't start, exits immediately, can't find device, library DOCA_ERROR, OOM/signal, restart loop, co-tenant noise); stdout/journald/devlink observability; smoke-before-bulk for binaries; restart-loop-is-HIGH-STAKES; and refusing to invent PCI addresses, NUMA numbers, representor names, devlink paths, or systemd Restart= modes from memory.
-kind: library
+description: >
+  Use this skill when the user is launching, supervising, or
+  debugging a DOCA-linked binary directly on hardware (host x86
+  with a BlueField NIC over PCIe, or BlueField Arm bare-metal) —
+  no container, no kubelet. Covers picking a launch mode (direct,
+  tmux/screen, systemd-supervised with a documented Restart=
+  policy), binding to the right PCI function / NUMA node / CPU
+  set / IRQ affinity, isolating co-tenant DOCA processes
+  (cgroup-v2 / netns / numactl), and a seven-layer error taxonomy.
+  Trigger even when user does not say "bare-metal" — typical
+  implicit phrasings include "binary exits with status 1 right
+  after launch", "systemd keeps restarting it", "no matching
+  device on the BF", "throughput is a third of the docs, wrong
+  NUMA?", or "two DOCA processes on one BlueField interfere".
+  Refuse and route elsewhere for container/kubelet deployment,
+  library-API internals, DOCA install / hugepage / IOMMU env
+  prep, hardware-state changes (mlxconfig set, BFB reflash), and
+  building the binary — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay
+  loaded against any DOCA artifact skill); the validation steps
+  within DO require a live DOCA install at /opt/mellanox/doca on
+  a host or BlueField with a built DOCA-linked binary.
 ---
 
 # DOCA bare-metal deployment

@@ -1,7 +1,31 @@
 ---
 name: doca-os-inspector
-description: NVIDIA DOCA OS Inspector Service — long-running container on BlueField that performs out-of-band, agent-less introspection of the running host kernel (process / thread / loaded-library / VAD / system-module enumeration) by wrapping the DOCA App Shield library and publishing findings into the DOCA Telemetry Service (DTS) for downstream consumption. Container deployment on BlueField Arm with NGC as the canonical image source; five-axis configuration (DMA device + host VUID; OS type — Linux / Windows; host kernel symbol map + memory regions file — host-OS-version-specific, regenerated on every host kernel upgrade; scan policy — which APSH structs to enumerate; scan interval); the END-TO-END pipeline (container → APSH reads host memory over PCIe → telemetry-exporter → DTS → SIEM / analyst surface); the path-selection rule against `doca-apsh` (the library equivalent for custom DPU-side introspection tooling) and against `doca-argus` (the packaged runtime-security findings service).
-kind: service
+description: >
+  Use this skill when the user is deploying or operating the DOCA OS
+  Inspector service container on BlueField Arm — picking the DMA device
+  + host VUID, OS type, host kernel symbol map + memory-regions file,
+  scan policy (which APSH structs to enumerate), and scan interval;
+  wiring the telemetry-exporter into DTS so findings reach a Splunk /
+  ELK / Sentinel / custom consumer; or debugging an empty / stale
+  feed. Trigger even when the user does not name "OS Inspector" or
+  "App Shield" — typical implicit phrasings include "agent-less host
+  introspection from the BlueField", "container green but processes
+  feed is empty", "feed went silent after host kernel upgrade",
+  "DPU-side process / module / library enumeration into our SIEM", or
+  "BlueField CPU pegged since starting the scanner". Refuse and route
+  elsewhere for building a custom DPU-side introspection tool
+  (doca-apsh), runtime-security findings (doca-argus), or DTS / SIEM
+  forwarder + ingest configuration — those belong to other skills or
+  to the live public guidance.
+metadata:
+  kind: service
+compatibility: >
+  BlueField-Arm-only DOCA service container; pulled from NVIDIA NGC
+  and started under the BlueField OS container runtime. Host-side
+  install is irrelevant, but the deployment requires a host kernel
+  symbol map and memory-regions file generated against the exact
+  running host kernel build (refreshed on every host kernel change),
+  plus a reachable DOCA Telemetry Service on the BlueField.
 ---
 
 # DOCA OS Inspector

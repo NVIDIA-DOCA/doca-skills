@@ -1,7 +1,35 @@
 ---
 name: doca-dpa-hl-tracer
-description: NVIDIA DOCA DPA High-Level Tracer (`doca_dpa_hl_tracer`) — diagnostic CLI shipped under `/opt/mellanox/doca/tools/` that captures, decodes, and renders DPA-side execution traces at the *"DPA programming events"* level (kernel entry / exit, sync points, comm primitives, RDMA WR submission, completion drain) rather than the raw cycle stream a low-level profiler emits. Use when a DPA kernel is suspected wrong (missed sync, comm error, ordering bug) or slow at a granularity the cycle profiler is too low-level for (kernel-entry-to-first-comm latency, WR-issue to drain gap). Two modes — `TRACE` (full) and `CRIT` (critical-only) — driven by a JSON config that pins thread priorities, core affinities, and per-file size limits with a `file_size_limit_policy`. Pair with [`doca-dpa`](../../libs/doca-dpa/SKILL.md) for the programming model and [`doca-debug`](../../doca-debug/SKILL.md) for the debug ladder. Flags, mode tokens, and event names are read from the public DOCA DPA Tools page and `--help`.
-kind: tool
+description: >
+  Use this skill when the user runs doca_dpa_hl_tracer to
+  capture/decode DPA-side traces at the programming-events
+  layer (kernel entry/exit, sync points, comm primitive
+  calls, RDMA WR submission, completion drain) — picking
+  TRACE vs CRIT, tuning the JSON config (file-size limits
+  + file_size_limit_policy, thread priorities/cores),
+  decoding against the matching DPA-side ELF, or
+  diagnosing empty/noisy captures. Trigger even when the
+  user does not explicitly mention "DOCA DPA tracer" or
+  "high-level tracer" — typical implicit phrasings include
+  "DPA kernel returns wrong result but host completions
+  look clean", "kernel-entry to first-comm latency is
+  huge", "RDMA WR to drain gap on the DPA", "trace file
+  truncated mid-run", "TRACE doubled my DPA latency", or
+  "tracer wrote a file but parser shows zero events".
+  Refuse and route elsewhere for writing DPA kernels,
+  DPA-Comms/DPA-Verbs programming, raw per-cycle DPA
+  profiling, host-side doca-dpa debugging, or production
+  DPA telemetry — those belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on
+  Linux (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField
+  device whose DPA processor is exposed to the host, plus
+  the DOCA DPA Tools optional component (binary at
+  /opt/mellanox/doca/tools/doca_dpa_hl_tracer). Requires a
+  DPACC-built DPA-side ELF and a live doca-dpa-launched
+  workload for events to fire.
 ---
 
 # DOCA DPA High-Level Tracer

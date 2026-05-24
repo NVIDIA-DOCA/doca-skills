@@ -51,11 +51,18 @@ tells the agent which companion file (`CAPABILITIES.md` for
   directory. A `CLAUDE.md` at repo root exists only as a stub
   pointing back here for Claude Code's auto-discovery.
 If your runtime supports per-skill `SKILL.md` frontmatter
-auto-loading (Anthropic Skills convention), it works equally well
-under `skills/` as under `.claude/skills/`. If it does not, read
-`SKILLS.md` and load the matching skill files manually. Cross-link
-labels of the form `[<skill-name> ## <anchor>](...)` resolve by
-skill name regardless of where the skill lives in the tree.
+auto-loading (the [AgentSkills.io](https://agentskills.io/specification)
+open standard, originally introduced by Anthropic and now adopted by
+Cursor, GitHub Copilot, and others), it works equally well under
+`skills/` as under `.claude/skills/`. Every `SKILL.md` in this bundle
+validates cleanly against the official AgentSkills.io reference
+validator (`skills-ref validate`) — see the *AgentSkills.io
+open-standard compliance* section of [README.md](README.md) for
+specifics and the local re-validation recipe. If your runtime does
+NOT support frontmatter auto-loading, read `SKILLS.md` and load the
+matching skill files manually. Cross-link labels of the form
+`[<skill-name> ## <anchor>](...)` resolve by skill name regardless
+of where the skill lives in the tree.
 
 ## Cross-cutting overlay activation triggers
 

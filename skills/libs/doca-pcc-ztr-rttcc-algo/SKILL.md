@@ -1,7 +1,31 @@
 ---
 name: doca-pcc-ztr-rttcc-algo
-description: NVIDIA DOCA PCC ZTR RTTCC Algorithm (pkg-config doca-pcc-ztr-rttcc-algo) — the DOCA-shipped reference Programmable Congestion Control algorithm, *Zero-Touch RoCE RTT-based Congestion Control*, that runs on the BlueField-3 DPA processor and modulates RoCE-v2 flows on the attached BlueField port. The library is consumed AS an algorithm by the host-side `doca-pcc` framework — the user wires it into the PCC application by including `doca_pcc_dev_ztr_rttcc_algo.h` from a DPA-side translation unit, calling `doca_pcc_dev_ztr_rttcc_init()` at init time, dispatching to `doca_pcc_dev_ztr_rttcc_algo()` from the user algo callback under a chosen algo slot, and seeding parameters via `doca_pcc_dev_set_ztr_rttcc_params()`. The algorithm is the no-config-required baseline NVIDIA ships for typical RoCE-v2 workloads; users either deploy it as-is, tune its documented parameters, or replace it with a custom algorithm written against `doca-pcc` when their latency target, fairness policy, or convergence behavior requires it.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on deployment, tuning,
+  or evaluation of the DOCA-shipped Zero-Touch RoCE RTT-based
+  Congestion Control (ZTR RTTCC) reference algorithm on a BlueField-3
+  DPA — wiring `doca_pcc_dev_ztr_rttcc_algo` into the shipped DOCA
+  PCC sample, picking a variant (vanilla / PM / RX-rate / multipath /
+  window-probeless) at DPACC build time, tuning host-set parameters,
+  or diagnosing `DOCA_PCC_DEV_STATUS_FAIL` from the algorithm.
+  Trigger even when the user does not say 'DOCA PCC' or 'ZTR RTTCC' —
+  typical implicit phrasings: 'my RoCE-v2 flows aren't being
+  throttled', 'PCC sample isn't dispatching to my algo', 'how do I
+  pick the multipath PCC variant', 'set-params returns fail',
+  'algorithm loaded but counters are flat', or 'do I need a custom
+  CC algorithm on BF3'. Refuse and route elsewhere for writing a
+  custom PCC algorithm from scratch, read-only PCC counter
+  inspection, the host-side `doca-pcc` lifecycle, or firmware-only
+  pre-Programmable PCC — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField-3 DPU exposing the DPA
+  processor, the firmware custom-PCC slot enabled, a matched-version
+  DPACC compiler, and live RoCE-v2 traffic on the attached port.
+  Reads `pkg-config doca-pcc-ztr-rttcc-algo` and inspects
+  /opt/mellanox/doca/{lib,include,applications/pcc}.
 ---
 
 # DOCA PCC ZTR RTTCC Algorithm

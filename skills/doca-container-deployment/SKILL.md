@@ -1,7 +1,28 @@
 ---
 name: doca-container-deployment
-description: NVIDIA DOCA container-deployment pattern — the cross-cutting "how to deploy a DOCA service container on the BlueField Arm" runtime contract shared by every in-bundle DOCA service (Argus, DMS, Firefly, Flow-Inspector, OS-Inspector, UROM service). Covers the kubelet-standalone-mode pattern (kubelet running as a standalone agent on the BlueField, watching the documented static-pod manifests directory), the YAML pod-spec drop into that directory, how kubelet picks the spec up and schedules the pod, status / logs / lifecycle inspection, the BlueField preconditions (DOCA install, container runtime, BFB version, image-pull reachability to NGC, host-OS permissions), the smoke-before-bulk loop (pod Running — ENTRYPOINT logs clean — trivial liveness probe answered — only then bulk workload), and the cross-cutting error taxonomy (pod-spec syntax / scheduling / image pull / runtime / volume mount / network policy / version / cross-cutting host).
-kind: library
+description: >
+  Use this skill when the user is hands-on deploying an in-bundle DOCA
+  service container (Argus, DMS, Firefly, Flow-Inspector, OS-Inspector,
+  UROM service) on a BlueField — kubelet standalone watching a
+  static-pod manifests directory, YAML pod-spec drop, kubelet status /
+  ENTRYPOINT logs / per-service liveness, smoke-before-bulk, and the
+  layered error taxonomy (pod-spec, scheduling, image pull, runtime,
+  mount, network, version, host). Trigger even when the user does not
+  say "container deployment" — typical implicit phrasings include "how
+  do I run my built service on the BlueField?", "where do I drop the
+  pod-spec YAML?", "pod stuck in Pending / ImagePullBackOff /
+  CrashLoopBackOff", "container Running but service isn't ready", "pod
+  restart-loops after edit", or "DMS and Firefly together". Refuse and
+  route elsewhere for per-service config schemas, DOCA install,
+  library-API questions, external NVIDIA services (BlueMan, HBN, SNAP,
+  Virtio-net), or full Kubernetes-cluster ops — those belong to other
+  skills.
+metadata:
+  kind: library
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay loaded
+  against any DOCA artifact skill); the validation steps within DO
+  require a live DOCA install at /opt/mellanox/doca.
 ---
 
 # DOCA container deployment

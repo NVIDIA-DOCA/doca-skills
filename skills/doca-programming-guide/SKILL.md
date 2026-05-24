@@ -1,7 +1,30 @@
 ---
 name: doca-programming-guide
-description: General DOCA programming patterns shared across every DOCA library — the shape of DOCA (host vs DPU vs switch, libraries vs apps vs services vs tools), the universal cfg-create / init / start / use / stop / destroy lifecycle, the canonical `pkg-config doca-<library>` build pattern (C/C++ direct or non-C via FFI / bindings against the public C ABI), the universal modify-a-shipped-sample workflow that any library skill extends with library-specific overrides, the validate-before-commit rule, the `DOCA_ERROR_*` family with `doca_error_get_descr()`, and the program-class debugging order. Library-agnostic; library-specific overrides live in the matching library skill. Assumes `doca-setup` preconditions are satisfied.
-kind: library
+description: >
+  Use this skill when the user is writing their first DOCA app or
+  asking a library-agnostic programming question — picking a
+  shipped sample to copy and modify, wiring the canonical
+  pkg-config doca-<library> + meson build (or FFI from Rust / Go
+  / Python against the public C ABI), walking the cfg-create →
+  init → start → use → stop → destroy lifecycle, validating a
+  spec before commit, or decoding a DOCA_ERROR_* return with
+  doca_error_get_descr(). Trigger even when the user does not say
+  "DOCA programming guide" — implicit phrasings: "write my
+  first DOCA program", "meson line for doca_rdma_*", "got
+  DOCA_ERROR_BAD_STATE on my first call", "call DOCA from Rust
+  without writing C", "built clean but nothing on the wire",
+  "what order do doca_*_pipe calls go in". Refuse and route for
+  install / hugepages / pkg-config not resolving doca-<library>
+  (doca-setup), docs or version lookup
+  (doca-public-knowledge-map), and library-internal API
+  construction like Flow pipe topology or RDMA QP setup (matching
+  library skill).
+metadata:
+  kind: library
+compatibility: >
+  No DOCA install required to read this skill (it is an overlay
+  loaded against any DOCA artifact skill); the validation steps
+  within DO require a live DOCA install at /opt/mellanox/doca.
 ---
 
 # DOCA programming guide

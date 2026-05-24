@@ -1,7 +1,32 @@
 ---
 name: doca-gpi
-description: NVIDIA DOCA GPI (pkg-config doca-gpi) — the GPU-Packet-Initiator channel + queue surface for DOCA applications whose CUDA kernels drive RDMA queues directly from GPU memory, without CPU mediation. Lower-level sister to doca-gpunetio (the higher-level GPU NetIO Send/Receive surface). This skill teaches when GPI is the right surface vs doca-gpunetio, the channel + GPU-handle object model, the integration with a doca-rdma queue, the CUDA-side preconditions, capability discovery via doca_gpi_cap_get_*, and the layered debug ladder for DOCA_ERROR_* returns from GPI calls.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA GPI programming
+  — wiring a GPU-Packet-Initiator context so a CUDA kernel drives
+  RDMA queues directly from GPU memory without host CPU mediation.
+  Covers picking GPI vs doca-gpunetio, the doca_gpi / channel /
+  RDMA-queue object model, the GPU-side handle handoff
+  (doca_gpu_gpi_channel*), binding GPU memory, capability discovery
+  via doca_gpi_cap_get_*, and debugging DOCA_ERROR_* from
+  doca_gpi_* calls. Trigger even when the user does not explicitly
+  mention "DOCA GPI" — typical implicit phrasings include "my CUDA
+  kernel needs to post RDMA directly from GPU memory",
+  "DOCA_ERROR_BAD_STATE on channel_get_gpu_handle", "how do I hand
+  a GPU handle to my CUDA kernel", "is 64 RDMA queues per channel
+  allowed", or "GPU kernel driving RDMA without the host CPU on the
+  path". Refuse and route elsewhere for the doca-gpunetio
+  Send/Receive surface, the doca-rdma queue lifecycle, DPA-side
+  initiation (doca-rdmi), or the CUDA programming model — those
+  belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached, plus an NVIDIA GPU with CUDA Toolkit installed
+  (GPUDirect-style PCIe path between GPU and NIC). Reads the local
+  install via `pkg-config doca-gpi` (co-requires doca-common,
+  doca-rdma) and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA GPI

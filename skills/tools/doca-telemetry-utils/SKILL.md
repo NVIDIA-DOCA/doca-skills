@@ -1,7 +1,29 @@
 ---
 name: doca-telemetry-utils
-description: NVIDIA DOCA Telemetry Utils (`doca_telemetry_utils`) — operator diagnostic CLI shipped under `/opt/mellanox/doca/tools/` that supports a DOCA Telemetry exporter / collector pipeline by translating between diagnostic-counter Data IDs and counter names, enumerating the counters DOCA's diagnostic-data surface exposes, and probing whether a device supports a counter before an exporter config commits to it. Pairs with the developer-side [`doca-telemetry`](../../libs/doca-telemetry/SKILL.md) collector / publisher libraries; it does NOT ship telemetry, configure DTS, or rewrite configs. Three invocation classes: `get-counters` (enumerate), `<name> [props]` (resolve name → Data ID with property dimensions node / pcie_index / depth / unit), `<DATA_ID>` (reverse-resolve). An optional leading `<device PCI>` runs the resolved counter against the device's capability surface. Counter names, properties, and Data IDs come from the public DOCA Telemetry guide and `--help`; a wrong Data ID silently drops the metric.
-kind: tool
+description: >
+  Use this skill when the user is invoking `doca_telemetry_utils` on
+  a host with DOCA installed — discovering the diagnostic-counter
+  schema, translating counter names to binary Data IDs, validating
+  per-device counter support before committing a DOCA Telemetry
+  exporter config, or reverse-resolving a captured Data ID. Trigger
+  even when the user does not explicitly mention "doca_telemetry_utils"
+  or "Data ID" — typical implicit phrasings include "my exporter ships
+  but the collector sees nothing", "this metric silently drops
+  downstream", "which counters does this BlueField expose", "translate
+  this 0x... back to a counter name", "what do node / pcie_index /
+  depth mean here", or "is this counter supported on this device before
+  I commit it". Refuse and route elsewhere for developer-side collector
+  / exporter library programming, DTS deployment, or DOCA install /
+  repair — those belong to doca-telemetry, doca-public-knowledge-map,
+  and doca-setup.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with the Telemetry optional component and
+  a BlueField DPU visible to DOCA on a known PCI address. Invokes
+  /opt/mellanox/doca/tools/doca_telemetry_utils; per-device probe
+  typically requires elevated privileges.
 ---
 
 # DOCA Telemetry Utils

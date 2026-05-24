@@ -210,7 +210,11 @@ lint_one() {
   FM="$(awk 'BEGIN{c=0} /^---[[:space:]]*$/ {c++; next} c==1 {print} c==2 {exit}' "$SKILL_FILE")"
   NAME="$(printf '%s\n' "$FM" | awk -F': *' '$1=="name"{ $1=""; sub(/^ /,""); print; exit }')"
   DESC="$(printf '%s\n' "$FM" | awk -F': *' '$1=="description"{ $1=""; sub(/^ /,""); print; exit }')"
-  KIND="$(printf '%s\n' "$FM" | awk -F': *' '$1=="kind"{ $1=""; sub(/^ /,""); print; exit }')"
+  # Accept `kind:` either at the top level of the frontmatter (legacy)
+  # or nested under `metadata:` (AgentSkills.io-spec-compliant placement
+  # — spec forbids unknown top-level fields). Strip leading whitespace
+  # from $1 before comparing so the same awk works for both placements.
+  KIND="$(printf '%s\n' "$FM" | awk -F': *' '{ k=$1; sub(/^[ \t]+/,"",k) } k=="kind"{ $1=""; sub(/^ /,""); print; exit }')"
 
   printf '%s' "$NAME" | grep -Eq '^[a-z0-9-]{1,64}$' \
     || { echo "FAIL[$SKILL_DIR]: invalid name '$NAME' (need ^[a-z0-9-]{1,64}\$)"; return 1; }

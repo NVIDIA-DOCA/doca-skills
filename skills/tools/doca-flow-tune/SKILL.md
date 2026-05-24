@@ -1,7 +1,33 @@
 ---
 name: doca-flow-tune
-description: NVIDIA DOCA Flow Tune (`doca_flow_tune`) — the unified tool for offline and online tuning of a live `doca-flow` pipeline (throughput, lookup latency, rule-install rate, table sizing, HW vs SW steering placement). The artifact is ONE binary with TWO internal roles: a server role (sits next to / inside a Flow app, snapshots and exposes pipe / counter / KPI state through local IPC) and a client / consumer role (dumps, analyzes, visualizes, recommends parameter changes against captured or live state). One artifact, one skill; the historical *server* / *client* split lives INSIDE this artifact, not as separate executables. Pairs with `doca-flow`, `doca-flow-perf` (measure baselines; flow-tune optimizes on top), `doca-version`, `doca-debug`. Mutating recommendations are dataplane-affecting; smoke-before-bulk and a clean read-only snapshot are mandatory before any state-changing application.
-kind: tool
+description: >
+  Use this skill when the user is tuning a live or captured
+  `doca-flow` pipeline with `doca_flow_tune` — snapshotting
+  pipe / counter / KPI state, picking a tuning axis (rule
+  placement, resource hints / table sizing, HW-offload mode)
+  and a matching measurement (rule-install rate, lookup latency,
+  hardware-counter delta), running offline or online (read-only
+  or state-changing) modes, reading the dumper CSV / analyze
+  JSON / visualize mermaid, or applying a recommendation back
+  into the Flow program. Trigger even when the user does
+  not explicitly mention "doca_flow_tune" — typical implicit
+  phrasings include "Flow rule-install rate is low on
+  BlueField", "table sizing looks wrong for this pipe", "tune
+  visualize step is empty", "before/after
+  counters don't move", or "which doca-flow knob does this
+  recommendation hit". Refuse and route elsewhere for measuring
+  baseline numbers (doca-flow-perf, doca-flow-dpa-perf), writing
+  the doca-flow application, DOCA install, or streaming Flow
+  telemetry — those belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached, plus a running or captured `doca-flow`
+  application to observe. Reads the user's local install via
+  `pkg-config doca-flow` and the shipped `flow_tune_cfg*.json`
+  templates and `scripts/` directory under /opt/mellanox/doca.
 ---
 
 # DOCA Flow Tune (`doca_flow_tune`)

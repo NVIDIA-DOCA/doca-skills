@@ -1,7 +1,30 @@
 ---
 name: doca-erasure-coding
-description: NVIDIA DOCA Erasure Coding on BlueField and ConnectX hosts — hardware-accelerated Reed-Solomon erasure coding for distributed storage resilience (RAID-6-style N data + K redundancy block layout, NOT a network primitive), the three task types `doca_ec_task_create` (encode) / `doca_ec_task_recover` (reconstruct missing blocks) / `doca_ec_task_update` (incrementally update parity when one source block changes), the matrix-type + N + K + block-size configuration surface, capability discovery via `doca_ec_cap_*` for task support, max block size, max N+K, and supported matrix types, the DOCA Core context lifecycle for the `doca_ec` context, source / destination mmap permission pair, the asymmetric submit-then-progress completion surface, and debugging DOCA_ERROR_* returns from the Erasure Coding API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Erasure Coding
+  programming on a BlueField DPU, ConnectX NIC, or host — bringing
+  up a doca_ec context, picking among the create / recover / update
+  tasks, choosing matrix type / N / K / block size, querying
+  doca_ec_cap_* before sizing, setting doca_mmap src/dst
+  permissions, or debugging DOCA_ERROR_* returns from
+  doca_ec_task_*. Trigger even when the user does not name "DOCA
+  Erasure Coding" or "Reed-Solomon" — typical implicit phrasings
+  include "one data block changed, how do I refresh parity without
+  re-encoding", "a disk failed and 2 parity blocks are gone, can I
+  rebuild", "RAID-6 resilience across 12 disks", "my
+  doca_ec_task_create returns NOT_PERMITTED", or "is this N+K layout
+  still recoverable". Refuse and route elsewhere for non-Reed-Solomon
+  codes (fountain / LDPC / raptor), pure-replication designs,
+  network FEC, or other DOCA accelerator libraries (SHA / Compress /
+  AES-GCM / DMA) — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. Reads the user's local install via `pkg-config
+  doca-erasure-coding` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Erasure Coding

@@ -1,7 +1,31 @@
 ---
 name: doca-urom-svc
-description: NVIDIA DOCA UROM Service — long-running container on BlueField Arm that EXECUTES the remote memory operations (puts, gets, atomics, active messages, collective primitives) HPC / UCX / MPI host workloads enqueue through the paired host-side `doca-urom` library. This service is the DPU-side EXECUTOR; `doca-urom` is the host-side PUBLISHER; together they form the publisher / executor paired contract for HPC offload. Container deployment on BlueField Arm via the public Container Deployment Guide; configuration axes covering UCX-component / collective surface (cap-bound to the BlueField generation), enqueue-queue depth, and host-endpoint authorization. Pairs with `doca-urom` (host-side enqueue) and `doca-rdma` (the underlying RDMA substrate the service uses to move bytes). Version-bound paired contract — host library and DPU service must agree per the DOCA Compatibility Policy or operations fail subtly.
-kind: service
+description: >
+  Use this skill when operating the DOCA UROM Service container
+  on a BlueField Arm to execute remote memory operations (puts,
+  gets, atomics, collectives) that paired hosts enqueue through
+  the host-side `doca-urom` library — pulling the NGC container
+  under the BlueField container runtime, choosing the
+  UCX-component / collective surface, sizing the enqueue queue,
+  wiring host-endpoint authorization, or pinning the host-library
+  + service paired versions per the DOCA Compatibility Policy.
+  Trigger even when the user does not say "DOCA UROM Service" —
+  typical implicit phrasings include "MPI/UCX collectives slow on
+  host CPU, want BlueField offload", "enqueue returns
+  NOT_PERMITTED though doca_dev access is fine", "operations
+  enqueued but completions never fire", "DOCA_ERROR_AGAIN after N
+  submits", or "cap query says supported but runtime says
+  NOT_SUPPORTED". Refuse and route elsewhere for host-side
+  application code, MPI/UCX stack integration, RDMA substrate
+  bring-up, or installing DOCA — those belong to other skills.
+metadata:
+  kind: service
+compatibility: >
+  BlueField-Arm-only DOCA service container; pulled from NVIDIA
+  NGC and started under the BlueField OS container runtime.
+  Host-side install is irrelevant — the host's relationship to
+  this service is via the paired `doca-urom` library over a
+  `doca-rdma` substrate.
 ---
 
 # DOCA UROM Service

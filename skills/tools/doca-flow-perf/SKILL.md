@@ -1,7 +1,31 @@
 ---
 name: doca-flow-perf
-description: NVIDIA DOCA Flow Perf (`doca_flow_perf`) — the shipped tool for measuring the host / DPU-CPU execution path of a `doca-flow` pipeline. Drives a JSON-described pipeline (matchers, actions, forwarding) through repeated rule insertion / deletion / (optional) query iterations, captures CPU-cycle counts per iteration, and reports rule-install / delete rate plus iteration stats across N CPU workers. Distinct from `doca-flow-dpa-perf` (DPA-offloaded path) and from `doca-flow-tune` (optimizes a deployed pipeline). Supports DPDK and DOCA backends behind the same JSON contract; ships a `configs/` library of canned policy JSONs as starting points. Teach: methodology (what it measures vs does NOT — control-plane rule rate, NOT dataplane throughput), policy / traffic-class design, output interpretation, the four-tuple capture that makes a number defensible. Pairs with `doca-flow`, `doca-flow-tune`, `doca-flow-dpa-perf`, `doca-version`, `doca-debug`.
-kind: tool
+description: >
+  Use this skill when the user is measuring the host or DPU-CPU
+  control-plane rate of a DOCA Flow pipeline with doca_flow_perf —
+  picking a JSON policy from configs/, choosing the DPDK or DOCA
+  backend, running the single-iteration smoke then the iterative eval
+  loop, interpreting per-iteration CPU cycles and num_pushed /
+  num_failed, or capturing the four-tuple (DOCA version,
+  BlueField/firmware, JSON policy, worker/queue/burst config) that
+  makes a Kops/sec number defensible. Trigger even when the user does
+  not explicitly mention "doca-flow-perf" — typical implicit phrasings
+  include "how many rules per second can my BlueField insert",
+  "5-tuple hairpin rule rate", "Kops/sec for steering", "flow-perf
+  number does not match release notes", "DPDK vs DOCA benchmark", or
+  "rule-install variance too high". Refuse and route elsewhere for
+  optimizing a live Flow app (doca-flow-tune), the DPA-offloaded path
+  (doca-flow-dpa-perf), dataplane throughput or latency, or
+  library-internal pipe semantics — those belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
+  attached. The doca_flow_perf binary plus its configs/ JSON exemplars
+  must be present (the DOCA Flow Perf install component), with the
+  underlying doca-flow library healthy. Reads `pkg-config doca-flow`
+  and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Flow Perf (`doca_flow_perf`)

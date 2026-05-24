@@ -1,7 +1,34 @@
 ---
 name: doca-pcc
-description: NVIDIA DOCA PCC on BlueField hosts — the host-side control library for implementing CUSTOM Programmable Congestion Control algorithms that run on the BlueField DPA (data-path accelerator), including the per-PCC-instance `doca_pcc` Core context, the loaded `doca_pcc_app` algorithm image (the DPA-side algorithm compiled by the DPACC compiler), attachment to a `doca_dev` mapping to the BlueField port carrying the RDMA / RoCE traffic the algorithm controls, the two-side-program model (host-side `doca-pcc` loads + parameterizes; DPA-side algorithm executes), capability discovery via `doca_pcc_cap_*`, env preconditions (a BlueField with a DPA processor exposed AND the firmware-level custom-PCC slot enabled), the distinction from the default factory PCC in ConnectX firmware and from the `doca_pcc_counter` diagnostic tool, and debugging `DOCA_ERROR_*` returns from the host-side PCC API including the `DOCA_ERROR_DRIVER` route to the env-side skill.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on host-side DOCA
+  PCC work to load a CUSTOM Programmable Congestion Control
+  algorithm onto a BlueField DPU — creating per-port `doca_pcc`
+  contexts, loading a `dpacc`-compiled `doca_pcc_app` onto the
+  `doca_dev` for the RoCE-bearing port, parameterizing it,
+  walking triple-axis capability discovery (DOCA cap-query +
+  DPA-capable BlueField + firmware custom-PCC slot enabled), or
+  debugging `DOCA_ERROR_*` from `doca_pcc_*`. Trigger even
+  without explicit "DOCA PCC" phrasing — implicit forms include
+  "loading my own congestion control onto a BF port",
+  "DOCA_ERROR_NOT_PERMITTED on algorithm load",
+  "DOCA_ERROR_DRIVER when I attach my custom algorithm", "my
+  custom rate-update isn't affecting RoCE traffic", or "load
+  succeeds but no on-wire change". Refuse and route elsewhere
+  for DPA-side algorithm-body design, the `doca_pcc_counter`
+  CLI, default factory PCC in ConnectX firmware, or setting up
+  the RDMA / RoCE traffic — those belong to other skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU whose
+  DPA processor is exposed to the host AND whose firmware has
+  the custom-PCC slot enabled. Also requires the DPACC compiler
+  installed at a version matched to DOCA per the DOCA
+  Compatibility Policy. Reads the user's local install via
+  `pkg-config doca-pcc` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA PCC

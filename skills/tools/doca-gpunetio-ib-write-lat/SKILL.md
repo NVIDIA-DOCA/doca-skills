@@ -1,7 +1,33 @@
 ---
 name: doca-gpunetio-ib-write-lat
-description: NVIDIA DOCA GPUNetIO ib_write_lat — the GPUNetIO-flavored analog of the classic `perftest` `ib_write_lat`, shipped under `doca/tools/gpunetio_ib_write_lat/` as a client + server pair where each side has its CUDA kernel post one RDMA WRITE in a ping-pong cadence through the doca-gpunetio device-side surface to measure the per-iteration latency. The skill teaches the class question of *"what GPU-init RDMA-WRITE latency / jitter can the GPUNetIO path deliver for a real-time / control-loop class workload, and how does it compare against the GPI sister tool on the same physical operation?"* — the GPU-NIC pairing precondition, the configure / build / run shape against the shipped tool tree, how to read the half-iter / full-iter / CUDA-side usec output, the latency-vs-batching trade-off intrinsic to GPU-init RDMA, the version + capability overlay against the installed DOCA + CUDA Toolkit, and how to pick GPUNetIO vs GPI vs CPU-initiated for a given runtime surface.
-kind: tool
+description: >
+  Use this skill when the user is measuring GPU-kernel-initiated
+  RDMA WRITE latency through doca-gpunetio — building and running
+  the `gpunetio_ib_write_lat` client + server pair under
+  `doca/tools/gpunetio_ib_write_lat/`, checking GPU-NIC pairing,
+  reading the half-iter / full-iter / CUDA-side usec columns,
+  characterizing median / p99 / jitter for a real-time
+  control-loop workload, picking GPUNetIO vs GPI vs CPU-initiated
+  `perftest`, or weighing the latency-vs-batching trade-off of
+  GPU-init RDMA. Trigger even when the user does not say
+  'GPUNetIO' or 'ib_write_lat' — typical implicit phrasings
+  include 'GPU kernel RDMA latency benchmark', 'how fast can a
+  CUDA kernel post a WRITE', 'p99 RDMA latency on H100 +
+  ConnectX', 'kernel-launched WR tail latency', 'control-loop
+  deadline over RDMA', or 'compare GPU-init vs CPU-init perftest'.
+  Refuse and route for bandwidth runs (doca-gpunetio-ib-write-bw),
+  GPI-surface (doca-gpi-ib-write-lat), library debugging
+  (doca-gpunetio), or DOCA install — those belong to other skills.
+metadata:
+  kind: tool
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with an InfiniBand-capable
+  ConnectX or BlueField RNIC. Requires NVIDIA GPU with CUDA
+  Toolkit and `nvidia_peermem` loaded; client and server hosts
+  each need a GPU-NIC pair on a common PCIe / NVLink fabric.
+  Reads pkg-config doca-gpunetio / doca-rdma / doca-common and
+  inspects /opt/mellanox/doca/tools/gpunetio_ib_write_lat.
 ---
 
 # DOCA GPUNetIO ib_write_lat

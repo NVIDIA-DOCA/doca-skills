@@ -1,7 +1,30 @@
 ---
 name: doca-eth
-description: NVIDIA DOCA Ethernet on BlueField and ConnectX hosts — line-rate raw packet I/O on physical ports and representors via separate `doca_eth_rxq` (receive) and `doca_eth_txq` (transmit) DOCA Core contexts, the RX-type taxonomy (regular / cyclic / managed-recv) selected by data shape, send-task submission against `doca_eth_frame` payload buffers, capability discovery for queue sizes / RX types / scatter-gather depth / checksum offload via `doca_eth_rxq_cap_*` and `doca_eth_txq_cap_*`, the universal DOCA Core context lifecycle for each queue, permission and port-state preconditions (device opened with required access, port up, traffic actually steered to the RX queue), the steering dependency on DOCA Flow (or kernel-side promiscuous mode) for inbound packets, and debugging DOCA_ERROR_* returns from the Ethernet API.
-kind: library
+description: >
+  Use this skill when the user is doing hands-on DOCA Ethernet
+  packet-queue work on a BlueField DPU or ConnectX NIC — bringing
+  up a `doca_eth_rxq` or `doca_eth_txq` on a port / representor /
+  SF, picking among regular / cyclic / managed-recv RX types,
+  sizing burst or scatter-gather length against the `_cap_*`
+  queries, submitting `doca_eth_frame` send-tasks, or debugging
+  DOCA_ERROR_* returns from an Ethernet call. Trigger even when
+  the user does not explicitly mention "DOCA Ethernet" or
+  "doca_eth_rxq" — typical implicit phrasings include "my RX
+  queue is up but no packets arrive", "send-task returns AGAIN
+  at line rate", "which queue type for fixed-MTU ingress",
+  "device open fails without sudo", or "is L3 checksum offload
+  available here". Refuse and route elsewhere for installing
+  DOCA, flow-rule / steering programming, host↔DPU control
+  messaging, or RDMA data movement — those belong to other
+  skills.
+metadata:
+  kind: library
+compatibility: >
+  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
+  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
+  ConnectX NIC attached. Reads the user's local install via
+  `pkg-config doca-eth` and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA Ethernet
