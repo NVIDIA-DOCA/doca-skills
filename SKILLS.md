@@ -40,10 +40,9 @@ skills/
 The cross-cutting skills sit at the top level because they apply *across*
 libraries / services / tools. Per-artifact skills live under the matching
 subdirectory, **strictly 1:1 with `doca/{libs,services,tools}`** at the
-DOCA release the bundle is aligned to. Every commit on
-`ai-mvp-with-files` is verified to preserve this 1:1 alignment before
-it lands, so the branch is always in lock-step with the named DOCA
-release.
+DOCA release the bundle is aligned to. Every bundle release is verified
+to preserve this 1:1 alignment before it ships, so the bundle is always
+in lock-step with the named DOCA release.
 
 This is a *physical* convention only — agents discover skills by their
 `name:` (declared in each `SKILL.md`'s YAML frontmatter), and cross-link
@@ -158,7 +157,7 @@ Telemetry-Service-as-deployed) are intentionally out of scope — see
 
 Adding or modifying a skill is governed by NVIDIA's internal author
 contract. External consumers of this bundle do not need to author
-skills themselves — `ai-mvp-with-files` already carries the
-1:1-aligned skill for every public DOCA library, service, and tool at
-the currently-aligned DOCA release, and every new release brings the
-matching skills along with it as part of the bundle alignment.
+skills themselves — the bundle already carries the 1:1-aligned skill
+for every public DOCA library, service, and tool at the currently-
+aligned DOCA release, and every new release brings the matching
+skills along with it as part of the bundle alignment.

@@ -99,19 +99,18 @@ or copy its contents into your existing `AGENTS.md`. Agents resolve
 
 External consumers of this bundle do not need to run any CI gates
 themselves. Skill changes are vetted by an internal CI pipeline
-before they land on `ai-mvp-with-files` — that pipeline verifies
-structural conformance of every `SKILL.md` / `CAPABILITIES.md` /
-`TASKS.md`, public-sources-only references, cross-link integrity,
-anchor density, per-artifact prompt coverage, strict 1:1 alignment
-with the public `doca/{libs,services,tools}` tree at a named DOCA
-release, and a 3-way agent A/B/C measurement that compares the
-current bundle against the previous release and against a no-skills
-baseline.
+before each release — that pipeline verifies structural conformance
+of every `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, public-sources-
+only references, cross-link integrity, anchor density, per-artifact
+prompt coverage, strict 1:1 alignment with the public
+`doca/{libs,services,tools}` tree at a named DOCA release, and a
+3-way agent A/B/C measurement that compares the current bundle
+against the previous release and against a no-skills baseline.
 
-What this means for you as a consumer: every commit on
-`ai-mvp-with-files` you pull is a bundle state that has already
-passed those gates. You don't need any of the CI tooling to load and
-use the skills — just clone the repo and point your agent at it.
+What this means for you as a consumer: every release of this bundle
+has already passed those gates. You don't need any of the CI tooling
+to load and use the skills — just clone the repo and point your
+agent at it.
 
 **Ground rules every agent follows** (full list in `AGENTS.md`): public sources only — never reference internal NVIDIA hostnames; prefer the local install at `/opt/mellanox/doca` over the web; never invent symbols, URLs, paths, or package names; always check the installed DOCA version before quoting API names.
 
