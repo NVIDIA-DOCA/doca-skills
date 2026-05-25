@@ -69,9 +69,11 @@ single instance.
   the per-task + matrix + size capability-query rule
   (`doca_ec_cap_task_create_is_supported`,
   `_task_recover_is_supported`, `_task_update_is_supported`,
-  `doca_ec_cap_get_max_block_size`,
-  `doca_ec_cap_get_max_num_blocks`, the
-  `doca_ec_cap_get_matrix_*` family) in
+  `_task_galois_mul_is_supported` — the 4th public task on the
+  EC accelerator, `doca_ec_cap_get_max_block_size`,
+  `doca_ec_cap_get_max_buf_list_len`, and per-variant
+  `doca_ec_matrix_create()` constructor success — the public
+  header does NOT ship a `doca_ec_cap_get_matrix_*` family) in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the discovery step in
   [`TASKS.md ## configure`](TASKS.md#configure).
@@ -176,10 +178,13 @@ Coding work, in any language. Concretely:
   (`DOCA_ACCESS_FLAG_LOCAL_READ_WRITE`).
 - Sizing blocks against
   `doca_ec_cap_get_max_block_size(devinfo)` and N+K against
-  `doca_ec_cap_get_max_num_blocks(devinfo)`.
+  `doca_ec_cap_get_max_buf_list_len(devinfo, &max_buf_list_len)`.
 - Checking which task types and matrix schemes this device's
   accelerator advertises via the
-  `doca_ec_cap_task_*_is_supported` and `doca_ec_cap_get_matrix_*`
+  `doca_ec_cap_task_*_is_supported` (including the 4th task
+  `_task_galois_mul_is_supported`) and per-variant
+  `doca_ec_matrix_create()` constructor success — the public
+  header does NOT ship a `doca_ec_cap_get_matrix_*`
   families against the active `doca_devinfo`.
 - Validating against a known-vector recover smoke (encode a small
   N + K layout, simulate one block loss, recover, bit-compare

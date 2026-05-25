@@ -9,7 +9,9 @@ one-shot pass — see the eval-loop overlay in `## test` below.
 Read this file when the loader sent you here from
 [SKILL.md](SKILL.md). For the param-registration model, the
 parameter-type set, the standard DOCA CLI surface, the
-`--json-config <path>` rule, the error taxonomy, observability,
+`--json <path>` (`-j <path>`) rule (note: the real flag is
+`--json`, NOT `--json-config` — do not invent the longer name),
+the error taxonomy, observability,
 and the safety / path-selection policy, see
 [CAPABILITIES.md](CAPABILITIES.md). For the cross-library DOCA
 patterns layered under everything below (the canonical
@@ -126,17 +128,17 @@ elicit from the user before recommending any code-level edit:
 | Slot | What the agent asks the user | Arg-Parser-specific consideration |
 | --- | --- | --- |
 | 1. Starting sample | Which `*_main.c` under `/opt/mellanox/doca/samples/<library>/<sample>/`? | Pick the closest in *library context* (a DMA modification starts from a DMA sample's `*_main.c`); the Arg Parser usage is structurally identical across libraries, but the surrounding setup code matters |
-| 2. Long + short name | What long name (e.g. `--my-flag`) and (optional) short name? | Long name MUST NOT collide with the standard surface in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) (`--device`, `--representor`, `--rep-list`, `--json-config`, `--sdk-log-level`); colliding silently overrides the standard flag in `--help` and breaks cross-sample muscle memory |
+| 2. Long + short name | What long name (e.g. `--my-flag`) and (optional) short name? | Long name MUST NOT collide with the standard surface in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) (`--device`, `--representor`, `--rep-list`, `--json`, `--sdk-log-level`); colliding silently overrides the standard flag in `--help` and breaks cross-sample muscle memory |
 | 3. Parameter type | String, int, bool flag, or JSON config file (per the parameter-type table in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes))? | The choice determines both argv validation and JSON-config validation; declaring an `int` and then passing `0x40` surfaces as `INVALID_VALUE` per [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy) |
 | 4. Value-callback target | Which user-config struct field does the parsed value write into? | The callback runs DURING `doca_argp_start`; do not call back into `doca_argp_*` from inside it (that's the most common `BAD_STATE` first-app failure) |
 | 5. Description for `--help` | What one-line description should `--help` show for the new flag? | The description is what the operator reads; vague descriptions surface as user-confusion bug reports, not as parser bugs |
-| 6. JSON-config impact | Does the user want operators to be able to set this from `--json-config <path>` as well? | Every registered param is automatically settable via the JSON file using the long name as the key — the user does not have to register it twice, but does need to communicate the key to operators |
+| 6. JSON-config impact | Does the user want operators to be able to set this from `--json <path>` as well? | Every registered param is automatically settable via the JSON file using the long name as the key — the user does not have to register it twice, but does need to communicate the key to operators |
 | 7. Build manifest | Keep the sample's existing `meson.build` (which already wires `pkg-config doca-argp` via the parent sample build) | Yes. Do not switch to a hand-rolled Makefile for *"simplicity"* — it removes the version-check rail and breaks the standard build pattern |
 
 The agent's anti-pattern alert: a *"swap doca-argp for getopt
 because it'll be simpler"* refactor is **always** a regression
 on a shipped sample — it breaks the standard CLI surface, drops
-the `--json-config` integration silently, and removes the
+the `--json` integration silently, and removes the
 error-taxonomy ladder in
 [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy).
 Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy),
@@ -153,7 +155,7 @@ Steps the agent should walk the user through:
 
 1. **First run: `./<binary> --help`.** Confirm the operator-side
    listing shows the standard surface (`--device`,
-   `--representor`, `--rep-list`, `--json-config`,
+   `--representor`, `--rep-list`, `--json`,
    `--sdk-log-level`) AND the user's new flag with the
    description from
    [`## modify`](#modify) slot 5. If the new flag is missing,
@@ -173,7 +175,7 @@ Steps the agent should walk the user through:
    `./my-config.json` with the user's new flag as a key plus
    one or two standard-surface keys (e.g. `"device":
    "0000:03:00.0"`), then invoke
-   `./<binary> --json-config ./my-config.json`. Confirm the
+   `./<binary> --json ./my-config.json`. Confirm the
    binary parses the same set of values it parsed in step 2.
    This confirms the JSON-config path covers the new flag,
    which is the load-bearing reason to reuse doca-argp.
@@ -182,7 +184,7 @@ Steps the agent should walk the user through:
    [`doca-debug CAPABILITIES.md ## Observability`](../../doca-debug/CAPABILITIES.md#observability))
    when any of the above three runs fails; the trace shows
    the per-param parse calls and surfaces the
-   `--json-config` file read.
+   `--json` file read.
 
 For the runtime version + `LD_LIBRARY_PATH` cross-checks that
 underlie *"the program built but does nothing"*, see
@@ -221,7 +223,7 @@ Iteration shape:
    standard flags broke after the user's diff, the
    modification overrode a default registration.
 4. **JSON-config smoke.** Drive the same configuration from
-   `--json-config ./my-config.json`; confirm argv-equivalent
+   `--json ./my-config.json`; confirm argv-equivalent
    behavior. An unknown JSON key surfaces as
    `DOCA_ERROR_NOT_FOUND` per
    [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
@@ -283,7 +285,7 @@ hardware accelerator behind it.
   declaration side OR the operator side, not a retry.
 - **Unknown JSON key is the third hypothesis.**
   `DOCA_ERROR_NOT_FOUND` from `doca_argp_start` when
-  `--json-config <path>` is in play means the JSON file
+  `--json <path>` is in play means the JSON file
   references a long name no registered param uses. Diff the
   registered long names against the JSON keys; one side is
   stale.
@@ -366,9 +368,9 @@ the agent should:
 | `pkg-config --modversion doca-argp` | `## configure` step 1; `## build` slot 4 | What is the build-time Arg Parser version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
 | `pkg-config --cflags --libs doca-argp` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
 | `ls /opt/mellanox/doca/samples/*/*_main.c \| head` | `## configure` step 2; `## modify` slot 1 | Which sample `*_main.c` files ship in this install, and which is the closest starting point for a CLI modification? | A list of `*_main.c` paths, one per shipped sample. Pick the closest in library context |
-| `./<binary> --help` | `## run` step 1; `## test` step 1 | Does the built binary's `--help` listing show the standard DOCA CLI surface plus every newly registered param? | A help listing with `--device`, `--representor`, `--rep-list`, `--json-config`, `--sdk-log-level`, plus every user-added flag with its description |
-| `cat <path> \| jq .` | `## run` step 3; `## debug` layer 6 | Is the `--json-config <path>` file valid JSON before we blame doca-argp for `IO_FAILED`? | A pretty-printed JSON tree. A `jq` parse error = malformed JSON, fix the file before any code change |
-| `DOCA_LOG_LEVEL=trace ./<binary> --json-config <path>` | `## run` step 4; `## debug` layer 6 | What did the structured DOCA logger emit during the Arg Parser parse? | A trace-level line on every per-param parse call and on the JSON-config file read. Silence on a flag = the flag was never registered |
+| `./<binary> --help` | `## run` step 1; `## test` step 1 | Does the built binary's `--help` listing show the standard DOCA CLI surface plus every newly registered param? | A help listing with `--device`, `--representor`, `--rep-list`, `--json`, `--sdk-log-level`, plus every user-added flag with its description |
+| `cat <path> \| jq .` | `## run` step 3; `## debug` layer 6 | Is the `--json <path>` file valid JSON before we blame doca-argp for `IO_FAILED`? | A pretty-printed JSON tree. A `jq` parse error = malformed JSON, fix the file before any code change |
+| `DOCA_LOG_LEVEL=trace ./<binary> --json <path>` | `## run` step 4; `## debug` layer 6 | What did the structured DOCA logger emit during the Arg Parser parse? | A trace-level line on every per-param parse call and on the JSON-config file read. Silence on a flag = the flag was never registered |
 
 For commands shared across libraries (`pkg-config --modversion`,
 `doca_caps`, `cat /opt/mellanox/doca/applications/VERSION`,

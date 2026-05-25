@@ -30,9 +30,52 @@ compatibility: >
 
 # DOCA Firefly Service
 
+> **Subsystem inventory (Run-12 correction).** DOCA Firefly is NOT
+> just "a PTP daemon." The shipped `doca_firefly.yaml` exposes
+> **five** PTP-stack subsystems via environment variables, each
+> with its own `*_STATE`, `*_CONFIG_FILE`, and (where relevant)
+> `*_INTERFACE` / `*_DEVICE` knobs:
+>
+> 1. **PTP** (`PTP_STATE`, `PTP_INTERFACE`, `PTP_CONFIG_FILE`) —
+>    the `ptp4l` daemon (or master, depending on profile) that
+>    drives the BlueField PHC.
+> 2. **PTP Monitor** (`MONITOR_STATE`, `MONITOR_CONFIG_FILE`,
+>    `MONITOR_CLIENT_TYPE`, `MONITOR_CLIENT_PHC2SYS_INTERFACE`,
+>    `MONITOR_CLIENT_CONNECTION_TIMEOUT`) — the monitor server +
+>    client surface; the **internal `phc2sys` monitor client**
+>    (`MONITOR_CLIENT_TYPE=phc2sys`) is a real subsystem inside
+>    Firefly, not just a host-side concern.
+> 3. **PHC2SYS** (`PHC2SYS_STATE`, `PHC2SYS_ARGS`,
+>    `PHC2SYS_CONFIG_FILE`) — the **container-internal** `phc2sys`
+>    instance; the bundle previously framed `phc2sys` as
+>    host-only, which is wrong.
+> 4. **PPS** (`PPS_STATE`, `PPS_DEVICE`) — the Pulse-Per-Second
+>    output (with the additional `enable_while_running` and
+>    `do_nothing` states beyond plain enable/disable).
+> 5. **SyncE** (`SYNCE_STATE`, `SYNCE_INTERFACE`,
+>    `SYNCE_CONFIG_FILE`) — Synchronous Ethernet frequency
+>    distribution; orthogonal to PTP.
+> 6. **Firefly Servo** (`SERVO_STATE`, `SERVO_CONFIG_FILE`) —
+>    the proprietary Firefly servo loop (alternative to the
+>    upstream linuxptp servo).
+>
+> The valid `PROFILE` values are exactly **`default` / `media` /
+> `telco-l2` / `custom`** (per `doca_firefly.yaml` comments) —
+> the agent must not invent additional values. All five
+> subsystems respond to `defined_by_profile` so the active
+> `PROFILE` is what actually flips most of the knobs.
+>
+> Configuration-override env vars follow the pattern
+> `CONF_<SUBSYSTEM>_<section>_<key>` (e.g.
+> `CONF_PTP_global_priority1`, `CONF_SYNCE_global_backend`,
+> `CONF_MONITOR_global_telemetry_export`); these are the
+> documented surface for overriding individual config keys
+> without shipping a full custom config file.
+
 **Where to start:** This skill is for *operating* the DOCA Firefly
-Service container, not for *linking against* a library. Firefly is the
-PTP daemon that drives the BlueField PTP Hardware Clock (PHC); it is
+Service container, not for *linking against* a library. Firefly is
+the **PTP / PHC2SYS / PPS / SyncE / Servo / Monitor** stack that
+drives and observes the BlueField PTP Hardware Clock (PHC); it is
 *not* the host-side time follower, *not* the consumer workload, and
 *not* a programming surface. If the user wants to *deploy* the
 container, open [`TASKS.md`](TASKS.md) and start at

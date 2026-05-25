@@ -470,7 +470,7 @@ the user to share source code.
 | `/opt/mellanox/doca/samples` | One subdirectory per library, each containing a self-contained sample (typical files: `<library>_main.c`, `meson.build`). | The authoritative example for that library on the installed version. Read these before answering "show me a sample of X". |
 | `/opt/mellanox/doca/applications` | Full reference applications (e.g. `doca_pcc`, `doca_dpi`). | Larger, integrated examples. Inspect their `meson.build` to see how they declare DOCA dependencies. |
 | `/opt/mellanox/doca/tools` | Shipped CLIs (e.g. `doca_caps`, `doca_telemetry_exporter`). | Use them for runtime introspection before answering capability questions. |
-| `/opt/mellanox/doca/infrastructure` | Headers, libraries, and `pkg-config` files used to build against DOCA. | Inspect `*.pc` here to verify the exact Meson dependency name for a library (`doca-flow`, `doca-common`, etc.). |
+| `/opt/mellanox/doca/infrastructure` *(legacy / split-profile installs only)* OR `/opt/mellanox/doca/lib/<arch>-linux-gnu/` + `/opt/mellanox/doca/include/` *(default on DOCA 3.3+)* | Headers, libraries, and `pkg-config` files used to build against DOCA. The `infrastructure/` subtree is present in some legacy / split installer profiles; on most current DOCA 3.3+ installs the layout has flattened and `infrastructure/` may NOT exist. ALWAYS resolve via `pkg-config --variable=includedir doca-common` and `pkg-config --variable=libdir doca-common` rather than hard-coding either path. | Inspect `*.pc` to verify the exact Meson dependency name for a library (`doca-flow`, `doca-common`, etc.). |
 | `/opt/mellanox/doca/services` | Bundled services (DTS, telemetry agents, etc.). | Read service-specific README files inside each subdirectory before suggesting service-level changes. |
 
 Useful enumeration commands to suggest to the user (read-only, safe):
@@ -486,7 +486,8 @@ To build against DOCA from a user-owned directory, the canonical environment
 hint is to expose the DOCA `pkg-config` directory before running `meson setup`:
 
 ```bash
-export PKG_CONFIG_PATH="/opt/mellanox/doca/infrastructure/lib/pkgconfig:${PKG_CONFIG_PATH}"
+PCDIR="$(dirname "$(find /opt/mellanox/doca -name doca-common.pc -print -quit 2>/dev/null)")"
+export PKG_CONFIG_PATH="${PCDIR}:${PKG_CONFIG_PATH}"  # commonly /opt/mellanox/doca/lib/<arch>-linux-gnu/pkgconfig on DOCA 3.3+; or /opt/mellanox/doca/infrastructure/lib/pkgconfig on legacy / split-profile installs
 ```
 
 If `pkg-config --modversion doca-common` fails after that, treat it as a real
@@ -545,7 +546,7 @@ When the user asks something, route as follows:
 | "Which package gives me library X?" | Installation Guide section on package matrix; then verify on the user's system with `pkg-config --list-all`. |
 | "Show me a sample that uses library X." | `/opt/mellanox/doca/samples/doca_<X>/` if installed; otherwise the per-library guide on `docs.nvidia.com/doca/sdk/` (each library guide documents the samples shipped with it). |
 | "How do I build a DOCA sample?" | Library guide + the sample's own `meson.build` inside `/opt/mellanox/doca/samples/...`. |
-| "What is the API for X?" | Library guide; confirm by inspecting headers under `/opt/mellanox/doca/infrastructure/include`. |
+| "What is the API for X?" | Library guide; confirm by inspecting headers under `$(pkg-config --variable=includedir doca-common)` (commonly `/opt/mellanox/doca/include/` on DOCA 3.3+; `/opt/mellanox/doca/infrastructure/include/` on legacy / split-profile installs). |
 | "Why does my build fail with `pkg-config` not finding `doca-...`?" | "Layout of an installed DOCA package" section above (`PKG_CONFIG_PATH`), then Installation Guide. |
 | "What is the latest version / what changed?" | Release Notes. |
 | "What does the DOCA version number mean? Is LTS still supported?" | Compatibility Policy (Public documentation entry points table). |

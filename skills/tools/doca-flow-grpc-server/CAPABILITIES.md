@@ -98,6 +98,23 @@ The agent's rule:
 
 ### Auth / TLS / network-segment decision axes
 
+> **CRITICAL (Run-12).** The shipped `doca_flow_grpc_server` /
+> `doca_flow_grpc_client` binaries hard-code
+> `grpc::InsecureChannelCredentials()` (C++) and
+> `grpc.aio.insecure_channel(...)` (Python). The "Auth" and
+> "TLS" axes below are **NOT** in-binary knobs — there is no
+> shipped flag, config file, env var, or build option that
+> turns on TLS or mTLS or token-auth on this server today. The
+> only sound posture is **plaintext-on-a-trusted-segment behind
+> an external TLS/identity layer** (a TLS-terminating reverse
+> proxy, a service mesh sidecar, a WireGuard tunnel, etc.).
+> The decision the operator makes is therefore: *which external
+> hardening layer* will gate this plaintext endpoint — NOT which
+> in-binary auth/TLS knob to flip. Any prose below that suggests
+> the operator picks an in-binary auth/TLS mode is the bundle's
+> previous aspirational framing and is wrong against the shipped
+> source.
+
 The operator must commit to three independent transport
 decisions before exposing the endpoint.
 

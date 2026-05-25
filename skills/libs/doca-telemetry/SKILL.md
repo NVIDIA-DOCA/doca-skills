@@ -1,22 +1,24 @@
 ---
 name: doca-telemetry
 description: >
-  Use this skill when the user is building a DOCA telemetry collector
-  — consuming structured telemetry events via `pkg-config
-  doca-telemetry`. Covers the collector context lifecycle,
-  schema-query discovery of publisher event shapes, capability
-  discovery for incoming transports (local socket / NetFlow / IPFIX),
-  the schema-must-match contract, the AGAIN-means-consumer-queue-full
-  back-pressure rule, transport-endpoint permissions, DOCA Telemetry
-  Service (DTS) attachment on BlueField, and debugging DOCA_ERROR_*
-  from collector calls. Trigger even when the user does not say "DOCA
-  Telemetry" or "collector" — typical implicit phrasings include
-  "publisher emits but agent sees nothing", "AGAIN on consume / queue
-  fills", "NOT_FOUND on schema query", "daemon to receive counter
-  events from my BlueField app", or "ingest NetFlow/IPFIX into my
-  analyzer". Refuse and route elsewhere for the publishing side
-  (doca-telemetry-exporter), DTS deployment, plain stdout logging,
-  and non-DOCA sources — those belong to other skills.
+  Use this skill when reading **DOCA hardware-counter events**
+  from a `doca_dev` via the per-domain DOCA Telemetry reader
+  libraries — `doca_telemetry_pcc`, `_dpa`, `_diag`,
+  `_adp_retx`, `_phy`, `_pci`. This is the **counter-READER**
+  surface — there is no NetFlow / IPFIX / local-socket collector
+  framework here; the bundle previously framed it that way and
+  that framing is wrong. Each domain ships its own
+  `doca_telemetry_<domain>_*` API: cap-query
+  `_cap_is_supported(devinfo)`, context create on a `doca_dev`,
+  `doca_ctx_start()`, then per-domain read / sample. Trigger
+  even when the user does not say "DOCA Telemetry" — typical
+  implicit phrasings: "read PCC counters from my BlueField
+  app", "sample DPA counter exports", "expose PHY / PCI / DIAG
+  counters from this `doca_dev`". Refuse and route elsewhere
+  for the publishing / export side
+  (`doca-telemetry-exporter`), DOCA Telemetry Service (DTS) as
+  deployed (out of scope), NetFlow / IPFIX collectors, and
+  plain stdout logging.
 metadata:
   kind: library
 compatibility: >
@@ -29,22 +31,34 @@ compatibility: >
 
 # DOCA Telemetry
 
-**Where to start:** This skill assumes DOCA is already installed and
-the user is doing **hands-on telemetry-collection work** — building
-a local collector / aggregator / monitoring agent that **consumes**
-structured telemetry events from one or more DOCA-using publishers.
+**Where to start:** This skill assumes DOCA is already installed
+and the user is doing **hands-on hardware-counter-reader work** —
+opening a per-domain `doca_telemetry_<domain>` context against a
+`doca_dev` and reading the latest hardware-counter snapshot for
+that domain. The library is the **counter-READER** half of DOCA
+telemetry; it is NOT a NetFlow / IPFIX collector and NOT a
+generic schema-event consumer (the bundle previously framed it
+that way and that framing was wrong — there is no NetFlow /
+IPFIX / local-socket transport surface in the public header).
 Open [`TASKS.md`](TASKS.md) if the user wants to *do* something
 (configure / build / modify / run / test / debug); open
-[`CAPABILITIES.md`](CAPABILITIES.md) when the question is *what
-incoming telemetry shape can this collector accept* on this install.
-If the user has not installed DOCA yet, route to
+[`CAPABILITIES.md`](CAPABILITIES.md) when the question is *which
+hardware-counter domains can this device read* on this install
+(PCC, DPA, DIAG, ADP_RETX, PHY, PCI). If the user has not
+installed DOCA yet, route to
 [`doca-setup`](../../doca-setup/SKILL.md) first. If the user is
-confused about whether they want this library or
+confused about whether they want this library (HW-counter
+reader on a `doca_dev`) or
 [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
-(the publisher side) — read the collector-vs-exporter role split in
+(the publisher / export side, which is a separate library and
+publishes structured telemetry / labeled metrics / OTLP logs),
+read the reader-vs-exporter role split in
 [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
 BEFORE configuring anything; mixing the two is the load-bearing
-first-app failure for this skill.
+first-app failure for this skill. If the user is asking about
+**DOCA Telemetry Service (DTS) as deployed**, route to
+[`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
+non-goals — DTS is out of scope for this bundle.
 
 ## Example questions this skill answers well
 

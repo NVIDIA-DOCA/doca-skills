@@ -391,9 +391,13 @@ existing doca-flow setup:
   pre-modify cap-query.
 - A 5-tuple shape change (e.g. adding overlay-aware CT to a
   previously plain CT setup) requires a new per-overlay cap-query.
-- After modify: validate the wrapped pipe via
-  `doca_flow_pipe_validate` BEFORE attempting `pipe_create`, per
-  the parent's pipe-validate rule.
+- After modify: rely on `doca_flow_pipe_create_v1`'s
+  constructor-time validation (any spec inconsistency surfaces as
+  a constructor failure with `DOCA_ERROR_INVALID_VALUE` or
+  `DOCA_ERROR_NOT_SUPPORTED`) plus the staged-entry / dry-run
+  pattern from the shipped CT sample. The bundle previously
+  named a separate `doca_flow_pipe_validate` API; that symbol is
+  not in the current public surface — do not invent it.
 
 **run / test overlay.** Per
 [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct):
@@ -559,7 +563,8 @@ Flow pipe / entry / action edit on an already-up port, capture
 target port (root status, match spec, action spec, monitor /
 counter attachment, miss-pipe linkage), (b) per-pipe counter
 baseline (pre-edit values from
-`doca_flow_pipe_query` + `doca_flow_pipe_entry_query`), and
+`doca_flow_resource_query_pipe_miss_v1` +
+`doca_flow_resource_query_entry_v1`), and
 (c) the device cap snapshot the agent gated on
 (`doca_caps --list-devs` + Flow cap query results for the
 specific match / action kinds). The triple IS the rollback
@@ -576,13 +581,16 @@ without it.
 2. **Document the reverse-edit verb explicitly in the same
    answer that recommends the edit.** The reversal shape
    depends on the action kind: (a) **entry add** → matching
-   `doca_flow_pipe_entry_remove` in reverse-add order;
+   `doca_flow_pipe_remove_entry` in reverse-add order;
    (b) **action add / modify** (VLAN push, encap, modify) →
    `doca_flow_pipe_destroy` on the modified pipe + recreate
    from the snapshot's pipe spec; (c) **pipe add** →
    `doca_flow_pipe_destroy` in reverse-create order;
-   (d) **monitor / counter attach** →
-   `doca_flow_monitor_destroy` + recreate without the attach.
+   (d) **monitor / counter attach** — `doca_flow` does not
+   expose a public `doca_flow_monitor_destroy`; the reversal
+   is `doca_flow_pipe_destroy` on the affected pipe +
+   `doca_flow_pipe_create_v1` with a `doca_flow_pipe_cfg`
+   that does NOT call `doca_flow_pipe_cfg_set_monitor_v1`.
    For miss-pipe linkage edits, the snapshot's linkage spec
    IS the rollback target.
 3. **Trigger the rollback from the [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger).**
@@ -590,8 +598,9 @@ without it.
    [`## test`](#test) step 1 is the verification contract's
    step 3 smoke probe for the pipeline-edit-class context. If
    the post-edit smoke does NOT return green (counter
-   increment + `doca_flow_pipe_validate` clean on the modified
-   pipe) within the bounded debug-loop iteration, the rollback
+   increment + clean `doca_flow_pipe_create_v1` reconstruction
+   of the modified pipe shape) within the bounded debug-loop
+   iteration, the rollback
    above MUST be walked before any further pipeline edit. The
    agent does NOT loop indefinitely; on the second non-green
    iteration, rollback is mandatory.
@@ -637,7 +646,7 @@ binary or `pkg-config` against the installed `.pc`, not prose recall.
 | Discover Flow link flags (trace flavor) | `pkg-config --libs doca-flow-trace` | [`## debug`](#debug) step 3 + [doca-debug ## configure](../../doca-debug/TASKS.md#configure) step 3 | Selects the trace `.so` that emits per-pipe / per-entry trace output. |
 | Discover device + steering-mode capabilities | `doca_caps --list-devs` | [`## configure`](#configure) step 2 + [doca-caps](../../tools/doca-caps/SKILL.md) | Lists every device DOCA sees with the active steering mode and supported match / action kinds. |
 | Enumerate ports / representors | `devlink dev show` + the installed Flow port-enumeration sample | [`## configure`](#configure) step 3 | Shows the BlueField port and every representor the user expects to forward to. |
-| Validate a pipe spec (read-only) | `doca_flow_pipe_validate` (or the dry-run sample on versions where validate is not exposed) | [`## test`](#test) step 1 | Returns success; failure means the spec is internally inconsistent — do not call `pipe_create`. |
+| Validate a pipe spec (read-only) | `doca_flow_pipe_create_v1` itself performs constructor-time validation; treat its `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return as the validate signal. There is no separate `doca_flow_pipe_validate` public symbol in the current release. Use the dry-run / staged-entry pattern from the shipped sample for a fuller validation surface. | [`## test`](#test) step 1 | A successful return from `doca_flow_pipe_create_v1` means the spec is internally consistent against the current device caps; an error means the spec is invalid — do not retry without changing the spec. |
 | Raise log verbosity for a Flow run | `--sdk-log-level 70` on the program command line | [`## run`](#run) + [doca-debug CAPABILITIES.md ## Observability](../../doca-debug/CAPABILITIES.md#observability) | TRACE / DEBUG lines appear in stderr; the Flow lifecycle calls are visible. |
 | Read per-entry / per-pipe counters | The Flow counter API (Flow API reference) | [`## debug`](#debug) step 1 | Counter for the suspected entry is non-zero under expected traffic. |
 | Dump the programmed-entry table | `doca-flow-inspector` (or the trace flavor's dump path) | [`## debug`](#debug) step 3 | Output matches the user's mental model of the pipe. Diff = bug. |

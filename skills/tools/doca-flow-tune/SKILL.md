@@ -32,6 +32,18 @@ compatibility: >
 
 # DOCA Flow Tune (`doca_flow_tune`)
 
+> **Subcommand surface correction (Run-12).** `doca_flow_tune` is
+> a **CLIENT-side unified visibility / analysis / recommendation
+> tool** that talks to a server-side helper inside the user's
+> `doca-flow` application (or to a captured snapshot). The
+> shipped binary exposes a fixed set of mode subcommands —
+> `DUMP` / `WEB` / `MONITOR` / `ANALYZE` / `VISUALIZE` — chosen
+> via the JSON config or CLI flags. Earlier framings that
+> described the tool as a "server-side dumper" or that omitted
+> the DUMP / WEB modes were wrong; the real surface is
+> CLIENT-as-binary + server-as-linked-library, with the five
+> modes selecting what the client does with the snapshot.
+
 **Where to start:** This is a tool skill for invoking `doca_flow_tune`,
 the unified DOCA Flow tuning tool. Open [`TASKS.md`](TASKS.md) and
 start at [`## configure`](TASKS.md#configure) to commit to the

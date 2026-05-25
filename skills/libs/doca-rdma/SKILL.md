@@ -139,7 +139,11 @@ material lives in two companion files:
 
 - `CAPABILITIES.md` — what RDMA can express on this version: the
   eleven task types and their permission matrix, the three
-  connection methods, transport types (IB, RoCE; DC is alpha), the
+  connection methods, transport types (RC baseline, DC alpha,
+  UD per device + task) — note these are the per-QP service
+  type controlled by `doca_rdma_set_transport_type()`, NOT the
+  link-layer (IB vs RoCE) which is inherited from the device
+  port configuration, the
   capability-query surface (`doca_rdma_cap_*`), the RDMA error
   taxonomy (mapped onto the cross-library `DOCA_ERROR_*` set), the
   observability surface (per-task events, connection state callbacks),

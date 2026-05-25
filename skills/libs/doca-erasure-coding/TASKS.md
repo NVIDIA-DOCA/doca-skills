@@ -51,9 +51,12 @@ Steps the agent should walk the user through:
    `doca_ec_cap_task_create_is_supported(devinfo)`,
    `doca_ec_cap_task_recover_is_supported(devinfo)`,
    `doca_ec_cap_task_update_is_supported(devinfo)`,
+   `doca_ec_cap_task_galois_mul_is_supported(devinfo)` (the 4th
+   public task — bundle previously omitted this row),
    `doca_ec_cap_get_max_block_size(devinfo)`,
-   `doca_ec_cap_get_max_num_blocks(devinfo)`, and the
-   `doca_ec_cap_get_matrix_*` family enumerating the matrix
+   `doca_ec_cap_get_max_buf_list_len(devinfo, &max_buf_list_len)`, and a
+   per-variant `doca_ec_matrix_create()` / `_create_from_raw()`
+   attempt against the active device to enumerate matrix
    types the device advertises. The capability surface to
    compare against lives in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
@@ -83,9 +86,12 @@ Steps the agent should walk the user through:
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
 5. **Pick the coding parameters: matrix type, N, K, block size.**
    Matrix type must be in the
-   `doca_ec_cap_get_matrix_*` set the device advertises (do not
+   variant set the device advertises via successful
+   `doca_ec_matrix_create()` / `_create_from_raw()` constructor
+   (the public header does NOT ship a `doca_ec_cap_get_matrix_*`
+   family — do not
    assume Vandermonde is universally available). N + K must
-   satisfy `N + K ≤ doca_ec_cap_get_max_num_blocks(devinfo)`.
+   satisfy `N + K ≤ doca_ec_cap_get_max_buf_list_len(devinfo, &max_buf_list_len)`.
    Block size must satisfy
    `block_size ≤ doca_ec_cap_get_max_block_size(devinfo)`; ALL
    blocks in a single task share this block size. The K choice
@@ -167,8 +173,8 @@ before recommending any code-level edit:
 | --- | --- | --- |
 | 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_erasure_coding/`? | Pick the closest in *task direction* (create vs recover vs update) to the user's intent. Do NOT bridge across directions — a smaller diff is always safer than a re-architecture. A user editing one source block at a time should start from an update sample, not from a create sample with the encode ripped out |
 | 2. Task type(s) added or removed | Which of the three task types — create, recover, update? | Each enabled task needs its own `doca_ec_task_*_set_conf` call before `doca_ctx_start()`, plus its matching cap-query in [`## configure`](#configure) step 2. Removing an unused task type from a sample shrinks the configuration surface and is recommended for single-purpose pipelines |
-| 3. Matrix-type change | Switching the Reed-Solomon matrix variant? | Re-run the `doca_ec_cap_get_matrix_*` family against the active `doca_devinfo` to confirm the new matrix type is supported; matrix-type drift between configure and submit returns `DOCA_ERROR_NOT_SUPPORTED` |
-| 4. N + K layout change | Changing the number of data or redundancy blocks? | Confirm `N + K ≤ doca_ec_cap_get_max_num_blocks(devinfo)`. Changing K changes the durability target (tolerates K simultaneous losses); the agent should surface that trade-off rather than picking K silently |
+| 3. Matrix-type change | Switching the Reed-Solomon matrix variant? | Re-attempt `doca_ec_matrix_create()` (or `_from_raw()`) against the active `doca_dev` for the new variant; constructor failure = "not supported on this device." The public header does NOT ship a `doca_ec_cap_get_matrix_*` family. Matrix-type drift between configure and submit returns `DOCA_ERROR_NOT_SUPPORTED` |
+| 4. N + K layout change | Changing the number of data or redundancy blocks? | Confirm `N + K ≤ doca_ec_cap_get_max_buf_list_len(devinfo, &max_buf_list_len)`. Changing K changes the durability target (tolerates K simultaneous losses); the agent should surface that trade-off rather than picking K silently |
 | 5. Block-size change | Changing the per-block size? | Confirm `block_size ≤ doca_ec_cap_get_max_block_size(devinfo)`. ALL N + K buffers in a single task share this block size; mismatched block sizes within a task return `DOCA_ERROR_INVALID_VALUE` at submit. Resize every buffer, not just one |
 | 6. Permissions on the extra buffers | Are the source mmaps RO and destination mmaps RW on EVERY block (not just the first)? | EC tasks have multiple source / destination buffers (N + K total per layout); a missing permission flag on ANY one of them surfaces as `DOCA_ERROR_NOT_PERMITTED`. Over-broad permissions are a silent security regression |
 | 7. Build manifest | Keep the sample's existing `meson.build` (which already wires `pkg-config doca-erasure-coding`)? | Yes. Do not switch to a hand-rolled Makefile for *"simplicity"* — it removes the version-check rail |
@@ -251,7 +257,8 @@ Iteration shape:
    `_task_update_is_supported(devinfo)`,
    `_get_max_block_size(devinfo)`,
    `_get_max_num_blocks(devinfo)`, and the
-   `doca_ec_cap_get_matrix_*` family against the active
+   `doca_ec_matrix_create()` constructor success per variant
+   against the active
    `doca_devinfo`. If any required task type or matrix type
    returns false / unexpected → that's the answer; the user's
    device or DOCA version does not support the requested config.
@@ -299,7 +306,8 @@ Iteration shape:
 8. **Negative test.** Once the positive path works,
    intentionally request a task type the device should NOT
    support (per step 1), a matrix type outside the
-   `doca_ec_cap_get_matrix_*` set, a block size larger than
+   variant set advertised via `doca_ec_matrix_create()`
+   constructor success, a block size larger than
    `_get_max_block_size`, an N + K layout larger than
    `_get_max_num_blocks`, or a recover task with more than K
    missing blocks; confirm the failure is the expected
@@ -312,7 +320,7 @@ Eval-loop overlay — why this is a loop, not a one-shot pass:
 | Iteration trigger | What it looks like | What changes next iteration |
 | --- | --- | --- |
 | `DOCA_ERROR_NOT_SUPPORTED` on a task we expected to work | The doc page lists the task but the cap query returns false | The agent quoted the *library* surface; the *device* capability per `doca_devinfo` is the real gate. Re-narrow to the device-level query for the specific task type. |
-| `DOCA_ERROR_NOT_SUPPORTED` on the configured matrix type | Configure accepts the matrix-type enum but submit (or `set_conf`) returns NOT_SUPPORTED | The matrix type is not in the device's `doca_ec_cap_get_matrix_*` set. Re-enumerate the supported matrix types and re-pick. |
+| `DOCA_ERROR_NOT_SUPPORTED` on the configured matrix type | Configure accepts the matrix-type enum but submit (or `set_conf`) returns NOT_SUPPORTED | The matrix variant is not supported by the active device's accelerator. Re-attempt `doca_ec_matrix_create()` (or `_from_raw()`) per variant the user wants and re-pick from those that succeed; the public header does NOT ship a `doca_ec_cap_get_matrix_*` family. |
 | `DOCA_ERROR_INVALID_VALUE` on first submit | Block size larger than `_get_max_block_size`, OR N + K larger than `_get_max_num_blocks`, OR mismatched block sizes between source / destination buffers in a single task | Re-size the buffer using the cap-query output (block size) or re-narrow the layout (N + K). Confirm every block in the task is the same size. The error is sizing-vs-cap mismatch, not corruption. |
 | `DOCA_ERROR_INVALID_VALUE` on a recover task | Recover request lists more than K missing blocks | The layout is unrecoverable. Stop; do not invent a workaround. Restore from another replica (if the system layers replication on top of EC) or accept the data loss. |
 | Recover smoke produces wrong byte content | Configuration accepted but the recovered block does not match the original | Wrong matrix type, wrong N + K, or source / destination buffer swap. Re-check the matrix type in the `_set_conf` call, re-check the N and K against the device cap, and re-check the source / destination wiring before any other diagnosis. |
@@ -365,11 +373,12 @@ at layers 5 (runtime) and 6 (program):
   Confirm every source AND destination buffer length equals
   the configured block size, and that the block size itself is
   ≤ `doca_ec_cap_get_max_block_size(devinfo)`. The matching
-  N + K error is `N + K > doca_ec_cap_get_max_num_blocks(devinfo)`
+  N + K error is `N + K > doca_ec_cap_get_max_buf_list_len(devinfo, &max_buf_list_len)`
   at configure / submit; the fix there is to shrink the layout
   or pick a device with a higher cap.
 - Matrix-type drift: a `_set_conf` call that quotes a matrix
-  type the `doca_ec_cap_get_matrix_*` family returns false for
+  variant `doca_ec_matrix_create()` fails to construct on the
+  active device for
   returns `DOCA_ERROR_NOT_SUPPORTED`. Re-enumerate the
   supported matrix types against the active `doca_devinfo`; do
   not assume from prior installs.

@@ -320,6 +320,27 @@ BSP / DOCA Platform Framework documentation for those steps.
    RShim, eMMC image install, BFB-side firmware update, BFB-side OS bring-
    up to `Linux up` / `DPU is ready`, TMFIFO recovery, BFB-side apt
    vocabulary, `bf.cfg`) is **externally-productized** (BlueField BSP layer
+
+   **RShim instance ↔ BlueField disambiguation (canonical one-liner).**
+   Multi-DPU hosts expose multiple RShim character devices under
+   `/dev/rshim<N>/`. To map each RShim instance to a specific
+   BlueField (so `bfb-install --rshim /dev/rshim<N>` targets the
+   right DPU, and `cat /dev/rshim<N>/misc` reads the right
+   console), read the `DEV_NAME` field of each `misc` file:
+
+   ```bash
+   for r in /dev/rshim*/misc; do echo "== $r =="; grep -E '^DEV_NAME' "$r"; done
+   ```
+
+   `DEV_NAME` returns the PCIe BDF that RShim instance is
+   attached to (e.g. `DEV_NAME pcie-0000:03:00.2`); cross-match
+   against `lspci -d 15b3: -nn` to identify which physical
+   BlueField is on which `/dev/rshim<N>`. This one-liner is the
+   canonical disambiguation step before any per-DPU
+   `bfb-install`, `rshim` config edit, or console capture on a
+   multi-DPU host; skipping it is the #1 cause of "I flashed
+   the wrong DPU" incidents.
+
    plus, for fleet-scale deployments, DOCA Platform Framework). It is out
    of scope for this bundle's strict-1:1 monorepo alignment, but the
    bundle's `AGENTS.md ## Non-goals #7` contract still applies: the agent

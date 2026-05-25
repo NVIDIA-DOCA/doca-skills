@@ -84,11 +84,12 @@ flag back to the user.
 | 2. Socket type / protocol on the host leg | The shipped `doca_socket_relay` binary uses AF_UNIX (Unix Domain Sockets, SOCK_STREAM) on its host leg — the listener and acceptor threads in the shipped binary are all AF_UNIX, and the relay's `-s/--socket` argument is a filesystem path, not an IP/port pair. The DPU-network leg is the DOCA Comch transport (`-n/--cc-name` selects the named Comch service). If the public DOCA Socket Relay guide on the user's installed version adds TCP / UDP / etc. variants in a later release, the agent verifies that on the user's `--help` output before quoting any non-AF_UNIX behavior — it does not invent transport modes the shipped binary does not support. | Treating the relay as protocol-agnostic and quoting TCP / UDP debug rules against a UDS-only binary is a category error: framing, error semantics, file-descriptor permissions, and peer-credential propagation are AF_UNIX-shaped, not socket-API-generic. |
 | 3. Forwarding endpoint | Where on the DPU side the relay forwards traffic to — the DPU-side terminator (the relay's far half, a DPU-side service, or a documented service container on the BlueField that re-presents the bytes to the DPU peer). | This is the most consequential axis for safety: a *correct* host-side bind with a *wrong* forwarding endpoint produces a relay that the host application can connect to but whose bytes go to the wrong place (or nowhere). The agent's diagnosis ladder in [`## Error taxonomy`](#error-taxonomy) treats forwarding-endpoint misconfiguration as its own layer for that reason. |
 
-The three axes are **independent**; an in-process TCP-relay
+The three axes are **independent**; an in-process AF_UNIX relay
 forwarding to one DPU-side terminator and a service-container
-UDS-relay forwarding to another DPU-side terminator are two
-separate deployments and the agent must keep them separate when
-diagnosing.
+AF_UNIX relay forwarding to a different DPU-side terminator are
+two separate deployments and the agent must keep them separate
+when diagnosing. (Both legs are AF_UNIX-on-host + Comch-on-DPU
+per the shipped binary; the host leg is never TCP / UDP.)
 
 **Read-only operations vs state-changing operations.** Every
 relay operation falls into one of two functional families,

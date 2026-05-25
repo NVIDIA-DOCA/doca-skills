@@ -26,7 +26,7 @@ every Ethernet release and every host / BlueField pair.
 | Pattern | When it applies (class shape) | Where the substance lives |
 | --- | --- | --- |
 | 1. Pick the queue side | Decide whether the user needs RX, TX, or both; instantiate as separate `doca_eth_rxq` and `doca_eth_txq` contexts (each with its own DOCA Core lifecycle) | [`## Capabilities and modes`](#capabilities-and-modes) RX / TX object table + [TASKS.md ## configure](TASKS.md#configure) step 2 |
-| 2. Pick the RX type | Choose regular vs cyclic vs managed-recv based on per-packet vs ring-buffer vs library-managed data shape; cap-query before assuming the chosen type works on this device | [`## Capabilities and modes`](#capabilities-and-modes) RX-type taxonomy + [TASKS.md ## configure](TASKS.md#configure) step 3 |
+| 2. Pick the RX type | Choose one of the **four** real `enum doca_eth_rxq_type` values — `DOCA_ETH_RXQ_TYPE_CYCLIC`, `_MANAGED_MEMPOOL`, `_REGULAR`, `_SHARED_MEMPOOL` — based on per-packet vs ring-buffer vs library-managed vs library-shared-pool data shape; cap-query before assuming the chosen type works on this device | [`## Capabilities and modes`](#capabilities-and-modes) RX-type taxonomy + [TASKS.md ## configure](TASKS.md#configure) step 3 |
 | 3. Discover capabilities | Query `doca_eth_rxq_cap_*` / `doca_eth_txq_cap_*` for max burst size, supported RX types, scatter-gather depth, and checksum-offload presence — against the active `doca_devinfo` | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
 | 4. Honor preconditions | Verify the device opens under the user's access (sudo or `mlnx` group), the port reports linkup, and traffic is steered to the RX queue (via DOCA Flow or kernel promiscuous mode) | [`## Safety policy`](#safety-policy) precondition matrix + [TASKS.md ## configure](TASKS.md#configure) step 1 |
 | 5. Diagnose an Ethernet error | Map symptom (`DOCA_ERROR_BAD_STATE`, `_AGAIN`, `_NOT_PERMITTED`, `_NOT_SUPPORTED`, `_NO_MEMORY`, `_DRIVER`) to root cause without leaving the Ethernet layer prematurely | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
@@ -62,20 +62,21 @@ context.
 | Object | What it does | Key calls | Sizing inputs |
 | --- | --- | --- | --- |
 | `doca_eth_rxq` | Receive queue on a physical port, representor, or SF; surfaces inbound packets to user code as DOCA tasks or library-managed buffers depending on RX type | `doca_eth_rxq_create`, `_set_type`, `_set_max_burst_size`, `doca_ctx_start` | `doca_eth_rxq_cap_get_max_burst_size(devinfo)`; `doca_eth_rxq_cap_is_type_supported(devinfo, type)` |
-| `doca_eth_txq` | Transmit queue on the same device class; user submits send-tasks that carry a `doca_eth_frame` (the packet payload) plus the target queue | `doca_eth_txq_create`, `_set_max_send_buf_list_len`, `doca_ctx_start`, send-task allocator + submit | `doca_eth_txq_cap_get_max_send_buf_list_len(devinfo)`; `doca_eth_txq_cap_is_l3_chksum_offload_supported(devinfo)` |
-| `doca_eth_frame` | Wrapper over a packet buffer (payload + length); attached to a TX send-task at submit time | `doca_eth_frame_*` allocator / setter calls per the public guide | — (sized by the user's MTU and scatter-gather plan) |
+| `doca_eth_txq` | Transmit queue on the same device class; user submits send-tasks (`doca_eth_txq_task_send` for regular packets, `doca_eth_txq_task_lso_send` for LSO) that carry a packet `doca_buf` (`doca_eth_txq_task_send_set_pkt`) or a payload `doca_buf` + headers `doca_buf` (`doca_eth_txq_task_lso_send_set_pkt_payload` + `_set_headers`) plus the target queue | `doca_eth_txq_create`, `_set_max_send_buf_list_len`, `doca_ctx_start`, send-task allocator + submit | `doca_eth_txq_cap_get_max_send_buf_list_len(devinfo)`; `doca_eth_txq_cap_is_l3_chksum_offload_supported(devinfo)` |
+| Packet payload | The shipped public surface carries packet bytes as a plain `doca_buf *` attached to the send-task via the setters above. There is **no** `doca_eth_frame` struct family in the public header — do not invent one. | `doca_buf_*` allocators + `doca_eth_txq_task_send_set_pkt` (or `_lso_send_set_pkt_payload` + `_set_headers`) | — (sized by the user's MTU and scatter-gather plan) |
 
 **RX-type taxonomy.** Picking the right type is data-shape-dependent;
 the cap query is the only authority on what the device supports.
 
-| RX type | What the user sees | Right shape for | Wrong shape for |
+| RX type (`enum doca_eth_rxq_type`) | What the user sees | Right shape for | Wrong shape for |
 | --- | --- | --- | --- |
-| Regular | One DOCA task per inbound packet; the user posts a recv buffer per packet via the recv-task allocator | Small fan-out, per-packet user logic, debug-friendly first-run path | Line-rate ingress — per-packet task overhead dominates |
-| Cyclic | A ring of fixed-size buffers preallocated by the user; the library writes packets in order; the user reads the ring head | Line-rate ingress with fixed-MTU traffic; GPU packet-processing on a pre-pinned buffer | Variable-sized packets bigger than the ring slot, or workloads that need per-packet completion semantics |
-| Managed-recv | The library allocates and reclaims the receive buffers internally; the user just consumes completion events | Hands-off line-rate ingress with no preallocated buffer plan; lowest-friction first app | Workloads that need to control buffer placement (GPU pinned memory, NUMA-affinity, registered memory regions for downstream RDMA) |
+| `DOCA_ETH_RXQ_TYPE_REGULAR` (the default) | One DOCA task per inbound packet; the user posts a recv buffer per packet via the recv-task allocator | Small fan-out, per-packet user logic, debug-friendly first-run path | Line-rate ingress — per-packet task overhead dominates |
+| `DOCA_ETH_RXQ_TYPE_CYCLIC` | A ring of fixed-size buffers preallocated by the user; the library writes packets in order; the user reads the ring head | Max packet-rate ingress with fixed-MTU traffic; GPU packet-processing on a pre-pinned buffer | Variable-sized packets bigger than the ring slot, or workloads that need per-packet completion semantics |
+| `DOCA_ETH_RXQ_TYPE_MANAGED_MEMPOOL` | The library allocates and reclaims the receive buffers from an internal mempool; the user just consumes completion events | Hands-off line-rate ingress with no preallocated buffer plan; lowest-friction first app | Workloads that need to control buffer placement (GPU pinned memory, NUMA-affinity, registered memory regions for downstream RDMA) |
+| `DOCA_ETH_RXQ_TYPE_SHARED_MEMPOOL` | The library manages a **shared** memory pool across multiple RX queues / consumers; receive buffers are drawn from the shared pool. Bundle previously omitted this fourth real RX-type. | Multi-queue ingress where memory must be shared across RX queues; the appropriate type when several `doca_eth_rxq` instances on the same device want a unified buffer plan. See `doca_eth_rxq_shared_mempool.h` for the shared-mempool surface. | Single-queue ingress (use `_REGULAR` / `_CYCLIC` / `_MANAGED_MEMPOOL` instead) |
 
 **TX submission shape.** A `doca_eth_txq` submission is always
-*one send-task = one `doca_eth_frame`*. The frame wraps the
+*one send-task = one packet `doca_buf`*. The `doca_buf` wraps the
 packet payload; the send-task carries it onto the queue. The
 agent should not invent scatter-gather "list" submission beyond
 what `doca_eth_txq_cap_get_max_send_buf_list_len(devinfo)`

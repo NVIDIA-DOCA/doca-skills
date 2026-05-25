@@ -109,7 +109,7 @@ criteria:
         \u2014 doca-programming-guide: the env-then-program
           investigation order, OR `doca_error_get_descr` (for the
           runtime-layer follow-up), OR the build-flag rules
-          (`-DALLOW_EXPERIMENTAL_API`, etc.).
+          (`-DDOCA_ALLOW_EXPERIMENTAL_API`, etc.).
         \u2014 doca-public-knowledge-map: `/opt/mellanox/doca/...`
           install layout OR a canonical docs.nvidia.com URL OR the
           version-detection routine.

@@ -1,23 +1,23 @@
 ---
 name: doca-compress
 description: >
-  Use this skill when the user is doing hands-on DOCA Compress
-  programming on a BlueField DPU, ConnectX NIC, or host with
-  DOCA — enabling the compress-deflate or decompress-deflate
-  task on a doca_compress context, sizing source / destination
-  doca_buf against the per-task cap query, setting mmap
-  permissions, deciding whether to offload versus CPU zlib /
-  zstd, validating with a round-trip smoke, or debugging
-  DOCA_ERROR_* from a Compress call. Trigger even when the user
-  does not say "DOCA Compress" or "DEFLATE" — typical implicit
-  phrasings include "should I offload this gzip to the
-  BlueField", "I just need to decompress incoming network data",
-  "compress task returns INVALID_VALUE on alloc_init",
-  "submitted a task but no completion arrives", or "is zlib
-  faster on the CPU for this 64-byte buffer". Refuse and route
-  elsewhere for non-DEFLATE algorithms (zstd / LZ4 / Snappy),
-  pure mmap-to-mmap copies (use doca-dma), or cross-library
-  DOCA Core lifecycle and DOCA_ERROR_* taxonomy internals.
+  Use this skill for hands-on DOCA Compress programming on a
+  BlueField DPU, ConnectX NIC, or host with DOCA — enabling
+  compress-deflate, decompress-deflate, decompress-lz4-stream,
+  or decompress-lz4-block tasks on a doca_compress context
+  (the hardware supports DEFLATE both directions plus LZ4
+  decompress; LZ4 encode is NOT supported), sizing source /
+  destination doca_buf against the per-task cap query, setting
+  mmap permissions, deciding offload vs CPU zlib / zstd,
+  validating with a round-trip smoke, or debugging
+  DOCA_ERROR_* from a Compress call. Trigger on phrasings
+  like "offload this gzip", "decompress incoming network
+  data", "compress task returns INVALID_VALUE on alloc_init",
+  "submitted a task but no completion arrives", or "decompress
+  LZ4 on the BlueField." Refuse and route elsewhere for
+  non-DEFLATE / non-LZ4 algorithms (zstd / Snappy / brotli),
+  LZ4 encode (route to a CPU LZ4 library), pure mmap-to-mmap
+  copies (doca-dma), or DOCA Core lifecycle internals.
 metadata:
   kind: library
 compatibility: >

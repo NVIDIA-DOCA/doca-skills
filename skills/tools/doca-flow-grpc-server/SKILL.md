@@ -32,6 +32,26 @@ compatibility: >
 
 # DOCA Flow gRPC Server (`doca_flow_grpc_server`)
 
+> **CRITICAL transport-security correction (Run-12).** The
+> shipped `doca_flow_grpc_server` / `doca_flow_grpc_client`
+> binaries hard-code **`grpc::InsecureChannelCredentials()`** /
+> the Python client uses `grpc.aio.insecure_channel(...)`. There
+> is **no TLS, no mTLS, and no token-auth** knob on the shipped
+> control plane today. Any prose below (or in `CAPABILITIES.md`
+> / `TASKS.md`) that frames "mTLS / token auth / TLS posture"
+> as a configurable knob on **this** server is the bundle's
+> previous aspirational framing and is wrong against the shipped
+> source. Treat the server as **plaintext-on-a-trusted-segment
+> only**: it MUST be bound on a control-plane-only network
+> segment behind an external firewall / VPN / hardened bastion
+> that itself enforces TLS + identity. Any "TLS / mTLS / token-
+> auth" discussion below is about the operator's external
+> hardening layer, NOT a knob on this binary. Routing for an
+> in-binary TLS / auth design discussion must say so explicitly
+> and route the user to a generic gRPC framework
+> ([gRPC auth concepts](https://grpc.io/docs/guides/auth/)) for
+> a future-state design, not to a shipped-today knob.
+
 **Where to start:** This is a tool skill for standing up and
 operating `doca_flow_grpc_server`, the DOCA-shipped gRPC remote-
 control surface for `doca-flow`. Open [`TASKS.md`](TASKS.md) and

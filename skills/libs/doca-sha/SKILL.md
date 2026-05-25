@@ -57,8 +57,9 @@ the load-bearing piece — the worked example is a single instance.
   example: *"is SHA-256 in the accelerator on this BlueField, and
   what is the minimum destination buffer size for it?"*. Answered
   by the algorithm + buffer-sizing capability-query rule
-  (`doca_sha_cap_is_algorithm_supported`,
-  `doca_sha_cap_get_min_dst_buf_size`,
+  (`doca_sha_cap_task_hash_get_supported(devinfo, algorithm)`
+  for the one-shot path; `_task_partial_hash_get_supported(devinfo, algorithm)`
+  for the partial-hash path; `doca_sha_cap_get_min_dst_buf_size`,
   `doca_sha_cap_get_max_src_buf_size`) in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the discovery step in
@@ -136,7 +137,10 @@ any language. Concretely:
 - Checking which SHA algorithm enums
   (`DOCA_SHA_ALGORITHM_SHA1`, `DOCA_SHA_ALGORITHM_SHA256`,
   `DOCA_SHA_ALGORITHM_SHA512`) the active device's accelerator
-  advertises via `doca_sha_cap_is_algorithm_supported`.
+  advertises, via
+  `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)` and
+  `doca_sha_cap_task_partial_hash_get_supported(devinfo, algorithm)` —
+  both fold task-support and algorithm-support into one call.
 - Validating a digest against a published test vector before pushing
   bulk input through the accelerator.
 - Debugging a `DOCA_ERROR_*` returned from a SHA call (lifecycle vs.

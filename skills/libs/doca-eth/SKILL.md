@@ -1,22 +1,23 @@
 ---
 name: doca-eth
 description: >
-  Use this skill when the user is doing hands-on DOCA Ethernet
-  packet-queue work on a BlueField DPU or ConnectX NIC — bringing
-  up a `doca_eth_rxq` or `doca_eth_txq` on a port / representor /
-  SF, picking among regular / cyclic / managed-recv RX types,
-  sizing burst or scatter-gather length against the `_cap_*`
-  queries, submitting `doca_eth_frame` send-tasks, or debugging
-  DOCA_ERROR_* returns from an Ethernet call. Trigger even when
-  the user does not explicitly mention "DOCA Ethernet" or
-  "doca_eth_rxq" — typical implicit phrasings include "my RX
-  queue is up but no packets arrive", "send-task returns AGAIN
-  at line rate", "which queue type for fixed-MTU ingress",
-  "device open fails without sudo", or "is L3 checksum offload
-  available here". Refuse and route elsewhere for installing
-  DOCA, flow-rule / steering programming, host↔DPU control
-  messaging, or RDMA data movement — those belong to other
-  skills.
+  Use this skill for hands-on DOCA Ethernet packet-queue work
+  on a BlueField DPU or ConnectX NIC — bringing up a
+  `doca_eth_rxq` or `doca_eth_txq` on a port / representor /
+  SF, picking among the four `enum doca_eth_rxq_type` values
+  (`_REGULAR` / `_CYCLIC` / `_MANAGED_MEMPOOL` /
+  `_SHARED_MEMPOOL`), sizing burst or scatter-gather length
+  against the `_cap_*` queries, submitting
+  `doca_eth_txq_task_send` / `_lso_send` (carrying packet
+  `doca_buf`s — no `doca_eth_frame` struct exists), or
+  debugging DOCA_ERROR_* from an Ethernet call. Trigger on
+  implicit phrasings: "my RX queue is up but no packets
+  arrive", "send-task returns AGAIN at line rate", "which
+  queue type for fixed-MTU ingress", "device open fails
+  without sudo", or "is L3 checksum offload available here".
+  Refuse and route elsewhere for installing DOCA,
+  flow-rule / steering programming, host↔DPU control
+  messaging, or RDMA data movement.
 metadata:
   kind: library
 compatibility: >
@@ -65,7 +66,7 @@ instance.
   against a `doca_devinfo`) in
   [`TASKS.md ## configure`](TASKS.md#configure).
 - **"How do I send a packet from user code through `doca_eth_txq`?"**
-  — worked example: *"allocate a `doca_eth_frame`, attach the
+  — worked example: *"allocate a packet `doca_buf`, attach the
   payload, submit one send-task, wait for the completion event"*.
   Answered by the TX submission shape in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
@@ -131,7 +132,7 @@ work, in any language. Concretely:
   regular / cyclic / managed-recv RX types based on data shape
   before `doca_ctx_start()`.
 - Initializing a `doca_eth_txq` on the same or a different
-  `doca_dev` and posting send-tasks against `doca_eth_frame`
+  `doca_dev` and posting send-tasks against packet `doca_buf`s
   payload buffers.
 - Reading or setting Ethernet queue properties via
   `doca_eth_rxq_set_*` / `doca_eth_txq_set_*` and querying device
