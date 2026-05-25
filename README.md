@@ -175,7 +175,7 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-pcc`](skills/libs/doca-pcc/SKILL.md) | DOCA PCC | Programmable Congestion Control — host-side counters + algorithm hooks for custom CC. |
 | [`doca-pcc-ztr-rttcc-algo`](skills/libs/doca-pcc-ztr-rttcc-algo/SKILL.md) | DOCA PCC ZTR-RTTCC Algorithm | Reference Zero-Touch-RoCE-RTT-based congestion-control algorithm sample for PCC. |
 | [`doca-rdma`](skills/libs/doca-rdma/SKILL.md) | DOCA RDMA | RDMA send / recv / write / read on RoCE + InfiniBand — verbs-equivalent surface with DOCA's lifecycle. |
-| [`doca-rdmi`](skills/libs/doca-rdmi/SKILL.md) | DOCA RDMI | RDMA Multi-Instance — multiplexing many RDMA contexts efficiently on a single device. |
+| [`doca-rdmi`](skills/libs/doca-rdmi/SKILL.md) | DOCA RDMI | DOCA RDMA Initiator — accelerator-initiated (host or DPA-kernel) one-sided RDMA flow surface; pairs with `doca-rdma` for the general RDMA path. |
 | [`doca-rmax`](skills/libs/doca-rmax/SKILL.md) | DOCA Rivermax | Sub-microsecond-jitter SMPTE 2110 / NMOS media streaming — wraps the external Rivermax SDK (license required, see non-goal #7 routing). |
 | [`doca-sha`](skills/libs/doca-sha/SKILL.md) | DOCA SHA | Hardware-offloaded SHA-1 / SHA-256 / SHA-512 hashing. |
 | [`doca-sta`](skills/libs/doca-sta/SKILL.md) | DOCA STA | DOCA Storage-Target-Accelerator — storage-stack offload primitives. |
