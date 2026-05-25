@@ -25,20 +25,50 @@ The whole bundle is **vendor-neutral by design**: the directory layout is `skill
 
 ### Install (one-liner)
 
+The same one-liner installs into **any AgentSkills.io-aware agent** — `cursor`, `claude-code`, `codex`, `gemini-cli`, `kiro-cli`, or `custom --dest /path/to/anywhere`. Replace `<agent>` with whichever you want:
+
 ```bash
 git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git \
-  && cd doca-skills && ./install.sh --agent cursor
+  && cd doca-skills && ./install.sh --agent <agent>
 ```
 
-Or, if you prefer a single pipe-to-bash form (no manual `cd` required):
+Concrete examples (copy-paste any one of them — there is no agent-specific install path; the only difference is the target directory the installer writes to):
+
+```bash
+# Cursor                  → ~/.cursor/skills/
+git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent cursor
+
+# Anthropic Claude Code   → ~/.claude/skills/
+git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent claude-code
+
+# OpenAI Codex CLI        → ~/.codex/skills/
+git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent codex
+
+# Google Gemini CLI       → ~/.gemini/skills/
+git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent gemini-cli
+
+# Kiro CLI                → ~/.kiro/skills/
+git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent kiro-cli
+
+# Any AgentSkills.io target you control → /path/you/give/it
+git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent custom --dest /path/to/your/agent/skills
+```
+
+Or, if you prefer a single pipe-to-bash form (no manual `cd` required) — works for every agent with one flag swap:
 
 ```bash
 curl -fsSL https://gitlab-master.nvidia.com/doca-devops/doca-skills/-/raw/main/install.sh \
-  | bash -s -- --agent cursor \
+  | bash -s -- --agent <agent> \
                 --repo https://gitlab-master.nvidia.com/doca-devops/doca-skills.git
 ```
 
-> **Why two commands and not `npx`?** The bundle ships as a portable directory of [AgentSkills.io](https://agentskills.io/specification)-compliant skill folders, not as a published npm package, so the install path is `git clone` + `./install.sh` rather than `npx`. The installer is intentionally a 310-line bash script with zero runtime dependencies beyond `bash` / `cp` / `ln` / `mkdir` / `readlink` — auditable, offline-friendly, and reproducible on every Linux / macOS host without any package manager surface. Once installed, the activation flow (`AGENTS.md` → `SKILLS.md` → per-skill `SKILL.md`) is identical to every other AgentSkills.io-aware bundle including [`NVIDIA/skills`](https://github.com/NVIDIA/skills).
+You can also fan out into multiple agents in a single run:
+
+```bash
+./install.sh --agent cursor --agent claude-code --agent codex --agent gemini-cli --agent kiro-cli
+```
+
+> **Why two commands and not `npx`?** The bundle ships as a portable directory of [AgentSkills.io](https://agentskills.io/specification)-compliant skill folders, not as a published npm package, so the install path is `git clone` + `./install.sh` rather than `npx`. The installer is intentionally a 311-line bash script with zero runtime dependencies beyond `bash` / `cp` / `ln` / `mkdir` / `readlink` — auditable, offline-friendly, and reproducible on every Linux / macOS host without any package manager surface. Once installed, the activation flow (`AGENTS.md` → `SKILLS.md` → per-skill `SKILL.md`) is identical to every other AgentSkills.io-aware bundle including [`NVIDIA/skills`](https://github.com/NVIDIA/skills).
 
 The installer copies (or symlinks) the skill folders into your agent's skill discovery directory. The skills are available the next time your agent loads skills and encounters a relevant task — for example, ask your agent:
 
@@ -62,6 +92,9 @@ The installer recognizes these common AgentSkills.io-aware clients (one-flag, id
 
 # Gemini CLI (writes to ~/.gemini/skills/)
 ./install.sh --agent gemini-cli
+
+# Kiro CLI (writes to ~/.kiro/skills/)
+./install.sh --agent kiro-cli
 
 # Generic AgentSkills.io target (just writes to the path you give it)
 ./install.sh --agent custom --dest /path/to/your/agent/skills/

@@ -9,9 +9,10 @@
 # Quickstart:
 #
 #   ./install.sh --agent cursor                     # install all 61 skills into Cursor
-#   ./install.sh --agent claude-code                # install all 61 skills into Claude Code
-#   ./install.sh --agent codex                      # install all 61 skills into Codex CLI
-#   ./install.sh --agent gemini-cli                 # install all 61 skills into Gemini CLI
+#   ./install.sh --agent claude-code                # install all 61 skills into Anthropic Claude Code
+#   ./install.sh --agent codex                      # install all 61 skills into OpenAI Codex CLI
+#   ./install.sh --agent gemini-cli                 # install all 61 skills into Google Gemini CLI
+#   ./install.sh --agent kiro-cli                   # install all 61 skills into Kiro CLI
 #   ./install.sh --agent custom --dest /some/path/  # install to any AgentSkills.io target
 #
 # Targeted install:
@@ -180,10 +181,10 @@ if [[ ${#AGENTS[@]} -eq 0 ]]; then
     if [[ -n "$DEST_OVERRIDE" ]]; then
       AGENTS=(custom)
     else
-      die "no --agent given and --yes was passed; pick one of: cursor | claude-code | codex | gemini-cli | custom"
+      die "no --agent given and --yes was passed; pick one of: cursor | claude-code | codex | gemini-cli | kiro-cli | custom"
     fi
   else
-    printf 'Which agent do you want to install into? (cursor / claude-code / codex / gemini-cli / custom): '
+    printf 'Which agent do you want to install into? (cursor / claude-code / codex / gemini-cli / kiro-cli / custom): '
     read -r choice
     [[ -n "$choice" ]] || die "no agent picked, aborting"
     AGENTS=("$choice")
@@ -206,10 +207,11 @@ dest_for_agent() {
     claude-code)    printf '%s/.claude/skills' "$base" ;;
     codex)          printf '%s/.codex/skills' "$base" ;;
     gemini-cli)     printf '%s/.gemini/skills' "$base" ;;
+    kiro-cli)       printf '%s/.kiro/skills' "$base" ;;
     custom)
       [[ -n "$DEST_OVERRIDE" ]] || die "--agent custom requires --dest <path>"
       printf '%s' "$DEST_OVERRIDE" ;;
-    *)              die "unsupported --agent '$agent' (supported: cursor | claude-code | codex | gemini-cli | custom)" ;;
+    *)              die "unsupported --agent '$agent' (supported: cursor | claude-code | codex | gemini-cli | kiro-cli | custom)" ;;
   esac
 }
 
