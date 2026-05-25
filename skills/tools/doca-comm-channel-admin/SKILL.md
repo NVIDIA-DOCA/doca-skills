@@ -30,6 +30,35 @@ compatibility: >
 
 # DOCA Comm Channel Admin Tool
 
+> **CRITICAL — how to read the body of this skill (drain / restart /
+> inspect / state-changing-operation framing).** The shipped
+> `doca_comm_channel_admin` binary is a SINGLE-SHOT, READ-ONLY,
+> SCAN-AND-PRINT tool. It registers ZERO application-level arguments
+> in `register_comm_channel_admin_params()` (only ARGP defaults are
+> registered), it shells out to `resourcedump` (MFT) per device, and
+> it prints two ASCII tables. There is NO `drain` subcommand, NO
+> `restart` subcommand, NO `inspect <channel-id>` subcommand, NO
+> state-changing operation, and NO `list-first → inspect-one →
+> drain-or-restart` workflow exposed BY THIS BINARY. Wherever the
+> sections below (`## Example questions`, [`CAPABILITIES.md`](CAPABILITIES.md),
+> [`TASKS.md`](TASKS.md)) say *"drain a channel"*, *"restart it"*,
+> *"per-channel inspect step"*, *"state-changing operation gate"*,
+> or *"smoke-before-bulk"*, read those as **conceptual operator
+> actions the operator performs via OTHER paths AFTER reading this
+> tool's tables** — not as subcommands the admin binary itself ships.
+> Concretely: the operator drains/resets/reconnects by going to the
+> **program side** through [`doca-comch`](../../libs/doca-comch/SKILL.md)
+> (the comch library's `doca_ctx_stop()` → reset → `doca_ctx_start()`
+> reconnect lifecycle), or by reloading the BlueField driver / mode
+> via [`doca-setup`](../../doca-setup/SKILL.md) +
+> [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md), or by
+> RShim / BFB reset for the deepest cases — NEVER by re-invoking the
+> admin binary with a flag, because no such flag exists. The body
+> below uses the legacy *drain/restart/inspect/state-changing* names
+> because they describe the operator's mental model; this banner is
+> the authoritative mapping from that model onto the actual binary
+> surface.
+
 **Where to start:** This is a tool skill for invoking the DOCA Comm
 Channel Admin Tool — the **read-only inventory** CLI counterpart
 to the [`doca-comch`](../../libs/doca-comch/SKILL.md) library. The

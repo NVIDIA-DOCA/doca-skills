@@ -190,8 +190,12 @@ work** on a BlueField where DOCA is already installed. Concretely:
   source per the public DOCA Firefly Service Guide, mounting the
   Firefly config, and starting / stopping the container.
 - Choosing the four PTP configuration axes — PTP role (master /
-  slave / boundary clock / transparent clock), profile (default /
-  SMPTE 2059-2 / G.8275.1 / G.8275.2 / custom), domain number,
+  slave / boundary clock / transparent clock), profile (the
+  `PROFILE` env var accepts EXACTLY `default` / `media` /
+  `telco-l2` / `custom` per `services/firefly/doca_firefly.yaml`;
+  these map onto industry PTP profile names IEEE 1588 / SMPTE
+  2059-2 / G.8275.1 / G.8275.2 respectively — do NOT put the
+  industry names directly into the env var), domain number,
   network interface — for the user's deployment.
 - Wiring the host-side follower so the host clock tracks the
   BlueField PHC (chrony with the PHC source, or `ptp4l` /

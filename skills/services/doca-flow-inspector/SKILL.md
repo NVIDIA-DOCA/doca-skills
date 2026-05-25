@@ -1,22 +1,23 @@
 ---
 name: doca-flow-inspector
 description: >
-  Use this skill when the user is debugging a doca-flow or
-  doca-flow-ct pipeline on a BlueField via the DOCA Flow Inspector
-  Service container — wiring the mirror action on the pipeline side,
-  deploying the inspector container on BlueField Arm, choosing an
-  inspection depth (per-packet metadata, per-flow aggregate, or raw
-  packet sampling), picking an output destination (Inspector CLI,
-  JSON export, DTS), or interpreting what the inspector reports.
-  Trigger even when the user does not say "DOCA Flow Inspector" or
-  "mirror" — typical implicit phrasings include "is the hardware
-  seeing this 5-tuple", "container is up but I see no traffic", "want
-  to watch what my pipe is actually doing", "is my mirror action
-  firing", "inspector is too noisy at scale", or "how do I see what
-  the steering plane is doing". Refuse and route elsewhere for
-  authoring the doca-flow / doca-flow-ct pipeline itself, steady-state
-  production telemetry (route to DTS), and container-runtime
-  troubleshooting — those belong to other skills.
+  Use for debugging a doca-flow / doca-flow-ct pipeline on a
+  BlueField via the DOCA Flow Inspector Service container —
+  wiring the mirror action on the pipeline side, deploying the
+  inspector container on BlueField Arm, choosing inspection
+  depth (per-packet metadata, per-flow aggregate, or raw packet
+  sampling), wiring the SINGLE output destination (the shipped
+  binary links `doca-telemetry-exporter` and writes ONLY through
+  DOCA Telemetry IPC sockets — there is no standalone "Inspector
+  CLI" binary and no separate "JSON export" channel;
+  `flow_inspector_cfg.json` is INPUT, not output), or
+  interpreting what the inspector reports. Trigger even without
+  "Flow Inspector" — implicit forms: "is the hardware seeing this
+  5-tuple", "container is up but I see no traffic", "is my mirror
+  action firing", "how do I see what the steering plane is
+  doing". Refuse and route for authoring the pipeline itself,
+  steady-state production telemetry (route to DTS), or
+  container-runtime troubleshooting.
 metadata:
   kind: service
 compatibility: >
@@ -155,7 +156,12 @@ inspector can observe its traffic. Concretely:
 - Choosing an inspection depth (per-packet metadata, per-flow
   aggregate, raw packet content sampling) for the user's debug
   question.
-- Reading the inspector's output (CLI, JSON export, downstream
+- Reading the inspector's output (the shipped binary links
+  `doca-telemetry-exporter` and emits ONLY through the DOCA
+  Telemetry IPC socket under
+  `/opt/mellanox/doca/services/telemetry/ipc_sockets/` to a paired
+  `doca_telemetry_exporter` container — there is no Inspector CLI
+  and no standalone JSON export; downstream
   consumer) and matching it against the user's pipeline's intent.
 - Debugging *"container is up but the inspector sees nothing"*
   (almost always: the user's pipeline is not actually mirroring;

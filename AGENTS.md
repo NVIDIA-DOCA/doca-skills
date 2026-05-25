@@ -271,13 +271,29 @@ in `skills/`:
 1. **Structural.** Frontmatter validity, required H2 anchors in
    `SKILL.md` / `CAPABILITIES.md` / `TASKS.md`, cross-anchor labels in
    `TASKS.md` resolve, no symlinks.
-2. **Public-sources.** Any `*.nvidia.com` URL whose host isn't on the
-   small public allowlist (`docs.nvidia.com`, `developer.nvidia.com`,
+2. **Public-sources** (skill body content scope). Any `*.nvidia.com`
+   URL whose host isn't on the small public allowlist
+   (`docs.nvidia.com`, `developer.nvidia.com`,
    `catalog.ngc.nvidia.com`, `ngc.nvidia.com`,
-   `forums.developer.nvidia.com`, `nvcr.io`) fails. Internal-tooling
-   vocabulary in URL or path context (`gerrit`, `nvbugs`,
-   `*.internal.*`, `gitlab-master`, `labhome`, …) fails. This is the
-   automated counterpart to ground rules 1 and 3 above.
+   `forums.developer.nvidia.com`, `nvcr.io`) fails when it appears in
+   any agent-facing **skill body content** — `SKILL.md` /
+   `CAPABILITIES.md` / `TASKS.md`, the bundle's CI prompt fixtures,
+   or any string the agent would cite back to the user as a *fact
+   about DOCA*. Internal-tooling vocabulary in URL or path context
+   (`gerrit`, `nvbugs`, `*.internal.*`, `gitlab-master`, `labhome`,
+   …) fails under the same scope. **Exempt from this gate:** the
+   top-level `README.md` install-path blocks (Quickstart clone URLs,
+   `--repo` argument of the curl-pipe-bash form, manual-install
+   clone command, Repository Structure callouts), since the README
+   is the install path for the bundle itself and must name the host
+   the bundle currently lives on (during the internal-tester drop
+   the bundle is hosted on the NVIDIA-internal GitLab — see README
+   `## Install (one-liner)` *"Repository host"* callout for the
+   current URL and the public-mirror plan). This exemption is
+   intentionally narrow: it covers ONLY the bundle's own install URL
+   in the README, not any other surface. This is the automated
+   counterpart to ground rules 1 and 3 above with the README install
+   path carved out.
 3. **URL HEAD validity.** Every URL in every skill file HEAD-checks
    to a `2xx`/`3xx`. Catches the *page renamed* / *page deleted*
    failure mode (e.g. the pre-3.x DOCA Samples Overview URL).

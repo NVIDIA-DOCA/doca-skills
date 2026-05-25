@@ -45,8 +45,17 @@ end-to-end discipline before the container starts.
     - **Role** — master / slave / boundary clock / transparent
       clock. Drives whether Firefly follows or sources time on the
       segment.
-    - **Profile** — default IEEE 1588 / SMPTE 2059-2 / G.8275.1 /
-      G.8275.2 / custom. Must match the upstream master's profile.
+    - **Profile** — the `PROFILE` env var accepts EXACTLY `default` /
+      `media` / `telco-l2` / `custom` (per
+      `services/firefly/doca_firefly.yaml`). These four values map
+      onto the industry-standard PTP profile names: `default` →
+      IEEE 1588 default; `media` → SMPTE 2059-2 (broadcast);
+      `telco-l2` → G.8275.1 / G.8275.2 (telecom full / partial
+      timing, picked via the paired config file); `custom` → the
+      user's own config file. Do NOT put the industry-standard
+      names directly into the env var — they are not accepted
+      values. Must match (or interop with) the upstream master's
+      profile.
     - **Domain number** — must match the upstream master's domain;
       mismatched domains = zero peers visible.
     - **Network interface** — typically the wire-side BlueField

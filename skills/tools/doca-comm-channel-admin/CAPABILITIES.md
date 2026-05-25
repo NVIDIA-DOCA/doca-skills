@@ -1,5 +1,30 @@
 # DOCA Comm Channel Admin Tool — Capabilities
 
+> **CRITICAL — body-interpretation banner (read before everything
+> below).** This file repeatedly says *"drain a channel"*,
+> *"restart it"*, *"per-channel inspect step"*, *"state-changing
+> operation gate"*, *"list-first invocation"*, and *"smoke-before-bulk"*.
+> Those names describe the **operator's mental model** for what they
+> are about to do AFTER reading the admin tool's two ASCII tables —
+> they are NOT subcommands or flags the `doca_comm_channel_admin`
+> binary ships. The binary registers ZERO application-level
+> arguments (`register_comm_channel_admin_params()` returns
+> `DOCA_SUCCESS` with no `doca_argp_param_create()` calls), shells
+> out to `resourcedump` (MFT), and prints two read-only tables.
+> Mapping from the legacy names below onto the real surface:
+> *"enumerate channels"* / *"inspect channel state"* / *"list-first"*
+> = the single read-only invocation; *"drain"* / *"restart"* /
+> *"state-changing operation"* = operator goes to
+> [`doca-comch`](../../libs/doca-comch/SKILL.md) program side (reset +
+> `doca_ctx_stop()` → `doca_ctx_start()` reconnect), or
+> [`doca-setup`](../../doca-setup/SKILL.md) + [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md)
+> for driver reload, or RShim/BFB for the deepest reset; *"smoke-before-bulk"*
+> = run the admin tool once to confirm the tables look healthy
+> BEFORE the operator takes one of those other-path state-changing
+> actions. Do not invent a `--drain` / `--restart` / `--inspect`
+> flag for the admin binary based on the language below — the [`SKILL.md`](SKILL.md)
+> top-of-file banner is the authoritative surface contract.
+
 **Where to start:** The tool is a single admin CLI; the pattern
 overview below names the recurring admin-tool questions. Pick the
 pattern first, then drill into the H2 that owns the substance. For

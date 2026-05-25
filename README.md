@@ -25,6 +25,8 @@ The whole bundle is **vendor-neutral by design**: the directory layout is `skill
 
 ### Install (one-liner)
 
+> **Repository host (read this before you copy a clone URL).** The `doca-skills` bundle is currently staged on the **NVIDIA-internal** GitLab at `gitlab-master.nvidia.com/doca-devops/doca-skills.git` for the internal-tester drop ahead of the public release. The clone URLs in the Quickstart below resolve from inside the NVIDIA corporate network only. When the bundle is mirrored to a public host the URLs in this section will be updated; the rest of the bundle (skill content, AGENTS.md, CI gates) is host-agnostic. The bundle's own ground rule *"never reference internal NVIDIA hostnames"* governs **skill body content** (so an agent never cites `gitlab-master`, `gerrit-master`, `nvbugs`, internal wikis as a "fact" about DOCA to the user) — it does NOT prohibit this README, which is the install path for the bundle itself, from naming the host the bundle currently lives on. If you are reading a future public mirror of this README and the URLs below still say `gitlab-master`, that is a mirror-staleness bug, not a ground-rule violation.
+
 The same one-liner installs into **any AgentSkills.io-aware agent** — `cursor`, `claude-code`, `codex`, `gemini-cli`, `kiro-cli`, or `custom --dest /path/to/anywhere`. Replace `<agent>` with whichever you want:
 
 ```bash
@@ -280,7 +282,7 @@ cd /tmp/agentskills/skills-ref && uv sync
 
 Full list in [`AGENTS.md`](AGENTS.md). The non-negotiables:
 
-- **Public sources only** — never reference internal NVIDIA hostnames (`gerrit-master`, `nvbugs`, `gitlab-master`, internal wikis). Internal-only paths fail an automated gate.
+- **Public sources only** (skill body content) — every skill's `SKILL.md` / `CAPABILITIES.md` / `TASKS.md` body, every prompt, and every URL the agent **cites to the user as a fact about DOCA** must resolve from the public internet; internal NVIDIA hostnames (`gerrit-master`, `nvbugs`, `gitlab-master`, internal wikis) are banned from skill body content and fail an automated gate. This rule governs *what the agent quotes back*, not the bundle's own install path: while the bundle is staged on NVIDIA-internal GitLab during the tester drop (see *"Repository host"* callout under **Install (one-liner)** above), the clone URLs in this README are the install path and are exempted from the body-content gate.
 - **Prefer the local install at `/opt/mellanox/doca`** over the web — for symbol resolution, sample paths, and bin locations on a real DOCA host.
 - **Never invent symbols, URLs, paths, or package names** — every claim must be traceable to either the installed tree, an authoritative `docs.nvidia.com/doca/sdk/` URL, or a sample under `samples/` / `applications/`.
 - **Always check the installed DOCA version before quoting API names** — load `doca-version` first.
@@ -297,7 +299,7 @@ doca-skills/
 ├── AGENTS.md                                 # Ground rules every AI agent follows
 ├── SKILLS.md                                 # Index of installed skills + "when to load" triggers
 ├── CLAUDE.md                                 # One-line stub redirecting Claude Code to AGENTS.md
-├── install.sh                                # One-line install: --agent <cursor|claude-code|codex|gemini-cli|custom>
+├── install.sh                                # One-line install: --agent <cursor|claude-code|codex|gemini-cli|kiro-cli|custom>
 └── skills/
     ├── doca-setup/                           # Cross-cutting: install / env / build / no-install-yet
     │   ├── SKILL.md                          # Frontmatter + body (AgentSkills.io)

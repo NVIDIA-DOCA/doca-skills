@@ -32,10 +32,18 @@ compatibility: >
 
 # DOCA Flow gRPC Server (`doca_flow_grpc_server`)
 
-> **CRITICAL transport-security correction (Run-12).** The
+> **CRITICAL transport-security correction (Run-12 + R13).** The
 > shipped `doca_flow_grpc_server` / `doca_flow_grpc_client`
-> binaries hard-code **`grpc::InsecureChannelCredentials()`** /
-> the Python client uses `grpc.aio.insecure_channel(...)`. There
+> binaries hard-code the gRPC plaintext credentials surface:
+> the **server** uses **`grpc::InsecureServerCredentials()`** (the
+> C++ gRPC server-side API in `tools/flow_grpc_server/server/`);
+> the **C++ client** uses
+> **`grpc::InsecureChannelCredentials()`** (the C++ gRPC
+> client-side API in `tools/flow_grpc_client/`); the **Python
+> client** uses `grpc.aio.insecure_channel(...)`. Do NOT cite the
+> server-side string as `grpc::InsecureChannelCredentials()` —
+> that is the **client-side** API name and a Grep-against-source
+> verification will fail. There
 > is **no TLS, no mTLS, and no token-auth** knob on the shipped
 > control plane today. Any prose below (or in `CAPABILITIES.md`
 > / `TASKS.md`) that frames "mTLS / token auth / TLS posture"
@@ -157,7 +165,7 @@ plus its companion `.proto` contract files; per the shipped
 source tree (`server/`, `dpa_device/`, `packet_buffering/`) the
 tool can also be paired with a packet-buffering / DPA-side
 helper on configurations that need them. The skill uses the
-same `kind: library` three-file shape as the rest of the bundle.
+same `kind: tool` three-file shape (`SKILL.md` + `CAPABILITIES.md` + `TASKS.md`) the rest of the bundle's tool slot uses — front matter at the top of this file already says `kind: tool`. (Prior bundle revisions said "library three-file shape" here; that wording was internally inconsistent with the front matter and is corrected.)
 
 ## Language scope
 

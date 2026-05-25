@@ -1,23 +1,23 @@
 ---
 name: doca-bench
 description: >
-  Use this skill when the user is running `doca_bench` — the
-  cross-library micro-benchmark harness shipped under DOCA ≥
-  2.7.0 — to measure throughput, bulk-latency, or
-  precision-latency of a DOCA library (RDMA, COMPRESS, AES-GCM,
-  SHA, DMA, EC, ETH, Comch, GPUNetIO) on host or BlueField Arm,
-  probe the granular-build query for which libraries the install
-  exposes, capture a baseline four-tuple (command, version,
-  device, environment), or diagnose a bench failure in the
-  config-syntax, device-binding, library/workload-precondition,
-  or measurement-soundness layer. Trigger even if the user
-  does not say "doca_bench" or "benchmark" — typical implicit
-  forms include "how fast is compress on my BlueField",
-  "what RDMA throughput can this NIC do", "measure AES-GCM
-  latency", "first-run differs from steady-state", or "baseline
-  before a firmware update". Refuse and route elsewhere for
-  application-level end-to-end timing, custom benchmark
-  programs, DOCA install/upgrade, or patching the bench binary.
+  Use this skill when the user is running `doca_bench` (DOCA ≥
+  2.7.0) — the cross-library micro-benchmark harness — to measure
+  throughput, bulk-latency, precision-latency, or max-bandwidth
+  (the four `benchmark_mode` enum values the binary ships) of a
+  DOCA library (RDMA, COMPRESS, AES-GCM, SHA, DMA, EC, ETH,
+  Comch, GPUNetIO) on host or BlueField Arm, probe the granular-
+  build query for which libraries the install exposes, capture a
+  baseline four-tuple (command, version, device, environment), or
+  diagnose a bench failure in the config-syntax, device-binding,
+  library/workload-precondition, or measurement-soundness layer.
+  Trigger even without the word "doca_bench" — typical implicit
+  forms include "how fast is compress on my BlueField", "what
+  RDMA throughput can this NIC do", "measure AES-GCM latency",
+  or "baseline before a firmware update". Refuse and route
+  elsewhere for application-level end-to-end timing, custom
+  benchmark programs, DOCA install/upgrade, or patching the
+  binary.
 metadata:
   kind: tool
 compatibility: >
@@ -146,7 +146,8 @@ to measure performance of a DOCA library. Concretely:
 - Picking *which* DOCA library to benchmark for a candidate
   workload (RDMA vs COMPRESS vs DMA, etc.).
 - Picking *which* measurement axis to ask for (throughput vs bulk
-  latency vs precision latency) — the three modes are not
+  latency vs precision latency vs max-bandwidth) — the four modes
+  defined in `tools/bench/doca_bench/configuration.hpp` are not
   interchangeable.
 - Probing the install's granular-build state so the agent can
   honestly report *"this library is not exposed on this install"*
