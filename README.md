@@ -68,7 +68,7 @@ You can also fan out into multiple agents in a single run:
 ./install.sh --agent cursor --agent claude-code --agent codex --agent gemini-cli --agent kiro-cli
 ```
 
-> **Why two commands and not `npx`?** The bundle ships as a portable directory of [AgentSkills.io](https://agentskills.io/specification)-compliant skill folders, not as a published npm package, so the install path is `git clone` + `./install.sh` rather than `npx`. The installer is intentionally a 311-line bash script with zero runtime dependencies beyond `bash` / `cp` / `ln` / `mkdir` / `readlink` — auditable, offline-friendly, and reproducible on every Linux / macOS host without any package manager surface. Once installed, the activation flow (`AGENTS.md` → `SKILLS.md` → per-skill `SKILL.md`) is identical to every other AgentSkills.io-aware bundle including [`NVIDIA/skills`](https://github.com/NVIDIA/skills).
+> **Why two commands and not `npx`?** The bundle ships as a portable directory of [AgentSkills.io](https://agentskills.io/specification)-compliant skill folders, not as a published npm package, so the install path is `git clone` + `./install.sh` rather than `npx`. The installer is intentionally a small (~310-line) bash script with zero runtime dependencies beyond `bash` / `cp` / `ln` / `mkdir` / `readlink` — auditable, offline-friendly, and reproducible on every Linux / macOS host without any package manager surface. Once installed, the activation flow (`AGENTS.md` → `SKILLS.md` → per-skill `SKILL.md`) is identical to every other AgentSkills.io-aware bundle including [`NVIDIA/skills`](https://github.com/NVIDIA/skills).
 
 The installer copies (or symlinks) the skill folders into your agent's skill discovery directory. The skills are available the next time your agent loads skills and encounters a relevant task — for example, ask your agent:
 
@@ -199,7 +199,7 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-comch`](skills/libs/doca-comch/SKILL.md) | DOCA Comch | BlueField↔host control-channel message passing (consumer + producer patterns). |
 | [`doca-common`](skills/libs/doca-common/SKILL.md) | DOCA Common | The foundation: contexts, devices, mmap, sync events, error / log / pe / mmap / mem APIs every other DOCA lib stands on. |
 | [`doca-compress`](skills/libs/doca-compress/SKILL.md) | DOCA Compress | Hardware-offloaded DEFLATE compress / decompress and LZ4 *decompress* (LZ4 compress is not on the accelerator) on BlueField / ConnectX. |
-| [`doca-devemu`](skills/libs/doca-devemu/SKILL.md) | DOCA DevEmu | Device-emulation framework — emulate PCIe devices toward the host from the BlueField side. |
+| [`doca-devemu`](skills/libs/doca-devemu/SKILL.md) | DOCA Device Emulation | Device-emulation framework — umbrella for PCI Generic, virtio-net (`vnet`), virtio-fs (`vfs`), virtio-blk (`vblk`), and NVMe (`nvme`) sub-libraries that emulate PCIe devices toward the host from the BlueField side. Productized vblk / nvme paths route to the packaged DOCA SNAP Service (out of scope). |
 | [`doca-dma`](skills/libs/doca-dma/SKILL.md) | DOCA DMA | Host↔BlueField (and DPU-local) DMA, including memory regions, mmap, copy / scatter-gather offload. |
 | [`doca-dpa`](skills/libs/doca-dpa/SKILL.md) | DOCA DPA | Programming the BlueField-3 DPA (Data-Path Accelerator) processor: kernel launch, DPA-host coordination, RPC, mmap / sync events. |
 | [`doca-dpdk-bridge`](skills/libs/doca-dpdk-bridge/SKILL.md) | DOCA DPDK Bridge | Interop layer for DOCA programs that also use DPDK port + queue / mempool abstractions. |

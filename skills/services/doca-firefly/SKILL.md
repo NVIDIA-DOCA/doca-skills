@@ -30,11 +30,15 @@ compatibility: >
 
 # DOCA Firefly Service
 
-> **Subsystem inventory (Run-12 correction).** DOCA Firefly is NOT
-> just "a PTP daemon." The shipped `doca_firefly.yaml` exposes
-> **five** PTP-stack subsystems via environment variables, each
-> with its own `*_STATE`, `*_CONFIG_FILE`, and (where relevant)
-> `*_INTERFACE` / `*_DEVICE` knobs:
+> **Subsystem inventory (Run-12 correction, verified Run-13).**
+> DOCA Firefly is NOT just "a PTP daemon." The shipped
+> `doca_firefly.yaml` exposes **six** PTP-stack subsystems via
+> environment variables, each with its own `*_STATE`,
+> `*_CONFIG_FILE`, and (where relevant) `*_INTERFACE` /
+> `*_DEVICE` knobs (the count is six because the PTP Monitor
+> subsystem ships an internal `phc2sys` monitor client that is
+> distinct from the standalone PHC2SYS subsystem — both ship in
+> the same container image):
 >
 > 1. **PTP** (`PTP_STATE`, `PTP_INTERFACE`, `PTP_CONFIG_FILE`) —
 >    the `ptp4l` daemon (or master, depending on profile) that

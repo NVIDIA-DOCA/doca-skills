@@ -1,0 +1,373 @@
+{
+  "subagent": "A4",
+  "wave": "A",
+  "monorepo_available": true,
+  "bundle_under_test": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/gitlab-test-proj/doca-skills",
+  "source_of_truth": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca",
+  "services_in_scope": [
+    "doca-argus",
+    "doca-dms",
+    "doca-firefly",
+    "doca-flow-inspector",
+    "doca-os-inspector",
+    "doca-urom-svc"
+  ],
+  "phase1_read": {
+    "doca-argus":         { "SKILL.md": true, "CAPABILITIES.md": true, "TASKS.md": true },
+    "doca-dms":           { "SKILL.md": true, "CAPABILITIES.md": true, "TASKS.md": true },
+    "doca-firefly":       { "SKILL.md": true, "CAPABILITIES.md": true, "TASKS.md": true },
+    "doca-flow-inspector":{ "SKILL.md": true, "CAPABILITIES.md": true, "TASKS.md": true },
+    "doca-os-inspector":  { "SKILL.md": true, "CAPABILITIES.md": true, "TASKS.md": true },
+    "doca-urom-svc":      { "SKILL.md": true, "CAPABILITIES.md": true, "TASKS.md": true }
+  },
+  "phase2_prompts": {
+    "doca-argus": [
+      "Happy-path / deploy: We're deploying DOCA Argus on a fleet of BlueField-3s in front of production database hosts. Walk me through the four-axis decision (detection / forwarding / sampling / host coverage), the smoke before we point the SIEM team's production alert channel at it, and where to find the container image / config file paths.",
+      "Happy-path / observe: The Argus container is green and we want a baseline of expected findings before we declare the deployment production-ready. What is the calibration period, how do I triage initial false positives, and how do I prove end-to-end that a benign event traverses Argus -> forwarder -> our SIEM (Splunk)?",
+      "Edge / security: Multi-tenant BlueField with VFs assigned to different host workloads. Can one Argus container monitor all VFs (multiple `representor_id`s) or do I need one Argus per VF? What does Argus's actual telemetry forwarder look like on the wire (is it TLS/mTLS, or plaintext to a SIEM ingest)?",
+      "Edge / error recovery: Our Argus container is healthy but the security ops team in Splunk sees nothing for 24h. The host workload is busy and the local finding feed in `/var/log/doca_argus_activity_report` IS populating. Where in the five-layer error taxonomy is this, what do I check first, and is silently disabling a noisy `reverse_shell_detection` detector class an acceptable workaround?"
+    ],
+    "doca-dms": [
+      "Happy-path / deploy: I want to deploy DMS on an x86 management host (no DPU) so I can drive `mlxconfig` and gNOI `Reboot` against a remote ConnectX-7 over gRPC. Walk me through the SystemD launch, the auth-mode choice for a single-tenant lab, and confirm what gNOI sub-operations are actually wired into the shipped `dmsd` binary.",
+      "Happy-path / configure: We need PAM-mode auth on a Kubernetes-pod DMS deployment with `allowed_users = ops_admin`. Show me the exact `dmsd` flag set, walk me through what happens when a non-`allowed_users` user calls a gNMI `Get`, and tell me whether `dmsgroup` Unix group membership is required for client callers (vs only for the daemon process).",
+      "Edge / security: For a multi-tenant production env that requires mutual TLS, which `-auth` mode and which `-tls_*` flags do I pass to `dmsd`? Does the shipped binary actually compile in PAM (`pam_authenticate(3)`), or is it a `su`-based workaround, and does that distinction matter for hardened RHEL hosts where unprivileged `su` is locked down?",
+      "Edge / streaming + dangerous-op: My monitoring stack wants gNMI `Subscribe` streaming updates from DMS (STREAM/SAMPLE at 5s) for interface stats. Bundle says DMS doesn't support Subscribe and to route to DTS - verify against the shipped `gnxi/gnmi/server.go`. Separately, `mlxconfig` gNOI returns 'operation not supported' even though my user is authorized - why, and which flag turns it on?"
+    ],
+    "doca-firefly": [
+      "Happy-path / deploy: I'm deploying Firefly on BlueField-3 to drive PHC for a SMPTE ST 2110 broadcast plant on Rivermax. Tell me the exact `PROFILE` env-var value to set in `doca_firefly.yaml` for a media deployment, which subsystems get enabled by `defined_by_profile`, and how to wire the host-side `phc2sys` follower.",
+      "Happy-path / observe: Firefly is up, ports-state shows SLAVE on `p0`, PHC offset is < 100ns. The next stage is bringing up SyncE on the same port for frequency distribution. Walk me through enabling SyncE (`SYNCE_STATE`, `SYNCE_INTERFACE`), choosing the `CONF_SYNCE_global_backend` (mft vs dpll), and verifying SyncE doesn't collide with PTP on the same port.",
+      "Edge / multi-DPU + monitor: Telco operator with 50 BlueFields, each running Firefly in G.8275.1 telecom profile. We want centralized PTP monitoring via the internal `phc2sys` monitor client. How do `MONITOR_STATE`, `MONITOR_CLIENT_TYPE`, and `MONITOR_CLIENT_PHC2SYS_INTERFACE` interact, and what's the actual `PROFILE` value for G.8275.1 - or is the env-var taxonomy different from the PTP profile name?",
+      "Edge / error recovery: My Firefly container starts, PTP reaches SLAVE briefly, then falls back to LISTENING every few minutes. PPS_DEVICE is `default`, PPS_STATE is `enable_while_running`. The custom Firefly Servo (`SERVO_STATE=enable`) and the upstream linuxptp servo seem to be fighting. How do I figure out which servo is actually adjusting the PHC, and what does `do_nothing` (vs `disable`) actually mean for PPS?"
+    ],
+    "doca-flow-inspector": [
+      "Happy-path / deploy: I've got a working doca-flow pipeline on BlueField-2 with a match-and-forward entry that should hit my 5-tuple. Walk me through standing up the Flow Inspector container alongside it, the SF (scalable function) prerequisite, and how to wire a mirror action from my pipe to the inspector's ingest port.",
+      "Happy-path / configure: My doca-flow pipeline is mirroring TCP traffic on ports 80 and 443 to the inspector. Show me how to author the `flow_inspector_cfg.json` `export-units` block so the inspector only exports `timestamp, src_ip, dst_ip, protocol, flags, data_len` per packet (no payload), and tell me which output destination the inspector actually writes to.",
+      "Edge / production: I want to keep the inspector wired in production for ad-hoc debugging but I can't pay the full per-packet mirror cost. The bundle says 'disable the mirror for production, route to DTS for steady-state'. But the inspector already writes to DTS - what's the actual operational difference between 'mirror disabled' and 'mirror enabled with sampling', and is there a sampling rate knob in the shipped binary?",
+      "Edge / multi-DPU + no SFs: I'm trying to deploy Flow Inspector on a BlueField in NIC mode (no SFs configured). The container fails after 10 seconds with 'timeout, SF wasn't visible'. The bundle says inspector is BlueField-Arm-only - is NIC mode supported at all, and if not, where in the SKILL/CAPABILITIES/TASKS files does it say so?"
+    ],
+    "doca-os-inspector": [
+      "Happy-path / deploy: Stand up OS Inspector on a BlueField-3 + RHEL 9.4 host pair, with the default 5-on/3-off scan policy, 20-second scan interval, into DTS. Tell me what goes into `os_inspector_params.json` (`vuid`, `dma`, `osym`, `memr`, `osty`, `time`), and how I get the host kernel `symbols.json` + `mem_regions.json` in the first place.",
+      "Happy-path / observe: Container is up, DTS is receiving events, my SOC wants the process list to flow into our Splunk index `bf_dpu_hostinspect`. What's the contract between OS Inspector's telemetry-exporter and DTS, what fields does DTS publish per APSH struct (processes_info etc.), and is the data on the wire encrypted?",
+      "Edge / security: My security team wants `privileges_info`, `processes_envars_info`, and `processes_handles_info` ALL turned on so we can see SUID processes, environment-variable secrets, and open file handles. The default is off for all three. What's the minimum-exposure-by-default rationale, what data ends up in DTS if I flip them on, and how does that interact with our PCI-DSS audit posture?",
+      "Edge / error recovery: We patched the host kernel from 5.14.0-362 to 5.14.0-427 last night. OS Inspector container is healthy, DTS is alive, but the process list went silent at 03:00. The bundle says the symbol map is host-OS-version-specific - walk me through the symbol-map refresh procedure, and tell me whether OS Inspector supports Windows hosts too (does the binary have a Windows code path?)."
+    ],
+    "doca-urom-svc": [
+      "Happy-path / deploy: I'm deploying UROM service on BlueField for an MPI cluster whose hosts link `doca-urom`. Walk me through pulling the container, mounting the plugins dir, the host-library + DPU-service paired-version rule, and tell me what value of `SERVICE_ARGS` and `UROM_PLUGIN_PATH` the shipped Pod expects.",
+      "Happy-path / observe: My HPC stack is offloading all-reduce collectives through UROM. The host's `doca-urom` says enqueue succeeded but the workload claims completions never fire. Walk me through reading the UROM daemon's logs in `/var/log/urom`, confirming the spawned `doca_urom_worker` is alive, and bisecting service-side queue vs RDMA transport.",
+      "Edge / security: My host operator says one host node should NOT be allowed to offload through this UROM service - the bundle talks about 'host-endpoint authorization' and a 'service-side-authorization layer'. Where in the shipped `urom_daemon.c` is the authorization check, and what config knob restricts which host endpoints can connect via DOCA Comch?",
+      "Edge / transport choice: We have two BlueField generations in the cluster; one connects to its host via DOCA Comch over PCIe and another via UCX over RDMA. The bundle says the service pairs with `doca-rdma` substrate - is the comm channel type a config knob (`PRIV_DOCA_UROM_CONN_TYPE_UCX` vs Comch), and how do I choose / verify which transport the daemon is actually using?"
+    ]
+  },
+  "phase3_verification": {
+    "doca-argus": {
+      "claim_threat_detection_service": "VERIFIED. Bundle's framing as 'runtime-security container that watches BlueField and attached host for suspicious activity / integrity violations / operational anomalies' is consistent with src/server (engines.cpp, reverse_shell.cpp, sbom.cpp, task_pool.cpp) and the default config in doca_argus.yaml (collection.events.* tree covering process / file_descriptor / network_connection / reverse_shell_detection / process_memory / process_attestation / thread / shell_command / container).",
+      "claim_agent_plus_collector_roles": "FALSE PREMISE IN USER QUERY - and bundle correctly does NOT make that claim. Bundle calls Argus 'the container is the daemon', 'one Argus deployment per BlueField'. Actual layout: ONE `doca_argus` binary in one container; sister Pod manifest `doca_argus_fluentbit.yaml` adds a Fluent Bit sidecar (NOT an Argus 'collector' role - it's Fluent Bit). There is no separate 'agent' deployed to the host (host runs nothing; Argus reads host RAM over PCIe via APSH). Bundle correctly avoids the agent/collector framing.",
+      "deploy_form": "K8s Pod manifest (doca_argus.yaml), restartPolicy: Always, hostNetwork: true, privileged: true, resource requests 10Gi/4 CPU, limits 15Gi/8 CPU. Bundle does NOT mention this resource footprint.",
+      "forwarder_actual": "Container emits Fluent Bit forward / TCP / JSON to `telemetry_address: host:port` (default disabled). Companion `doca_argus_fluentbit.yaml` Pod wires Fluent Bit sidecar that fans out to Splunk / ES / Sentinel. Bundle's framing 'Argus's documented forwarder emits to Splunk/ELK/Sentinel/syslog' conflates the Fluent Bit hop. No TLS/mTLS for the telemetry hop.",
+      "auth_claims_aspirational": "NONE. Bundle correctly makes no TLS/mTLS/auth claims for Argus's forwarder. The binary has none."
+    },
+    "doca-dms": {
+      "claim_transport_grpc": "VERIFIED. gRPC via gNMI + gNOI surface. No REST. Default bind `:9339` (Pod: `127.0.0.1:9339`).",
+      "claim_two_process_arch": "PARTIALLY VERIFIED. dmsd (Go frontend) + dmspe (C privileged-helper) at source level. SystemD unit (`dmsd.service`) runs dmsd as `User=dmsuser, Group=dmsgroup` and dmspe escalates per command. BUT in K8s Pod (`dms.yaml`), container is `privileged: true, hostNetwork: true` - entire stack runs root-equivalent, defeating the bundle's 'preserve process separation' framing. Bundle does not surface this deployment-shape difference.",
+      "claim_auth_modes_localhost_pam_credentials_mtls": "PARTIALLY WRONG. Actual `-auth` flag in credentials.go takes exactly: `cert | pam | credentials`. Plus separate `-noauth` flag. 'Localhost-only' is NOT an auth mode in the binary - it is a bind-address choice (`-bind_address 127.0.0.1:9339`). 'mTLS' is `-auth cert` with `-tls_enabled=true` and `-tls_ca/-tls_cert/-tls_key`. Bundle's 'four documented auth modes' table inflates and renames the actual three modes.",
+      "claim_pam_first_class": "MISLEADING. Source comment in credentials.go AuthorizeUser(): 'Temporary workaround: Use su-based authentication instead of PAM library. TODO: Revert to pam_auth.VerifyPAMUser once PAM issues are resolved.' Bundle treats PAM as documented first-class behavior; the binary actually shells out to `su <username> -c true`. In hardened RHEL where unprivileged `su` is locked, this will silently differ from real `pam_authenticate(3)`.",
+      "claim_dmsgroup_authorization": "WRONG. Bundle says 'only members of dmsgroup Unix group are authorized to execute DMS commands, regardless of chosen authentication mode' and 'dmsgroup is the authorization boundary'. Actual binary: `isUserAllowed` in credentials.go checks against the `-allowed_users` comma-separated flag (default `root`), applied to ALL auth modes (including PAM, contra bundle's framing that allowed_users is PAM-only). There is no Unix-group check in client authorization. The systemd unit sets `User=dmsuser, Group=dmsgroup` for the dmsd process file-system identity - that is NOT the same as 'clients must be in dmsgroup'.",
+      "claim_no_gnmi_subscribe": "WRONG / INVERSE CLAIM. Bundle says 'DMS does not support telemetry streaming via gNMI Subscribe; streaming-telemetry questions go to DTS, not DMS.' Actual `gnxi/gnmi/server.go` has full `Subscribe` RPC implementation supporting STREAM mode with SAMPLE submode (interval bounds 1s-60s) and ONCE mode; only POLL mode returns Unimplemented and Aggregation is rejected. Bundle understates capability.",
+      "version_string_drift": "Binary prints 'DMSD version 0.0.3 Alpha'. Bundle says 'DMS is currently in beta'. Docs say beta. Source says Alpha. Agent quoting 'beta' to user who runs the binary will see 'Alpha' in startup log - confusion.",
+      "mlxconfig_safety_gate_missing": "Binary has `-enable_mlxconfig` flag, default false, that disables Mlxconfig gNOI operations entirely. Bundle does NOT mention this gate; operators issuing Mlxconfig.Set / .Reset / .Query will get failures and won't know why."
+    },
+    "doca-firefly": {
+      "claim_six_subsystems": "VERIFIED CONTENT, INTERNAL CONTRADICTION ON COUNT. doca_firefly.yaml env vars confirm PTP / PTP Monitor / PHC2SYS / PPS / SyncE / Firefly Servo = six subsystems. Bundle blockquote at SKILL.md L33 says '**five** PTP-stack subsystems' then enumerates 1-6. Internal math error.",
+      "profile_values_correct_against_yaml": "doca_firefly.yaml comment for PROFILE env: 'Supported profiles are: default, media, telco-l2, custom'. Bundle's SKILL.md blockquote quotes these correctly. HOWEVER: SKILL.md body ~L190, CAPABILITIES.md profile row L114, and TASKS.md `## configure` step 3 ALL quote 'default IEEE 1588 / SMPTE 2059-2 / G.8275.1 / G.8275.2 / custom' - these are PTP industry profile NAMES, NOT what the PROFILE env var accepts. An agent following CAPABILITIES or TASKS will tell users `PROFILE=G.8275.1` which the YAML rejects.",
+      "subsystem_enumeration_outside_blockquote": "CAPABILITIES.md does NOT enumerate the six subsystems anywhere. Only mentions PTP role / profile / domain / interface / transport. Agent reading CAPABILITIES.md alone treats Firefly as a ptp4l wrapper and misses PHC2SYS / PPS / SyncE / Servo / Monitor as independent config surfaces.",
+      "missing_synce_backend_choice": "doca_firefly.yaml exposes `CONF_SYNCE_global_backend` taking 'mft' or 'dpll' (default 'dpll'). Bundle does not mention this choice.",
+      "monitor_client_type_underspecified": "doca_firefly.yaml MONITOR_CLIENT_TYPE accepts 'vanilla' or 'phc2sys'. Bundle blockquote mentions only phc2sys.",
+      "pps_extra_states_correct": "Bundle blockquote correctly notes `enable_while_running` and `do_nothing` as PPS_STATE values beyond enable/disable; matches YAML."
+    },
+    "doca-flow-inspector": {
+      "claim_mirrored_flow_inspection": "VERIFIED. Pairs with doca-flow / doca-flow-ct; consumes mirrored traffic into Inspector via SF (scalable function); operator-side pipeline must wire mirror action.",
+      "deploy_form": "K8s Pod manifest (`doca_flow_inspector.yaml`), hostNetwork, privileged, hugepages-2Mi (1Gi), shared-memory + IPC sockets volumes for DTS. Image hardcoded `nvcr.io/nvstaging/doca/doca_flow_inspector:latest`. NOT a systemd unit, NOT bare-metal binary. Bundle correctly characterizes as container.",
+      "output_destinations_aspirational": "WRONG. Bundle claims 'output destinations: Inspector CLI, JSON export, downstream consumer (DTS)'. Actual binary writes only to DTS via `/dev/shm/telemetry` + `/opt/mellanox/doca/services/telemetry/ipc_sockets`. There is NO Inspector CLI binary, NO separate JSON export channel. The `flow_inspector_cfg.json` is INPUT config, not output. Agent telling user to 'check the Inspector CLI' will fail.",
+      "inspection_depths_wrong": "Bundle claims three depths: 'per-packet metadata, per-flow aggregate, raw packet sampling'. Actual binary: `export-units[].export.fields[]` selects from a fixed catalog (timestamp, host_ip, src_mac, dst_mac, src_ip, dst_ip, protocol, src_port, dst_port, flags, data_len, data_long, data_medium). There is no per-flow aggregate mode, no sampling-rate knob. 'Inspection depth' is really 'per-packet field selection' filtered by protocol+port range.",
+      "sf_prerequisite_missing": "entrypoint.sh waits 10s for `SF_NUM_1` Scalable Function to appear via `find /sys -name sfnum`. Operator on BlueField in NIC mode (no SFs) will hit 'timeout, SF wasn't visible'. Bundle never names the SF prerequisite."
+    },
+    "doca-os-inspector": {
+      "claim_host_os_inspector_scope": "VERIFIED. Service runs on BlueField Arm, reads host kernel state via PCIe DMA using DOCA APSH library, publishes via DOCA Telemetry Exporter to DTS. Bundle's 'agent-less host introspection from the BlueField' is accurate.",
+      "linux_and_windows_supported": "VERIFIED. Source tree contains os_inspector_telemetry_registers_linux.c/.h AND os_inspector_telemetry_registers_windows.c/.h, plus matching reports_linux/windows. Bundle's 'OS type (Linux / Windows)' correctly reflects binary. `osty: linux` in default params.json.",
+      "five_axis_config_matches_params_json": "VERIFIED. os_inspector_params.json fields: `dma` (DMA device), `vuid` (host VUID), `osty` (OS type), `osym` (symbol map), `memr` (memory regions), `time` (scan interval), `policy` (scan-policy file). Maps 1:1 onto bundle's five-axis table.",
+      "scan_policy_defaults_match_cfg": "VERIFIED. os_inspector_cfg.json has 5 on (`processes_info`, `threads_info`, `libs_info`, `vads_info`, `system_modules_info`) + 3 off (`privileges_info`, `processes_envars_info`, `processes_handles_info`). Bundle quotes these exactly.",
+      "minor_gap_dts_to_siem_hop": "Bundle frames findings as reaching 'downstream SIEM' but does not name the DTS -> Fluent Bit -> SIEM hop explicitly; same issue as Argus on the SIEM-side ingest boundary. Minor."
+    },
+    "doca-urom-svc": {
+      "claim_ucc_offload_server_side": "VERIFIED. doca_urom_daemon + doca_urom_worker binaries on BlueField Arm execute remote memory operations / collectives that hosts enqueue via host-side doca-urom library.",
+      "deploy_form": "K8s Pod manifest (`doca_urom.yaml`), hostNetwork, hostIPC, privileged, hugepages-2Mi (1Gi), plugins dir mounted from host `/opt/mellanox/doca/services/urom/plugins`, env vars `SERVICE_ARGS='-l 50'` and `UROM_PLUGIN_PATH`. Image templated `{{image}}:{{tag}}`.",
+      "service_binding": "DOCA Comch over PCIe (default, COMCH_DEFAULT_PCI_ADDR `03:00.0`, COMCH_DEFAULT_REP_PCI_ADDR `3b:00.0`) OR UCX (`PRIV_DOCA_UROM_CONN_TYPE_UCX`). Bundle does not mention this comm-channel-type choice.",
+      "authorization_aspirational": "FALSE PREMISE in bundle. Bundle repeatedly cites 'host-endpoint authorization', 'service-side-authorization layer', 'is this host endpoint authorized to offload to this service'. Grep for `allowed_host|allowed_users|auth_token|whitelist|access_list|NOT_PERMITTED|permitted` across doca/services/urom returns ZERO matches. No authorization mechanism exists in the shipped binary. Connection acceptance is governed by DOCA Comch endpoint pairing and underlying RDMA permissions, not by a UROM-level allow-list.",
+      "queue_depth_config_aspirational": "Bundle says config axes include 'enqueue queue depths'. Pod YAML has only `-l <log level>`. No operator-tunable queue depth env or flag. Queue sizing is internal (`UROM_MAX_WORKERS_QUERY_NUM`) or set by the host library, not the service.",
+      "ucx_collective_surface_via_plugins": "Bundle frames UCX-component / collective exposure as 'service config'. Reality: UCC collective semantics come from PLUGINS the operator drops in /opt/mellanox/doca/services/urom/plugins (.so files). Service config does not enumerate UCX components or collectives - plugins do."
+    }
+  },
+  "phase3_catalog_drift": {
+    "doca-firefly_catalog_line": "SKILLS.md L127 calls doca-firefly 'DOCA Firefly Service - PTP / time-sync'. SKILL.md positions it as a 6-subsystem stack (PTP / PTP Monitor / PHC2SYS / PPS / SyncE / Firefly Servo). Agent searching catalog for 'SyncE' or 'PHC2SYS' will not find Firefly. Real drift between catalog and frontmatter.",
+    "others_aligned": "doca-dms, doca-argus, doca-os-inspector, doca-urom-svc, doca-flow-inspector catalog lines are terse but consistent with frontmatter."
+  },
+  "phase4_grading": {
+    "rubric": "C1=read all 6 services completely (no skipping). C2=verify each named claim against doca/services/. C3=24 prompts (4 per service) covering happy-path AND edge cases. C4=surface inaccuracies / aspirational claims / drift. C5=produce A4.json + 10-line summary.",
+    "scores": {
+      "C1_read_all_six": "PASS",
+      "C2_verify_against_source": "PASS",
+      "C3_24_prompts": "PASS",
+      "C4_surface_inaccuracies": "PASS",
+      "C5_output_and_summary": "PASS"
+    },
+    "overall": "PASS"
+  },
+  "phase5_inaccuracies_surfaced": [
+    {
+      "id": "DMS-01",
+      "service": "doca-dms",
+      "severity": "HIGH",
+      "type": "inverse_claim",
+      "claim": "DMS does not support gNMI Subscribe / streaming telemetry; route to DTS instead.",
+      "reality": "gnxi/gnmi/server.go has full Subscribe RPC implementing STREAM/SAMPLE (1s-60s interval bounds) and ONCE modes; only POLL and Aggregation are Unimplemented. Operators relying on the bundle will needlessly migrate to DTS or fail to use a working capability.",
+      "evidence": "doca/services/dms/gnxi/gnmi/server.go L1376-1455"
+    },
+    {
+      "id": "DMS-02",
+      "service": "doca-dms",
+      "severity": "HIGH",
+      "type": "wrong_security_model",
+      "claim": "Only members of the dmsgroup Unix group are authorized to execute DMS commands, regardless of authentication mode. dmsgroup is the authorization boundary.",
+      "reality": "Binary has no Unix-group authorization check for client callers. Authorization is via `-allowed_users` comma-separated flag (default 'root'), checked in `isUserAllowed` for ALL auth modes (not PAM-only as bundle claims). dmsgroup appears only in dmsd.service where it is the file-system group for the daemon process, not a client-authorization gate.",
+      "evidence": "doca/services/dms/gnxi/utils/credentials/credentials.go L51,L82-96,L388-392; doca/services/dms/gnxi/scripts/dmsd.service L33-34"
+    },
+    {
+      "id": "DMS-03",
+      "service": "doca-dms",
+      "severity": "MEDIUM",
+      "type": "aspirational_auth_mode",
+      "claim": "Four documented authentication modes: localhost / PAM / credentials / mTLS.",
+      "reality": "Actual `-auth` flag accepts exactly `cert | pam | credentials`. Plus separate `-noauth`. 'Localhost' is not an auth mode, it is a `-bind_address` choice. 'mTLS' maps to `-auth cert` + TLS flags. Bundle inflates and renames the three real modes.",
+      "evidence": "doca/services/dms/gnxi/utils/credentials/credentials.go L42,L174-176"
+    },
+    {
+      "id": "DMS-04",
+      "service": "doca-dms",
+      "severity": "MEDIUM",
+      "type": "misleading_pam_framing",
+      "claim": "PAM authentication uses system user accounts (first-class PAM mode).",
+      "reality": "Binary shells out to `su <username> -c true` (authenticateWithSu); the real pam_auth.VerifyPAMUser path is commented out per a TODO. On hardened systems where unprivileged `su` is restricted, behavior diverges from real PAM.",
+      "evidence": "doca/services/dms/gnxi/utils/credentials/credentials.go L37-38,L98-145,L416-419"
+    },
+    {
+      "id": "DMS-05",
+      "service": "doca-dms",
+      "severity": "MEDIUM",
+      "type": "missing_safety_gate",
+      "claim": "gNOI mlxconfig is part of the documented operation family.",
+      "reality": "Mlxconfig is gated by `-enable_mlxconfig` flag, default false. Bundle does not mention this; operators calling Mlxconfig will hit failures with no guidance to flip the flag.",
+      "evidence": "doca/services/dms/gnxi/gnoi_target/gnoi_target.go L66; settings.Mlxconfig.EnableMLXConfig L240-242"
+    },
+    {
+      "id": "DMS-06",
+      "service": "doca-dms",
+      "severity": "LOW",
+      "type": "version_string_drift",
+      "claim": "DMS is currently in beta.",
+      "reality": "Binary prints 'DMSD version 0.0.3 Alpha' at startup. Docs say beta; source says Alpha.",
+      "evidence": "doca/services/dms/gnxi/gnoi_target/gnoi_target.go L278,L281"
+    },
+    {
+      "id": "DMS-07",
+      "service": "doca-dms",
+      "severity": "LOW",
+      "type": "deployment_drift_unflagged",
+      "claim": "Process separation between low-priv dmsd frontend and privileged dmspe backend is non-negotiable.",
+      "reality": "True in the systemd deployment (User=dmsuser, Group=dmsgroup). FALSE in the shipped K8s Pod (dms.yaml runs whole container privileged + hostNetwork). Bundle never warns operators about the Pod-vs-systemd privilege gap.",
+      "evidence": "doca/services/dms/dms.yaml L34-36; doca/services/dms/gnxi/scripts/dmsd.service L33-34"
+    },
+    {
+      "id": "FIREFLY-01",
+      "service": "doca-firefly",
+      "severity": "HIGH",
+      "type": "wrong_profile_values_in_3_of_4_locations",
+      "claim": "PROFILE values: default / SMPTE 2059-2 / G.8275.1 / G.8275.2 / custom (per CAPABILITIES.md profile row, SKILL.md body, TASKS.md ## configure step 3).",
+      "reality": "doca_firefly.yaml: 'Supported profiles are: default, media, telco-l2, custom'. SMPTE 2059-2 / G.8275.x are PTP industry profile names that map onto media / telco-l2, NOT what the PROFILE env var accepts. SKILL.md blockquote at top has the right values; the other three locations are wrong. Agent following CAPABILITIES or TASKS will tell users PROFILE=G.8275.1, which the binary rejects.",
+      "evidence": "doca/services/firefly/doca_firefly.yaml L65-67; bundle gitlab-test-proj/.../doca-firefly/CAPABILITIES.md L114; .../SKILL.md L189-190; .../TASKS.md L48-49"
+    },
+    {
+      "id": "FIREFLY-02",
+      "service": "doca-firefly",
+      "severity": "MEDIUM",
+      "type": "internal_math_error",
+      "claim": "SKILL.md blockquote says 'five PTP-stack subsystems' then numbers 1-6.",
+      "reality": "Six subsystems exist (PTP / PTP Monitor / PHC2SYS / PPS / SyncE / Firefly Servo). Internal self-contradiction within the same paragraph.",
+      "evidence": "gitlab-test-proj/.../doca-firefly/SKILL.md L33-60"
+    },
+    {
+      "id": "FIREFLY-03",
+      "service": "doca-firefly",
+      "severity": "MEDIUM",
+      "type": "missing_subsystem_enumeration_in_capabilities",
+      "claim": "Firefly is a PTP service.",
+      "reality": "CAPABILITIES.md never enumerates PHC2SYS / PPS / SyncE / Servo / Monitor as independent subsystems. Only SKILL.md blockquote does. Agent reading CAPABILITIES alone misses 5 of the 6 subsystems.",
+      "evidence": "gitlab-test-proj/.../doca-firefly/CAPABILITIES.md (no enumeration outside the role/profile/domain/interface/transport table)"
+    },
+    {
+      "id": "FIREFLY-04",
+      "service": "doca-firefly",
+      "severity": "LOW",
+      "type": "missing_config_knob",
+      "claim": "No mention of SyncE backend choice.",
+      "reality": "CONF_SYNCE_global_backend accepts 'mft' or 'dpll' (default 'dpll'). Operationally significant for SyncE deployments.",
+      "evidence": "doca/services/firefly/doca_firefly.yaml L182-185"
+    },
+    {
+      "id": "FIREFLY-05",
+      "service": "doca-firefly",
+      "severity": "LOW",
+      "type": "catalog_drift",
+      "claim": "SKILLS.md catalog: 'doca-firefly | DOCA Firefly Service - PTP / time-sync.'",
+      "reality": "Bundle SKILL.md positions Firefly as a 6-subsystem stack including SyncE. Agent searching catalog for SyncE will not find Firefly.",
+      "evidence": "gitlab-test-proj/doca-skills/SKILLS.md L127"
+    },
+    {
+      "id": "FLOW-INSPECTOR-01",
+      "service": "doca-flow-inspector",
+      "severity": "HIGH",
+      "type": "wrong_output_destinations",
+      "claim": "Output destinations: Inspector CLI, JSON export, downstream consumer (DTS).",
+      "reality": "Binary writes only to DTS via /dev/shm/telemetry + IPC socket. No Inspector CLI binary, no separate JSON export channel. flow_inspector_cfg.json is INPUT config, not output. Agent telling user to 'check the Inspector CLI' will fail.",
+      "evidence": "doca/services/flow_inspector/doca_flow_inspector.yaml L34-41,L52-59; flow_inspector_cfg.json (all input config)"
+    },
+    {
+      "id": "FLOW-INSPECTOR-02",
+      "service": "doca-flow-inspector",
+      "severity": "MEDIUM",
+      "type": "wrong_inspection_depth_taxonomy",
+      "claim": "Three inspection depths: per-packet metadata, per-flow aggregate, raw packet sampling.",
+      "reality": "Binary supports only per-packet field selection from a fixed catalog (timestamp, src/dst MAC/IP, protocol, src/dst port, flags, data_len, data_long, data_medium) filtered by protocol+port-range. No per-flow aggregate mode. No packet-sampling rate. 'Sampling-drop' debug layer in bundle is mislabeled.",
+      "evidence": "doca/services/flow_inspector/flow_inspector_cfg.json (export-units schema)"
+    },
+    {
+      "id": "FLOW-INSPECTOR-03",
+      "service": "doca-flow-inspector",
+      "severity": "MEDIUM",
+      "type": "missing_prerequisite",
+      "claim": "BlueField-Arm-only container.",
+      "reality": "True, but the entrypoint requires a Scalable Function (`SF_NUM_1` env, waits 10s for sysfs sfnum to appear). NIC-mode BlueField with no SFs configured fails with 'timeout, SF wasn't visible'. Bundle never names the SF prerequisite.",
+      "evidence": "doca/services/flow_inspector/entrypoint.sh L33-47; doca_flow_inspector.yaml L71-72"
+    },
+    {
+      "id": "ARGUS-01",
+      "service": "doca-argus",
+      "severity": "MEDIUM",
+      "type": "misleading_forwarder_framing",
+      "claim": "Argus's documented forwarder emits findings to SIEM (Splunk / ELK / Sentinel / generic syslog).",
+      "reality": "Binary emits Fluent Bit forward / TCP / JSON to `telemetry_address: host:port` (default disabled). Companion `doca_argus_fluentbit.yaml` Pod adds a Fluent Bit sidecar that fans out to ES/Splunk/etc. Bundle conflates the Fluent Bit hop with the SIEM destination. Operator looking for 'Splunk output' in Argus config will not find it.",
+      "evidence": "doca/services/argus/doca_argus.yaml L295-311; doca/services/argus/doca_argus_fluentbit.yaml (Fluent Bit sidecar)"
+    },
+    {
+      "id": "ARGUS-02",
+      "service": "doca-argus",
+      "severity": "LOW",
+      "type": "missing_resource_footprint",
+      "claim": "Container is the unit of deployment.",
+      "reality": "True, but the shipped Pod requests 10Gi/4-CPU and limits 15Gi/8-CPU. Material for resource-constrained BlueFields; bundle never mentions this.",
+      "evidence": "doca/services/argus/doca_argus.yaml L46-52"
+    },
+    {
+      "id": "ARGUS-03",
+      "service": "doca-argus",
+      "severity": "LOW",
+      "type": "fuzzy_taxonomy_vs_real_event_tree",
+      "claim": "Detection policy = suspicious-activity / integrity-violation / operational-anomaly classes.",
+      "reality": "Actual collection.events.* tree: process, file_descriptor, network_connection, reverse_shell_detection, process_memory, process_attestation, thread, shell_command, container, plus limits. Bundle's three-class framing is a fuzzy reskin; not 1:1 with the YAML.",
+      "evidence": "doca/services/argus/doca_argus.yaml L156-293"
+    },
+    {
+      "id": "ARGUS-04",
+      "service": "doca-argus",
+      "severity": "LOW",
+      "type": "missing_sbom_feature",
+      "claim": "(no claim - bundle silent on SBOM)",
+      "reality": "process_attestation supports SBOM files for containers and none-containers (`sbom.containers`, `sbom.none_containers`) - CSV format with sha256+args+folder+filename+size. Real config surface; bundle never mentions.",
+      "evidence": "doca/services/argus/doca_argus.yaml L112-124,L260-273"
+    },
+    {
+      "id": "OS-INSPECTOR-01",
+      "service": "doca-os-inspector",
+      "severity": "LOW",
+      "type": "minor_dts_hop_underframed",
+      "claim": "Findings reach downstream SIEM via DTS.",
+      "reality": "Accurate at a high level. Bundle could be clearer that OS Inspector's contract ends at the DTS IPC socket; DTS-to-SIEM (typically via Fluent Bit) is downstream. Same hop issue as Argus.",
+      "evidence": "doca/services/os_inspector/doca_os_inspector.yaml L35-36,L63-66"
+    },
+    {
+      "id": "UROM-01",
+      "service": "doca-urom-svc",
+      "severity": "HIGH",
+      "type": "aspirational_authorization_layer",
+      "claim": "Service has a 'host-endpoint authorization' surface; 'service-side-authorization layer' in error taxonomy; first-call NOT_PERMITTED 'is this host endpoint authorized to offload to this service' diagnosis.",
+      "reality": "Grep for allowed_host / allowed_users / auth_token / whitelist / access_list / NOT_PERMITTED / permitted across doca/services/urom returns zero matches. No authorization mechanism exists in the shipped binary. Access is governed by DOCA Comch endpoint pairing and underlying RDMA permissions. Agent prescribing 'check the host endpoint authorization config' will mislead the operator.",
+      "evidence": "doca/services/urom/ (Grep results: zero matches for any auth-related keyword)"
+    },
+    {
+      "id": "UROM-02",
+      "service": "doca-urom-svc",
+      "severity": "MEDIUM",
+      "type": "aspirational_config_knob",
+      "claim": "Configuration axes include enqueue queue depth.",
+      "reality": "Pod YAML exposes only `-l <log level>` and `UROM_PLUGIN_PATH`. No operator-tunable queue-depth env or flag. Queue sizing is internal (`UROM_MAX_WORKERS_QUERY_NUM`) or set by the host library.",
+      "evidence": "doca/services/urom/doca_urom.yaml L57-62; urom_daemon_core.c L429"
+    },
+    {
+      "id": "UROM-03",
+      "service": "doca-urom-svc",
+      "severity": "MEDIUM",
+      "type": "missing_transport_choice",
+      "claim": "(no claim - bundle silent on comm channel type)",
+      "reality": "Daemon supports DOCA Comch (default, peer PCI 03:00.0 / 3b:00.0) or UCX (PRIV_DOCA_UROM_CONN_TYPE_UCX). Real operational choice; bundle doesn't mention.",
+      "evidence": "doca/services/urom/urom_daemon.c L38-39,L321,L805,L904,L989,L1024,L1094,L1143,L1202,L1233"
+    },
+    {
+      "id": "UROM-04",
+      "service": "doca-urom-svc",
+      "severity": "LOW",
+      "type": "misframed_collective_surface",
+      "claim": "Service config exposes UCX components / collectives.",
+      "reality": "UCC collective semantics come from PLUGINS in /opt/mellanox/doca/services/urom/plugins; service config does not enumerate UCX components.",
+      "evidence": "doca/services/urom/doca_urom.yaml L23-26,L42-43,L61-62"
+    }
+  ],
+  "summary_counts": {
+    "total_inaccuracies": 23,
+    "high": 4,
+    "medium": 10,
+    "low": 9,
+    "services_with_high_severity_issues": ["doca-dms", "doca-firefly", "doca-flow-inspector", "doca-urom-svc"],
+    "cleanest_service": "doca-os-inspector",
+    "noisiest_service": "doca-dms"
+  },
+  "release_recommendation": {
+    "verdict": "DO_NOT_SHIP_AS_IS",
+    "rationale": "Four HIGH-severity issues across four services - all of them inverse-claim or aspirational-surface failures that will cause operators to either reach for capabilities that don't exist (DMS dmsgroup auth, UROM host-endpoint authorization, Flow Inspector CLI) or skip capabilities that DO exist (DMS gNMI Subscribe). Firefly PROFILE values are wrong in 3 of 4 places in the same bundle - an agent following CAPABILITIES.md or TASKS.md will tell users PROFILE=G.8275.1 which the binary rejects. These are first-90-seconds-of-deployment failures, not edge cases.",
+    "minimum_fixes_before_ship": [
+      "DMS-01: Remove or correct the 'no gNMI Subscribe' claim; document the supported STREAM/SAMPLE+ONCE subset and only POLL/Aggregation as Unimplemented.",
+      "DMS-02: Remove the 'dmsgroup is the authorization boundary' framing; document the actual `-allowed_users` flag and that it applies to ALL auth modes.",
+      "DMS-03/04: Correct the auth-mode list to cert/pam/credentials (+noauth), and flag that PAM is currently su-shellout in the shipped binary.",
+      "DMS-05: Surface the `-enable_mlxconfig` default-off gate.",
+      "FIREFLY-01: Replace PROFILE values in CAPABILITIES.md, SKILL.md body, and TASKS.md ## configure step 3 with default/media/telco-l2/custom (the env-var values, not the industry profile names).",
+      "FIREFLY-02: Fix 'five' -> 'six' in the SKILL.md blockquote.",
+      "FIREFLY-03: Enumerate the six subsystems in CAPABILITIES.md too, not just the SKILL.md blockquote.",
+      "FLOW-INSPECTOR-01: Replace 'Inspector CLI / JSON export / DTS' with DTS-only output; remove references to a CLI that doesn't exist.",
+      "FLOW-INSPECTOR-02: Replace the three-depth taxonomy with the actual per-packet field-selection model.",
+      "FLOW-INSPECTOR-03: Name the Scalable Function prerequisite.",
+      "UROM-01: Remove the 'host-endpoint authorization' / 'service-side-authorization layer' framing - no such surface exists in the shipped binary.",
+      "UROM-02: Remove the 'enqueue queue depth' from the documented config axes.",
+      "UROM-03: Add the DOCA Comch vs UCX comm-channel-type choice.",
+      "ARGUS-01: Clarify the Fluent Bit hop between Argus's actual emit format and the SIEM destination.",
+      "FIREFLY-05 / catalog: Broaden the SKILLS.md catalog line for doca-firefly so SyncE/PHC2SYS/PPS searches hit it."
+    ]
+  }
+}

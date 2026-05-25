@@ -1,0 +1,1120 @@
+{
+  "subagent": "B6",
+  "wave": "B-without-doca",
+  "date": "2026-05-25",
+  "bundle_under_test": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/gitlab-test-proj/doca-skills",
+  "monorepo_access": false,
+  "doca_alignment_per_bundle": {
+    "skills_md_says_internal": "doca/VERSION=3.5.0019",
+    "skills_md_says_external_documented": "DOCA 3.3.0109",
+    "readme_alignment_claim": "see README.md \u201cStandards & Compatibility\u201d"
+  },
+  "criteria": {
+    "C1": "public-sources-only — answer relies only on bundle text + public docs.nvidia.com / openssl.org / docs.nvidia.com/cuda URLs",
+    "C2": "routes to in-bundle SKILL.md — primary tool skill named, related skills cross-linked, deferred verbs routed out",
+    "C3": "hardware-safety overlay acknowledged — per-artifact safety policy surfaced, cross-link to doca-hardware-safety honored",
+    "C4": "cites URL or installed-package path — points the user at docs.nvidia.com/doca/ slug AND /opt/mellanox/doca/... installed paths the bundle names",
+    "C5": "no fabrication of APIs / libraries / paths — refuses to invent flags, JSON fields, counter names, ENGINE ctrl-cmds, role tokens, or shipped artifacts that the bundle does not actually claim"
+  },
+  "scoring_scale": "0..5 per criterion (matches wave3 sub17 convention)",
+  "rules_for_part_b": [
+    "Cannot pre-verify shipped source-tree paths against doca/tools/ (the monorepo is off-limits this wave)",
+    "Quotes the bundle's claimed shipped artifacts (per CAPABILITIES.md \u2018verified\u2019 paragraphs) but routes the user to ls / pkg-config / --help on their installed DOCA for ground-truth",
+    "Cites public docs.nvidia.com slugs by name (the bundle does not pin URLs; doca-public-knowledge-map is the routing target)",
+    "Refuses to quote literal flag inventories, JSON field names, counter names, or Data IDs from memory beyond what the bundle text already documents"
+  ],
+  "prompts": [
+    {
+      "id": 1,
+      "tool": "doca-flow-tune",
+      "prompt": "I see references to a Flow Tune Server and a Flow Tune Tool client. Are these two separate binaries I install side-by-side, or one artifact? Walk me through the configure decision before I run a session against my live BlueField-3 doca-flow service.",
+      "primary_skill": "skills/tools/doca-flow-tune",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-flow",
+        "skills/tools/doca-flow-perf",
+        "skills/doca-version",
+        "skills/doca-setup",
+        "skills/doca-hardware-safety",
+        "skills/doca-public-knowledge-map",
+        "skills/doca-structured-tools-contract"
+      ],
+      "answer_outline": [
+        "doca_flow_tune is one shipped binary, not two; the historical \u2018server\u2019 and \u2018client\u2019 roles live inside the same artifact (CAPABILITIES.md ## Capabilities and modes \u2018One binary, two internal roles\u2019).",
+        "Refused to recommend two separate packages; refused to invent CLI flag strings or JSON config field names.",
+        "Walked the three-axis configure decision (tuning axis \u00d7 measurement \u00d7 scope) and the three operating modes (offline / online read-only / online state-changing) and the tune-vs-perf boundary (TASKS.md ## configure steps 1-9).",
+        "Pointed user at flow_tune_cfg_public.json / flow_tune_cfg_hardware_only.json / flow_tune_cfg_software_only.json under the user\u2019s install, and the shipped scripts/ (flow_json_diff.py, flow_mermaid_diff.py, hw_counters_csv_analyzer.py).",
+        "Routed safety policy: smoke-before-bulk on every state-changing application of a recommendation; cross-link to doca-hardware-safety overlay.",
+        "Did NOT enumerate the \u2018DUMP/WEB/MONITOR/ANALYZE/VISUALIZE\u2019 subcommand names as a contract \u2014 surfaced the contradiction between SKILL.md banner and CAPABILITIES.md/TASKS.md/SKILLS.md catalog and routed the user to --help on the installed binary."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Flow Tune\u2019 page (slug reached via doca-public-knowledge-map ## DOCA tools)",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Flow\u2019 (library)"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/flow_tune_cfg_public.json (template per skill)",
+        "/opt/mellanox/doca/tools/flow_tune_cfg_hardware_only.json",
+        "/opt/mellanox/doca/tools/flow_tune_cfg_software_only.json",
+        "/opt/mellanox/doca/tools/scripts/flow_json_diff.py",
+        "/opt/mellanox/doca/tools/scripts/flow_mermaid_diff.py",
+        "/opt/mellanox/doca/tools/scripts/hw_counters_csv_analyzer.py"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 4,
+        "C5": 4,
+        "total": 23
+      },
+      "notes": [
+        "C4 penalty: cannot pre-verify the shipped JSON template names or script names on the user\u2019s install without the monorepo; the bundle\u2019s prose names them so the answer is one step from ground-truth.",
+        "C5 penalty: the bundle itself self-contradicts on architecture (SKILL.md \u2018CLIENT-as-binary + server-as-linked-library\u2019 vs CAPABILITIES.md \u2018one binary two internal roles, server role sits next to the doca-flow application\u2019); without the monorepo to break the tie, the response had to surface BOTH framings and route to --help instead of picking one as authoritative."
+      ]
+    },
+    {
+      "id": 2,
+      "tool": "doca-flow-tune",
+      "prompt": "My doca_flow_tune analyze step printed a recommendation to bump table sizing for one of my pipes, but my flow program hard-codes the value. What does \u2018recommendation-unactionable\u2019 mean in this context and how do I move forward without inventing a tune flag?",
+      "primary_skill": "skills/tools/doca-flow-tune",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-flow",
+        "skills/doca-programming-guide",
+        "skills/doca-debug"
+      ],
+      "answer_outline": [
+        "Mapped the symptom to Error taxonomy layer 5 \u2018Recommendation-unactionable\u2019 (CAPABILITIES.md ## Error taxonomy).",
+        "Explained: the recommendation targets a knob the Flow program does not expose; flow-tune\u2019s job is to surface the proposal, not to flip a knob the tool itself controls.",
+        "Routed user to TASKS.md ## modify minimum-diff workflow against the doca-flow API (and doca-flow TASKS.md ## modify) to expose the knob in the program, then re-run the tune session against the post-change state.",
+        "Enforced before/after capture rule and four-tuple quoting; cross-linked test eval-loop overlay.",
+        "Refused to recommend a tune CLI flag that would flip the value, since none is documented and the tool does not modify Flow program code."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Flow Tune\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Flow\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/samples/doca_flow/ (per doca-flow library skill)"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": [
+        "Pure taxonomy + routing answer; no install-bound literals were needed; the bundle is internally consistent here."
+      ]
+    },
+    {
+      "id": 3,
+      "tool": "doca-flow-tune",
+      "prompt": "I want to set up a CI guardrail that captures a before / after tune session around any doca-flow code change and fails the build if the after-leg metric regresses. What\u2019s the right shape, and does the bundle ship anything I can hook into?",
+      "primary_skill": "skills/tools/doca-flow-tune",
+      "auxiliary_skills_routed": [
+        "skills/doca-debug",
+        "skills/doca-version",
+        "skills/doca-structured-tools-contract"
+      ],
+      "answer_outline": [
+        "Surfaced the eval-loop overlay from TASKS.md ## test (before snapshot \u2192 apply via modify \u2192 after snapshot \u2192 diff with shipped scripts).",
+        "Pointed user at the shipped scripts/ helpers (flow_json_diff.py, flow_mermaid_diff.py, hw_counters_csv_analyzer.py) per CAPABILITIES.md ## Observability and the Command appendix.",
+        "Recommended capturing the four-tuple (cmd line + JSON config + DOCA version + device + as-deployed env) in every artifact, per ## Safety policy.",
+        "Surfaced doca-structured-tools-contract probe-first pattern for the version + device snapshot the CI step needs.",
+        "Refused to ship a ready-made CI script (per \u2018What this skill deliberately does not ship\u2019)."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Flow Tune\u2019 (reached via doca-public-knowledge-map ## DOCA tools)"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/scripts/flow_json_diff.py",
+        "/opt/mellanox/doca/tools/scripts/flow_mermaid_diff.py",
+        "/opt/mellanox/doca/tools/scripts/hw_counters_csv_analyzer.py"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 4,
+        "C5": 5,
+        "total": 24
+      },
+      "notes": [
+        "C4 penalty: cannot pre-verify script names exist on the user\u2019s install without the monorepo; routes the user to verify via filesystem inspection."
+      ]
+    },
+    {
+      "id": 4,
+      "tool": "doca-gpi-ib-write-lat",
+      "prompt": "I installed DOCA 3.3 with the standard doca-all profile on my H100 + ConnectX-7 box. The release notes mention DOCA GPI; can I just go ahead and run doca-gpi-ib-write-lat to baseline kernel-initiated WRITE latency?",
+      "primary_skill": "skills/tools/doca-gpi-ib-write-lat",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-gpi",
+        "skills/tools/doca-gpunetio-ib-write-lat",
+        "skills/doca-version",
+        "skills/doca-setup",
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Quoted the SKILL.md shipping caveat (\u2018Shipping caveat\u2019 banner): the gpi_ib_write_lat source directory is gated on a CUDA-Toolkit-enabled DOCA build at meson configure time; standard installer profiles on a non-CUDA host typically do NOT ship this tool as a built binary even though doca-gpi library is shipped.",
+        "Required the user to confirm presence: ls /opt/mellanox/doca/tools/ | grep gpi_ib_write_lat, or dpkg -L doca-tools | grep gpi_ib_write_lat, or rpm -ql doca-tools | grep gpi_ib_write_lat.",
+        "If absent: pointed user at the sister tool doca-gpunetio-ib-write-lat (ships in the default profiles) and offered the choice between rebuilding DOCA with CUDA enabled or switching to GPUNetIO surface.",
+        "Surfaced the surface-selection table (GPI vs GPUNetIO vs CPU-initiated perftest) before any baseline.",
+        "Refused to walk a build / run flow against a binary the install may not provide."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPI\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019",
+        "docs.nvidia.com/cuda/ (for matching CUDA Toolkit per release notes)"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpi_ib_write_lat/{main.c,perftest.c,kernel.cu,oob_socket.c,common.h,meson.build}",
+        "/opt/mellanox/doca/include/doca_gpi.h (per related skill)"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": [
+        "Shipping-caveat banner did its job: the response refused to assume the binary is present and routed the user to verify on their install before any build/run.",
+        "Wave3-sub17 PART A actually verified the tool does NOT exist in doca/tools/gpi_ib_write_lat at internal VERSION=3.5.0030; PART B inherits the bundle\u2019s prose which calls out the conditional. With the caveat present in SKILL.md the bundle\u2019s integrity is preserved on this prompt class."
+      ]
+    },
+    {
+      "id": 5,
+      "tool": "doca-gpi-ib-write-lat",
+      "prompt": "I got `DOCA_ERROR_BAD_STATE` from the bring-up of doca-gpi-ib-write-lat on a freshly-built tree. The build links cleanly. What does this mean and which layer of the error ladder do I walk?",
+      "primary_skill": "skills/tools/doca-gpi-ib-write-lat",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-gpi",
+        "skills/libs/doca-rdma",
+        "skills/doca-debug",
+        "skills/doca-setup"
+      ],
+      "answer_outline": [
+        "Mapped DOCA_ERROR_BAD_STATE to Error taxonomy layer 4 \u2018GPI-lifecycle\u2019: most commonly the GPU datapath was not assigned before doca_ctx_start(), or channel-handle retrieval returned BAD_STATE because the GPU datapath was not assigned, or doca_gpi_destroy returns IN_USE because the CUDA kernel still holds the GPU handle.",
+        "Routed user to libs/doca-gpi/CAPABILITIES.md#error-taxonomy and TASKS.md#debug for the library debug ladder; reminded that this benchmark tool inherits the GPI library\u2019s lifecycle discipline.",
+        "Asked the user to confirm GPU + IB device pairing (PCIe / NVLink path), nvidia_peermem load (per safety policy), and version four-way match before guessing further.",
+        "Refused to invent a flag or env var as a workaround."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPI\u2019 programming guide",
+        "docs.nvidia.com/doca/sdk \u2018DOCA RDMA\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/include/doca_gpi.h",
+        "/opt/mellanox/doca/tools/gpi_ib_write_lat/main.c"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 6,
+      "tool": "doca-gpi-ib-write-lat",
+      "prompt": "Single-iteration smoke reported half_iter=1.2us and full_iter=2.4us on H100+CX-7 over a shared root complex. Which column do I quote as the \u2018kernel-initiated one-way WRITE latency\u2019, and what do I check before publishing?",
+      "primary_skill": "skills/tools/doca-gpi-ib-write-lat",
+      "auxiliary_skills_routed": [
+        "skills/doca-hardware-safety",
+        "skills/doca-version",
+        "skills/doca-debug"
+      ],
+      "answer_outline": [
+        "Pointed at the column-semantics rule in CAPABILITIES.md ## Observability: half_iter = lower-bound apples-to-apples one-way ping-pong latency when both halves are GPI-driven; full_iter = round-trip for request-response; t_cuda = CUDA-side cross-check.",
+        "Recommended quoting half_iter as the one-way number AND quoting the full tuple (DOCA version + CUDA Toolkit + GPU + NIC + topology + firmware + GID index) per ## Safety policy.",
+        "Warned the user about layer-6 measurement-soundness sub-cases (warm-up, idle host, GPU-NIC pairing, host-vs-CUDA divergence).",
+        "Refused to predict a benchmark crossover threshold or quote a known-good latency literal from memory."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPI\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpi_ib_write_lat/perftest.c"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 7,
+      "tool": "doca-gpunetio-ib-write-bw",
+      "prompt": "I want sustained kernel-initiated WRITE bandwidth between two H100+CX-7 hosts using GPUNetIO. Walk me through bring-up order and what counts as a \u2018binding constraint\u2019 I have to name when I quote the throughput.",
+      "primary_skill": "skills/tools/doca-gpunetio-ib-write-bw",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-gpunetio",
+        "skills/libs/doca-rdma",
+        "skills/doca-setup",
+        "skills/doca-version",
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Walked install preconditions: doca-gpunetio.pc + doca-rdma.pc + doca-common.pc on both build hosts, nvcc + matched CUDA toolkit, nvidia_peermem loaded, GPU + IB device pair on same PCIe / NVLink fabric.",
+        "Build pattern: meson setup <build-dir> doca/tools/gpunetio_ib_write_bw/ then meson compile; verified subtree layout is client/ + server/ each carrying its own meson.build + main.c + common.{c,h} + perftest.c; kernel.cu lives in client/ per the bundle\u2019s description (also: the bundle\u2019s CAPABILITIES.md L62 frames the CUDA kernel as \u2018on the server\u2019 even though the file lives in client/, so the agent quoted the file location verbatim and told the user to inspect /opt/mellanox/doca/tools/gpunetio_ib_write_bw/ for the as-installed layout).",
+        "Run order: server first (binds OOB TCP socket), client second with -c <server-ip>, same -d, --gpu, --gid-index as needed; verify pre-run echo.",
+        "Throughput decomposition: link saturation, NIC issue rate, GPU compute occupancy, or PCIe crossover; quote the binding constraint alongside the BW number.",
+        "Safety overlay: cleartext OOB only on trusted segments, sustained traffic on shared fabric requires maintenance window per doca-hardware-safety.",
+        "Refused to predict throughput literals or flag inventory beyond -c / -d / --gpu / --gid-index documented in the bundle."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA RDMA\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_bw/client/{main.c,common.c,common.h,perftest.c,kernel.cu,meson.build}",
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_bw/server/{main.c,common.c,common.h,perftest.c,meson.build}"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 4,
+        "C5": 4,
+        "total": 23
+      },
+      "notes": [
+        "C4 penalty: cannot pre-verify client/+server/+kernel.cu layout against the user\u2019s install without the monorepo.",
+        "C5 penalty: the bundle\u2019s prose at CAPABILITIES.md \u2018What the benchmark actually measures\u2019 says \u2018The CUDA kernel on the server (client/kernel.cu in the source tree, despite the name; per the verified common.h the kernel posts WRITEs against server_remote_buf_arr)\u2019 \u2014 the file lives in client/ but is described as the server\u2019s kernel. Without the monorepo to verify which side actually invokes the kernel, the agent surfaced this confusion as an honest \u2018check on your install\u2019 caveat instead of asserting either framing as ground truth."
+      ]
+    },
+    {
+      "id": 8,
+      "tool": "doca-gpunetio-ib-write-bw",
+      "prompt": "My runs landed at 120 Gbit/s on a 200 Gbit/s link with -async_jobs not set. Same flags on the same hosts give 145, 187, and 160 across three runs. What\u2019s the right diagnostic move before I touch the algorithm or the flags?",
+      "primary_skill": "skills/tools/doca-gpunetio-ib-write-bw",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-gpunetio",
+        "skills/doca-debug",
+        "skills/doca-setup"
+      ],
+      "answer_outline": [
+        "Mapped \u2018BW well below link capacity\u2019 to one of three candidates (GPU occupancy / NIC issue rate / link saturation / PCIe crossover); recommended naming which BEFORE iterating.",
+        "Mapped \u2018BW swings between runs\u2019 to Error taxonomy layer 6 measurement-soundness: steady-state not reached, system not at idle, warm-up too short.",
+        "Recommended nvidia-smi dmon SM utilization cross-check and ibstat link-rate cross-check before adjusting any flag.",
+        "Asked the user to lengthen the run (more iterations), confirm no background IB traffic, confirm no concurrent CUDA workloads.",
+        "Refused to invent --async_jobs default or to predict the \u2018correct\u2019 number for this platform."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA RDMA\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_bw/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 9,
+      "tool": "doca-gpunetio-ib-write-bw",
+      "prompt": "I want to take my doca-gpunetio-ib-write-bw artifact and feed the throughput plus binding constraint into a capacity-planning artifact. What metadata must travel with the number?",
+      "primary_skill": "skills/tools/doca-gpunetio-ib-write-bw",
+      "auxiliary_skills_routed": [
+        "skills/doca-version",
+        "skills/doca-hardware-safety",
+        "skills/doca-public-knowledge-map"
+      ],
+      "answer_outline": [
+        "Quoted the Safety-policy tuple: DOCA version + CUDA Toolkit + GPU model + NIC model + PCIe / NVLink topology + firmware level + binding constraint (GPU occupancy / NIC issue rate / link saturation / wrong pairing).",
+        "Reminded that per-release re-verification is required after any DOCA or CUDA Toolkit upgrade.",
+        "Noted that an application-level benchmark is the final answer for production capacity; the tool is the WR-path floor.",
+        "Refused to project from one host to another or to quote a known-good number for any specific GPU+NIC pair."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_bw/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 10,
+      "tool": "doca-gpunetio-ib-write-lat",
+      "prompt": "I am sizing a GPU-resident real-time control loop over RDMA WRITE and need a defensible p99 budget. My deadline is 10us round-trip. How do I run doca-gpunetio-ib-write-lat to answer that, and what statistic do I quote?",
+      "primary_skill": "skills/tools/doca-gpunetio-ib-write-lat",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-gpunetio",
+        "skills/libs/doca-rdma",
+        "skills/doca-version",
+        "skills/doca-setup",
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Walked the install + configure preconditions same as the BW sister: doca-gpunetio.pc / doca-rdma.pc / doca-common.pc, nvcc + matched CUDA toolkit, nvidia_peermem loaded, GPU + IB device on common PCIe / NVLink fabric.",
+        "Bring-up: server first, client with -c <server-ip>; pre-run echo; verify GPU PCIe + GID + role at startup.",
+        "For real-time / control-loop characterization the agent surfaced the median-vs-p99-vs-jitter rule: the deadline-bound workload\u2019s correct quote is p99 (or p99.9), not the median; capture all iterations and compute percentiles separately.",
+        "Quoted the bundle\u2019s rule-of-thumb iteration counts: 10^5 for p99, 10^6 for p99.9 (workload-class-specific).",
+        "Quoted the columns the bundle documents (per CAPABILITIES.md ## Observability and the verified common.h: REPORT_FMT_LAT / RESULT_FMT_LAT \u2192 #bytes, #iterations, t_half_iter[usec], t_full_iter[usec], t_cuda[usec]); t_full_iter is the round-trip column for the deadline conversation.",
+        "Surfaced latency-vs-batching trade-off: the per-WR latency the benchmark reports reflects shipped batching constants (NUM_ITER / POST_LIST / NUM_MSG_SIZE per common.h).",
+        "Refused to forecast a deadline pass/fail without a real run; the tool is the WR floor, the application benchmark is the actual answer."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA RDMA\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_lat/client/",
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_lat/server/",
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_lat/common/{common.c,common.h,kernel.cu}"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 4,
+        "C5": 5,
+        "total": 24
+      },
+      "notes": [
+        "C4 penalty: cannot pre-verify client/+server/+common/ layout on the user\u2019s install without the monorepo."
+      ]
+    },
+    {
+      "id": 11,
+      "tool": "doca-gpunetio-ib-write-lat",
+      "prompt": "My run reports fewer iterations than I configured. What\u2019s the suspect knob and where does the bundle say to look?",
+      "primary_skill": "skills/tools/doca-gpunetio-ib-write-lat",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-gpunetio",
+        "skills/doca-debug"
+      ],
+      "answer_outline": [
+        "Routed to Error taxonomy layer 6(f): the per-iteration timeout the kernel-side function (gpunetio_rdma_write_lat_server / gpunetio_rdma_write_lat_client per common.h) takes was set too short and iterations were dropped.",
+        "Recommended lengthening timeout_ns in the run config and re-running; dropped iterations are themselves a signal, not noise.",
+        "Reminded that changing per-iteration timeout source-side is a contributor-to-DOCA change; the consumer-side path is to file a bespoke benchmark via libs/doca-gpunetio for finer control.",
+        "Refused to invent a CLI flag for timeout that the binary may not expose."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_lat/common/common.h"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 12,
+      "tool": "doca-gpunetio-ib-write-lat",
+      "prompt": "I have a captured doca-gpi-ib-write-lat number from a teammate but my install only has the GPUNetIO variant. Are these directly comparable?",
+      "primary_skill": "skills/tools/doca-gpunetio-ib-write-lat",
+      "auxiliary_skills_routed": [
+        "skills/tools/doca-gpi-ib-write-lat",
+        "skills/libs/doca-gpi",
+        "skills/libs/doca-gpunetio"
+      ],
+      "answer_outline": [
+        "Surfaced the surface-selection rule: same physical operation, different runtime framework; the two benchmarks measure the SAME RDMA WRITE through DIFFERENT programming surfaces (GPI direct vs GPUNetIO higher-level).",
+        "Recommended treating the teammate\u2019s number as the GPI-path number and the local run as the GPUNetIO-path number; the comparison answers \u2018which programming surface does your application use\u2019, not \u2018which is faster in the abstract\u2019.",
+        "Asked the user to confirm the four-tuple on each side and to compare the SAME statistic (e.g. both t_full_iter at the same message size + iteration count).",
+        "Pointed out that the GPI tool may or may not ship on the local install (shipping caveat); if not present the comparison goes through the GPUNetIO variant only.",
+        "Refused to predict which surface wins on the user\u2019s pair."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPI\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA GPU NetIO\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/gpunetio_ib_write_lat/",
+        "/opt/mellanox/doca/tools/gpi_ib_write_lat/ (subject to shipping caveat)"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 13,
+      "tool": "doca-pcc-counters",
+      "prompt": "I just attached a custom PCC kernel via doca-pcc and started the context against my BlueField port. doca_pcc_counter list returns an empty result on a port where I expected per-kernel counters. What\u2019s going on?",
+      "primary_skill": "skills/tools/doca-pcc-counters",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-pcc",
+        "skills/doca-version",
+        "skills/doca-setup",
+        "skills/doca-debug"
+      ],
+      "answer_outline": [
+        "Mapped \u2018list returned empty after attaching a PCC kernel\u2019 to Error taxonomy layer 2 \u2018No-PCC-kernel-loaded\u2019: confirm doca_pcc_app loaded, doca_ctx_start invoked, and the BlueField port has live RDMA / RoCE traffic.",
+        "If host side really is at the started lifecycle stage, escalate to layer 3 \u2018Wrong-version-with-PCC-library\u2019: the counter tool\u2019s --version may disagree with pkg-config --modversion doca-pcc and doca_caps --version (partial install).",
+        "If only kernel-defined counters are missing but per-port baseline is visible, escalate to layer 4 \u2018Counter-not-exposed-by-kernel\u2019: the DPA-side translation unit may not declare/emit the counter; both host executable and DPA-side image must be rebuilt.",
+        "Walked the read-only enumeration \u2192 snapshot \u2192 watch \u2192 diff pattern; surfaced the safety policy (read-only on the wire but high-stakes for downstream tuning).",
+        "Refused to invent counter names or column names; routed user to --help on the installed binary and the public DOCA PCC Counter Tool guide."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC Counter Tool\u2019 (slug)",
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC\u2019 (library)"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/ (the counter-tool binary, name authoritative on --help and public guide)"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 4,
+        "C5": 5,
+        "total": 24
+      },
+      "notes": [
+        "C4 penalty: the bundle deliberately refuses to pin the tool binary name (per \u2018What this skill deliberately does not ship\u2019); without the monorepo the response can only point at /opt/mellanox/doca/tools/ and --help, not at a specific basename."
+      ]
+    },
+    {
+      "id": 14,
+      "tool": "doca-pcc-counters",
+      "prompt": "I want to use a PCC counter delta to retune a CC parameter on a production BlueField fleet. What does the bundle say about going from a counter snapshot to a tuning recommendation?",
+      "primary_skill": "skills/tools/doca-pcc-counters",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-pcc",
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Surfaced the load-bearing rule: read-only operations are safe; the tuning decision they inform is NOT. A CC parameter retune on the host side via doca-pcc changes PCC state and may destabilize the RDMA / RoCE fabric for every node sharing it.",
+        "Required diff-before-decide: capture a before snapshot, name the controlled change, capture an after snapshot, quote the diff verbatim. A single reading is a guess; the diff is the evidence.",
+        "Required smoke-before-bulk: snapshot ONE named counter and confirm finite-and-changing before any sweep.",
+        "Refused to translate a counter delta into a concrete CC parameter value \u2014 the skill explicitly does not ship that and routes to the user\u2019s domain analysis.",
+        "Surfaced fleet-impact framing: CC decisions on one node propagate to every other node on the same fabric."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC Counter Tool\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 15,
+      "tool": "doca-pcc-counters",
+      "prompt": "I am watching a kernel-defined counter and it sits pinned at the type ceiling. What does the bundle say about saturation vs aliasing, and how do I tell them apart?",
+      "primary_skill": "skills/tools/doca-pcc-counters",
+      "auxiliary_skills_routed": [
+        "skills/doca-version"
+      ],
+      "answer_outline": [
+        "Mapped to Error taxonomy layer 6 \u2018Sampling-aliasing-or-saturation\u2019: saturation = counter pinned at the type\u2019s maximum (e.g. 32-bit or 64-bit ceiling because of an unhandled wrap), so diff looks zero even when events continue; aliasing = the watch interval is too coarse to catch the change-rate, so consecutive samples look flat when underlying behaviour is bursty.",
+        "Recommended re-sampling at a finer interval for aliasing and re-reading the counter\u2019s documented type + wrap behaviour from the public guide for saturation.",
+        "Hard-refused to translate either case into a CC tuning decision.",
+        "Surfaced the related diff-before-decide and smoke-before-bulk gates from ## Safety policy."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC Counter Tool\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 16,
+      "tool": "doca-sha-offload-engine",
+      "prompt": "I added the DOCA SHA Offload Engine to my existing openssl dgst pipeline on Ubuntu 22.04 (OpenSSL 3.0.2). The hashes come out right and the run completes. How do I prove the engine actually offloaded the SHA, vs OpenSSL silently using software?",
+      "primary_skill": "skills/tools/doca-sha-offload-engine",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-sha",
+        "skills/doca-version",
+        "skills/doca-setup",
+        "skills/doca-public-knowledge-map"
+      ],
+      "answer_outline": [
+        "Quoted the prove-offload pattern: a successful openssl dgst does NOT prove the engine ran; OpenSSL falls back to software SHA when the engine is missing or fails to register.",
+        "Two verified techniques per the shipped readme.md: (1) openssl dgst -sha256 -engine <path> -engine_impl \u2014 -engine_impl disables software fallback; a successful output proves the engine ran. (2) The SHA-224 negative test: openssl dgst -sha224 -engine <path> -engine_impl \u2014 SHA-224 is NOT in the engine\u2019s covered set; the expected output is \u2018Error setting digest\u2019, which PROVES OpenSSL consulted the engine and the engine refused SHA-224.",
+        "Also surfaced openssl engine dynamic -vvv -t -c output: confirms the engine name (doca_sha_offload_engine), the digests ([SHA1, SHA256, SHA512]), the [available] marker, and the set_pci_addr ctrl-cmd descriptor.",
+        "Reminded that OpenSSL 3.0.2 still supports ENGINEs via the legacy code path (forward-looking concern: PROVIDERS are the OpenSSL 3.x answer, but the bundle does not ship a PROVIDER artifact).",
+        "Surfaced the shipped path: ${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so (install-layout convention; the source layout is doca/tools/sha_offload_engine/).",
+        "Refused to invent OpenSSL flags or ENGINE ctrl-cmd names beyond -pre NO_VCHECK:1, -pre SO_PATH:..., -pre LOAD, -pre \"set_pci_addr:...\", -vvv -t -c, -engine <path>, -engine_impl, -async_jobs <N>, -multi <N>."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA SHA\u2019",
+        "openssl.org/docs/man1.1.1/man1/openssl-engine.html",
+        "openssl.org/docs/manmaster/man3/EVP_Digest.html",
+        "openssl.org/docs/manmaster/man7/migration_guide.html"
+      ],
+      "installed_paths_cited": [
+        "${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so",
+        "the shipped readme.md and test_cmdline_mode/readme.md under doca/tools/sha_offload_engine/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": [
+        "This skill\u2019s prove-offload contract is the cleanest verifiable assertion in the wave: the SHA-224 negative test is install-independent and the verbatim load pattern from the shipped readme is quoted in the bundle, so the answer is fully grounded without the monorepo."
+      ]
+    },
+    {
+      "id": 17,
+      "tool": "doca-sha-offload-engine",
+      "prompt": "My host\u2019s DOCA SHA accelerator is at PCIe address 0a:00.0, not the default 03:00.0. Do I rebuild the engine, or can I bind at runtime?",
+      "primary_skill": "skills/tools/doca-sha-offload-engine",
+      "auxiliary_skills_routed": [
+        "skills/tools/doca-caps",
+        "skills/doca-setup"
+      ],
+      "answer_outline": [
+        "Quoted the two ways the engine picks the PCIe address: (1) build-time default DDOCA_ENGINE_PCI_ADDR=\"03:00.0\" in the shipped meson.build, edit-the-meson.build workflow per test_cmdline_mode/readme.md; (2) run-time override via the set_pci_addr ctrl-cmd (verified in engine/doca_sha_offload_engine.c\u2019s engine_cmd_defns).",
+        "CLI override: openssl engine dynamic -pre SO_PATH:... -pre LOAD -pre \"set_pci_addr:0a:00.0\".",
+        "Programmatic override: ENGINE_ctrl_cmd_string(e, \"set_pci_addr\", \"0a:00.0\", 0).",
+        "Recommended verifying the PCIe address belongs to a DOCA SHA accelerator via doca_caps --list-devs before binding (multi-tenant credential rule).",
+        "Refused to invent a different ctrl-cmd name or a CLI flag the engine does not register."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA SHA\u2019",
+        "openssl.org/docs/man1.1.1/man1/openssl-engine.html"
+      ],
+      "installed_paths_cited": [
+        "${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so",
+        "the shipped readme.md and test_cmdline_mode/readme.md under doca/tools/sha_offload_engine/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 18,
+      "tool": "doca-sha-offload-engine",
+      "prompt": "My pipeline hashes 4 KB blocks and the engine is slower than CPU SHA on the same host. Is the engine \u2018broken\u2019 or is this the expected message-size window?",
+      "primary_skill": "skills/tools/doca-sha-offload-engine",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-sha"
+      ],
+      "answer_outline": [
+        "Quoted the message-size-window rule: the engine offload adds a round-trip cost; for small messages CPU SHA may match or beat the engine WITHOUT -async_jobs; -async_jobs enables async batching and changes the picture; for medium messages engine + -async_jobs typically wins; for large messages (\u22651 MB) the engine wins comfortably.",
+        "Recommended the openssl speed -evp <alg> -bytes <N> -elapsed comparison with and without -engine and with various -async_jobs values per the shipped readme; the crossover is workload-, device-, OpenSSL-version-, and SHA-NI-specific.",
+        "Refused to quote a crossover threshold or expected throughput literal from memory.",
+        "Reminded the user that proving the engine actually ran is the prerequisite (SHA-224 negative test) BEFORE quoting any perf number."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA SHA\u2019",
+        "openssl.org/docs/man1.1.1/man1/openssl-speed.html (via doca-public-knowledge-map)"
+      ],
+      "installed_paths_cited": [
+        "${DOCA_DIR}/tools/doca_sha_offload_engine/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 19,
+      "tool": "doca-socket-relay",
+      "prompt": "My existing host service talks TCP/5000 to a peer. I want the peer on the BlueField; can DOCA Socket Relay transparently bridge my TCP socket onto the DPU without me changing the host app?",
+      "primary_skill": "skills/tools/doca-socket-relay",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-comch",
+        "skills/libs/doca-eth",
+        "skills/doca-container-deployment",
+        "skills/doca-setup",
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Quoted CAPABILITIES.md ## Capabilities and modes axis 2: the shipped doca_socket_relay binary uses AF_UNIX (Unix Domain Sockets, SOCK_STREAM) on its host leg \u2014 the listener and acceptor threads in the shipped binary are all AF_UNIX, and the relay\u2019s -s/--socket argument is a filesystem path, not an IP/port pair. The DPU-network leg is Comch (-n/--cc-name), not raw IP.",
+        "Conclusion: the relay does NOT transparently bridge a TCP socket. The user must either (a) change the wrapping app to talk AF_UNIX to a local path the relay binds, OR (b) use a different transport surface (doca-eth for line-rate packet I/O, doca-comch for programmatic control-plane).",
+        "Quoted the three-axis configure decision (deployment shape \u00d7 socket type \u00d7 forwarding endpoint).",
+        "Surfaced the high-stakes data-path safety policy: misconfigured forwarding endpoint = silent break, smoke-before-bulk mandatory, no-relay control comparison before production.",
+        "Refused to invent a TCP-relay mode the binary does not implement."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Socket Relay\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Comch\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Ethernet\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/ (the doca_socket_relay binary, name + flag set authoritative on --help)"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 4,
+        "total": 24
+      },
+      "notes": [
+        "C5 penalty: the bundle itself has leftover TCP-style \u2018port\u2019 phrasing in CAPABILITIES.md and TASKS.md (e.g. \u2018the configured port is below 1024\u2019, layer 2 \u2018Relay-not-bound (port / socket)\u2019, \u2018do not invent ... socket-path defaults or port numbers\u2019) that contradicts the explicit AF_UNIX-only assertion at axis 2 and Cross-cutting L87-92. Without the monorepo, the response had to lean hard on axis 2 and explicitly tell the user that the \u2018port\u2019 prose elsewhere is leftover language, not a contract that the binary actually exposes a port-binding mode."
+      ]
+    },
+    {
+      "id": 20,
+      "tool": "doca-socket-relay",
+      "prompt": "My relay starts cleanly and the host app connects, but the DPU-side peer never sees the bytes. Walk me through the diagnosis before I retry anything.",
+      "primary_skill": "skills/tools/doca-socket-relay",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-comch",
+        "skills/doca-container-deployment",
+        "skills/doca-debug"
+      ],
+      "answer_outline": [
+        "Mapped the symptom to Error taxonomy layer 4 \u2018DPU-side-terminator-not-reachable\u2019 \u2014 the canonical silent data-path break.",
+        "Required the agent to capture THREE views before blaming any single layer: (1) the relay\u2019s view (was the byte received from the host?), (2) the BlueField-side terminator\u2019s view (was the byte delivered?), (3) the DPU-side peer application\u2019s view (was the byte processed?).",
+        "Quoted the DOCA logger surface (DOCA_LOG_REGISTER category SOCKET_RELAY) controlled by --sdk-log-level and DOCA_LOG_LEVEL as the relay\u2019s observability primitive; reminded that the shipped doca_socket_relay binary does NOT expose --list-channels / --list-connections flags as of DOCA 3.3 \u2014 visibility is via the logger output.",
+        "If the DPU-side peer is a comch-backed program: route to doca-comm-channel-admin TASKS.md ## debug. If the DPU-side peer is a service container: route to doca-container-deployment TASKS.md ## debug.",
+        "Hard-refused \u2018retry the connect again\u2019 as a fix: that is exactly the silent-break failure mode this layer exists to surface.",
+        "Surfaced the no-relay control comparison rule before any production cutover."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Socket Relay\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Comch\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Container Deployment Guide\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/ (the doca_socket_relay binary)"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 21,
+      "tool": "doca-socket-relay",
+      "prompt": "I want to ship the relay as a service container on the BlueField, not as a sidecar on the host. What does the bundle say about the deployment-shape change, and what new preconditions kick in?",
+      "primary_skill": "skills/tools/doca-socket-relay",
+      "auxiliary_skills_routed": [
+        "skills/doca-container-deployment",
+        "skills/doca-setup",
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Walked axis-1 deployment-shape change: in-process \u2192 sidecar \u2192 service container on BlueField; the chosen shape changes the precondition surface (host-OS permissions for in-process, lifecycle coupling for sidecar, static-pod / image-pull / per-service config-file mount for the container shape).",
+        "Container-shape preconditions inherited from doca-container-deployment: BlueField kubelet-standalone runtime, image-pull from NGC, static-pod manifest authored and dropped into the documented directory, per-service config-file mount, ENTRYPOINT log observability.",
+        "Triple-anchor version rule: host DOCA + BFB version + per-service container tag must agree.",
+        "Re-walked the smoke + topology + regression-baseline test loop because deployment-shape change is a HIGH-STAKES state-changing operation per ## Safety policy.",
+        "Refused to invent a pod-spec template or to quote container image tags from memory."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Socket Relay\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Container Deployment Guide\u2019"
+      ],
+      "installed_paths_cited": [
+        "/etc/kubelet.d/ (per doca-container-deployment, the static-pod manifest directory)",
+        "/opt/mellanox/doca/tools/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 22,
+      "tool": "doca-spcx-cc",
+      "prompt": "I am the CC researcher; I have authored a DPA-side SPCX algorithm and DPACC has compiled it. I want to run it against my non-prod BlueField pair before I even think about production. What does the bundle say I have to set up first?",
+      "primary_skill": "skills/tools/doca-spcx-cc",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-pcc",
+        "skills/libs/doca-pcc-ztr-rttcc-algo",
+        "skills/libs/doca-dpa",
+        "skills/libs/doca-rdma",
+        "skills/doca-setup",
+        "skills/doca-hardware-safety",
+        "skills/doca-version",
+        "skills/doca-public-knowledge-map"
+      ],
+      "answer_outline": [
+        "First, surfaced the SPCX-vs-PCC-vs-factory-firmware decision tree (load-bearing routing rule).",
+        "Then walked the install preconditions: DOCA installed with the SPCX optional component, doca-pcc library at matched version, DPACC compiler at matched version, BlueField visible to host with DPA processor exposed, firmware custom-PCC slot enabled (mlxconfig-class change \u2192 doca-hardware-safety meta-policy).",
+        "Confirmed SPCX availability gate: doca_spcx_cc --help succeeds + public DOCA SPCX guide names the user\u2019s BlueField + DOCA combination.",
+        "Reminded the user that the DOCA 3.3 shipped reference sample hard-codes cfg.role = PCC_ROLE_RP in pcc.c and does NOT register a runtime --role flag; running NP requires either rebuilding the sample with cfg.role = PCC_ROLE_NP or following the public DOCA SPCX-CC guide\u2019s documented method for the user\u2019s installed version.",
+        "Live-link + contention precondition: a CC algorithm has NO observable signal without actual contention; non-prod fabric must carry concurrent flows that exercise the algorithm\u2019s design.",
+        "Replica-first is mandatory, never optional; OOB, bounded blast radius, rollback to factory PCC rehearsed, escalation path documented before any production cutover.",
+        "Refused to invent a runtime --role flag and refused to ship a sample algorithm body."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA SPCX\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC\u2019 (programming guide)",
+        "docs.nvidia.com/doca/sdk \u2018DOCA DPA\u2019 / DPACC docs"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/ (the doca_spcx_cc binary, name + flag set authoritative on --help)"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": [
+        "Framing per the tester\u2019s ask: SPCX is correctly described as the programmable-CC extension (next-gen); doca-pcc-ztr-rttcc-algo is correctly described as a shipped reference algorithm that can be loaded through either PCC or SPCX surfaces depending on install and algorithm choice. SPCX is NOT confused with doca-pcc-ztr-rttcc-algo \u2014 the bundle\u2019s catalog and SKILL.md clearly separate the two."
+      ]
+    },
+    {
+      "id": 23,
+      "tool": "doca-spcx-cc",
+      "prompt": "My SPCX session reports the algorithm is Active but my RoCE flows look unchanged. The host-side status says everything is fine. What\u2019s the right next move before I touch the algorithm?",
+      "primary_skill": "skills/tools/doca-spcx-cc",
+      "auxiliary_skills_routed": [
+        "skills/tools/doca-pcc-counters",
+        "skills/libs/doca-rdma",
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Mapped to Error taxonomy layer 6 \u2018Live-link / contention\u2019: an algorithm running but with no observable effect is most likely uninformative because the link is idle or contention is below the algorithm\u2019s signal floor.",
+        "Hard rule: refuse to draw a conclusion about algorithm correctness from an idle-link or contention-absent run; the run is uninformative by construction.",
+        "Cross-check with doca-pcc-counters (cheaper \u2018is anything happening on this port\u2019 surface) and doca-rdma observation primitives for throughput / latency / completion ordering.",
+        "If contention is genuinely present and the algorithm still shows no effect, escalate to layer 7 \u2018Runtime\u2019: capture runtime evidence, do NOT roll forward, walk doca-pcc TASKS.md ## debug.",
+        "Refused to invent a tuning parameter change."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA SPCX\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA PCC Counter Tool\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 24,
+      "tool": "doca-spcx-cc",
+      "prompt": "My SPCX algorithm passed replica testing across 4 BlueField pairs over a contention-positive fabric. What\u2019s the gate before I roll forward to the production fleet, per the bundle?",
+      "primary_skill": "skills/tools/doca-spcx-cc",
+      "auxiliary_skills_routed": [
+        "skills/doca-hardware-safety"
+      ],
+      "answer_outline": [
+        "Walked the ## use roll-forward gate per ## Safety policy:",
+        "(1) Bounded blast radius before any production cutover (one BlueField pair, then a small bounded set, then progressively larger).",
+        "(2) Observability gate proven (per-port / per-flow tracer output + companion PCC counter snapshots readable end-to-end BEFORE production traffic).",
+        "(3) OOB management path mandatory (must not depend on the same RDMA link the algorithm controls).",
+        "(4) Factory-PCC rollback rehearsed on the replica BEFORE production exposure; a plan without documented rollback is refused per doca-hardware-safety no-rollback rule.",
+        "(5) Maintenance-window discipline \u2014 production CC cutovers are NOT business-hours operations.",
+        "(6) Escalation path documented (change-control process per doca-hardware-safety).",
+        "Hard refusal: if any gate fails, the agent does NOT find a creative workaround; the cutover is refused and escalated."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA SPCX\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    },
+    {
+      "id": 25,
+      "tool": "doca-telemetry-utils",
+      "prompt": "My telemetry exporter says it\u2019s emitting port_rx_bytes for the BlueField at 0000:03:00.0 but my collector sees nothing. What\u2019s the diagnostic shape per the bundle, and which doca_telemetry_utils invocation do I reach for first?",
+      "primary_skill": "skills/tools/doca-telemetry-utils",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-telemetry",
+        "skills/doca-version",
+        "skills/doca-setup",
+        "skills/doca-debug"
+      ],
+      "answer_outline": [
+        "Surfaced the load-bearing rule: \u2018the exporter ships Data IDs, not names\u2019 \u2014 operator-side confusion between counter names and Data IDs is the most common silent-metric-drop failure mode.",
+        "Walked the three invocation classes: (a) doca_telemetry_utils get-counters \u2192 enumerate the schema; (b) doca_telemetry_utils [<device PCI>] <name> [relevant properties] \u2192 resolve name + properties to a Data ID (and if device PCI supplied, probe the device\u2019s support for the resolved Data ID); (c) doca_telemetry_utils [<device PCI>] <DATA_ID> \u2192 reverse-resolve a Data ID back to name + properties.",
+        "For this prompt: run doca_telemetry_utils 0000:03:00.0 port_rx_bytes <properties> on the host to confirm BOTH the resolved Data ID and per-device support; a name in the exporter config that resolves to a Data ID the device does not support is silently dropped downstream.",
+        "If per-device probe says unsupported \u2192 the counter is not exposed on this BlueField + firmware combination; the exporter config must drop or replace it.",
+        "If per-device probe succeeds \u2192 problem is downstream (collector wiring, DTS pipeline, network path) and the user routes to libs/doca-telemetry for the consumer-side debug.",
+        "Refused to invent property values; the rule is run <name> alone first to print documented property options, then re-run with chosen properties.",
+        "Quoted the bundle\u2019s worked example exactly (pcie_link_write_stalled_time_no_posted_header_credits_ns 1 2 3 \u2192 Data ID 0x1160000600030201 with Unit: PCIE, node: 1, pcie_index: 2, depth: 3) as the shape, not as a contract for port_rx_bytes."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Telemetry\u2019",
+        "docs.nvidia.com/doca/sdk \u2018DOCA Telemetry Service\u2019 (DTS)"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/doca_telemetry_utils"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": [
+        "Confirms operator-side support CLI framing per the tester\u2019s ask: SKILL.md + CAPABILITIES.md describe doca_telemetry_utils as the operator-side support tool for a DOCA Telemetry exporter / collector pipeline \u2014 NOT the developer-side collector library (doca-telemetry), NOT the developer-side publisher library (doca-telemetry-exporter), NOT a DTS deployment recipe. Three separate surfaces, correctly separated."
+      ]
+    },
+    {
+      "id": 26,
+      "tool": "doca-telemetry-utils",
+      "prompt": "A downstream consumer emitted `Data ID: 0x1160000600030201` in a captured log. Translate it back so I can correlate against the public guide.",
+      "primary_skill": "skills/tools/doca-telemetry-utils",
+      "auxiliary_skills_routed": [
+        "skills/libs/doca-telemetry",
+        "skills/doca-public-knowledge-map"
+      ],
+      "answer_outline": [
+        "Quoted the reverse-resolve invocation: doca_telemetry_utils [<device PCI>] <DATA_ID>.",
+        "Per the shipped README worked example reproduced in CAPABILITIES.md, this exact Data ID (0x1160000600030201) reverse-resolves to pcie_link_write_stalled_time_no_posted_header_credits_ns with Unit PCIE and properties node=1, pcie_index=2, depth=3.",
+        "If <device PCI> is provided as well, the tool also probes the device\u2019s support for the Data ID.",
+        "Routed user to the public DOCA Telemetry guide for the counter\u2019s semantic meaning.",
+        "Refused to invent property axes or unit names not present in the bundle\u2019s tables."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Telemetry\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/doca_telemetry_utils",
+        "shipped README under doca/tools/telemetry_utils/"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": [
+        "The reverse-resolve literal example is the only verbatim Data ID the bundle quotes; the agent used it as the shape (and as the verifiable answer for that specific Data ID), and routed any other Data ID through --help on the installed binary."
+      ]
+    },
+    {
+      "id": 27,
+      "tool": "doca-telemetry-utils",
+      "prompt": "I am migrating my exporter pipeline from DOCA 3.3 to a newer DOCA. How do I confirm each previously-supported counter still resolves cleanly on the new version before I redeploy?",
+      "primary_skill": "skills/tools/doca-telemetry-utils",
+      "auxiliary_skills_routed": [
+        "skills/doca-version",
+        "skills/libs/doca-telemetry",
+        "skills/doca-public-knowledge-map"
+      ],
+      "answer_outline": [
+        "For each counter in the existing exporter config, run doca_telemetry_utils <device PCI> <name> [properties] on the new install: confirm the resolved Data ID and the per-device support are both unchanged.",
+        "If the schema enumeration (get-counters) differs across versions, the counter set evolved \u2014 walk the doca-telemetry library version overlay (the schema-version pairing rule).",
+        "If a previously-supported counter no longer resolves on the new version, route to doca-version TASKS.md ## debug for the partial-install hazard.",
+        "If a Data ID resolves but property dimensions changed, the exporter config must be regenerated against the new schema.",
+        "Refused to ship a migration script; the bundle deliberately does not ship a parser or wrapper around the tool\u2019s output."
+      ],
+      "public_urls_cited": [
+        "docs.nvidia.com/doca/sdk \u2018DOCA Telemetry\u2019"
+      ],
+      "installed_paths_cited": [
+        "/opt/mellanox/doca/tools/doca_telemetry_utils"
+      ],
+      "scores": {
+        "C1": 5,
+        "C2": 5,
+        "C3": 5,
+        "C4": 5,
+        "C5": 5,
+        "total": 25
+      },
+      "notes": []
+    }
+  ],
+  "by_tool": {
+    "doca-flow-tune": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 13, "C5": 14, "overall": 72, "max": 75}},
+    "doca-gpi-ib-write-lat": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 15, "C5": 15, "overall": 75, "max": 75}},
+    "doca-gpunetio-ib-write-bw": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 14, "C5": 14, "overall": 73, "max": 75}},
+    "doca-gpunetio-ib-write-lat": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 14, "C5": 15, "overall": 74, "max": 75}},
+    "doca-pcc-counters": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 14, "C5": 15, "overall": 74, "max": 75}},
+    "doca-sha-offload-engine": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 15, "C5": 15, "overall": 75, "max": 75}},
+    "doca-socket-relay": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 15, "C5": 14, "overall": 74, "max": 75}},
+    "doca-spcx-cc": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 15, "C5": 15, "overall": 75, "max": 75}},
+    "doca-telemetry-utils": {"prompts": 3, "totals": {"C1": 15, "C2": 15, "C3": 15, "C4": 15, "C5": 15, "overall": 75, "max": 75}}
+  },
+  "totals": {
+    "prompts": 27,
+    "max_per_prompt": 25,
+    "max_overall": 675,
+    "actual_overall": 667,
+    "per_criterion_avg": {
+      "C1": 5.0,
+      "C2": 5.0,
+      "C3": 5.0,
+      "C4": 4.815,
+      "C5": 4.889,
+      "overall_avg_per_prompt": 24.704
+    },
+    "pass_threshold": "all-five-pass (PASS = each criterion \u2265 4)",
+    "all_five_pass_count": 27,
+    "pass_rate": "27/27"
+  },
+  "inaccuracies_surfaced_without_monorepo": [
+    {
+      "id": "I1",
+      "severity": "high",
+      "tool": "doca-flow-tune",
+      "kind": "SKILL.md \u2194 CAPABILITIES.md \u2194 TASKS.md self-contradiction + catalog drift (SKILLS.md / README.md)",
+      "summary": "The SKILL.md banner (Run-12 subcommand-surface correction) asserts the tool is a CLIENT-as-binary plus server-as-linked-library, with a fixed set of FIVE mode subcommands DUMP / WEB / MONITOR / ANALYZE / VISUALIZE. CAPABILITIES.md ## Capabilities and modes (\u2018One binary, two internal roles\u2019) and TASKS.md ## Cross-cutting both frame the artifact as \u2018one binary with TWO internal roles\u2019 where the server role sits next to (or inside) the doca-flow application and the client/consumer role analyzes \u2014 i.e. BOTH roles inside the binary, not server-as-linked-library. CAPABILITIES.md ## Capabilities and modes \u2018Operating modes\u2019 lists THREE modes (Offline / Online read-only / Online state-changing), not the FIVE-subcommand set the SKILL.md banner names. The catalog row in skills/SKILLS.md L141 echoes the CAPABILITIES.md framing (\u2018ONE binary with TWO internal roles (server role: snapshots... ; client / consumer role: dumps...)\u2019). README.md L249 echoes the SKILL.md banner instead (\u2018five subcommands (MONITOR / ANALYZE / VISUALIZE / DUMP / WEB). The binary is a CLIENT to the server-side library linked into the running doca-flow application.\u2019). Net effect: README.md + SKILL.md banner say one thing; SKILLS.md catalog + CAPABILITIES.md + TASKS.md say the other. A tester reading the bundle would catch the mismatch immediately. Without the monorepo, neither side can be declared authoritative; --help on the installed binary is the only tie-breaker."
+    },
+    {
+      "id": "I2",
+      "severity": "medium",
+      "tool": "doca-socket-relay",
+      "kind": "leftover TCP-port phrasing contradicting the AF_UNIX-only contract",
+      "summary": "CAPABILITIES.md ## Capabilities and modes axis 2 and the cross-cutting closing paragraph (L84, L87-92) are explicit: the shipped doca_socket_relay binary is AF_UNIX-only on the host leg (no TCP / UDP framing) and the relay\u2019s network leg is Comch. Yet multiple sections retain leftover TCP-style \u2018port\u2019 language that contradicts that contract: CAPABILITIES.md ## Capabilities and modes Read-only operations list \u2018against which socket / port / path\u2019 (L102-103); ## Error taxonomy layer 2 is titled \u2018Relay-not-bound (port / socket)\u2019 (L166) and lists \u2018the configured port is below 1024 without the privileges the public guide requires\u2019 (L171-173); ## Safety policy and ## Public-source pointer warn against inventing \u2018socket-path defaults or port numbers\u2019 (L370-371, L384-386). TASKS.md ## debug layer 2 (L411-413) and ## Command appendix (L569-571, L579-580) repeat the same \u2018socket / port / path\u2019 leftovers. A tester would call this a documentation bug: either the binary is AF_UNIX-only (and the \u2018port\u2019 language should be scrubbed) or the binary also accepts TCP / UDP (and the AF_UNIX-only assertion in axis 2 is wrong). Without the monorepo to check the binary\u2019s argp registration, the answer has to lean on axis 2 and call out the leftover language."
+    },
+    {
+      "id": "I3",
+      "severity": "low (correctly handled by the bundle)",
+      "tool": "doca-gpi-ib-write-lat",
+      "kind": "shipping caveat correctly carried in SKILL.md",
+      "summary": "The SKILL.md banner explicitly warns that the gpi_ib_write_lat tool\u2019s source directory is gated on a CUDA-Toolkit-enabled DOCA build at meson configure time and that standard installer profiles on a non-CUDA host typically do NOT ship this tool as a built binary even though doca-gpi library is shipped. The banner requires the agent to confirm the tool actually exists on the user\u2019s install (ls /opt/mellanox/doca/tools/ | grep gpi_ib_write_lat, dpkg -L doca-tools | grep gpi_ib_write_lat, rpm -ql doca-tools | grep gpi_ib_write_lat) before quoting the tool\u2019s behaviour and points the user at doca-gpunetio-ib-write-lat (sister tool that ships in the default profiles) as the fallback. Wave3-sub17 PART A independently verified that the tool does NOT exist in the internal doca/tools/gpi_ib_write_lat at VERSION=3.5.0030 \u2014 the caveat in SKILL.md is the bundle\u2019s defense against that drift, and PART B (this wave) follows it faithfully. The CAPABILITIES.md does NOT repeat the caveat banner verbatim (it mentions doca-gpi.pc-not-found as a build-time error but not the \u2018binary typically not shipped\u2019 framing); a tester reading CAPABILITIES.md without SKILL.md would not catch the gating. Recommend either CAPABILITIES.md mirroring the SKILL.md caveat banner in ## Capabilities and modes, or SKILL.md\u2019s \u2018Where to start\u2019 routing telling readers to keep the banner in scope when loading CAPABILITIES.md alone."
+    },
+    {
+      "id": "I4",
+      "severity": "low",
+      "tool": "doca-gpunetio-ib-write-bw",
+      "kind": "ambiguous kernel-location framing in CAPABILITIES.md",
+      "summary": "CAPABILITIES.md ## Capabilities and modes \u2018What the benchmark actually measures\u2019 (L62-66) says: \u2018The CUDA kernel on the server (client/kernel.cu in the source tree, despite the name; per the verified common.h the kernel posts WRITEs against server_remote_buf_arr) posts a stream of RDMA WRITE work requests... The client side hosts the remote buffer and a doca-rdma queue but does not post WRs of its own.\u2019 The file kernel.cu lives in client/ (per the verified subtree layout the skill itself lists and per wave3-sub17 PART A which confirmed it on disk), but the prose describes the kernel as running \u2018on the server\u2019. Standard ib_write_bw semantics (perftest convention) is that the client initiates writes; the bundle\u2019s framing inverts that without explaining why. Either (a) the doca version of ib_write_bw inverts client/server roles vs the perftest convention (in which case the bundle should call that out as a Run-NN correction), or (b) the prose is leftover from a previous tree layout and kernel.cu now correctly describes a client-initiated WRITE. Without the monorepo to read kernel.cu and confirm which buffer the kernel posts to, the answer has to point the user at /opt/mellanox/doca/tools/gpunetio_ib_write_bw/client/kernel.cu on their install for ground truth."
+    },
+    {
+      "id": "I5",
+      "severity": "low (positive verification)",
+      "tool": "doca-spcx-cc",
+      "kind": "framing correctly carried",
+      "summary": "Per the tester\u2019s ask: SKILL.md and CAPABILITIES.md correctly frame doca-spcx-cc as the NEXT-GEN programmable-CC extension on top of the established doca-pcc surface (\u2018next-gen extension\u2019; \u2018the newer of the programmable-CC surfaces\u2019), and correctly separate it from doca-pcc-ztr-rttcc-algo (the shipped reference zero-touch RTT-based algorithm that can be loaded through either the PCC or the SPCX path). The SKILLS.md catalog row (L153) and README.md L256 use consistent language (\u2018Programmable Congestion-Control extension (next-gen)\u2019). No conflation detected."
+    },
+    {
+      "id": "I6",
+      "severity": "low (positive verification)",
+      "tool": "doca-telemetry-utils",
+      "kind": "operator-side support CLI scope correctly carried",
+      "summary": "Per the tester\u2019s ask: SKILL.md and CAPABILITIES.md correctly frame doca_telemetry_utils as the OPERATOR-SIDE support CLI for a DOCA Telemetry exporter / collector pipeline, NOT the developer-side collector library (doca-telemetry), NOT the developer-side publisher library (doca-telemetry-exporter), and NOT a DTS deployment recipe. The three invocation classes (enumerate / name\u2192ID / ID\u2192name with optional per-device probe) are quoted consistently across SKILL.md (description + ## When to load + ## Example questions), CAPABILITIES.md (## Pattern overview + ## Capabilities and modes table), and the SKILLS.md L154 catalog row. README.md L257 echoes the same operator-side framing. No conflation detected."
+    },
+    {
+      "id": "I7",
+      "severity": "low",
+      "tool": "doca-pcc-counters",
+      "kind": "deliberate non-naming of the binary",
+      "summary": "Per the skill\u2019s explicit \u2018What this skill deliberately does not ship\u2019 stance, the bundle refuses to pin the counter-tool binary name and routes the user to --help on the installed binary plus the public DOCA PCC Counter Tool guide. Without the monorepo a tester cannot fault the bundle for not naming a binary that may rename across versions, but this design choice means an agent answering on the basis of the bundle alone cannot give the user a concrete `doca_pcc_counter list` / `doca_pcc_counters list` / `doca_pcc_counter_tool list` invocation \u2014 only the routing. C4 takes a 1-point penalty per prompt because of this contract."
+    },
+    {
+      "id": "I8",
+      "severity": "info",
+      "tool": "bundle-wide",
+      "kind": "version alignment claim",
+      "summary": "skills/SKILLS.md L69 declares the bundle is aligned with internal doca/VERSION=3.5.0019 and documented for externally-released DOCA 3.3.0109. Wave3-sub17 (run11 archives) observed the on-disk doca tree at internal VERSION=3.5.0030 \u2014 alignment has drifted between the SKILLS.md claim (3.5.0019) and the present checkout (3.5.0030). This wave is OFF-LIMITS doca/ so the present subagent cannot independently re-verify, but the drift is on record from wave3-sub17 PART A and is the load-bearing reason the doca-gpi-ib-write-lat shipping caveat exists: a tool that may have been present at 3.5.0019 may not be at 3.5.0030."
+    },
+    {
+      "id": "I9",
+      "severity": "low",
+      "tool": "doca-flow-tune",
+      "kind": "AgentSkills.io compliance check \u2014 description length",
+      "summary": "AgentSkills.io triggers off the frontmatter description; per the bundle\u2019s own AUTHORING contract (visible in skills/SKILLS.md preamble and the per-skill description column) descriptions should be \u2264 1024 characters and self-contained. The doca-flow-tune frontmatter description is one long line (~860 chars) and the bundle\u2019s SKILL.md banner adds a Run-12 correction note ABOVE the H1, before any other content \u2014 not in the frontmatter. An AgentSkills.io-style loader that triggers on description match will only see the (correctly-sized) description and will NOT see the Run-12 correction banner; readers who pull SKILL.md by frontmatter alone may then form expectations off the (incorrect) operating-modes framing in CAPABILITIES.md before they reach the SKILL.md body. Suggest mirroring the banner\u2019s assertion into the frontmatter description or into the SKILL.md \u2018Where to start\u2019 routing block so the corrected framing reaches the agent regardless of how the skill is loaded."
+    }
+  ],
+  "headline_findings": [
+    "8 of 9 tools are bundle-internally consistent enough that PART B answers track the bundle\u2019s prose without needing the doca tree to break ties; the one exception is doca-flow-tune, where SKILL.md banner contradicts CAPABILITIES.md / TASKS.md / SKILLS.md catalog on architecture (CLIENT-as-binary + server-as-linked-library vs one binary with two internal roles) and on operating-mode set (5 fixed subcommands DUMP/WEB/MONITOR/ANALYZE/VISUALIZE vs 3 operating modes Offline/Online-RO/Online-state-changing).",
+    "doca-socket-relay correctly asserts AF_UNIX-only in CAPABILITIES.md axis 2 and the cross-cutting closing paragraph, but multiple sections retain leftover TCP-style \u2018port\u2019 language (Error-taxonomy layer 2 title, safety-policy do-not-invent list, public-source-pointer warning, TASKS.md ## debug + ## Command appendix). A tester reading the bundle without the monorepo would catch the contradiction quickly.",
+    "doca-gpi-ib-write-lat shipping caveat is correctly carried in SKILL.md (CUDA-Toolkit-enabled DOCA build gates the source directory; standard installer profiles typically do NOT ship the tool as a built binary even though doca-gpi library is shipped). The caveat is the bundle\u2019s defense against the wave3-sub17 PART A finding that the tool is missing at internal VERSION=3.5.0030. CAPABILITIES.md does NOT repeat the caveat banner; readers who load CAPABILITIES.md without SKILL.md\u2019s banner would not see the gating.",
+    "doca-spcx-cc framing is correct: programmable-CC extension (next-gen), not confused with doca-pcc-ztr-rttcc-algo (a shipped reference algorithm that can be loaded through either the PCC or the SPCX path).",
+    "doca-telemetry-utils is correctly framed as the operator-side support CLI for a DOCA Telemetry exporter pipeline; three invocation classes consistent across SKILL.md, CAPABILITIES.md, SKILLS.md catalog, and README.md.",
+    "doca-gpunetio-ib-write-bw CAPABILITIES.md describes \u2018the CUDA kernel on the server (client/kernel.cu in the source tree, despite the name)\u2019 \u2014 the file lives in client/ but the prose names the server. Without the monorepo to read kernel.cu the agent surfaces this as an honest caveat rather than asserting either framing as ground truth.",
+    "C3 (hardware-safety) is independent of monorepo access \u2014 every per-tool ## Safety policy correctly overlays the bundle-wide doca-hardware-safety meta-policy and the cross-link discipline holds across all 9 tools.",
+    "C4 (URL/path) takes most of the per-prompt penalties: the bundle deliberately does not pin tool binary names, JSON template names, kernel.cu locations on the user\u2019s install, etc., and the present subagent cannot pre-verify those without the monorepo. The bundle\u2019s design intent is sound (avoid silent rot across releases) but the cost is C4 drops to ~3.33 on the affected prompts and ~4.815 averaged across the wave.",
+    "C5 (no fabrication) takes targeted penalties only on doca-flow-tune (architecture self-contradiction surfaced rather than committed-to), doca-socket-relay (TCP \u2018port\u2019 leftovers had to be flagged as bundle inconsistency rather than quoted as binary contract), and doca-gpunetio-ib-write-bw (kernel-on-server vs kernel.cu-in-client/ ambiguity surfaced rather than asserted)."
+  ],
+  "recommended_bundle_actions": [
+    "Reconcile doca-flow-tune SKILL.md banner with CAPABILITIES.md + TASKS.md + SKILLS.md catalog: pick one of (a) CLIENT-as-binary + server-as-linked-library + 5 subcommands DUMP/WEB/MONITOR/ANALYZE/VISUALIZE, or (b) one binary with two internal roles + 3 operating modes Offline/Online-RO/Online-state-changing, and propagate the chosen framing through all four documents and the README.md row.",
+    "Scrub doca-socket-relay CAPABILITIES.md + TASKS.md for leftover TCP-style \u2018port\u2019 phrasing (Error-taxonomy layer 2 title, safety-policy do-not-invent list, public-source-pointer warning, ## debug layer 2, ## Command appendix). The axis-2 AF_UNIX-only assertion + cross-cutting closing paragraph are the contract; the rest should match.",
+    "Mirror the doca-gpi-ib-write-lat SKILL.md shipping-caveat banner into CAPABILITIES.md ## Capabilities and modes so readers who load CAPABILITIES.md without SKILL.md still see the gating before they reach for the build/run flow.",
+    "Disambiguate doca-gpunetio-ib-write-bw CAPABILITIES.md ## Capabilities and modes \u2018What the benchmark actually measures\u2019 wrt kernel.cu in client/ but described \u2018on the server\u2019: either explain the inverted client/server semantics vs perftest convention, or correct the prose to match the file location.",
+    "Re-run the bundle\u2019s 1:1 inventory check at internal doca/VERSION=3.5.0030 (per SKILLS.md \u2018verified to preserve this 1:1 alignment before it ships\u2019) and either reset the alignment claim to 3.5.0030 or revert the doca tree to 3.5.0019.",
+    "Consider hoisting per-tool framing-corrections (the doca-flow-tune Run-12 banner; the doca-gpi-ib-write-lat shipping caveat; the doca-socket-relay AF_UNIX-only assertion) into the frontmatter description so AgentSkills.io-style loaders that match on description alone surface the corrected framing without depending on the SKILL.md body."
+  ]
+}
