@@ -34,10 +34,29 @@ compatibility: >
 
 # DOCA GPI ib_write_lat
 
+> ⚠️ **Shipping caveat.** The `gpi_ib_write_lat` tool's source
+> directory is gated on a CUDA-Toolkit-enabled DOCA build at meson
+> configure time. The standard DOCA installer profile (`doca-all` /
+> `doca-networking` / `doca-ofed`) on a non-CUDA host typically does
+> NOT ship this tool as a built binary, even though the underlying
+> `doca-gpi` library is shipped. Before quoting the tool's behaviour
+> in detail, **the agent must confirm the tool actually exists on the
+> user's installed DOCA**: run `ls /opt/mellanox/doca/tools/ | grep
+> gpi_ib_write_lat` (or `dpkg -L doca-tools | grep gpi_ib_write_lat`
+> / `rpm -ql doca-tools | grep gpi_ib_write_lat`). If the tool is not
+> present on the user's install, the agent says so explicitly, points
+> the user at the sister tool [`doca-gpunetio-ib-write-lat`](../doca-gpunetio-ib-write-lat/SKILL.md)
+> (which ships in the same default profiles) for the GPUNetIO-surface
+> equivalent, and asks the user whether they want guidance on
+> rebuilding DOCA with CUDA enabled to get this tool. The agent does
+> NOT walk the user through a build / run flow against a tool that
+> the install does not provide.
+
 **Where to start:** This is a tool skill for the GPI-flavored
 `ib_write_lat` benchmark shipped under
-`doca/tools/gpi_ib_write_lat/` (built into a single binary that
-runs as either client or server). It measures the latency of an
+`doca/tools/gpi_ib_write_lat/` **when the user's DOCA build
+includes the CUDA-enabled tools layer** (built into a single binary
+that runs as either client or server). It measures the latency of an
 RDMA WRITE work request posted **from a CUDA kernel on the GPU**
 through the `doca-gpi` channel + queue surface. Open
 [`TASKS.md`](TASKS.md) and start at

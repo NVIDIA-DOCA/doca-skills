@@ -97,6 +97,24 @@ EXCLUDE_DOCA = {
     ("tools",    "common"):                 "shared helper, not a user-facing tool",
 }
 
+# Skills that exist in the bundle but have NO corresponding artifact in
+# the currently-checked-out doca/ tree. Listed here only when the skill
+# documents a tool / library / service that NVIDIA ships publicly in
+# *some* DOCA build configuration (e.g. CUDA-enabled, RHEL-only) but the
+# source directory is not present in our generic doca/ working tree.
+# Each entry MUST come with a one-line reason and an authoritative public
+# URL so reviewers can confirm the skill is grounded in real documentation,
+# not fabricated content.
+EXTRA_SKILL_ALLOWLIST = {
+    ("tools", "doca-gpi-ib-write-lat"):
+        "GPU-Initiated communication ib_write_lat benchmark — ships only in "
+        "CUDA-enabled DOCA builds, source dir gated by NVCC at meson time. "
+        "Skill is grounded in the public doca-gpi library API "
+        "(docs.nvidia.com/doca/sdk/NVIDIA+DOCA+GPI+Programming+Guide). "
+        "Allowlist tracked so future doca/ check-outs that DO ship the dir "
+        "are picked up automatically as aligned (not EXTRA).",
+}
+
 def doca_name_to_skill(name):
     return "doca-" + name.removeprefix("doca_").replace("_", "-")
 
@@ -150,8 +168,16 @@ for slot in ("libs", "services", "tools"):
     expected_set = set(expected_skills.keys())
 
     missing = sorted(expected_set - skill_artifacts)
-    extra   = sorted(skill_artifacts - expected_set)
+    extra_raw = sorted(skill_artifacts - expected_set)
     aligned = sorted(expected_set & skill_artifacts)
+
+    # Filter out documented extras (skills whose underlying tool/lib/service
+    # ships only in specific DOCA build configurations and isn't present in
+    # our generic doca/ working tree).
+    allowlisted_extras = sorted(
+        e for e in extra_raw if (slot, e) in EXTRA_SKILL_ALLOWLIST
+    )
+    extra = sorted(e for e in extra_raw if (slot, e) not in EXTRA_SKILL_ALLOWLIST)
 
     # Some services keep a "-svc" disambiguator when a same-named lib exists.
     # E.g. doca/services/urom + doca/libs/doca_urom → skills/services/doca-urom-svc.
@@ -174,14 +200,15 @@ for slot in ("libs", "services", "tools"):
         aligned = sorted(set(aligned))
 
     results["slots"][slot] = {
-        "doca_count":       len(doca_artifacts),
-        "excluded_count":   len([1 for a in doca_artifacts if (slot, a) in EXCLUDE_DOCA]),
-        "expected_count":   len(expected_set),
-        "skill_count":      len(skill_artifacts),
-        "aligned_count":    len(aligned),
-        "missing":          missing,
-        "extra":            extra,
-        "aligned":          aligned,
+        "doca_count":          len(doca_artifacts),
+        "excluded_count":      len([1 for a in doca_artifacts if (slot, a) in EXCLUDE_DOCA]),
+        "expected_count":      len(expected_set),
+        "skill_count":         len(skill_artifacts),
+        "aligned_count":       len(aligned),
+        "missing":             missing,
+        "extra":               extra,
+        "allowlisted_extras":  allowlisted_extras,
+        "aligned":             aligned,
     }
 
     total_missing += len(missing)
@@ -206,6 +233,10 @@ else:
     for (s, a), r in sorted(EXCLUDE_DOCA.items()):
         print(f"    - {s}/{a}  --  {r}")
     print()
+    print(f"extra-skill allowlist   : {len(EXTRA_SKILL_ALLOWLIST)}")
+    for (s, a), r in sorted(EXTRA_SKILL_ALLOWLIST.items()):
+        print(f"    - {s}/{a}  --  {r}")
+    print()
     for slot in ("libs", "services", "tools"):
         r = results["slots"][slot]
         print(f"[{slot}]")
@@ -223,6 +254,8 @@ else:
             print(f"  --  {', '.join(r['extra'])}")
         else:
             print()
+        if r['allowlisted_extras']:
+            print(f"  allowlisted:     {len(r['allowlisted_extras']):>3}  --  {', '.join(r['allowlisted_extras'])}")
         print()
     print(f"TOTAL aligned: {total_aligned}")
     print(f"TOTAL MISSING: {total_missing}")

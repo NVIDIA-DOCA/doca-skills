@@ -51,12 +51,34 @@ destroy` lifecycle (see
 On top of that lifecycle, RDMA layers its own connection
 state-machine and task model.
 
-**Sides and transports.** RDMA consists of *two connected sides*
-passing data between one another. The connection runs over either
-InfiniBand (IB) or Ethernet using RoCE. Transport-type selection is
-via `doca_rdma_set_transport_type()`; *DC (dynamically connected)
-support is alpha-level* per the public guide and should be flagged
-as such when the user asks.
+**Two distinct, orthogonal axes — link-layer vs transport-type.**
+RDMA consists of *two connected sides* passing data between one
+another, and the bundle MUST keep the following two axes
+separate (the bundle previously conflated them — that conflation
+is a real bug):
+
+- **Link-layer (network fabric):** the wire/physical fabric
+  the connection runs over — either **InfiniBand (IB)** or
+  **Ethernet using RoCE (v1 or v2)**. Link-layer is determined
+  by the active `doca_dev`'s port configuration (e.g.
+  `mlxconfig` `LINK_TYPE_P*`) and is **not** chosen via a DOCA
+  RDMA API; the agent inherits whatever the device exposes.
+- **Transport-type (RDMA QP service type):** the per-QP service
+  type — **RC** (Reliable Connection), **DC** (Dynamically
+  Connected; *alpha-level* per the public guide), and **UD**
+  (Unreliable Datagram, where supported by the device + the
+  task type the user wants). This IS the axis that
+  `doca_rdma_set_transport_type()` controls. RC is the
+  baseline; DC must be flagged as alpha when the user asks
+  about it; UD support is per-device-and-task — gate on
+  `doca_rdma_cap_*_is_supported(devinfo)`.
+
+The two axes are independent: RC over IB, RC over RoCE, DC
+over IB, DC over RoCE are all valid combinations subject to
+device + version caps. Treating "IB / RoCE" as the value the
+agent passes to `doca_rdma_set_transport_type()` is a bug —
+that setter takes a transport-type (RC / DC / UD), not a
+link-layer.
 
 **Device support.** BlueField-2 and higher devices are supported.
 On the host any `doca_dev` works; on the BlueField platform,

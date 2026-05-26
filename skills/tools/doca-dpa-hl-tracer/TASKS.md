@@ -83,7 +83,13 @@ in order:
    `CRIT` unless the bug demands per-event detail. The
    sub-mode variants accepted on `--sub-mode` are
    authoritative on `--help`; the agent does not invent
-   sub-mode strings.
+   sub-mode strings. **`--device <mlx5_*>` is mandatory**
+   (`dpa_hl_tracer_utils.cpp` calls
+   `doca_argp_param_set_mandatory(dev_param)`); every
+   invocation in `## run` and the Command appendix below
+   ships it. An agent producing a bare
+   `doca_dpa_hl_tracer --mode <X>` command will fail
+   argp validation before the tool reaches the DPA.
 3. **Size the JSON config.** Stage a config file with:
     - `limits_config.log_file_max_size_in_bytes` and
       `bin_file_max_size_in_bytes` — sized to the

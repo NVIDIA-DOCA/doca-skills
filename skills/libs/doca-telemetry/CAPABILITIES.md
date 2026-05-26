@@ -1,10 +1,37 @@
 # DOCA Telemetry capabilities, version overlay, errors, observability, safety
 
+> **CRITICAL framing correction (Run-12).** The DOCA Telemetry
+> library is a **per-domain hardware-counter READER** surface,
+> NOT a NetFlow / IPFIX / local-socket *collector* framework. The
+> public header exposes six per-domain sub-libraries —
+> `doca_telemetry_pcc` (Programmable Congestion Control counters),
+> `doca_telemetry_dpa` (DPA counters), `doca_telemetry_diag`
+> (DIAG counters), `doca_telemetry_adp_retx` (adaptive-retransmit
+> counters), `doca_telemetry_phy` (PHY-layer counters),
+> `doca_telemetry_pci` (PCI-layer counters) — each with its own
+> `_cap_is_supported(devinfo)` capability query, context
+> create on a `doca_dev`, `doca_ctx_start()`, and per-domain
+> read / sample call. The rest of this file talks about a
+> generic "collector / schema-query / NetFlow / IPFIX" surface
+> that does NOT exist in the public header; treat that prose as
+> a known bug and route any NetFlow / IPFIX / schema-collector
+> question to a non-DOCA framework. The accurate per-domain
+> capability discovery is `doca_telemetry_<domain>_cap_is_supported(devinfo)`
+> against the active device, BEFORE creating the per-domain
+> context. The reader-vs-exporter split (this library reads
+> hardware counters; `doca-telemetry-exporter` publishes
+> structured telemetry / labeled metrics / OTLP logs) is still
+> correct.
+
 **Where to start:** Pick the H2 anchor that matches your question
 (role-split / object family / capability discovery / path
 selection / version / errors / observability / safety) and read
 that section end-to-end. The tables in each section are the
 load-bearing content; the prose around them is interpretation.
+Where the existing prose says "collector / NetFlow / IPFIX /
+schema-query," treat it as the bundle's previous framing — the
+real per-domain reader surface is documented in the framing
+correction above and in the per-domain header pages.
 
 Read this file when the loader sent you here from
 [SKILL.md](SKILL.md). For the *how* of executing each pattern

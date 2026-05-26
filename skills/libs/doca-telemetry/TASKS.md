@@ -1,22 +1,54 @@
-# DOCA Telemetry collector workflows
+# DOCA Telemetry per-domain hardware-counter-reader workflows
+
+> **CRITICAL framing correction (Run-12 / verified Run-13).**
+> The DOCA Telemetry library is a **per-domain hardware-counter
+> READER** surface, NOT a NetFlow / IPFIX / local-socket
+> *collector* framework. The public header exposes six per-domain
+> sub-libraries — `doca_telemetry_pcc` / `_dpa` / `_diag` /
+> `_adp_retx` / `_phy` / `_pci` — each with its own
+> `_cap_is_supported(devinfo)` capability query, context create
+> on a `doca_dev`, `doca_ctx_start()`, and per-domain read /
+> sample call. The rest of this file uses legacy "collector /
+> schema-query / publisher" language; treat that language as
+> follows when reasoning about the workflow:
+> - "collector context" → per-domain `doca_telemetry_<domain>`
+>   context opened on a `doca_dev`.
+> - "schema query" → per-domain `doca_telemetry_<domain>_cap_is_supported`
+>   + the per-domain counter-set discovery returned by that
+>   library's own `_get_*_supported` getters.
+> - "publisher" → the firmware / hardware itself (the device
+>   exposes the counter); there is no separate publisher
+>   application to stage before this reader runs.
+> - "incoming transport" → the per-domain register / DPA mailbox /
+>   FW-mediated read path the per-domain library uses internally;
+>   there is no socket / port to bind.
+> - "NetFlow / IPFIX / schema-collector" question → refuse +
+>   route to a non-DOCA collector (or to
+>   [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
+>   if the user actually wants to PUBLISH counters, or to the
+>   externally-productized DTS — out of scope — for turnkey
+>   aggregation).
 
 **Where to start:** The verbs run `configure → build → modify →
 run → test → debug`. Skip ahead only when the user is already
-past a verb. The `## test` verb is an iterative loop (smoke
-collector alone → smoke collector + one publisher → schema
-contract check → multi-event smoke → under-load drain behavior →
-loop back if the publisher staging or the schema changes), not
-a one-shot pass — see the eval-loop overlay in `## test` below.
+past a verb. The `## test` verb is an iterative loop (cap-query
+sanity → single per-domain read smoke → multi-domain read
+ordering → under-load read cadence → loop back if the device or
+domain set changes), not a one-shot pass — see the eval-loop
+overlay in `## test` below. (The legacy text below frames this
+loop in publisher / collector terms — treat publisher = the
+firmware / hardware itself per the banner above.)
 
 Read this file when the loader sent you here from
-[SKILL.md](SKILL.md). For the collector capability surface, the
-collector-vs-exporter role split, the object family, the
-schema-must-match contract with the publisher, the capability-
-query rule, the error taxonomy (including the `AGAIN`-means-
-consumer-queue-full rule and the `NOT_FOUND`-means-no-publisher-
-registered-this-schema rule), observability, and safety policy,
-see [CAPABILITIES.md](CAPABILITIES.md). For where to find docs,
-the installed DOCA layout, or release notes, route through
+[SKILL.md](SKILL.md). For the per-domain sub-libraries, the
+reader-vs-exporter role split, the per-domain DOCA Core
+lifecycle on a `doca_dev`, the per-domain capability-query
+rule, the error taxonomy (including the
+`NOT_SUPPORTED`-means-domain-not-exposed-on-this-device rule
+and the `AGAIN`-means-snapshot-not-ready rule), observability,
+and safety policy, see [CAPABILITIES.md](CAPABILITIES.md). For
+where to find docs, the installed DOCA layout, or release
+notes, route through
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 
 Each verb below describes the **shape of the workflow**, not a

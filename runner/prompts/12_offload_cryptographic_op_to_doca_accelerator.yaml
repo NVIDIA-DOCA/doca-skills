@@ -85,9 +85,12 @@ criteria:
     weight: 2
     pass_when: |
       The agent says the user MUST call
-      doca_sha_cap_is_algorithm_supported(devinfo,
+      doca_sha_cap_task_hash_get_supported(devinfo,
       DOCA_SHA_ALGORITHM_SHA256) before assuming SHA-256 is in the
-      device's accelerator, MUST call
+      device's accelerator (this single call folds both the
+      task-supported and algorithm-supported axes; the public
+      header does not ship a separate _cap_is_algorithm_supported
+      symbol), MUST call
       doca_sha_cap_get_min_dst_buf_size(devinfo,
       DOCA_SHA_ALGORITHM_SHA256) to size the destination buffer,
       and MUST call doca_sha_cap_get_max_src_buf_size(devinfo) to

@@ -66,7 +66,7 @@ break agent discovery.
 | `doca-container-deployment` | [skills/doca-container-deployment/SKILL.md](skills/doca-container-deployment/SKILL.md) | The user is deploying any DOCA service container on BlueField (kubelet-standalone + pod-spec drop). The CONTAINER half of the two-path deployment landscape; the bare-metal half lives in `doca-bare-metal-deployment`. Every in-bundle per-service skill cross-links here. If the developer has NOT yet decided container vs. bare-metal, route them back to `doca-setup ## recognize` first. |
 | `doca-bare-metal-deployment` | [skills/doca-bare-metal-deployment/SKILL.md](skills/doca-bare-metal-deployment/SKILL.md) | The user is deploying a DOCA-linked **application binary** directly on hardware — no container — on host x86 (DOCA host install talking to a remote BlueField NIC over PCIe) OR on BlueField Arm bare-metal (DOCA app on the DPU cores). Owns the launch contract (direct / tmux / systemd), hardware-resource binding (PF/VF/representor + NUMA + CPU pinning + IRQ affinity), per-tenant isolation (cgroup-v2 + namespaces + numactl), the bare-metal error taxonomy, observability (stdout / journald / devlink / sysfs), and the restart-loop-is-HIGH-STAKES rule. The BARE-METAL half of the two-path deployment landscape; the container half lives in `doca-container-deployment`. Routed to from `doca-setup ## recognize`. |
 
-### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` at doca/VERSION=3.5.0019)
+### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` at the internal monorepo cut used to build this bundle, currently `doca/VERSION=3.5.0030`; the externally-released DOCA the bundle is documented for is `3.3.0109` — see README.md "Standards & Compatibility")
 
 This bundle ships one skill per artifact in the DOCA monorepo at the
 DOCA release the bundle is aligned to. The agent loads the matching
@@ -93,7 +93,7 @@ verified on every commit.
 | `doca-gpunetio` | [skills/libs/doca-gpunetio/SKILL.md](skills/libs/doca-gpunetio/SKILL.md) | DOCA GPUNetIO — GPU-initiated networking + CUDA integration. |
 | `doca-gpi` | [skills/libs/doca-gpi/SKILL.md](skills/libs/doca-gpi/SKILL.md) | DOCA GPI — GPU Programming Interface for kernel-launched RDMA operations directly from a CUDA thread. Pairs with `doca-rdma` and `doca-gpunetio` (different runtime surface for GPU-initiated networking). |
 | `doca-comch` | [skills/libs/doca-comch/SKILL.md](skills/libs/doca-comch/SKILL.md) | DOCA Comch (formerly Comm Channel) — host↔DPU control-plane messaging. |
-| `doca-telemetry` | [skills/libs/doca-telemetry/SKILL.md](skills/libs/doca-telemetry/SKILL.md) | DOCA Telemetry — collector library; schemas, sampling, DTS integration. |
+| `doca-telemetry` | [skills/libs/doca-telemetry/SKILL.md](skills/libs/doca-telemetry/SKILL.md) | DOCA Telemetry — per-domain hardware-counter READER (six sub-libs: `_pcc`, `_dpa`, `_diag`, `_adp_retx`, `_phy`, `_pci`). Not a NetFlow / IPFIX / DTS-shaped collector framework — for OpenTelemetry / OTLP application-side publishing route to `doca-telemetry-exporter`; for DTS (the productized service) route to the external DTS docs (out of scope). |
 | `doca-telemetry-exporter` | [skills/libs/doca-telemetry-exporter/SKILL.md](skills/libs/doca-telemetry-exporter/SKILL.md) | DOCA Telemetry Exporter — application-side publish library. |
 | `doca-dma` | [skills/libs/doca-dma/SKILL.md](skills/libs/doca-dma/SKILL.md) | DOCA DMA — host↔DPU memory copy via the BlueField DMA engine. |
 | `doca-compress` | [skills/libs/doca-compress/SKILL.md](skills/libs/doca-compress/SKILL.md) | DOCA Compress — hardware-accelerated compression / decompression. |
@@ -107,7 +107,7 @@ verified on every commit.
 | `doca-argp` | [skills/libs/doca-argp/SKILL.md](skills/libs/doca-argp/SKILL.md) | DOCA Arg Parser — argument parser used by every shipped sample. |
 | `doca-devemu` | [skills/libs/doca-devemu/SKILL.md](skills/libs/doca-devemu/SKILL.md) | DOCA Device Emulation — umbrella for PCI Generic, virtio, virtio-fs. |
 | `doca-mgmt` | [skills/libs/doca-mgmt/SKILL.md](skills/libs/doca-mgmt/SKILL.md) | DOCA MGMT (Management library) — programmatic management of DOCA device state. Pairs with `doca-dms` (service-side) and `doca-version`. |
-| `doca-rdmi` | [skills/libs/doca-rdmi/SKILL.md](skills/libs/doca-rdmi/SKILL.md) | DOCA RDMI (Redfish Device Management Interface) — Redfish-compliant device-management surface. Pairs with `doca-mgmt`. |
+| `doca-rdmi` | [skills/libs/doca-rdmi/SKILL.md](skills/libs/doca-rdmi/SKILL.md) | DOCA RDMI (DOCA RDMA Initiator) — accelerator-initiated (host or DPA-kernel) one-sided RDMA flow surface; pairs with `doca-rdma` (general RDMA) and `doca-dpa` / `doca-verbs` for the DPA-kernel-initiated path. |
 | `doca-sta` | [skills/libs/doca-sta/SKILL.md](skills/libs/doca-sta/SKILL.md) | DOCA STA — storage-focused reference apps + storage transport acceleration. |
 | `doca-rmax` | [skills/libs/doca-rmax/SKILL.md](skills/libs/doca-rmax/SKILL.md) | DOCA Rivermax — media / streaming integration. |
 | `doca-dpdk-bridge` | [skills/libs/doca-dpdk-bridge/SKILL.md](skills/libs/doca-dpdk-bridge/SKILL.md) | DOCA DPDK Bridge — interop layer for an existing DPDK application to reach DOCA libraries. |

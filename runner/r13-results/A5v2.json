@@ -1,0 +1,198 @@
+{
+  "subagent": "A5v2",
+  "wave": "A-with-doca",
+  "scope": "skills/tools/ slice (9 tools)",
+  "artifacts_listed": 9,
+  "artifacts_actually_opened": 9,
+  "files_opened_per_tool": "SKILL.md + CAPABILITIES.md + TASKS.md where each exists",
+  "prompts_total": 27,
+  "prompts_passed_all_C1_C5": 19,
+  "ground_truth_root": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca",
+  "ground_truth_version": "3.5.0030",
+  "bundle_under_test": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/gitlab-test-proj/doca-skills (sync commit ed04896)",
+  "fix_batch_1_status": "Banner-class fixes for doca-comm-channel-admin (single-shot disclaimer) and doca-flow-grpc-server (Insecure*Credentials disclaimer) are PRESENT in the YAML descriptions and the SKILL.md top-of-file blocks, BUT the body content of those two skills (Example questions / CAPABILITIES.md ## Capabilities and modes) still contradicts the banner. Fix batch 1 fixed the cover sheet; the body is still aspirational.",
+  "bundle_inaccuracies": [
+    {
+      "file": "skills/tools/doca-bench/CAPABILITIES.md (## Capabilities and modes / benchmark-mode enumeration) and skills/tools/doca-bench/SKILL.md (`description:` block)",
+      "severity": "high",
+      "issue": "Bundle enumerates the doca_bench benchmark modes as a three-axis set: 'throughput', 'bulk-latency', 'precision-latency'. The shipped binary actually supports FOUR modes. The C++ enum at doca/tools/bench/doca_bench/configuration.hpp defines `throughput`, `bulk_latency`, `precision_latency`, AND `max_bandwidth`; the parser at doca/tools/bench/doca_bench/impl/configuration_parser.cpp accepts the CLI spelling `max-bandwidth`. Omitting `max-bandwidth` from the bundle's enumeration means an agent asked 'what benchmark modes does doca_bench support' will give a wrong answer and refuse the `max-bandwidth` axis as 'invented'.",
+      "evidence": "grep -n 'benchmark_mode' doca/tools/bench/doca_bench/configuration.hpp -> enum class benchmark_mode { throughput, bulk_latency, precision_latency, max_bandwidth }. grep -n 'max-bandwidth' doca/tools/bench/doca_bench/impl/configuration_parser.cpp -> parser branch present.",
+      "fix": "Add `max-bandwidth` to the benchmark-mode enumeration in CAPABILITIES.md (## Capabilities and modes) and in the description's three-axis sentence; either treat it as a fourth top-level mode or document it as the bandwidth-saturation variant of throughput. Also extend the `cfg_benchmark_mode` doc-comment in doca/tools/bench/doca_bench/named_value.hpp to list all four modes (currently lists three)."
+    },
+    {
+      "file": "skills/tools/doca-bench-extension/SKILL.md (compatibility / install-path block + Where-to-start references to `doca-bench-extension/doca_bench_cuda` subtree)",
+      "severity": "high",
+      "issue": "Bundle refers to the extension's source/install tree as `doca-bench-extension/` (kebab-case) and implies an install path under `/opt/mellanox/doca/tools/doca-bench-extension/`. The actual monorepo directory is doca/tools/bench_extension/ (underscores, no `doca-` prefix), and bench_extension/meson.build builds `doca_bench_cuda_impl` as a shared_library with `install: true` and no custom install_dir, so on a real install it lands in the platform libdir (e.g. /opt/mellanox/doca/lib/<triplet>/) via libdoca_bench_cuda_impl.so, NOT in a `tools/doca-bench-extension/` directory. An agent walking the user to the install path will not find anything there.",
+      "evidence": "ls /Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca/tools/bench_extension/ -> dependencies/ doca_bench_cuda/ meson.build (note: underscores). cat doca/tools/bench_extension/meson.build -> shared_library('doca_bench_cuda_impl', ..., install : true) with no install_dir override.",
+      "fix": "Rewrite the SKILL.md compatibility block and `Where-to-start` cross-references to point at the real on-install layout (the `doca_bench_cuda_impl` shared library reachable via `pkg-config doca-bench-cuda` or the platform libdir, with the source-tree path `doca/tools/bench_extension/` underscored). Drop the synthesized `/opt/mellanox/doca/tools/doca-bench-extension/` path or replace it with the actual lib install location."
+    },
+    {
+      "file": "skills/tools/doca-caps/SKILL.md (## Example questions / capability-family enumeration) and skills/tools/doca-caps/CAPABILITIES.md (## Capabilities and modes capability-family table)",
+      "severity": "medium",
+      "issue": "Bundle enumerates five capability families (devices, representors, libraries, loggers, per-PCIe/per-library detail) but does NOT name the actual CLI flags that produce the 'libraries' and 'loggers' families. The shipped binary registers `--list-libs` (lib_list_param) and `--list-loggers` (logger_list_param) in doca/tools/caps/main.c next to the already-named `--list-devs`, `--list-rep-devs`, `--pci-addr`, `--lib`. An agent asked 'how do I list installed DOCA loggers' will fall back to '--help' because the bundle never spells the flag.",
+      "evidence": "grep -n 'list-libs\\|list-loggers\\|list-devs\\|list-rep-devs\\|pci-addr\\|--lib' doca/tools/caps/main.c -> all six flags registered explicitly with doca_argp_register_param.",
+      "fix": "Add the literal flags `--list-libs` and `--list-loggers` to the capability-family enumeration in both SKILL.md and CAPABILITIES.md, mirroring how `--list-devs` / `--list-rep-devs` / `--pci-addr` / `--lib` are already named. One-sentence-per-family is sufficient; the goal is letting an agent map the family -> flag without consulting --help."
+    },
+    {
+      "file": "skills/tools/doca-comm-channel-admin/SKILL.md (## Example questions, ll. 85-91, drain-vs-restart worked example) AND skills/tools/doca-comm-channel-admin/CAPABILITIES.md (## Capabilities and modes, ll. 69-78, 'State-changing operations. Drain a channel ... or restart it')",
+      "severity": "critical",
+      "issue": "The SKILL.md YAML description and the top-of-file banner BOTH correctly state the tool is 'single-shot scan-and-print, no subcommands' (fix batch 1 landed here). HOWEVER the body of the SKILL.md (Example questions list) AND the CAPABILITIES.md (## Capabilities and modes) still describe 'drain a channel', 'restart it', 'per-channel inspect step', 'list-first invocation', and a 'state-changing-operation gate' as if these are tool capabilities. The actual binary registers ZERO application-level arguments: doca/tools/comm_channel_admin/comm_channel_admin.c -> `register_comm_channel_admin_params()` returns DOCA_SUCCESS without registering any param; doca/tools/comm_channel_admin/comm_channel_admin_core.c -> `start_admin_tool()` shells out to `resourcedump` (MFT), parses the dump, and prints two ASCII tables. There is no drain RPC, no restart RPC, no per-channel inspect command. The body content is the bundle's pre-Run-12 aspirational framing; fix batch 1 patched the cover sheet but not the body.",
+      "evidence": "(a) grep -n 'register_param\\|argp_register' doca/tools/comm_channel_admin/comm_channel_admin.c -> register_comm_channel_admin_params returns DOCA_SUCCESS, zero params. (b) grep -n 'drain\\|restart' doca/tools/comm_channel_admin/*.c -> 0 hits in the tool. (c) comm_channel_admin_core.c calls check_for_resourcedump -> initialize_dump_file -> dump_all_devs -> parse_dump_file -> prints SERVERS + CONNECTIONS tables; this is the entire surface.",
+      "fix": "Remove the 'drain', 'restart', 'inspect step', and 'state-changing-operation gate' language from SKILL.md's Example questions list and from CAPABILITIES.md's `## Capabilities and modes`. Route channel-reset / drain / restart language exclusively to doca-comch (program-side reconnect) and doca-setup / doca-hardware-safety (driver reload), matching what the banner already says. Either delete the 'State-changing operations' bullet entirely or convert it to a one-line cross-link 'state-changing operations are NOT in this tool — see doca-comch / doca-hardware-safety'."
+    },
+    {
+      "file": "skills/tools/doca-dpa-hl-tracer/SKILL.md (worked examples / SKILL.md `## Example questions`) and skills/tools/doca-dpa-hl-tracer/TASKS.md (## run invocation snippets)",
+      "severity": "medium",
+      "issue": "Bundle's `--mode TRACE` / `--mode CRIT` worked examples and the `--config-file` / `--input-file` / `--output-file` invocation patterns omit the mandatory `--device` flag. dpa_hl_tracer_utils.cpp explicitly marks the device parameter mandatory via doca_argp_param_set_mandatory(dev_param); running any of the bundle's shown commands as-is will fail at argp validation with 'mandatory parameter --device missing' before the tool even probes the DPA.",
+      "evidence": "grep -n 'dev_param\\|set_mandatory' doca/tools/dpa_hl_tracer/dpa_hl_tracer_utils.cpp -> doca_argp_param_set_mandatory(dev_param) at the dev_param registration.",
+      "fix": "Add `--device <pci-bdf>` (or `--device <iface>` per the tool's accepted spellings) to every example invocation in SKILL.md and TASKS.md. The mandatory-parameter shape should be called out at least once in CAPABILITIES.md so an agent surfaces 'you must pick a target device' before any other axis."
+    },
+    {
+      "file": "skills/tools/doca-flow-grpc-server/SKILL.md (## CRITICAL transport-security correction banner, ll. 35-53)",
+      "severity": "high",
+      "issue": "Banner says: 'The shipped doca_flow_grpc_server / doca_flow_grpc_client binaries hard-code grpc::InsecureChannelCredentials() / the Python client uses grpc.aio.insecure_channel(...)'. The SERVER actually uses grpc::InsecureServerCredentials() (server-side credentials API), not InsecureChannelCredentials() (which is the gRPC client-side API). The C++ doca_flow_grpc_client.cpp and the Python CLI ARE correctly characterized (InsecureChannelCredentials() and grpc.aio.insecure_channel() respectively). The substantive 'no TLS / no mTLS / no token-auth' claim is correct, but the symbol attribution on the server side is wrong and will fail a Grep verification an agent runs against the binary's source.",
+      "evidence": "grep -RIn 'InsecureChannelCredentials\\|InsecureServerCredentials\\|insecure_channel' doca/tools/flow_grpc_server/ doca/libs/doca_flow/grpc/ -> doca/tools/flow_grpc_server/server/flow_server_core.cpp:27 -> grpc::InsecureServerCredentials(); doca/tools/flow_grpc_server/packet_buffering/packet_buffering_core.cpp:141 -> grpc::InsecureServerCredentials(); doca/libs/doca_flow/grpc/client/doca_flow_grpc_client.cpp:605 + :647 -> grpc::InsecureChannelCredentials(); doca/libs/doca_flow/grpc/packet_buffering/cli/doca_flow_cli.py -> grpc.aio.insecure_channel(...) at >80 call sites.",
+      "fix": "Rewrite the banner as: 'The shipped doca_flow_grpc_server binary hard-codes grpc::InsecureServerCredentials() (server-side). The shipped C++ doca_flow_grpc_client uses grpc::InsecureChannelCredentials(); the Python CLI uses grpc.aio.insecure_channel(...). There is no TLS, no mTLS, and no token-auth knob on either side of the shipped control plane today.' Substantive claim stays; symbol attribution is corrected."
+    },
+    {
+      "file": "skills/tools/doca-flow-grpc-server/SKILL.md (`Where to start` block, ll. 64-69; `What this skill deliberately does not ship`, ll. 249-254; CAPABILITIES.md cross-references) AND skills/tools/doca-flow-grpc-server/CAPABILITIES.md (`the .proto-files-as-authoritative-contract rule`)",
+      "severity": "high",
+      "issue": "Bundle repeatedly states 'the .proto files shipped under the tool's source tree on the user's install are the authoritative contract'. On the monorepo, the .proto files for the Flow gRPC server live under doca/libs/doca_flow/grpc/ (common.proto, doca_flow.proto, and packet_buffering/packet_buffering.proto), NOT under doca/tools/flow_grpc_server/. An agent walking the user to 'look in the tool's source tree for the .proto' on the live source will find OWNERS, dpa_update_common.h, meson.build, dependencies/, dpa_device/, packet_buffering/, server/ — and zero .proto files. On a binary install the .proto files may be shipped via the doca-flow include/share path, but the bundle's claim is monorepo-wrong as written.",
+      "evidence": "ls doca/tools/flow_grpc_server/ -> dependencies/ dpa_device/ packet_buffering/ server/ OWNERS dpa_update_common.h meson.build (no .proto). find doca -name '*.proto' -path '*flow*' -> doca/libs/doca_flow/grpc/common.proto, doca/libs/doca_flow/grpc/doca_flow.proto, doca/libs/doca_flow/grpc/packet_buffering/packet_buffering.proto, plus psp_gateway flavors.",
+      "fix": "Replace 'under the tool's source tree' with the authoritative location: 'under doca/libs/doca_flow/grpc/ in the source tree, and via the doca-flow share/proto path on a binary install (resolve via pkg-config --variable=protodir doca-flow when available)'. Keep the .proto-as-contract rule, fix the location."
+    },
+    {
+      "file": "skills/tools/doca-bench-extension/SKILL.md (build flow + amalgamation gate references)",
+      "severity": "low",
+      "issue": "Bundle describes the bench-extension as a plug-in framework that doca-bench loads at runtime. The reality per doca/tools/bench/meson.build ll. 218-235 is more nuanced: 'bench_extension isn't required to build doca_bench, only run it. So only check it's enabled for amalgamation builds.' The bench binary only conditionally enables DOCA_BENCH_SUPPORTS_DOCA_GPUNETIO=1 when dpdk_bridge + eth + flow + gpunetio libs are present AND ((flag_amalgamation_build AND bench_extension is enabled) OR not amalgamation). The bundle doesn't surface this granular-vs-amalgamation gate, so an agent diagnosing 'the bench tool says it doesn't support cuda steps' may miss the build-flag dimension.",
+      "evidence": "doca/tools/bench/meson.build:218-235 -> # bench_extension isn't required to build doca_bench, only run it. ... if (... and ((flag_amalgamation_build and available_tools.contains('bench_extension')) or not flag_amalgamation_build)) ... tool_cpp_args += '-DDOCA_BENCH_SUPPORTS_DOCA_GPUNETIO=1'.",
+      "fix": "Add one sentence to CAPABILITIES.md explaining: on amalgamation builds, doca_bench cuda/gpunetio support is gated on `available_tools.contains('bench_extension')`; on granular builds it is gated only on the underlying lib set. This explains why the same DOCA install may surface 'unsupported step' on bench_extension-related axes."
+    },
+    {
+      "file": "skills/tools/doca-flow-grpc-server/SKILL.md (`kind: tool` line vs body ll. 159-160)",
+      "severity": "low",
+      "issue": "YAML front matter says `metadata: kind: tool` (correct), but the body at ll. 159-160 says 'The skill uses the same kind: library three-file shape as the rest of the bundle.' Internal inconsistency: 'tool' vs 'library'. Not user-visible at runtime, but contradicts the bundle's own kind-classification rule.",
+      "evidence": "skills/tools/doca-flow-grpc-server/SKILL.md ll. 22-23 (kind: tool) vs ll. 159-160 ('the same kind: library three-file shape').",
+      "fix": "Change ll. 159-160 to 'the same three-file shape (SKILL.md / CAPABILITIES.md / TASKS.md) as the rest of the bundle' — drop the 'kind: library' phrasing or replace it with 'kind: tool'."
+    }
+  ],
+  "per_artifact_grades": {
+    "doca-apsh-config": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+      "prompts": 3,
+      "passed": 3,
+      "notes": "Prompts: (1) 'Generate an App Shield profile for an Ubuntu 22.04 attestation target' -> PASS (procedure walks dwarf2json + symbols/memregions/kpgd_file/hash artifact types matching doca/tools/apsh_config/doca_apsh_config.py); (2) 'How do I produce a Windows kernel profile for App Shield?' -> PASS (pdbparse-to-json.py path correct; bundle correctly defers to public PDB-symbol-server discussion); (3) 'My memregions artifact is empty for a target PID' -> PASS (layered error taxonomy routes through OS-version mismatch / wrong --pid / missing --files correctly per doca_apsh_config.py argument parser)."
+    },
+    "doca-bench": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+      "prompts": 3,
+      "passed": 2,
+      "notes": "Prompts: (1) 'I want to measure DOCA SHA throughput vs precision_latency on a BlueField-3' -> PASS (three-axis configure -> run -> test loop is sound; sha_step.cpp confirms the step exists); (2) 'Which benchmark modes does doca_bench support?' -> FAIL C5 (bundle answers throughput / bulk-latency / precision-latency, omits max-bandwidth that the configuration.hpp enum + parser explicitly support); (3) 'Walk me through adding a warm-up window' -> PASS (the named_value warm-up config is exposed and procedure correctly defers to --help for the exact flag spelling rather than inventing one)."
+    },
+    "doca-bench-extension": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md"],
+      "prompts": 3,
+      "passed": 2,
+      "notes": "TASKS.md not present in this tool slice (bundle confirms two-file shape for the framework skill). Prompts: (1) 'How do extensions plug into doca_bench at runtime?' -> PASS (the shared_library / soversion / DOCA_EXPERIMENTAL story matches bench_extension/meson.build); (2) 'Where does the shipped doca_bench_cuda extension live on my install?' -> FAIL C5 (bundle says /opt/mellanox/doca/tools/doca-bench-extension/ but the source tree is doca/tools/bench_extension/ underscored and the meson.build installs into the platform libdir, not into a tools/ subdir); (3) 'I want to author a custom bench extension — what's the minimal surface?' -> PASS (the doca_bench_cuda.h reference exemplar with DOCA_EXPERIMENTAL init / device-query / start-* kernel entry points is correctly cited)."
+    },
+    "doca-caps": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+      "prompts": 3,
+      "passed": 2,
+      "notes": "Prompts: (1) 'Use doca_caps as my install smoke test' -> PASS (read-only / cost-nothing posture correct; routes to doca-setup if binary missing); (2) 'List every doca_dev on this host with its PCIe address' -> PASS (--list-devs is named correctly and the print format roughly matches main.c); (3) 'How do I see which DOCA loggers are registered on my install?' -> FAIL C5 (bundle describes the 'DOCA logger list' capability family but never spells the actual --list-loggers flag; same omission for --list-libs)."
+    },
+    "doca-comm-channel-admin": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+      "prompts": 3,
+      "passed": 1,
+      "notes": "Banner correctly says 'single-shot scan-and-print, no subcommands' (fix batch 1 landed), but body contradicts. Prompts: (1) 'How do I list the comch channels active on my BlueField?' -> PASS (single-shot invocation -> SERVERS/CONNECTIONS table matches comm_channel_admin_core.c); (2) 'A channel is stuck — do I drain or restart it with this tool?' -> FAIL C5 (bundle body still walks a drain-vs-restart decision; actual tool has zero state-changing surface per register_comm_channel_admin_params returning DOCA_SUCCESS with no params registered, and comm_channel_admin_core.c only shelling out to resourcedump); (3) 'How does this tool's view compare to the program side?' -> FAIL C5 (bundle says 'cross-check via per-channel inspect step' but there IS no per-channel inspect command — only the single-shot whole-side dump exists)."
+    },
+    "doca-dpa-hl-tracer": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+      "prompts": 3,
+      "passed": 2,
+      "notes": "Prompts: (1) 'What's the difference between TRACE and CRIT modes?' -> PASS (modes match dpa_hl_tracer_utils.cpp --mode {TRACE,CRIT} with --sub-mode {DBUF,COMCH} only meaningful in TRACE mode); (2) 'Give me a config-file example for cap-and-rotate' -> PASS (tracer_config_example.json content matches the bundle's documented limits_config + threads_config schema); (3) 'Show me a minimal capture command' -> FAIL C5 (bundle's example commands omit the mandatory --device flag; dpa_hl_tracer_utils.cpp marks dev_param mandatory via doca_argp_param_set_mandatory, so the shown example will fail at argp validation before touching DPA)."
+    },
+    "doca-flow-dpa-perf": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md"],
+      "prompts": 3,
+      "passed": 3,
+      "notes": "TASKS.md not present in this tool slice (CAPABILITIES + SKILL is the full surface for this perf tool). Prompts: (1) 'What hardware does flow-dpa-perf require?' -> PASS (ConnectX-7+ / BlueField-3+ + VNF Flow mode + active/passive device split match flow_dpa_perf/README.md); (2) 'Which knobs control the workload shape?' -> PASS (--burst-size, --queue-size, --completion-threshold, --num-tables, --table-size, --num-workers, --operation, --policy, --algo, --warmup, --pipeline-policy enumerated against README.md); (3) 'How do I interpret the Kops/sec output?' -> PASS (average / median / max / stddev fields are real in the README's example output)."
+    },
+    "doca-flow-grpc-server": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+      "prompts": 3,
+      "passed": 1,
+      "notes": "Fix batch 1 added the 'plaintext-on-trusted-segment' banner (good) but mis-attributed the server's exact symbol and left the .proto location wrong. Prompts: (1) 'Do I have any TLS / mTLS / token-auth knob on this server?' -> FAIL C5 (bundle says 'grpc::InsecureChannelCredentials()' for the server; actual server uses grpc::InsecureServerCredentials() per flow_server_core.cpp:27 and packet_buffering_core.cpp:141; the substantive 'no TLS today' claim is correct but the symbol attribution would fail an agent's Grep verification); (2) 'Where is the .proto contract on my install?' -> FAIL C5 (bundle says 'under the tool's source tree'; actual location is doca/libs/doca_flow/grpc/{common.proto,doca_flow.proto,packet_buffering/packet_buffering.proto}, NOT under doca/tools/flow_grpc_server/ which contains zero .proto files); (3) 'When should I prefer the gRPC server over linking libdoca_flow directly?' -> PASS (the when-to-use-gRPC decision is sound: cross-host / non-C++ clients / centralized control plane vs in-process direct link)."
+    },
+    "doca-flow-perf": {
+      "opened": true,
+      "files_opened": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+      "prompts": 3,
+      "passed": 3,
+      "notes": "Prompts: (1) 'How is flow-perf different from flow-dpa-perf and flow-tune?' -> PASS (measurement-vs-optimization + host/DPU-CPU vs DPA boundaries are correct and match the existence of three separate tools/ subdirs); (2) 'Which configs/ JSON do I start from for a 5-tuple hairpin baseline?' -> PASS (configs/ ships ip4_src_dst_hairpin.json, 4_tcp_tuple_hairpin.json, 4_udp_tuple_hairpin.json, etc. — bundle correctly refuses to invent schema fields and walks the operator through the shipped exemplars); (3) 'What are the operating modes the tool supports?' -> PASS (ADD / DEL / QUERY enumeration matches enum flow_perf_mode in perf_engine.c with FLOW_PERF_ADD / FLOW_PERF_DEL / FLOW_PERF_QUERY)."
+    }
+  },
+  "ground_truth_cross_checks": {
+    "doca-comm-channel-admin (single-shot, no-subcommands)": {
+      "bundle_claim": "Single-shot scan-and-print, no subcommands (banner) BUT body lists drain/restart/inspect.",
+      "ground_truth": "Confirmed single-shot via comm_channel_admin.c::register_comm_channel_admin_params returning DOCA_SUCCESS with zero params, and comm_channel_admin_core.c::start_admin_tool only calling dump_all_devs (which shells out to resourcedump) and parse_dump_file (prints SERVERS/CONNECTIONS tables).",
+      "verdict": "Banner-correct, body-wrong. Surfaced as critical inaccuracy."
+    },
+    "doca-flow-grpc-server (InsecureChannelCredentials)": {
+      "bundle_claim": "Shipped binary hard-codes grpc::InsecureChannelCredentials() with no TLS/mTLS/auth knobs.",
+      "ground_truth": "Server uses grpc::InsecureServerCredentials() at doca/tools/flow_grpc_server/server/flow_server_core.cpp:27 and packet_buffering/packet_buffering_core.cpp:141. C++ client uses grpc::InsecureChannelCredentials() at doca/libs/doca_flow/grpc/client/doca_flow_grpc_client.cpp:605 and :647. Python CLI uses grpc.aio.insecure_channel(...) at doca/libs/doca_flow/grpc/packet_buffering/cli/doca_flow_cli.py (>80 call sites). NO TLS/mTLS/Ssl* symbols anywhere in either tree.",
+      "verdict": "Substantive 'no TLS today' claim is CORRECT against ground truth. Symbol attribution for the SERVER side is wrong (should be InsecureServerCredentials); client + Python attributions are correct. Surfaced as high inaccuracy."
+    },
+    "doca-caps (flag set)": {
+      "bundle_claim": "Five capability families: devices, representors, libraries, loggers, per-PCIe / per-library detail (with --list-devs, --list-rep-devs, --pci-addr, --lib explicitly named).",
+      "ground_truth": "doca/tools/caps/main.c registers exactly six flags: --pci-addr, --lib, --list-devs, --list-rep-devs, --list-libs, --list-loggers.",
+      "verdict": "Family enumeration correct; --list-libs and --list-loggers not named in capability rows. Surfaced as medium inaccuracy."
+    },
+    "doca-bench (benchmark axes)": {
+      "bundle_claim": "Three benchmark modes: throughput, bulk-latency, precision-latency.",
+      "ground_truth": "configuration.hpp enum class benchmark_mode lists four: throughput, bulk_latency, precision_latency, max_bandwidth; configuration_parser.cpp accepts the CLI spelling max-bandwidth. Per-step coverage matches: aes_gcm, comch, compress, dma, erasure_coding, eth, gpunetio, gpunetio_eth, rdma, sha — bundle's library list is accurate.",
+      "verdict": "Mode count wrong by one; max-bandwidth missing. Surfaced as high inaccuracy."
+    },
+    "doca-bench-extension (flag set + plug-in shape)": {
+      "bundle_claim": "Plug-in framework loaded by doca-bench; reference exemplar is doca_bench_cuda; sources under /opt/mellanox/doca/tools/doca-bench-extension/.",
+      "ground_truth": "doca/tools/bench_extension/ (underscored) contains doca_bench_cuda/ exemplar with DOCA_EXPERIMENTAL C entry points; meson.build builds doca_bench_cuda_impl as a shared_library with install:true and no install_dir, so it lands in platform libdir. doca/tools/bench/meson.build:218-235 gates DOCA_BENCH_SUPPORTS_DOCA_GPUNETIO on the bench_extension availability for amalgamation builds only.",
+      "verdict": "Plug-in shape + DOCA_EXPERIMENTAL surface correct; install path + amalgamation gate misrepresented. Surfaced as high + low inaccuracies."
+    },
+    "doca-dpa-hl-tracer (flag set + modes)": {
+      "bundle_claim": "Modes TRACE / CRIT with sub-modes DBUF / COMCH; uses JSON config for limits_config (file_size_limit_policy) and threads_config (receiver / binary_writer / file_writer / printer priorities + core affinity).",
+      "ground_truth": "dpa_hl_tracer_utils.cpp registers --device (mandatory), --input-file, --output-file, --parse-file, --elf-file, --config-file, --log-file, --app-id, --mode {CRIT,TRACE}, --sub-mode {DBUF,COMCH} (TRACE only), --display, --extract. configs/tracer_config_example.json confirms the limits_config / threads_config schema with file_size_limit_policy and the four named threads.",
+      "verdict": "Modes + JSON schema correct; mandatory --device omitted from examples. Surfaced as medium inaccuracy."
+    },
+    "doca-flow-dpa-perf (flag set + benchmark axes)": {
+      "bundle_claim": "Hardware: ConnectX-7+ / BlueField-3+; Flow mode: VNF; active/passive device split; axes: burst, queue, completion threshold, workers, tables (PSL), algos, policy.",
+      "ground_truth": "doca/tools/flow_dpa_perf/README.md confirms all hardware/mode/split claims and enumerates --burst-size, --queue-size, --completion-threshold, --num-operations, --num-iterations, --num-tables, --table-size, --num-workers, --operation, --policy, --algo, --random-seed, --self-test, --warmup, --pipeline-policy. Output fields (Kops/sec, average, median, max, stddev) match.",
+      "verdict": "All claims verified. No inaccuracies."
+    },
+    "doca-flow-perf (flag set + benchmark axes)": {
+      "bundle_claim": "Synthetic driver of JSON-described doca-flow pipeline; two backends (DPDK / DOCA) behind shared JSON; three operating modes (ADD / DEL / QUERY); configs/ JSON exemplars; refuses to invent JSON schema.",
+      "ground_truth": "doca/tools/flow_perf/ has src/doca/, src/dpdk/ subtrees confirming both backends; perf_engine.c defines enum flow_perf_mode with FLOW_PERF_ADD / FLOW_PERF_DEL / FLOW_PERF_QUERY; configs/ ships ~20 JSON exemplars (ip4_src_hairpin.json, ct_5_tuple_perf.json, etc.); config_parser.[ch] + perf_api.h define the JSON schema.",
+      "verdict": "All claims verified. No inaccuracies."
+    }
+  },
+  "ten_line_summary": [
+    "A5v2 (Wave-A, WITH doca/ monorepo) opened all 9 tool slices and read SKILL.md + CAPABILITIES.md + TASKS.md where present (7 tools have all 3; doca-bench-extension and doca-flow-dpa-perf ship 2-file shape).",
+    "27/27 prompts written; 19/27 pass all C1-C5 criteria.",
+    "1 CRITICAL inaccuracy: doca-comm-channel-admin banner says 'single-shot, no subcommands' (fix batch 1 correct) BUT SKILL.md Example questions and CAPABILITIES.md ## Capabilities and modes still describe drain/restart/per-channel-inspect as if real — actual binary registers ZERO app-level params and only shells out to resourcedump + prints 2 tables.",
+    "4 HIGH inaccuracies: doca-bench omits a 4th benchmark mode (max-bandwidth, present in configuration.hpp enum + parser); doca-bench-extension misspells the source path (kebab-case 'doca-bench-extension/' vs actual underscored 'bench_extension/') and points install at /opt/mellanox/doca/tools/doca-bench-extension/ which doesn't exist on a real install; doca-flow-grpc-server banner mis-attributes the server symbol as grpc::InsecureChannelCredentials() (actual server uses InsecureServerCredentials(); client + Python attribution are correct); doca-flow-grpc-server claims .proto files ship 'under the tool's source tree' but they actually live at doca/libs/doca_flow/grpc/.",
+    "2 MEDIUM inaccuracies: doca-caps describes the 'libraries' and 'loggers' capability families without naming the actual --list-libs / --list-loggers flags (main.c registers both); doca-dpa-hl-tracer worked examples omit the mandatory --device flag (set_mandatory in dpa_hl_tracer_utils.cpp).",
+    "2 LOW inaccuracies: doca-bench-extension doesn't surface the amalgamation-vs-granular gate (bench/meson.build:218-235); doca-flow-grpc-server body says 'kind: library three-file shape' while front-matter correctly says 'kind: tool'.",
+    "Strong tools (all 3 prompts pass): doca-apsh-config, doca-flow-dpa-perf, doca-flow-perf — bundle docs match ground-truth code/README accurately on flag sets, modes, and benchmark axes.",
+    "Weakest tool: doca-comm-channel-admin (1/3 prompts pass) — the fix-batch-1 banner update is correct but body content was not propagated, leaving the bundle internally contradictory.",
+    "Fix-batch-1 partial-landing finding: BOTH fix-batch targets (comm-channel-admin single-shot, flow-grpc-server transport security) have correct top-of-file banners; both still have stale body content that contradicts the banner. Future fix batches must do a body sweep, not just a cover-sheet sweep.",
+    "Verdict: tools slice is structurally sound (no fabricated tools or missing artifacts), but 3 of 9 tools (comm-channel-admin, flow-grpc-server, bench) ship body claims that fail Grep verification against doca/tools/ and doca/libs/doca_flow/grpc/; not yet release-ready until the cover-sheet vs body delta is closed."
+  ]
+}

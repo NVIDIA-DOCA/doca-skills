@@ -66,8 +66,13 @@ load-bearing piece — the worked example is a single instance.
   I program hardware with it?"** — worked example: *"will this Flow
   pipe pass validate before commit"*. Answered by the
   `validate-before-commit` schema in [`## Schemas`](#schemas), with
-  the manual fallback being the library's own validate call (e.g.
-  `doca_flow_pipe_validate` before `doca_flow_pipe_create`).
+  the manual fallback being the library's own constructor-time
+  validation surface (e.g. for DOCA Flow, treat the
+  `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return
+  from `doca_flow_pipe_create_v1` as the validate signal — the
+  public Flow header does not ship a separate `doca_flow_pipe_validate`
+  call at the bundle-aligned release, and the agent must not
+  invent one).
 - **"My agent is acting differently on different hosts — is one of
   them missing the helpers?"** — worked example: *"the agent on host
   A gave a one-line answer; the agent on host B walked five manual
@@ -278,9 +283,13 @@ structured tool, if installed, lives at the same `$PATH` location as
 ### validate-before-commit schema
 
 **Detection probe:** `command -v doca-validate` (cross-library) OR the
-library-specific validate call (e.g. `doca_flow_pipe_validate` for
-Flow). The structured tool wraps the library-specific calls and
-returns a uniform JSON result.
+library-specific constructor-time validation surface (e.g. for Flow,
+the `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return
+from `doca_flow_pipe_create_v1` — the public Flow header at this
+release does not ship a separate `doca_flow_pipe_validate` symbol;
+the agent uses the constructor-failure path as the validate signal).
+The structured tool wraps the library-specific calls and returns a
+uniform JSON result.
 
 **Top-level shape (JSON object):**
 
@@ -293,8 +302,13 @@ returns a uniform JSON result.
 
 **Manual fallback chain:**
 
-1. Find the library-specific validate call in the matching skill's
-   `## test` workflow (e.g. `doca_flow_pipe_validate` for Flow).
+1. Find the library-specific validate surface in the matching skill's
+   `## test` workflow. For some libs this is a dedicated `_validate`
+   call; for others (notably DOCA Flow) it is the
+   constructor-time validation embedded in `doca_<lib>_*_create_v1`
+   whose `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED`
+   return is the validate signal. The lib's per-skill `## test`
+   anchor names which.
 2. Invoke it before any commit / create / submit call.
 3. Treat a non-`DOCA_SUCCESS` return as `result: fail`; map the
    `doca_error_get_descr()` text into a single `checks` entry.
@@ -344,8 +358,11 @@ the skills do not need any retrofit.
 Concrete consequence for contributors writing a new library skill:
 when you build the Command appendix, do not duplicate the manual
 fallback chain — link to this skill's matching schema section and
-add only the *per-library overlay* (e.g. "Flow-specific:
-`doca_flow_pipe_validate` before `doca_flow_pipe_create`"). The
+add only the *per-library overlay* (e.g. "Flow-specific: treat the
+`DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return
+from `doca_flow_pipe_create_v1` as the validate signal; the public
+Flow header at this release does not ship a separate
+`doca_flow_pipe_validate` symbol — do not invent one"). The
 fallback chain itself lives here.
 
 ## URL audit

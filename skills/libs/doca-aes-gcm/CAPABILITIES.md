@@ -100,23 +100,29 @@ rule:
   encryption (use [`doca-sha`](../doca-sha/SKILL.md) for hashing,
   or a CPU HMAC).
 
-**AES-GCM key sizes — capability-gated, not assumed.** AES-GCM is
-defined for 128 / 192 / 256-bit keys, but per-device accelerator
-support is not uniform. The agent must call
-`doca_aes_gcm_cap_is_key_size_supported(devinfo, key_size)` for each
-key size the user intends to use:
+**AES-GCM key sizes — only 128 and 256.** AES-GCM is defined in
+the spec for 128 / 192 / 256-bit keys, but the DOCA AES-GCM
+library's `enum doca_aes_gcm_key_type` exposes only
+`DOCA_AES_GCM_KEY_128` and `DOCA_AES_GCM_KEY_256` — **AES-192-GCM
+is NOT expressible through this library at all**. The agent must
+not invent an AES-192 path. Per-device support for each of the
+two real key types is still cap-gated: call
+`doca_aes_gcm_cap_task_encrypt_is_key_type_supported(devinfo, key_type)`
+and the matching `_decrypt_is_key_type_supported` query before
+sizing key material.
 
-| Key size (bits) | Key length (bytes) | Notes |
-| --- | --- | --- |
-| 128 | 16 | Often supported; the smallest standard AES-GCM key |
-| 192 | 24 | May or may not be supported per device; explicitly cap-query |
-| 256 | 32 | Often supported; the most common choice for new deployments |
+| Key size (bits) | `doca_aes_gcm_key_type` enum value | Key length (bytes) | Notes |
+| --- | --- | --- | --- |
+| 128 | `DOCA_AES_GCM_KEY_128 = 1` | 16 | Often supported; the smallest AES-GCM key the library accepts |
+| 256 | `DOCA_AES_GCM_KEY_256 = 2` | 32 | Often supported; the most common choice for new deployments |
+| 192 | *(not in the enum)* | *(n/a)* | NOT supported by the DOCA AES-GCM library — route to a CPU library if AES-192 is a hard requirement |
 
-The agent must NOT quote any of these as universally available — the
-cap query against the active `doca_devinfo` is the runtime authority.
-A response that recommends a key size without first naming the cap
-query is the baseline-agent failure mode this skill exists to
-prevent.
+The agent must NOT quote either of the two real key types as
+universally available — the cap query against the active
+`doca_devinfo` is the runtime authority. A response that
+recommends a key size without first naming the cap query — or
+that quotes AES-192 as a per-device-cap-queried option — is the
+baseline-agent failure mode this skill exists to prevent.
 
 **Capability discovery — the only rule.** Before choosing a key size
 or sizing any plaintext buffer, call the matching
@@ -126,7 +132,8 @@ or sizing any plaintext buffer, call the matching
 | --- | --- | --- |
 | Encrypt task supported | `doca_aes_gcm_cap_task_encrypt_is_supported(devinfo)` | If false, the device has no AES-GCM encrypt accelerator and the user must fall back to CPU |
 | Decrypt task supported | `doca_aes_gcm_cap_task_decrypt_is_supported(devinfo)` | If false, the device has no AES-GCM decrypt accelerator; the user must fall back to CPU for inbound |
-| Key size supported | `doca_aes_gcm_cap_is_key_size_supported(devinfo, key_size)` | Per-key-size boolean; 128 / 192 / 256-bit are not uniformly available across all generations |
+| Key type supported for encrypt | `doca_aes_gcm_cap_task_encrypt_is_key_type_supported(devinfo, key_type)` | Per-key-type boolean against the real `enum doca_aes_gcm_key_type` (`DOCA_AES_GCM_KEY_128` or `DOCA_AES_GCM_KEY_256`); AES-192-GCM is NOT in the enum and cannot be queried |
+| Key type supported for decrypt | `doca_aes_gcm_cap_task_decrypt_is_key_type_supported(devinfo, key_type)` | Same surface for the decrypt task |
 | Maximum encrypt plaintext size | `doca_aes_gcm_cap_task_encrypt_get_max_buf_size(devinfo)` | Hardware-bound ceiling on plaintext size per submission; inputs larger than this require the user to fragment at the application layer |
 
 **Configuration shape.** *Mandatory* configurations before
@@ -148,14 +155,19 @@ there; this skill does not duplicate it.
 
 **The AES-GCM-specific overlay** is:
 
-- **Key-size membership is device-bound, not version-bound.** The
-  agent must not infer *"DOCA version X includes AES-192-GCM"* from
-  release notes alone; the runtime authority is
-  `doca_aes_gcm_cap_is_key_size_supported(devinfo, key_size)`
-  against the active device. Per the cross-cutting cap-query rule in
+- **Per-key-type membership is device-bound, not version-bound.**
+  The agent must not infer *"DOCA version X includes a third
+  AES-GCM key size"* from release notes alone — the public
+  `enum doca_aes_gcm_key_type` has two values
+  (`DOCA_AES_GCM_KEY_128`, `DOCA_AES_GCM_KEY_256`); AES-192-GCM
+  is NOT in the enum and is not expressible through this library.
+  For the two real key types, the runtime authority is
+  `doca_aes_gcm_cap_task_encrypt_is_key_type_supported(devinfo, key_type)`
+  / `_decrypt_is_key_type_supported(devinfo, key_type)` against
+  the active device. Per the cross-cutting cap-query rule in
   [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability),
-  the cap query is the runtime authority — never quote a key size as
-  available from agent memory.
+  the cap query is the runtime authority — never quote a key
+  type as available from agent memory.
 - **Per-device task presence is independent of the library install.**
   An install that ships the `doca-aes-gcm` shared object (verify with `ldconfig -p | grep -i doca_aes_gcm`; the on-disk basename uses underscores on every DOCA release where we have ground truth) does not guarantee a
   particular device exposes both encrypt and decrypt; some device

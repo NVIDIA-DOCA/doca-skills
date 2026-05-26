@@ -118,11 +118,21 @@ through, in order:
    [`doca-pcc-ztr-rttcc-algo`](../../libs/doca-pcc-ztr-rttcc-algo/SKILL.md).
    Pin a SHA + version of the algorithm image; the
    evaluation evidence depends on this.
-4. **Pick the role.** `--role RP` (Reaction Point —
-   the default) vs `--role NP` (Notification Point).
-   The two endpoints of the deployment must agree on
-   the role assignment; quote the assignment back to
-   the user so they can challenge it.
+4. **Pick the role.** The role decision (RP — Reaction Point —
+   vs NP — Notification Point) is a deployment-shape
+   choice the user makes per-endpoint. The shipped
+   reference sample binary in DOCA 3.3 (`doca_spcx_cc`)
+   hard-codes `cfg.role = PCC_ROLE_RP` in `pcc.c` — it does
+   NOT register a `--role` CLI flag in
+   `pcc_core.c:register_pcc_params`. To run the NP role with the
+   shipped reference sample, the user either rebuilds the
+   sample with `cfg.role = PCC_ROLE_NP` or uses the public
+   DOCA SPCX-CC guide's documented method for the user's
+   installed version (`--help` first to confirm the actual
+   registered flag set on that DOCA release; do NOT quote a
+   `--role` flag the binary does not expose). The two endpoints
+   of the deployment must still agree on the role assignment;
+   quote the assignment back to the user so they can challenge it.
 5. **Pick the probe-packet format.** `--probe-packet-
    format` (e.g. CCMAD per the public default — re-
    confirm the exact token against `--help`). Both
@@ -205,9 +215,16 @@ parameter surface, and none should be invented.
 
 What the agent *does* modify, every time, is:
 
-1. The **tool invocation** — `--role`, `--probe-packet-
-   format`, thread count + core list, parameter set,
-   capture surface.
+1. The **tool invocation** — the registered argp flags (`--device`,
+   `--threads`, `--wait-time`, `--probe-packet-format`),
+   the algorithm-image path (`--app` or whatever the
+   public guide names on this DOCA release), and any
+   capture-surface flags the binary registers. The role
+   selection (RP vs NP) is hard-coded in the shipped
+   sample's `pcc.c` (`cfg.role = PCC_ROLE_RP`) on DOCA 3.3
+   and is NOT a runtime knob; switching role means
+   rebuilding the sample or following the public guide
+   for the user's installed version.
 2. The **DPA-side algorithm image** — the user-authored
    algorithm body (rebuilt via DPACC) or the shipped
    reference algorithm's parameter set
@@ -527,8 +544,8 @@ the agent should:
 
 | Purpose (class) | Invocation (shape) | Owning step | Reads as healthy when … |
 | --- | --- | --- | --- |
-| Discover the documented flag surface | `doca_spcx_cc --help` + the public DOCA SPCX page | [`## configure`](#configure); [`## debug`](#debug) layer 1 | Prints the documented inventory of `--device`, `--role`, `--probe-packet-format`, thread / core flags, algorithm-image flags, capture-surface flags. |
-| Smoke-load the algorithm in RP role | `doca_spcx_cc --device <mlx5_*> --role RP --probe-packet-format <token> --app <algorithm-image> ... ` | [`## run`](#run) step 4 | Host-side status reaches `Active`; the documented start banner prints; the per-port tracer surface begins emitting. |
+| Discover the documented flag surface | `doca_spcx_cc --help` + the public DOCA SPCX page | [`## configure`](#configure); [`## debug`](#debug) layer 1 | Prints the documented inventory the shipped binary actually registers via argp: `--device`, `--threads`, `--wait-time`, `--probe-packet-format`, plus algorithm-image / capture-surface flags. The role (RP vs NP) is hard-coded in the shipped sample's `pcc.c` (`cfg.role = PCC_ROLE_RP`) and is NOT registered as a CLI flag on this DOCA release; do not quote `--role` against `--help` output that does not list it. |
+| Smoke-load the algorithm in RP role | `doca_spcx_cc --device <mlx5_*> --probe-packet-format <token> --app <algorithm-image> ... ` (role defaults to RP per the shipped sample's hard-coded `cfg.role = PCC_ROLE_RP`; for NP, see `## configure` step 4 — rebuild or follow the public guide for that DOCA release) | [`## run`](#run) step 4 | Host-side status reaches `Active`; the documented start banner prints; the per-port tracer surface begins emitting. |
 | Drive the contention-positive evaluation | Smoke-load above + the planned contention pattern injected on the fabric | [`## run`](#run) steps 5–6; [`## test`](#test) iteration | The tracer surface shows the algorithm reacting to the contention; `doca-pcc-counters` snapshots show non-trivial PCC counter activity; `doca-rdma` metrics show the modulation the algorithm is designed for. |
 | Stop the algorithm cleanly | SIGINT / SIGTERM to the running session per the shipped sample's signal handling | [`## run`](#run) step 7 | Host-side status transitions to `Deactivated`; the post-stop fabric state matches the captured pre-flight baseline. |
 | Capture the evidence tuple | Pair the tool's tracer output with `doca-pcc-counters` snapshots, `doca-rdma` metrics, and the metadata tuple per [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability) | [`## test`](#test) baseline-capture rule; [`## use`](#use) gate | The full (DOCA + DPACC + BlueField + firmware + algorithm SHA + parameter set + role + probe-packet format + fabric topology + contention shape + window) tuple is attached to the captured artifact. |

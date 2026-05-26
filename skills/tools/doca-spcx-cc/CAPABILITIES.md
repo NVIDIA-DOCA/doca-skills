@@ -104,8 +104,8 @@ programming guide:
 
 | Role | What it is | When it is loaded |
 | --- | --- | --- |
-| Reaction Point (RP) | The role that REACTS to congestion signal by adjusting send rate. The host-side `doca_spcx_cc --role RP` (or the equivalent on the installed `--help`) loads the algorithm in RP mode. The default in the shipped sample is RP. | The standard custom-CC role; loaded on the side of the fabric that is *sourcing* the RDMA / RoCE traffic and that needs to be rate-adjusted. |
-| Notification Point (NP) | The role that GENERATES the congestion signal — typically the receive side or a switch ASIC. | When the SPCX algorithm needs a custom NP-side behaviour different from the documented factory behaviour. |
+| Reaction Point (RP) | The role that REACTS to congestion signal by adjusting send rate. On DOCA 3.3 the shipped reference sample `doca_spcx_cc` hard-codes `cfg.role = PCC_ROLE_RP` in its `pcc.c`; the binary does NOT register a runtime `--role` flag. The agent does NOT quote `--role RP` against the binary's `--help`; it loads RP by running the shipped binary as-is. | The standard custom-CC role; loaded on the side of the fabric that is *sourcing* the RDMA / RoCE traffic and that needs to be rate-adjusted. |
+| Notification Point (NP) | The role that GENERATES the congestion signal — typically the receive side or a switch ASIC. To run NP with the shipped reference sample, the user either rebuilds the sample with `cfg.role = PCC_ROLE_NP` or follows the public DOCA SPCX-CC guide's documented method for the user's installed version. The agent does NOT invent a runtime `--role` flag that the binary does not register. | When the SPCX algorithm needs a custom NP-side behaviour different from the documented factory behaviour. |
 
 The probe-packet format axis (`--probe-packet-format`)
 selects between the documented formats (CCMAD per the

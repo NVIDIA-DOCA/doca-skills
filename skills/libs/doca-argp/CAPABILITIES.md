@@ -26,7 +26,7 @@ examples shown.
 | 1. Reuse, do not rewrite | The user is modifying a shipped DOCA sample's CLI (adding / removing / renaming a flag) and is tempted to swap the Arg Parser for `getopt` / `argparse` / hand-rolled parsing | [`## Capabilities and modes`](#capabilities-and-modes) reuse rule + [TASKS.md ## modify](TASKS.md#modify) |
 | 2. Register before start | New params are registered against the Arg Parser instance BEFORE `doca_argp_start` parses argv; registering after parse is the most common first-app failure | [`## Capabilities and modes`](#capabilities-and-modes) lifecycle table + [TASKS.md ## configure](TASKS.md#configure) |
 | 3. Pick the parameter type | Choose from the small public set (string, int, bool flag, JSON config file); the type drives both argv validation and JSON-config validation | [`## Capabilities and modes`](#capabilities-and-modes) parameter-type table + [TASKS.md ## modify](TASKS.md#modify) |
-| 4. Inherit the standard CLI surface | Keep `--device`, `--representor`, `--rep-list`, `--json-config`, `--sdk-log-level` working the same way they do in the sibling samples; users learn one CLI for all of DOCA | [`## Capabilities and modes`](#capabilities-and-modes) standard-surface table + [TASKS.md ## modify](TASKS.md#modify) |
+| 4. Inherit the standard CLI surface | Keep `--device`, `--representor`, `--rep-list`, `--json` (`-j`), `--sdk-log-level` working the same way they do in the sibling samples; users learn one CLI for all of DOCA | [`## Capabilities and modes`](#capabilities-and-modes) standard-surface table + [TASKS.md ## modify](TASKS.md#modify) |
 | 5. Diagnose an Arg Parser error | Map symptom (`BAD_STATE`, `INVALID_VALUE`, `NOT_FOUND`, `IO_FAILED`) to root cause without leaving the Arg Parser layer prematurely | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 
 Two cross-cutting rules that apply to *every* pattern above:
@@ -40,7 +40,7 @@ Two cross-cutting rules that apply to *every* pattern above:
 - **The standard CLI surface is the user's mental model,
   not a stylistic preference.** When a user invokes any DOCA
   sample, they expect `--device`, `--representor` (or
-  `--rep-list`), `--json-config`, and `--sdk-log-level` to
+  `--rep-list`), `--json` (`-j`), and `--sdk-log-level` to
   behave the same way as in the sibling samples. Adding a flag
   on top of that surface is fine; replacing the surface breaks
   the cross-sample mental model and is a regression.
@@ -62,19 +62,26 @@ the public surface is closed.
 | --- | --- | --- | --- |
 | Init | `doca_argp_init(<program-name>, <user-config>)` | Creates the per-process Arg Parser instance; allocates the default standard-flag set | Must be the FIRST `doca_argp_*` call in the program |
 | Register | `doca_argp_param_create` → `doca_argp_param_set_*` (short name, long name, value-callback, description, type) → `doca_argp_register_param` | Adds one `doca_argp_param` to the instance for each app-specific flag | Must happen AFTER `doca_argp_init` and BEFORE `doca_argp_start`; registration after start is silently ignored or returns `BAD_STATE` |
-| Start (parse) | `doca_argp_start(argc, argv)` | Walks argv (and any `--json-config <path>` file), calls each matching param's value-callback with the parsed value, fails fast on the first invalid value | Runs ONCE per process; a second `_start` returns `BAD_STATE` |
+| Start (parse) | `doca_argp_start(argc, argv)` | Walks argv (and any `--json <path>` / `-j <path>` file), calls each matching param's value-callback with the parsed value, fails fast on the first invalid value | Runs ONCE per process; a second `_start` returns `BAD_STATE` |
 | Destroy | `doca_argp_destroy()` | Frees the per-process instance and every registered `doca_argp_param` | Should pair with `_init` on every exit path, including error paths |
 
-**Parameter types.** The small set the Arg Parser exposes
-publicly. Picking the right one is what makes argv validation
-and JSON-config validation Just Work.
+**Parameter types.** The full public `enum doca_argp_type` the Arg
+Parser exposes. Picking the right one is what makes argv
+validation and JSON-config validation Just Work. The enum has
+**six** real values (`DOCA_ARGP_TYPE_STRING`,
+`DOCA_ARGP_TYPE_INT`, `DOCA_ARGP_TYPE_BOOLEAN`,
+`DOCA_ARGP_TYPE_DEVICE`, `DOCA_ARGP_TYPE_DEVICE_REP`,
+`DOCA_ARGP_TYPE_DOUBLE`) — do not silently omit the latter three.
 
-| Type | Argv shape | JSON-config shape | Typical use |
+| Type (enum) | Argv shape | JSON shape | Typical use |
 | --- | --- | --- | --- |
-| String | `--my-flag VALUE` | `"my-flag": "VALUE"` | PCIe address (`--device 0000:03:00.0`), representor name (`--representor pf0vf0`), file paths |
-| Int | `--my-flag 1234` | `"my-flag": 1234` | Queue depth, message size cap, max-num-tasks |
-| Bool flag | `--my-flag` (presence sets true) | `"my-flag": true` | Enable a code path that is off by default |
-| JSON config file | `--json-config /path/to/file.json` | n/a (this IS the JSON file) | Drive any of the above from a file instead of expanding argv |
+| `DOCA_ARGP_TYPE_STRING` | `--my-flag VALUE` | `"my-flag": "VALUE"` | File paths, free-form strings |
+| `DOCA_ARGP_TYPE_INT` | `--my-flag 1234` | `"my-flag": 1234` | Queue depth, message size cap, max-num-tasks |
+| `DOCA_ARGP_TYPE_BOOLEAN` | `--my-flag` (presence sets true) | `"my-flag": true` | Enable a code path that is off by default |
+| `DOCA_ARGP_TYPE_DEVICE` | `--my-flag <PCI>` | `"my-flag": "<PCI>"` | A PCIe-address-bearing flag whose value the Arg Parser opens as a `doca_dev` for you (e.g. `--device 0000:03:00.0`) — preferred over hand-rolling the device open via `DOCA_ARGP_TYPE_STRING` |
+| `DOCA_ARGP_TYPE_DEVICE_REP` | `--my-flag <rep>` | `"my-flag": "<rep>"` | A representor-name-bearing flag whose value the Arg Parser opens as a `doca_dev_rep` for you (e.g. `--representor pf0vf0`) — DPU-side counterpart to `_TYPE_DEVICE` |
+| `DOCA_ARGP_TYPE_DOUBLE` | `--my-flag 12.5` | `"my-flag": 12.5` | Floating-point knobs (e.g. timeouts in seconds, fractional caps) |
+| JSON config file *(special, not a type)* | `--json /path/to/file.json` (or `-j`) | n/a (this IS the JSON file) | Drive any of the above from a file instead of expanding argv. The real flag is `--json` / `-j`, NOT `--json-config` — do not invent the longer name. |
 
 **The standard DOCA CLI surface.** Every shipped sample already
 registers these (via `doca_argp_init` and a small set of
@@ -86,16 +93,17 @@ Modifications must preserve this surface.
 | `--device <PCI>` | String (PCIe address, e.g. `0000:03:00.0`) | Which `doca_dev` the program opens |
 | `--representor <name>` | String (representor name, e.g. `pf0vf0`) | Which `doca_dev_rep` the DPU side opens (Comch and similar libraries) |
 | `--rep-list` | Bool flag | Print the visible representors and exit (DPU-side discovery) |
-| `--json-config <path>` | String (path to a JSON file) | Read parameter values from a JSON file instead of expanding argv |
+| `--json <path>` / `-j <path>` | String (path to a JSON file) | Read parameter values from a JSON file instead of expanding argv. The flag is registered as `--json` (`-j`) in `doca_argp.cpp::register_argp_param`; the bundle previously called this `--json-config`, which is not the real flag. |
 | `--sdk-log-level <level>` | String (one of the DOCA Log level names) | Set the SDK-side DOCA Log threshold for this run |
 
-**JSON-config integration.** The `--json-config <path>` flag is
-not optional cosmetic detail — shipped samples with non-trivial
-configurations expect operators to drive them from a file (the
-command line becomes unreadable past ~5 flags). The JSON keys
-match the registered long names; the JSON value types match the
-registered parameter types; an unknown JSON key fails with
-`DOCA_ERROR_NOT_FOUND` per
+**JSON-config integration.** The `--json <path>` flag (also
+short-form `-j <path>`; the long name is `--json`, NOT
+`--json-config`) is not optional cosmetic detail — shipped
+samples with non-trivial configurations expect operators to
+drive them from a file (the command line becomes unreadable
+past ~5 flags). The JSON keys match the registered long names;
+the JSON value types match the registered parameter types; an
+unknown JSON key fails with `DOCA_ERROR_NOT_FOUND` per
 [`## Error taxonomy`](#error-taxonomy).
 
 **Path selection — when doca-argp is the right answer.** This
@@ -105,8 +113,8 @@ before recommending the Arg Parser path.
 | Use doca-argp when … | Do not use doca-argp when … |
 | --- | --- |
 | Modifying a shipped DOCA sample's CLI (add / remove / rename a flag) — reusing the Arg Parser keeps the sample's CLI consistent with every sibling sample | The program never calls a `doca_*` symbol — there is no DOCA-side interaction to begin with, so a language-native CLI parser is the right answer (and avoids dragging in `libdoca-argp` for no benefit) |
-| Building a new DOCA-using app that wants operators to learn the standard `--device` / `--representor` / `--json-config` / `--sdk-log-level` CLI conventions instead of inventing a fresh one | The user genuinely needs a POSIX getopt feature the Arg Parser does not cover (e.g. optional-argument optional-value forms) — and is willing to accept the cost of breaking sample-CLI consistency for that specific need; even then, prefer layering doca-argp + the extra parser, not replacing it |
-| Driving a complex configuration from a JSON file (`--json-config <path>`) — the file format and key validation come for free | The CLI surface is interactive (REPL, prompt loop) — that is not what an arg parser is for; reach for a TUI / REPL library instead |
+| Building a new DOCA-using app that wants operators to learn the standard `--device` / `--representor` / `--json` (`-j`) / `--sdk-log-level` CLI conventions instead of inventing a fresh one | The user genuinely needs a POSIX getopt feature the Arg Parser does not cover (e.g. optional-argument optional-value forms) — and is willing to accept the cost of breaking sample-CLI consistency for that specific need; even then, prefer layering doca-argp + the extra parser, not replacing it |
+| Driving a complex configuration from a JSON file (`--json <path>` / `-j <path>`) — the file format and key validation come for free | The CLI surface is interactive (REPL, prompt loop) — that is not what an arg parser is for; reach for a TUI / REPL library instead |
 
 ## Version compatibility
 
@@ -158,7 +166,7 @@ cross-library response.
 | `DOCA_ERROR_BAD_STATE` | `doca_argp_register_param` after `doca_argp_start`; a second `doca_argp_start` in the same process; any `doca_argp_*` call after `doca_argp_destroy` | Lifecycle violation. Walk the lifecycle table in [`## Capabilities and modes`](#capabilities-and-modes); the most common case is the program registering an extra param inside the value-callback of another param (i.e. during `_start`, not before). |
 | `DOCA_ERROR_INVALID_VALUE` | `doca_argp_start` when an argv value (or JSON-config value) does not match the registered param's declared type | Type mismatch. Re-check the registered type vs. the value the user is passing (e.g. param declared as `int` but operator wrote `--my-flag 0x40`). The fix is on the declaration side OR the operator side, not a retry. |
 | `DOCA_ERROR_NOT_FOUND` | `doca_argp_start` when a JSON-config key is not the long name of any registered param | The JSON file references a flag the program never registered. Either the key is a typo, or the program is older than the JSON config it is being fed. Diff the registered long names against the JSON keys. |
-| `DOCA_ERROR_IO_FAILED` | `doca_argp_start` when `--json-config <path>` points at a file the process cannot open or read | File-system failure (missing path, wrong permission, JSON syntax error). Resolve at the OS layer (`ls -l <path>`; `cat <path> \| jq .`) before any code change. |
+| `DOCA_ERROR_IO_FAILED` | `doca_argp_start` when `--json <path>` (or `-j <path>`) points at a file the process cannot open or read | File-system failure (missing path, wrong permission, JSON syntax error). Resolve at the OS layer (`ls -l <path>`; `cat <path> \| jq .`) before any code change. |
 | `DOCA_ERROR_INVALID_VALUE` (operator-side, on `--help`) | `doca_argp_start` against argv containing an unknown long / short name | The operator passed a flag the program never registered. The fix is on the operator side; the program may surface its own `--help` listing all registered params via the per-param descriptions. |
 
 The agent's rule: **never recommend a retry loop on a
@@ -223,12 +231,13 @@ a stylistic preference:
 
 - **Cross-sample CLI consistency is a user contract.**
   Operators of DOCA samples carry mental models across
-  libraries (`--device`, `--representor`, `--json-config`,
+  libraries (`--device`, `--representor`, `--json` / `-j`,
   `--sdk-log-level` behave the same in every sample). A
   modified sample that silently breaks that contract becomes a
   trap for operators and a debugging time-sink that looks like
   a library bug.
-- **`--json-config <path>` is shared infrastructure.** Sample
+- **`--json <path>` (`-j <path>`) is shared infrastructure** (the
+  long name is `--json`, NOT `--json-config`). Sample
   CI, sample documentation, and operator runbooks all assume
   the JSON-config path works. A hand-rolled parser drops the
   JSON path silently; `--help` still looks right; the failure

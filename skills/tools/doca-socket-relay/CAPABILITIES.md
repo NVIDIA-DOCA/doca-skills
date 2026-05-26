@@ -26,7 +26,7 @@ DOCA install that ships the relay, not just one platform.
 | --- | --- | --- |
 | 1. Migrate a socket-based app onto the DOCA fabric | Use the relay to terminate the application's host-side socket locally and forward the bytes across the host ↔ DPU boundary, without rewriting the application against the DOCA programming surface | [`## Capabilities and modes`](#capabilities-and-modes) use-case framing + [TASKS.md ## configure](TASKS.md#configure) |
 | 2. Pick the deployment shape | Choose how the relay runs on the host ↔ DPU pair (in-process beside the app vs sidecar process / container vs service container on the BlueField) for the operator's environment | [`## Capabilities and modes`](#capabilities-and-modes) deployment-shape axis + [TASKS.md ## configure](TASKS.md#configure) step 2 |
-| 3. Configure the socket and the forwarding endpoint | Pick the socket type / protocol the host application speaks (TCP / UDP / UDS — class shape, not an exhaustive list) and the DPU-side terminator the relay forwards to | [`## Capabilities and modes`](#capabilities-and-modes) socket-type and forwarding-endpoint axes + [TASKS.md ## configure](TASKS.md#configure) steps 3-4 |
+| 3. Configure the socket and the forwarding endpoint | Point the relay at the host application's AF_UNIX (UDS) socket via `-s/--socket <path>` and select the DPU-side Comch service name via `-n/--cc-name` plus the DOCA device PCIe address (`-p/--pci-addr`, plus `-r/--rep-pci` on the DPU side). The shipped binary uses an AF_UNIX socket on the host side — no TCP / UDP framing; the relay's network leg is Comch, not raw IP. | [`## Capabilities and modes`](#capabilities-and-modes) socket-type and forwarding-endpoint axes + [TASKS.md ## configure](TASKS.md#configure) steps 3-4 |
 | 4. Smoke-before-bulk admit a fleet | Bind one relay endpoint, confirm one host application client connects, confirm one round-trip succeeds end-to-end, only then admit the rest of the fleet | [TASKS.md ## test](TASKS.md#test) eval loop + [`## Safety policy`](#safety-policy) data-path posture |
 | 5. Diagnose a stuck or silent relay | Map the symptom (host app cannot connect, bytes leave the host but never arrive, fleet works in test but breaks in production) to the right layer of the error taxonomy before any state-changing intervention | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 | 6. Pair the relay with its control-plane sibling | Use [`doca-comch`](../../libs/doca-comch/SKILL.md) to coordinate the relay's endpoints and lifecycle when the application owner needs programmatic control over which DPU-side terminator a host client is bridged to | [`## Observability`](#observability) cross-cutting pairing + [`SKILL.md ## Related skills`](SKILL.md#related-skills) |
@@ -81,14 +81,15 @@ flag back to the user.
 | Axis | What it picks | Why the agent must name it |
 | --- | --- | --- |
 | 1. Deployment shape | How and where the relay process runs — *in-process* (linked or co-resident next to the host application), *sidecar* (a separate process / container next to the application on the same host), or *container* (a service container on the BlueField via the documented kubelet-standalone runtime). | Each shape has a different precondition surface (host-OS permissions for in-process; lifecycle coupling for sidecar; image-pull + static-pod + per-service config mount per [`doca-container-deployment CAPABILITIES.md ## Capabilities and modes`](../../doca-container-deployment/CAPABILITIES.md#capabilities-and-modes) for the container shape). An answer that picks one shape without naming the alternatives has silently narrowed the relay to a single use case. |
-| 2. Socket type / protocol | Which socket family / protocol the host application speaks to its local peer — TCP, UDP, UDS, or whatever the public DOCA Socket Relay guide documents on the user's installed version. The CLASS is *socket-shape* (stream vs datagram, network vs filesystem-namespace). | Different socket types have different framing, error semantics, and connect / disconnect behavior. Treating the relay as protocol-agnostic and quoting one type's debug rules for another is a category error. The exact set of supported socket types on the user's installed version is a `--help` / public-guide lookup, not an agent-memory recall. |
+| 2. Socket type / protocol on the host leg | The shipped `doca_socket_relay` binary uses AF_UNIX (Unix Domain Sockets, SOCK_STREAM) on its host leg — the listener and acceptor threads in the shipped binary are all AF_UNIX, and the relay's `-s/--socket` argument is a filesystem path, not an IP/port pair. The DPU-network leg is the DOCA Comch transport (`-n/--cc-name` selects the named Comch service). If the public DOCA Socket Relay guide on the user's installed version adds TCP / UDP / etc. variants in a later release, the agent verifies that on the user's `--help` output before quoting any non-AF_UNIX behavior — it does not invent transport modes the shipped binary does not support. | Treating the relay as protocol-agnostic and quoting TCP / UDP debug rules against a UDS-only binary is a category error: framing, error semantics, file-descriptor permissions, and peer-credential propagation are AF_UNIX-shaped, not socket-API-generic. |
 | 3. Forwarding endpoint | Where on the DPU side the relay forwards traffic to — the DPU-side terminator (the relay's far half, a DPU-side service, or a documented service container on the BlueField that re-presents the bytes to the DPU peer). | This is the most consequential axis for safety: a *correct* host-side bind with a *wrong* forwarding endpoint produces a relay that the host application can connect to but whose bytes go to the wrong place (or nowhere). The agent's diagnosis ladder in [`## Error taxonomy`](#error-taxonomy) treats forwarding-endpoint misconfiguration as its own layer for that reason. |
 
-The three axes are **independent**; an in-process TCP-relay
+The three axes are **independent**; an in-process AF_UNIX relay
 forwarding to one DPU-side terminator and a service-container
-UDS-relay forwarding to another DPU-side terminator are two
-separate deployments and the agent must keep them separate when
-diagnosing.
+AF_UNIX relay forwarding to a different DPU-side terminator are
+two separate deployments and the agent must keep them separate
+when diagnosing. (Both legs are AF_UNIX-on-host + Comch-on-DPU
+per the shipped binary; the host leg is never TCP / UDP.)
 
 **Read-only operations vs state-changing operations.** Every
 relay operation falls into one of two functional families,
@@ -256,20 +257,23 @@ behavior, and the DPU-side terminator's behavior, read together.
 
 Three primary signals the agent should reach for:
 
-- **Relay-side state.** The relay's `--help`-documented inspection
-  surface — the canonical per-artifact introspection flag the
-  bundle's universal verification contract names for this tool is
-  **`--list-channels`** (see
-  [`AGENTS.md ## The universal verification contract`](../../../AGENTS.md))
-  — or, for the container deployment shape, the ENTRYPOINT log per
-  [`doca-container-deployment CAPABILITIES.md ## Observability`](../../doca-container-deployment/CAPABILITIES.md#observability),
-  reports whether the relay is bound, on which socket / port /
-  path, against which forwarding endpoint, with what current
-  connection set. Capture this verbatim before any
-  state-changing operation. Do NOT substitute related-but-different
-  names such as `list-connections` or `list-relays`; the documented
-  flag is `--list-channels` and is the one the bundle has cross-
-  validated against the public DOCA Socket Relay guide.
+- **Relay-side state.** The relay binary's observable surface — the
+  `doca_socket_relay` binary registers four operational params
+  (`-s/--socket`, `-n/--cc-name`, `-p/--pci-addr`, `-r/--rep-pci`)
+  via the standard DOCA argp surface (`--help`, `--json-config`,
+  `--sdk-log-level`, `--log-level` are inherited from DOCA argp),
+  and its visibility into "what is the relay actually doing" is
+  delivered via **DOCA logger output** (`DOCA_LOG_REGISTER`-driven
+  category `SOCKET_RELAY`) controlled by `--sdk-log-level` and
+  `DOCA_LOG_LEVEL`, NOT via a dedicated `--list-channels` /
+  `--list-connections` flag — those flags do NOT exist in the
+  shipped binary as of DOCA 3.3. For the container deployment shape,
+  ENTRYPOINT log per
+  [`doca-container-deployment CAPABILITIES.md ## Observability`](../../doca-container-deployment/CAPABILITIES.md#observability)
+  carries the same logger stream. The agent's discipline is: confirm
+  what the binary actually exposes via `--help` on the user's
+  installed version before quoting any inspection flag, and prefer
+  the logger stream as the always-available channel.
 - **Host-application-side observability.** The host application's
   own connect / send / recv error reporting (`errno`, log lines,
   `ss` / `netstat` output for the socket the application opened,

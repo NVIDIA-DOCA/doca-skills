@@ -1,23 +1,24 @@
 ---
 name: doca-argp
 description: >
-  Use this skill when the user is doing hands-on DOCA Arg Parser
-  CLI work on a shipped DOCA sample or new DOCA-using app — adding,
-  removing, or renaming a flag; wiring `doca_argp_init` → register
-  params → `doca_argp_start` → `doca_argp_destroy` in order;
-  picking a parameter type (string, int, bool flag, JSON config
-  file); preserving the standard `--device` / `--representor` /
-  `--json-config` / `--sdk-log-level` CLI surface; or debugging
+  Use this skill for hands-on DOCA Arg Parser CLI work on a
+  shipped sample or new DOCA-using app — adding / removing /
+  renaming flags; wiring `doca_argp_init` → register params →
+  `doca_argp_start` → `doca_argp_destroy` in order; picking a
+  parameter type from the full public enum
+  (`DOCA_ARGP_TYPE_STRING`, `_INT`, `_BOOLEAN`, `_DEVICE`,
+  `_DEVICE_REP`, `_DOUBLE` — six values, not three);
+  preserving the standard `--device` / `--representor` /
+  `--json` (`-j`; real flag is `--json`, NOT `--json-config`) /
+  `--sdk-log-level` surface; or debugging
   `DOCA_ERROR_BAD_STATE` / `INVALID_VALUE` / `NOT_FOUND` /
-  `IO_FAILED` from a `doca_argp_*` call. Trigger even when the
-  user does not say "DOCA Arg Parser" or "doca-argp" — typical
-  implicit phrasings include "add a custom flag to a DOCA sample",
-  "should I use getopt here", "BAD_STATE registering a new param",
-  "my JSON config key is rejected", "--my-flag value rejected as
-  invalid", or "my sample's --json-config is ignored". Refuse and
-  route elsewhere for variadic-flag / subcommand / shell-completion
-  features, DOCA Core context, or DOCA Log internals — those
-  belong to other skills.
+  `IO_FAILED` from `doca_argp_*`. Trigger on implicit
+  phrasings: "add a custom flag to a DOCA sample", "should I
+  use getopt here", "BAD_STATE registering a new param", "my
+  JSON config key is rejected", or "my sample's --json is
+  ignored". Refuse and route elsewhere for variadic-flag /
+  subcommand / shell-completion features, DOCA Core context,
+  or DOCA Log internals.
 metadata:
   kind: library
 compatibility: >
@@ -71,7 +72,7 @@ single instance.
 - **"Can I drive a sample from a JSON file instead of a long
   command line?"** — worked example: *"point a sample at
   `./my-config.json` so the operator does not have to type out
-  ten flags every time"*. Answered by the `--json-config <path>`
+  ten flags every time"*. Answered by the `--json <path>`
   integration in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the JSON-config-file workflow in
@@ -126,7 +127,7 @@ work, in any language. Concretely:
 - Adding, removing, or renaming a CLI flag on a shipped DOCA
   sample or on a new app that wants to share the standard DOCA
   CLI surface (`--device <PCI>`, `--representor <name>`,
-  `--rep-list`, `--json-config <path>`, `--sdk-log-level
+  `--rep-list`, `--json <path>`, `--sdk-log-level
   <level>`).
 - Wiring `doca_argp_init` / `doca_argp_start` /
   `doca_argp_destroy` into a `main()`, including the
@@ -137,7 +138,7 @@ work, in any language. Concretely:
   drawn from the small public set (string, int, bool flag, JSON
   config file).
 - Reading complex configurations from a JSON file via the shared
-  `--json-config <path>` flag instead of expanding the command
+  `--json <path>` flag instead of expanding the command
   line.
 - Confirming the build- and runtime-side Arg Parser version on
   the user's install (`pkg-config --exists doca-argp`,
@@ -164,7 +165,7 @@ Arg-Parser-specific material lives in two companion files:
 - `CAPABILITIES.md` — what the Arg Parser can express on this
   version: the param-registration model, the small set of
   public parameter types, the standard DOCA CLI surface every
-  sample shares, the `--json-config <path>` file integration,
+  sample shares, the `--json <path>` file integration,
   the register-before-start lifecycle, the Arg Parser error
   taxonomy (mapped onto the cross-library `DOCA_ERROR_*` set),
   the observability surface (the `--help` output and the
@@ -212,7 +213,7 @@ contain — and pull requests should not add:
 1. Read this `SKILL.md` first to confirm the user's question is
    in scope.
 2. **For the param-registration model, parameter types, the
-   standard DOCA CLI surface, the `--json-config <path>` rule,
+   standard DOCA CLI surface, the `--json <path>` rule,
    the register-before-start lifecycle, error taxonomy,
    observability, and the path-selection / safety policy, see
    [CAPABILITIES.md](CAPABILITIES.md).**

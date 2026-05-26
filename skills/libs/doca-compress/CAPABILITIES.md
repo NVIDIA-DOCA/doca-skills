@@ -91,8 +91,20 @@ agent's rule:
 - **Do NOT use doca-compress when** the input is tiny one-shot
   (e.g. 64-byte buffers — the per-call DMA-to-accelerator setup
   cost dominates; CPU compression with zlib / zstd is faster);
-  when the user needs an algorithm other than DEFLATE (use a CPU
-  compression library — DOCA Compress only exposes DEFLATE in its
+  when the user needs **outbound** compression in an algorithm
+  other than DEFLATE (use a CPU compression library — DOCA
+  Compress exposes ONLY DEFLATE on the compress / encode side).
+  However, DOCA Compress **does** support **LZ4 decompress** on
+  the inbound / decode side, via two distinct task families
+  (`doca_compress_task_decompress_lz4_stream` and
+  `doca_compress_task_decompress_lz4_block`), each with its own
+  `_cap_task_decompress_lz4_{stream,block}_is_supported(devinfo)`
+  + `_get_max_buf_size` + `_get_max_buf_list_len` queries (and
+  corresponding shipped samples under
+  `/opt/mellanox/doca/samples/doca_compress/`). Do NOT blanket-
+  refuse LZ4 — only outbound LZ4 encode is out of scope. The
+  rule of thumb is: DEFLATE both directions; LZ4 decompress
+  only; everything else (zstd / Snappy / brotli / …) → CPU.
   public task names); or when the user only wants to move bytes
   without encoding them (use [`doca-dma`](../doca-dma/SKILL.md) —
   pure mmap-to-mmap copy is DMA's job, not Compress's).
@@ -117,8 +129,10 @@ query against the active `doca_devinfo`:
 | --- | --- | --- |
 | Compress-deflate task supported | `doca_compress_cap_task_compress_deflate_is_supported(devinfo)` | The compress task is not on every device; some accelerators ship decompress-only. If false, the device cannot encode in hardware; the user must fall back to CPU compression or pick a different device. |
 | Decompress-deflate task supported | `doca_compress_cap_task_decompress_deflate_is_supported(devinfo)` | Symmetric to the above. Independent of the compress query; agent must not assume support for one implies the other. |
+| Decompress-lz4-stream task supported | `doca_compress_cap_task_decompress_lz4_stream_is_supported(devinfo)` | The hardware **does** decompress LZ4 stream-format payloads. Independent of the DEFLATE queries. The bundle previously refused this; the real surface is shipped. |
+| Decompress-lz4-block task supported | `doca_compress_cap_task_decompress_lz4_block_is_supported(devinfo)` | The hardware also decompresses LZ4 block-format payloads. Independent of the LZ4-stream query and the DEFLATE queries. |
 | Maximum source size, compress | `doca_compress_cap_task_compress_deflate_get_max_buf_size(devinfo)` | Device-bound ceiling on raw input size per compress submission. Inputs larger than this must be fragmented at the application layer; the library does not auto-chunk. |
-| Maximum source size, decompress | `doca_compress_cap_task_decompress_deflate_get_max_buf_size(devinfo)` | Device-bound ceiling on compressed input size per decompress submission. The decompressed output can be substantially larger than this; the destination buffer sizing is the application's responsibility. |
+| Maximum source size, decompress | `doca_compress_cap_task_decompress_deflate_get_max_buf_size(devinfo)`, `doca_compress_cap_task_decompress_lz4_stream_get_max_buf_size(devinfo)`, `doca_compress_cap_task_decompress_lz4_block_get_max_buf_size(devinfo)` (per algorithm) | Device-bound ceiling on compressed input size per decompress submission. The decompressed output can be substantially larger than this; the destination buffer sizing is the application's responsibility. |
 
 **Configuration shape.** *Mandatory* configurations before
 `doca_ctx_start()`: at least one task type enabled via
@@ -260,10 +274,16 @@ important:
   thumb: ≥ a few KiB, typically ≥ 4 KiB and upwards) *or*
   repeated, *or* the input is already pinned in `doca_mmap`
   memory because another DOCA library produced it.
-- **Non-DEFLATE algorithm.** The public task names commit
-  doca-compress to the DEFLATE algorithm (the same algorithm
+- **Non-DEFLATE / non-LZ4 algorithm.** The public task names
+  commit doca-compress to DEFLATE on the **encode** side
+  (`doca_compress_task_compress_deflate`) and to DEFLATE +
+  **LZ4 stream / LZ4 block** on the **decode** side
+  (`doca_compress_task_decompress_deflate`,
+  `doca_compress_task_decompress_lz4_stream`,
+  `doca_compress_task_decompress_lz4_block`). The same algorithm
   underlying zlib and gzip). If the user needs a different
-  algorithm (LZ4, zstd, Snappy, …), the answer is to use a CPU
+  algorithm (zstd, Snappy, brotli, …, or LZ4 on the **encode**
+  side), the answer is to use a CPU
   library that implements it, not to invent a DOCA workaround.
 - **Pure copy, no compression.** If the user only wants to move
   bytes between two `doca_mmap` regions without encoding them,

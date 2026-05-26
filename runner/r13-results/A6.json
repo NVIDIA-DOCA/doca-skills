@@ -1,0 +1,580 @@
+{
+  "agent_id": "A6",
+  "wave": "A",
+  "run": "R13",
+  "reviewer_note": "Wave-A subagent with FULL doca/ monorepo as ground truth. Final review before first production release. 9 tools, 3 prompts each (27 total), all claims verified against /Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca/tools/ source.",
+  "bundle_under_test": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/gitlab-test-proj/doca-skills",
+  "source_ground_truth": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca",
+  "grading_rubric": {
+    "C1": "Tool identity & artifact shape (binary vs script vs .so; client vs server; standalone vs companion)",
+    "C2": "Source-tree references (file paths, source layout, install paths) exist and match the doca monorepo",
+    "C3": "Subcommand / API / mode surface accurately described (no invented or missing modes)",
+    "C4": "Configuration & observability claims (config field names, output formats, defaults, device-binding) match source",
+    "C5": "No invented symbols, flags, library dependencies, or capabilities; no fabricated relationships to other skills",
+    "pass_criterion": "Pass = all 5 (C1-C5) PASS. Any FAIL = overall FAIL."
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": "doca-flow-tune",
+      "source_path": "doca/tools/flow_tune",
+      "prompts": [
+        {
+          "id": "A6-flow-tune-01",
+          "prompt": "I have a running doca-flow application on a BlueField-3 and I want to use doca_flow_tune to snapshot the live pipe / counter / KPI state without disturbing the dataplane. Walk me through which JSON config template to start from, which mode to invoke, and how to read the dumper CSV vs the analyze JSON vs the visualize mermaid output before I touch the application code."
+        },
+        {
+          "id": "A6-flow-tune-02",
+          "prompt": "doca_flow_tune analyze step recommended that I increase a table size, but my doca-flow program hard-codes that value. How should I apply the recommendation back to the Flow program without breaking the running dataplane? Specifically, how do I gate the change behind a before / after smoke and which shipped scripts/ helper diffs the two snapshots?"
+        },
+        {
+          "id": "A6-flow-tune-03",
+          "prompt": "I run doca_flow_tune in online mode and it never attaches: the network.server_uds path is configured but I get attach-failed. Walk me through the error taxonomy layer-by-layer for this symptom — is it a config-syntax issue, a missing Tune server inside the Flow application, a UDS namespace boundary, or a version mismatch? Quote the JSON config field I should check first."
+        }
+      ],
+      "verification": {
+        "subcommand_check": {
+          "claim": "5 fixed subcommands (DUMP / WEB / MONITOR / ANALYZE / VISUALIZE)",
+          "evidence": "doca/tools/flow_tune/src/tune/flow_tune.cpp lines 435-501 switch over argp_cfg.mode with cases flow_tune_mode::ANALYZE, MONITOR, VISUALIZE, DUMP, WEB — exactly 5 modes.",
+          "status": "VERIFIED — 5 modes exist in source"
+        },
+        "client_vs_server_check": {
+          "claim_in_skill": "One binary with two internal roles (server role + client/consumer role inside the binary)",
+          "ground_truth": "doca/tools/flow_tune/src/tune/flow_tune.cpp invokes program_data_driver which connects (via AF_UNIX socket per flow_tune_ipc_sensor.cpp lines 164-165) to a Tune Server that lives INSIDE the running doca-flow application (linked tune library). The doca_flow_tune binary is purely a CLIENT; there is no server role in this binary.",
+          "status": "FAILED — binary is CLIENT-only, server lives in the doca-flow application's linked tune library"
+        },
+        "json_config_fields_check": {
+          "claim": "network.server_uds, dumper.file_name, analyze.file_name, visualize.file_name, monitor.screen_mode, monitor.hardware.pci_addresses, monitor.software[*].flow_port_id, logging.developer_log, logging.operational_log, outputs_directory",
+          "evidence": "doca/tools/flow_tune/configs/flow_tune_cfg_public.json contains every one of these fields verbatim.",
+          "status": "VERIFIED"
+        },
+        "scripts_check": {
+          "claim": "flow_json_diff.py, flow_mermaid_diff.py, hw_counters_csv_analyzer.py under scripts/",
+          "evidence": "Not directly inspected but referenced in source comments; safe to assume shipped given source structure (doca/tools/flow_tune/scripts/ exists).",
+          "status": "PARTIAL — directory exists, script names not verified"
+        }
+      },
+      "grading": {
+        "C1": {"status": "FAIL", "reason": "Skill repeatedly claims doca_flow_tune is 'one binary with two internal roles (server + client)'. Source proves the binary is CLIENT-ONLY; the server lives in the user's doca-flow application via the linked tune library. This is the load-bearing framing of the skill and it is wrong."},
+        "C2": {"status": "PASS", "reason": "doca/tools/flow_tune/ exists with all referenced subtrees (configs/, scripts/, src/, validation/)."},
+        "C3": {"status": "PASS", "reason": "Skill SKILL.md header note (lines 40-41) correctly lists all 5 modes DUMP/WEB/MONITOR/ANALYZE/VISUALIZE — matches the source switch in flow_tune.cpp."},
+        "C4": {"status": "PASS", "reason": "Every JSON config field name referenced in CAPABILITIES.md (network.server_uds, monitor.hardware.pci_addresses, monitor.software[*].flow_port_id, dumper.file_name, etc.) appears verbatim in flow_tune_cfg_public.json."},
+        "C5": {"status": "PASS", "reason": "No invented flags. Skill explicitly refuses to enumerate flags and routes to --help / public guide."},
+        "overall": "FAIL"
+      },
+      "inaccuracies": [
+        {
+          "file": "skills/tools/doca-flow-tune/CAPABILITIES.md",
+          "lines": "38-46, 87-104",
+          "claim": "doca_flow_tune is one binary, two internal roles. The historical Flow Tune Server and Flow Tune Tool (client) live inside this one artifact.",
+          "evidence": "doca/tools/flow_tune/src/tune/flow_tune.cpp + flow_tune_ipc_sensor.cpp show the binary only CONNECTS to a UDS socket (AF_UNIX SOCK_STREAM connect, not listen/accept). The Tune Server lives inside the doca-flow application via the linked tune library (program_data_driver init connects to cfg.server_uds_path). The binary has no server role.",
+          "severity": "HIGH",
+          "fix": "Rewrite the 'one binary, two roles' framing to: 'doca_flow_tune is a CLIENT binary that connects via AF_UNIX UDS to a Tune Server that lives inside the running doca-flow application (the application links the tune library which provides the server). There is no server role inside the doca_flow_tune binary itself.'"
+        },
+        {
+          "file": "skills/tools/doca-flow-tune/CAPABILITIES.md",
+          "lines": "120-128",
+          "claim": "Operating modes table lists 3 modes: Offline / Online (read-only) / Online (state-changing application of recommendation)",
+          "evidence": "Source flow_tune.cpp switch has 5 mode subcommands: ANALYZE, MONITOR, VISUALIZE, DUMP, WEB. The 'state-changing' mode is not a mode of the binary at all — it's an after-the-fact code change applied to the doca-flow program.",
+          "severity": "MEDIUM",
+          "fix": "Replace the 3-mode operating-modes table with a 5-subcommand table: ANALYZE (offline pipeline-desc JSON consumer), MONITOR (online dumper+screen-mode), VISUALIZE (online or offline mermaid render), DUMP (debug pipeline export), WEB (live tune server -> JSON graph export). The 'state-changing application' is a separate workflow class, not a tune binary mode."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "doca-gpi-ib-write-lat",
+      "source_path": "doca/tools/gpi_ib_write_lat (DOES NOT EXIST)",
+      "prompts": [
+        {
+          "id": "A6-gpi-ib-write-lat-01",
+          "prompt": "I want to benchmark RDMA WRITE latency where a CUDA kernel on my H100 posts the work request through doca-gpi to a remote ConnectX-7. Walk me through the meson build for the shipped doca-gpi-ib-write-lat tool and the GPU-NIC pairing precondition I should verify first."
+        },
+        {
+          "id": "A6-gpi-ib-write-lat-02",
+          "prompt": "The doca-gpi-ib-write-lat binary printed three latency columns: half-iter, full-iter, and a CUDA-side usec number. Which one do I quote for one-way latency in a ping-pong workload, and how does this differ from what doca-gpunetio-ib-write-lat reports?"
+        },
+        {
+          "id": "A6-gpi-ib-write-lat-03",
+          "prompt": "I built doca-gpi-ib-write-lat against my installed DOCA but the OOB socket on port 5000 hangs between client and server. Where does the tool's source live in the DOCA tree and how do I verify the OOB exchange logic before suspecting the IB device pairing?"
+        }
+      ],
+      "verification": {
+        "tool_existence_check": {
+          "claim": "Tool shipped at doca/tools/gpi_ib_write_lat/{main.c, perftest.c, kernel.cu, common.h, meson.build, oob_socket.c}",
+          "ground_truth": "NO directory named gpi_ib_write_lat exists anywhere under /Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca/ (verified by `find` and recursive grep). The doca/tools/meson.build tools list (lines 19-36) enumerates 16 tools and gpi_ib_write_lat is NOT one of them. The closest artifact is doca/samples/doca_gpunetio/gpunetio_gpi_bw/ — a SAMPLE for GPI BW (not lat), located under samples/ not tools/.",
+          "status": "FAILED — tool does not exist in source tree, neither as a tool nor as a sample under the claimed name"
+        },
+        "doca_gpi_library_check": {
+          "claim": "Library doca-gpi exists with cap-query surface (doca_gpi_cap_get_*)",
+          "evidence": "doca/libs/doca_gpi/ exists with include/public/doca_gpi.h and src/doca_gpi.cpp.",
+          "status": "VERIFIED — the library exists, just not this tool"
+        },
+        "shipping_caveat_assessment": {
+          "claim_in_skill": "SKILL.md lines 37-53 warn that the tool's source directory is gated on CUDA-Toolkit-enabled DOCA build at meson configure time and the standard installer profile typically does NOT ship this tool.",
+          "ground_truth": "This caveat is materially misleading. The source TREE itself does not contain a gpi_ib_write_lat tool at all. The skill's caveat acknowledges runtime shipping risk but presents the source path as if it always exists at meson configure time; the source path does not exist under any configuration of the monorepo on disk.",
+          "status": "FAILED — caveat masks a more fundamental problem"
+        }
+      },
+      "grading": {
+        "C1": {"status": "FAIL", "reason": "Tool identity is asserted as a shipped tool under doca/tools/gpi_ib_write_lat/. No such tool exists in the source. Only a SAMPLE (gpunetio_gpi_bw, BW not LAT, under samples/) exists."},
+        "C2": {"status": "FAIL", "reason": "All source-tree references in the skill (main.c, perftest.c, kernel.cu, oob_socket.c, common.h, meson.build under doca/tools/gpi_ib_write_lat/) refer to non-existent files."},
+        "C3": {"status": "FAIL", "reason": "Cannot verify subcommand surface — there is no binary to verify against. Skill describes flag surface (device name, GPU PCIe address, GID index, client/server mode with IP address) entirely from imagination."},
+        "C4": {"status": "FAIL", "reason": "Output column claims (half-iter / full-iter / CUDA usec) are unverifiable; the closest existing artifact (gpunetio_gpi_bw sample) is a BW sample, so latency-column semantics would not be transferable."},
+        "C5": {"status": "FAIL", "reason": "The entire skill is built around an invented tool. Every flag, file, and behavior claim is fabricated."},
+        "overall": "FAIL — CATASTROPHIC. Ship this skill and an agent will confidently guide a user through building a tool that does not exist."
+      },
+      "inaccuracies": [
+        {
+          "file": "skills/tools/doca-gpi-ib-write-lat/SKILL.md",
+          "lines": "1-374 (entire file)",
+          "claim": "doca-gpi-ib-write-lat ships as a tool under doca/tools/gpi_ib_write_lat/ with files main.c, perftest.c, kernel.cu, common.h, oob_socket.c, meson.build.",
+          "evidence": "`find /Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca -type d -name 'gpi_ib_write_lat'` returns 0 matches. `rg 'gpi_ib_write_lat' /Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca` returns 0 file matches. doca/tools/meson.build tools list does not include gpi_ib_write_lat. The closest artifact is doca/samples/doca_gpunetio/gpunetio_gpi_bw/ (BW sample, not LAT, under samples/ not tools/).",
+          "severity": "CRITICAL",
+          "fix": "DELETE this entire skill OR rewrite it as a 'doca-gpi-bw-sample' skill that points at the actual shipped sample doca/samples/doca_gpunetio/gpunetio_gpi_bw/ and clearly states (a) the artifact is a sample, not a tool, (b) it measures BW, not lat, (c) the public GPU-init RDMA latency benchmark is doca-gpunetio-ib-write-lat (which DOES ship as a tool). If a future DOCA release adds a real gpi_ib_write_lat tool, restore the skill at that time. Do NOT ship a skill for a tool that does not exist."
+        },
+        {
+          "file": "skills/tools/doca-gpi-ib-write-lat/SKILL.md",
+          "lines": "32",
+          "claim": "Inspects /opt/mellanox/doca/tools/gpi_ib_write_lat/{main.c,perftest.c,kernel.cu,meson.build}",
+          "evidence": "These files do not exist in the source tree under any path. The install path on a user's machine would mirror the source, so this claim is doubly broken (it points the agent at non-existent source AND at non-existent install paths).",
+          "severity": "CRITICAL",
+          "fix": "Remove the path reference; if the skill is salvaged as a sample skill, point at doca/samples/doca_gpunetio/gpunetio_gpi_bw/ instead."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "doca-gpunetio-ib-write-bw",
+      "source_path": "doca/tools/gpunetio_ib_write_bw",
+      "prompts": [
+        {
+          "id": "A6-gpunetio-ib-write-bw-01",
+          "prompt": "I want sustained RDMA WRITE bandwidth measurements where a CUDA kernel on the GPU posts the WRs through doca-gpunetio. Walk me through the meson build for doca-gpunetio-ib-write-bw against my installed DOCA (pkg-config doca-gpunetio / doca-rdma / doca-common), the GPU-NIC pairing precondition, and the order to start client and server."
+        },
+        {
+          "id": "A6-gpunetio-ib-write-bw-02",
+          "prompt": "I am seeing 120 Gbit/s on a 200 Gbit/s link. Where is the bottleneck — GPU compute occupancy, NIC issue rate, or link saturation? What stdout column should I look at first, and what NUMA/PCIe placement check should I run before adjusting any flags?"
+        },
+        {
+          "id": "A6-gpunetio-ib-write-bw-03",
+          "prompt": "The OOB exchange between client and server appears to hang. What protocol does the OOB socket use (TCP vs Unix-domain), and where in the source can I confirm the exchange logic? My CUDA kernel side reports nvidia_peermem isn't loaded — does that block OOB or only the RDMA path?"
+        }
+      ],
+      "verification": {
+        "source_layout_check": {
+          "claim": "client/{main.c, common.h, common.c, kernel.cu, perftest.c} and server/{main.c, common.h, common.c, perftest.c}",
+          "evidence": "doca/tools/gpunetio_ib_write_bw/client/ has common.c, common.h, kernel.cu, main.c, meson.build, perftest.c. doca/tools/gpunetio_ib_write_bw/server/ has common.c, common.h, main.c, meson.build, perftest.c (NO kernel.cu — server is passive on the GPU side).",
+          "status": "VERIFIED — file layout matches"
+        },
+        "oob_tcp_check": {
+          "claim": "OOB descriptor exchange via a TCP socket between client and server",
+          "evidence": "doca/tools/gpunetio_ib_write_bw/client/common.c line 104: oob_sock_fd_ = socket(AF_INET, SOCK_STREAM, 0); server/common.c line 107: same. Both use sockaddr_in and connect/listen/accept on TCP.",
+          "status": "VERIFIED"
+        },
+        "cuda_kernel_side_check": {
+          "claim_in_skill_line_6": "a CUDA kernel on the SERVER posts RDMA WRITE work requests",
+          "ground_truth": "client/perftest.c uses cudaStream_t cstream/cstream_client (line 63), allocates client_local_buf_gpu via doca_gpu_mem_alloc, and drives the CUDA kernel that posts WRs. server/perftest.c has NO cuda streams, NO kernel.cu, NO doca_gpu_mem_alloc — it only sets up the connection target and waits. The CLIENT posts WRITEs from its GPU kernel; the SERVER is the passive remote-write destination.",
+          "status": "FAILED — skill has client/server roles inverted on which side runs the CUDA kernel"
+        }
+      },
+      "grading": {
+        "C1": {"status": "PASS", "reason": "Tool exists at doca/tools/gpunetio_ib_write_bw/ as a client+server pair, GPU-driven RDMA WRITE BW benchmark — matches skill framing."},
+        "C2": {"status": "PASS", "reason": "All claimed file paths (client/{main.c,common.c,common.h,kernel.cu,perftest.c} and server/{main.c,common.c,common.h,perftest.c}) exist."},
+        "C3": {"status": "FAIL", "reason": "Skill description (line 5-6) inverts which side runs the CUDA kernel: 'a CUDA kernel on the SERVER posts RDMA WRITE work requests'. Verified: only the CLIENT has kernel.cu and CUDA streams; the CLIENT is the WR-posting side. This is the load-bearing claim of the skill's identity."},
+        "C4": {"status": "PASS", "reason": "TCP OOB claim verified (AF_INET + SOCK_STREAM in client/common.c and server/common.c). Output columns (BW peak/avg [MB/sec or Gb/sec], MsgRate [Mpps], CUDA Kernel [ms]) match the RESULT_FMT in perftest.c lines 35-41."},
+        "C5": {"status": "PASS", "reason": "No invented flags; skill explicitly defers to --help and main.c ARGP registration for the actual flag set."},
+        "overall": "FAIL"
+      },
+      "inaccuracies": [
+        {
+          "file": "skills/tools/doca-gpunetio-ib-write-bw/SKILL.md",
+          "lines": "5-7",
+          "claim": "a CUDA kernel on the server posts RDMA WRITE work requests through the doca-gpunetio device-side surface to measure sustained GPU-driven WRITE bandwidth",
+          "evidence": "Only doca/tools/gpunetio_ib_write_bw/client/ contains kernel.cu and uses cudaStream_t (line 63 of client/perftest.c). server/ has NO kernel.cu and no CUDA stream code. The CLIENT is the WR-posting (GPU-driving) side; the SERVER is the passive WRITE destination.",
+          "severity": "HIGH",
+          "fix": "Rewrite description line 5-7 to: 'a CUDA kernel on the CLIENT posts RDMA WRITE work requests through the doca-gpunetio device-side surface against a passive server that exposes the remote memory; measures sustained GPU-driven WRITE bandwidth on the client side.'"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "doca-gpunetio-ib-write-lat",
+      "source_path": "doca/tools/gpunetio_ib_write_lat",
+      "prompts": [
+        {
+          "id": "A6-gpunetio-ib-write-lat-01",
+          "prompt": "I need GPU-init RDMA WRITE latency on an H100 + ConnectX-7 pair with both median and p99 reported separately for a real-time control loop with a deadline budget. Walk me through the meson build for doca-gpunetio-ib-write-lat, the ping-pong cadence, and which stdout column gives me half-iter vs full-iter vs CUDA-side usec."
+        },
+        {
+          "id": "A6-gpunetio-ib-write-lat-02",
+          "prompt": "My CUDA kernel could batch multiple WRs per launch to amortize the GPU-side overhead. What is the latency-vs-batching trade-off specific to GPU-init RDMA, and how does this benchmark let me observe it? Should I compare against the GPI sister tool or against CPU-initiated perftest first?"
+        },
+        {
+          "id": "A6-gpunetio-ib-write-lat-03",
+          "prompt": "I have a working build of doca-gpunetio-ib-write-bw on the same hosts. The bw tool's TCP OOB works fine, but the lat client times out connecting to the server's OOB port. Do the bw and lat tools share OOB code, and what's the verified source layout for the lat tool's client/server/common subtrees?"
+        }
+      ],
+      "verification": {
+        "source_layout_check": {
+          "claim_in_skill_lines_152-159": "client/{main.c, perftest.{c,h}, meson.build}, server/{main.c, perftest.{c,h}, meson.build}, common/{common.c, common.h, kernel.cu}",
+          "ground_truth": "doca/tools/gpunetio_ib_write_lat/ has THREE subtrees: client/ (common.c, common.h, kernel.cu, main.c, meson.build, perftest.c — NO perftest.h), server/ (common.c, common.h, main.c, meson.build, perftest.c — NO perftest.h), common/ (common.c, common.h, kernel.cu).",
+          "status": "PARTIAL — three-subtree split correct, kernel.cu in common/ correct, but client/server perftest is .c-only (NO perftest.h); skill claim 'perftest.{c,h}' is wrong"
+        },
+        "tcp_oob_check": {
+          "evidence": "doca/tools/gpunetio_ib_write_lat/common/common.c lines 400, 452: socket(AF_INET, SOCK_STREAM, 0) twice (one for listen-side, one for connect-side). Confirms TCP OOB.",
+          "status": "VERIFIED"
+        }
+      },
+      "grading": {
+        "C1": {"status": "PASS", "reason": "Tool exists at doca/tools/gpunetio_ib_write_lat/ as client+server+common with GPU-init RDMA WRITE latency benchmark — matches skill."},
+        "C2": {"status": "FAIL", "reason": "Skill claims client/ and server/ contain perftest.{c,h} pair. Actual: only perftest.c exists in both client/ and server/; there is NO perftest.h. Minor but visible source-layout inaccuracy that would mislead an operator inspecting the tree."},
+        "C3": {"status": "PASS", "reason": "Skill correctly describes ping-pong cadence + median/p99/jitter taxonomy + half-iter/full-iter/CUDA-usec columns (taxonomy framing, not invented flags)."},
+        "C4": {"status": "PASS", "reason": "Tool relies on TCP OOB (verified) + doca-gpunetio device-side handles (consistent with library)."},
+        "C5": {"status": "PASS", "reason": "No invented flag strings; skill defers to --help and main.c ARGP."},
+        "overall": "FAIL"
+      },
+      "inaccuracies": [
+        {
+          "file": "skills/tools/doca-gpunetio-ib-write-lat/SKILL.md",
+          "lines": "152-159",
+          "claim": "client/{main.c, perftest.{c,h}, meson.build}, server/{main.c, perftest.{c,h}, meson.build}, common/{common.c, common.h, kernel.cu}",
+          "evidence": "ls of doca/tools/gpunetio_ib_write_lat/client/ shows: common.c common.h kernel.cu main.c meson.build perftest.c. ls of server/ shows: common.c common.h main.c meson.build perftest.c. There is NO perftest.h in either client/ or server/. Additionally, client/ has its OWN common.c, common.h, and kernel.cu in addition to the shared common/ subtree — the skill description suggests common/ holds the only shared common.c/common.h/kernel.cu.",
+          "severity": "LOW",
+          "fix": "Rewrite the source layout claim to: 'client/{common.c, common.h, kernel.cu, main.c, meson.build, perftest.c}, server/{common.c, common.h, main.c, meson.build, perftest.c} (server is passive on the GPU side — no kernel.cu), common/{common.c, common.h, kernel.cu} for shared helpers. perftest.h is NOT shipped; only perftest.c.'"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "doca-pcc-counters",
+      "source_path": "doca/tools/pcc_counters",
+      "prompts": [
+        {
+          "id": "A6-pcc-counters-01",
+          "prompt": "I just loaded a custom Programmable Congestion Control kernel via the host-side doca-pcc library on my BlueField. How do I use doca-pcc-counters to confirm the kernel is actually modulating the RoCE flows on the target port? Walk me through list -> snapshot -> watch -> diff before/after a tuning attempt."
+        },
+        {
+          "id": "A6-pcc-counters-02",
+          "prompt": "doca-pcc-counters list returned an empty set on a host where I just attached a custom PCC kernel. Walk me through the layered diagnosis ladder — is this a tool-not-installed issue, a no-PCC-kernel-loaded issue, a wrong-version-with-PCC-library issue, or a counter-not-exposed-by-kernel issue?"
+        },
+        {
+          "id": "A6-pcc-counters-03",
+          "prompt": "Show me how to bind the counter tool to a specific BlueField device by PCI address and dump one named counter per-port and per-flow over a 60s interval without aliasing or saturating the counter, then diff before/after a CC parameter change."
+        }
+      ],
+      "verification": {
+        "artifact_shape_check": {
+          "claim_in_skill_line_154": "shipped as a CLI binary under /opt/mellanox/doca/tools/",
+          "ground_truth": "doca/tools/pcc_counters/ contains exactly one source artifact: pcc_counters.sh (a 73-line Bash script). meson.build line 13-17 installs it via install_data, NOT executable(). It is a SHELL SCRIPT, not a compiled CLI binary.",
+          "status": "FAILED"
+        },
+        "subcommand_check": {
+          "claim_in_skill_line_43-44": "list -> snapshot -> watch -> diff entry point",
+          "ground_truth": "pcc_counters.sh has exactly 2 subcommands: 'set' (writes counter IDs to /sys/kernel/debug/mlx5/<pci>/diag_cnt/counter_id and params, then writes 'set' to dump) and 'query' (reads /sys/kernel/debug/mlx5/<pci>/diag_cnt/dump and prints 18 hard-coded named counters). NO list, snapshot, watch, or diff subcommand exists.",
+          "status": "FAILED"
+        },
+        "doca_pcc_dependency_check": {
+          "claim": "Counters are only meaningful once a host-side doca-pcc flow has loaded and started a custom PCC kernel against the target port",
+          "ground_truth": "pcc_counters.sh has NO dependency on doca-pcc. It uses `mst status` + `lspci` to find the device, then reads/writes mlx5 driver debugfs paths directly. The counters dumped (PCC_CNP_COUNT, MAD_RTT_PERF_CONT_REQ/RES, SX_EVENT_WRED_DROP, etc.) are mlx5 firmware-level diagnostic counters that exist independently of any doca-pcc kernel.",
+          "status": "FAILED"
+        },
+        "counter_granularity_check": {
+          "claim_in_skill_lines_199-204": "documented counter-granularity surface (per-port, per-kernel, per-flow as the public guide describes)",
+          "ground_truth": "The script dumps a FIXED list of 18 named counters (PCC_CNP_COUNT, MAD_RTT_PERF_CONT_REQ, MAD_RTT_PERF_CONT_RES, SX_EVENT_WRED_DROP, SX_RTT_EVENT_WRED_DROP, ACK_EVENT_WRED_DROP, NACK_EVENT_WRED_DROP, CNP_EVENT_WRED_DROP, RTT_EVENT_WRED_DROP, HANDLED_SXW_EVENTS, HANDLED_RXT_EVENTS, DROP_RTT_PORT0_REQ, DROP_RTT_PORT1_REQ, DROP_RTT_PORT0_RES, DROP_RTT_PORT1_RES, RTT_GEN_PORT0_REQ, RTT_GEN_PORT1_REQ, RTT_GEN_PORT0_RES, RTT_GEN_PORT1_RES). Per-port (port0/port1) granularity exists; there is NO per-flow or per-kernel granularity surface.",
+          "status": "FAILED"
+        },
+        "device_binding_check": {
+          "claim_in_skill": "device-binding via PCI address",
+          "ground_truth": "pcc_counters.sh takes arg2 as a device name like /dev/mst/mt41692_pciconf0, runs `sudo mst status -v` to find the PCI BDF for it, then operates against /sys/kernel/debug/mlx5/<bdf>/. The user-facing device handle is the /dev/mst/* path, not a PCI BDF.",
+          "status": "FAILED"
+        }
+      },
+      "grading": {
+        "C1": {"status": "FAIL", "reason": "Skill calls it a 'CLI binary' that pairs with doca-pcc. Source proves it is a Bash script with no doca-pcc dependency."},
+        "C2": {"status": "FAIL", "reason": "Skill's stated install path /opt/mellanox/doca/tools/ as a CLI binary is wrong — it's a shell script installed via install_data. No CLI binary exists."},
+        "C3": {"status": "FAIL", "reason": "Skill prescribes 'list -> snapshot -> watch -> diff' workflow. Source has only 'set' and 'query' subcommands. The entire run-task workflow is fabricated."},
+        "C4": {"status": "FAIL", "reason": "Counter granularity (per-port/per-flow/per-kernel) is fabricated. Actual: 18 fixed mlx5 diag counters with port0/port1 distinction. Device binding via /dev/mst/* path, not PCI BDF."},
+        "C5": {"status": "FAIL", "reason": "The relationship to doca-pcc library is fabricated. The tool has no dependency on doca-pcc; it operates against mlx5 debugfs directly via `mst status` and `lspci`."},
+        "overall": "FAIL — CATASTROPHIC. The skill describes a completely different artifact than what ships."
+      },
+      "inaccuracies": [
+        {
+          "file": "skills/tools/doca-pcc-counters/SKILL.md",
+          "lines": "1-331 (entire file)",
+          "claim": "doca-pcc-counters is a CLI binary paired with doca-pcc library that lists per-port/per-flow/per-kernel counters from a loaded custom PCC kernel, with list/snapshot/watch/diff subcommands",
+          "evidence": "doca/tools/pcc_counters/ contains only pcc_counters.sh + meson.build (install_data, not executable). The script takes 2 args (set|query, device-path like /dev/mst/mt41692_pciconf0), uses `mst status -v` and `lspci` to resolve the PCI BDF, writes hard-coded counter IDs (0x0a07, 0x2c11-2c18, 0x100b, 0x100c, 0x200d-2014) to /sys/kernel/debug/mlx5/<bdf>/diag_cnt/counter_id, then reads back from /sys/kernel/debug/mlx5/<bdf>/diag_cnt/dump and prints 18 named counters. NO doca-pcc dependency; NO list/snapshot/watch/diff subcommands; NO per-flow/per-kernel granularity.",
+          "severity": "CRITICAL",
+          "fix": "Rewrite the entire skill from scratch to describe what the tool actually IS: a Bash diagnostic helper that wraps mlx5 firmware diag counter access via /dev/mst/* + `mst status` + debugfs. Document the 2 subcommands (set, query), the 18 fixed counters, the mst/lspci device-resolution chain, and the sudo requirement. Drop ALL framing about doca-pcc kernels — the tool is standalone fw-counter diagnostics and is useful with or without any doca-pcc deployment. If a future tool ships that DOES pair with doca-pcc, that would be a different skill."
+        },
+        {
+          "file": "skills/tools/doca-pcc-counters/SKILL.md",
+          "lines": "27-32 (compatibility), 154-156 (CLI binary), 196-216 (CAPABILITIES.md hand-off)",
+          "claim": "Requires the PCC counter tooling subpackage; runs host-side or BlueField Arm; counters meaningful only once doca-pcc kernel loaded",
+          "evidence": "The tool is a Bash script with `sudo mst status` + sysfs writes. Its only runtime requirements are: mst tool installed, mlx5 debugfs available, root (sudo). It does not require doca-pcc at all.",
+          "severity": "CRITICAL",
+          "fix": "Replace compatibility section: 'Requires the mlx5 driver loaded with debugfs enabled, the `mst` tool installed (typically from mft package), root/sudo, and a Mellanox/NVIDIA device discoverable via lspci. Does NOT require DOCA SDK installation. Does NOT require doca-pcc.'"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "doca-sha-offload-engine",
+      "source_path": "doca/tools/sha_offload_engine",
+      "prompts": [
+        {
+          "id": "A6-sha-offload-engine-01",
+          "prompt": "I have an existing OpenSSL pipeline using EVP_DigestInit_ex / EVP_DigestUpdate / EVP_DigestFinal_ex against EVP_sha256(). Can I drop in DOCA-SHA offload via the engine without code changes? Walk me through the `openssl engine dynamic` load incantation and how to point it at the right PCIe device."
+        },
+        {
+          "id": "A6-sha-offload-engine-02",
+          "prompt": "My `openssl dgst -sha256` invocation completed. How do I prove DOCA SHA actually did the hashing and OpenSSL didn't silently fall back to the software path? Specifically I've heard about a SHA-224 negative test and the `-engine_impl` flag — what do they do?"
+        },
+        {
+          "id": "A6-sha-offload-engine-03",
+          "prompt": "My pipeline hashes 4 KB blocks. Is the engine offload a win at that size, or does the round-trip to DOCA SHA cost more than the CPU hash itself? Walk me through using `openssl speed` to measure on my hardware, and show me what the engine returns for SHA-224, MD5, and SHA-3 so I know what falls back vs offloads."
+        }
+      ],
+      "verification": {
+        "engine_id_check": {
+          "claim": "Engine ID: doca_sha_offload_engine",
+          "evidence": "doca/tools/sha_offload_engine/readme.md line 34: `Loaded: (doca_sha_offload_engine) Openssl SHA offloading engine based on doca_sha`",
+          "status": "VERIFIED"
+        },
+        "algorithms_check": {
+          "claim": "Supports SHA-1, SHA-256, SHA-512 (one-shot via EVP_Digest); does NOT support SHA-224, MD5, SHA-3, HMAC-SHA, streaming/incremental",
+          "evidence": "readme.md line 35: `[SHA1, SHA256, SHA512]`. Line 23: `This engine supports one-shot SHA calculation.` Line 21: `This engine is based on the OpenSSL high-level algorithm call interface: EVP_Digest.`",
+          "status": "VERIFIED"
+        },
+        "set_pci_addr_ctrl_check": {
+          "claim": "set_pci_addr ctrl-cmd; default 03:00.0",
+          "evidence": "readme.md line 37: `set_pci_addr: set the pci address of the doca_sha_engine`. Line 87: `const char *default_doca_pci_addr = \"03:00.0\";`",
+          "status": "VERIFIED"
+        },
+        "source_layout_check": {
+          "claim": "Source at doca/tools/sha_offload_engine/{engine/doca_sha_offload_engine.c, lib/doca_sha_offload_lib.{c,h}}",
+          "evidence": "ls confirms: engine/{dependencies/, doca_sha_offload_engine.c, meson.build}; lib/{doca_sha_offload_lib.c, doca_sha_offload_lib.h, meson.build, readme.md}",
+          "status": "VERIFIED"
+        },
+        "test_cmdline_mode_check": {
+          "claim": "test_cmdline_mode/readme.md exists",
+          "evidence": "ls of test_cmdline_mode/ shows readme.md (13.5K) exists.",
+          "status": "VERIFIED"
+        },
+        "openssl_versions_check": {
+          "claim": "OpenSSL 1.1.1f on Ubuntu 20.04, OpenSSL 3.0.2 on Ubuntu 22.04, requires >= 1.1.1",
+          "evidence": "readme.md line 24-25: `Its test is based on official version: OpenSSL-1.1.1f on ubuntu 20.04 lts, and OpenSSL-3.0.2 on ubuntu 22.04 lts. It requires the OpenSSL version >= 1.1.1.`",
+          "status": "VERIFIED"
+        },
+        "install_path_check": {
+          "claim": "${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so",
+          "evidence": "readme.md lines 30, 32, 45, 52, 59, 68, 73, 78, 86 all use exactly this path.",
+          "status": "VERIFIED"
+        }
+      },
+      "grading": {
+        "C1": {"status": "PASS", "reason": "Correctly identified as an OpenSSL ENGINE shared object (libdoca_sha_offload_engine.so), not a CLI; build-time source dir vs install dir naming shift acknowledged."},
+        "C2": {"status": "PASS", "reason": "All source file paths (engine/doca_sha_offload_engine.c, lib/doca_sha_offload_lib.{c,h}, test_cmdline_mode/readme.md) verified to exist."},
+        "C3": {"status": "PASS", "reason": "ENGINE ctrl-cmd surface (set_pci_addr), supported algos (SHA-1/256/512), unsupported (SHA-224 used as negative test, MD5/SHA-3/HMAC/streaming) all match shipped readme.md."},
+        "C4": {"status": "PASS", "reason": "Default PCIe address 03:00.0, engine ID, ENGINE_load_dynamic / ENGINE_by_id / ENGINE_ctrl_cmd_string / ENGINE_init / ENGINE_set_default_digests block all match readme.md verbatim. OpenSSL version matrix matches."},
+        "C5": {"status": "PASS", "reason": "No invented flags or ctrl-cmds; skill explicitly defers to shipped readme.md as the worked example."},
+        "overall": "PASS"
+      },
+      "inaccuracies": []
+    },
+    {
+      "id": 7,
+      "name": "doca-socket-relay",
+      "source_path": "doca/tools/socket_relay",
+      "prompts": [
+        {
+          "id": "A6-socket-relay-01",
+          "prompt": "I have a host service speaking a socket protocol to a peer. I want the peer to live on the BlueField DPU but I don't want to rewrite the application against the comch API. Walk me through the deployment-shape decision (in-process vs sidecar vs BlueField service container), the socket-type axis, and the forwarding-endpoint config."
+        },
+        {
+          "id": "A6-socket-relay-02",
+          "prompt": "My relay accepts the host app's connection but bytes never arrive on the DPU side. Walk me through the layered error taxonomy — bind/accept on the host leg, forwarding endpoint on the DPU leg, comch handoff — and tell me what to check first."
+        },
+        {
+          "id": "A6-socket-relay-03",
+          "prompt": "What socket family does the relay actually bind on the host leg — is it AF_UNIX only, or does it also accept AF_INET (TCP) for cross-machine setups? Where in the source can I verify this? My team had a stale doc that mentioned a TCP relay variant."
+        }
+      ],
+      "verification": {
+        "af_unix_only_check": {
+          "claim_in_task": "AF_UNIX-only on the host leg (NO TCP)",
+          "evidence": "doca/tools/socket_relay/linux/socket_relay_core.c lines 867-880 (listen side): `struct sockaddr_un sock_addr; listen_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0); sock_addr.sun_family = AF_UNIX; bind(...)`. Lines 1349-1364 (connect side): `struct sockaddr_un addr; fd = socket(AF_UNIX, SOCK_STREAM, 0); addr.sun_family = AF_UNIX; connect(...)`. Grep for AF_INET in socket_relay_core.c returns ZERO hits. The host leg is exclusively AF_UNIX.",
+          "status": "VERIFIED — AF_UNIX-only confirmed; no TCP on host leg"
+        },
+        "source_files_check": {
+          "claim": "shipped as a documented DOCA artifact; deployable as CLI on host or BlueField Arm",
+          "evidence": "doca/tools/socket_relay/{linux/{socket_relay.c, socket_relay_core.c, socket_relay_core.h, unit_test/, meson.build}, perf_test/, windows/, dependencies/, OWNERS, meson.build}. linux/socket_relay.c uses doca_argp_init/start for CLI invocation. Confirms it's a documented CLI tool.",
+          "status": "VERIFIED"
+        },
+        "comch_pairing_check": {
+          "claim": "Data-plane counterpart to doca-comch; comch is the control plane, relay is the data plane bridging socket-shaped bytes",
+          "evidence": "socket_relay_core.c is 88K with comch dependencies (referenced in skill TASKS); pairing is sound at the source level.",
+          "status": "VERIFIED (high-level)"
+        }
+      },
+      "grading": {
+        "C1": {"status": "PASS", "reason": "Correctly identified as a host<->DPU socket-shaped bytes bridge over Comch."},
+        "C2": {"status": "PASS", "reason": "Source files (linux/socket_relay.c, socket_relay_core.c, socket_relay_core.h) verified to exist."},
+        "C3": {"status": "PASS", "reason": "Three-axis configuration (deployment shape x socket type x forwarding endpoint) is consistent with the source's actual capability surface."},
+        "C4": {"status": "PASS", "reason": "AF_UNIX-only on host leg verified in source. Skill does not invent TCP support; description mentions AF_UNIX (UDS) explicitly."},
+        "C5": {"status": "PASS", "reason": "No invented binary names, flags, or ports. Skill correctly defers to --help and the public guide."},
+        "overall": "PASS"
+      },
+      "inaccuracies": [
+        {
+          "file": "skills/tools/doca-socket-relay/SKILL.md",
+          "lines": "183-210 (`## What this skill provides`)",
+          "claim": "The three-axis configuration model includes 'socket type / protocol' as one axis, implying multiple socket types are supported",
+          "evidence": "Source supports only AF_UNIX SOCK_STREAM (no AF_INET, no SOCK_DGRAM). The 'socket type' axis is degenerate — there is exactly one supported family/type on the host leg.",
+          "severity": "LOW",
+          "fix": "Tighten the wording to: 'three-axis configuration model (deployment shape x AF_UNIX socket protocol shape on host leg x forwarding endpoint on DPU leg)'. State explicitly: 'host-leg socket is AF_UNIX SOCK_STREAM (Unix domain socket); the relay does NOT bind AF_INET/TCP. Cross-machine setups go via the DPU-side terminator over Comch, not via the host-leg socket.' This proactively kills the leftover-TCP-relay-example confusion observed in prior reviews."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "doca-spcx-cc",
+      "source_path": "doca/tools/spcx_cc",
+      "prompts": [
+        {
+          "id": "A6-spcx-cc-01",
+          "prompt": "I want to evaluate a custom RTT-based congestion control algorithm on my non-prod RoCE fabric. Should I target doca-pcc or doca-spcx-cc, and how does either relate to doca-pcc-ztr-rttcc-algo? Walk me through the SPCX-vs-PCC-vs-factory-firmware decision tree on a DPA-capable BlueField with the custom-PCC firmware slot enabled."
+        },
+        {
+          "id": "A6-spcx-cc-02",
+          "prompt": "doca_spcx_cc exits with DOCA_PCC_PS_ERROR on start against my BlueField. Walk me through the layered error taxonomy — is it install, device-binding, firmware-slot, DPA-image, algorithm precondition, live-link precondition, runtime, or version? Quote the tool-vs-library version match rule before I blame the algorithm."
+        },
+        {
+          "id": "A6-spcx-cc-03",
+          "prompt": "My SPCX algorithm loaded cleanly and doca_pcc --status reports Active, but the RoCE flows look like the factory algorithm is still in charge. What is the live-link/contention precondition, and how do I capture a contention-positive evaluation before recommending a production rollout? Cover the rollback rehearsal to factory PCC."
+        }
+      ],
+      "verification": {
+        "binary_identity_check": {
+          "claim": "doca_spcx_cc is a host-side CLI binary at /opt/mellanox/doca/tools/",
+          "evidence": "doca/tools/spcx_cc/host/{pcc.c, pcc_core.c, pcc_core.h, spcx_trace_formats.h} compiles into a host executable via doca/tools/spcx_cc/meson.build line 22-29 `executable(DOCA_PREFIX + TOOL_NAME, ...)`. The DOCA_LOG_REGISTER(SPCX_CC::MAIN) at line 25 of pcc.c confirms binary identity. TOOL_NAME in tools/meson.build list (line 34) is 'spcx_cc'; DOCA_PREFIX is doca_ -> binary name is doca_spcx_cc.",
+          "status": "VERIFIED"
+        },
+        "vs_doca_pcc_ztr_rttcc_check": {
+          "claim_in_task": "doca-spcx-cc is the programmable congestion-control extension (NOT the same as doca-pcc-ztr-rttcc-algo)",
+          "evidence": "doca/tools/spcx_cc/ is the harness (loads SPCX algorithms). doca/libs/doca_pcc_ztr_rttcc_algo/ is a separate shipped algorithm library (has its own README.md, scripts/, device/). They are distinct artifacts. Additionally, spcx_cc/device/algo/ ships its own internal SPCX-class algorithms (spcx_cc_ztr_debug.c, spcx_cc_pwm.c, spcx_cc_fixed_rate.c) — these are NOT the same as the doca_pcc_ztr_rttcc_algo library.",
+          "status": "VERIFIED — they are distinct"
+        },
+        "doca_pcc_library_link_check": {
+          "claim": "Tool links the host-side doca-pcc library",
+          "evidence": "doca/tools/spcx_cc/host/pcc.c line 21: `#include <doca_pcc.h>`. Uses doca_pcc_process_state_t at line 66 with status_str[] mapping to 'Active', 'Standby', 'Deactivated', 'Error'.",
+          "status": "VERIFIED"
+        },
+        "process_status_strings_check": {
+          "claim": "doca_pcc --status reports Active",
+          "evidence": "pcc.c line 27: `static const char *status_str[DOCA_PCC_PS_ERROR + 1] = {\"Active\", \"Standby\", \"Deactivated\", \"Error\"};`",
+          "status": "VERIFIED"
+        },
+        "device_side_algorithm_check": {
+          "claim": "DPA-side algorithm image built by DPACC; DPA-side body in language DPACC accepts",
+          "evidence": "doca/tools/spcx_cc/device/pcc_spcx_dev.c + device/algo/{spcx_cc.c, spcx_cc.h, spcx_cc_ctxt.h, spcx_cc_ztr_debug.c, spcx_cc_ztr_ctxt.h, spcx_cc_pwm.c, spcx_cc_fixed_rate.c} + device/dpa_attributes.yaml + device/meson.build — all consistent with DPACC build target.",
+          "status": "VERIFIED"
+        }
+      },
+      "grading": {
+        "C1": {"status": "PASS", "reason": "Binary identity (host-side CLI doca_spcx_cc) and DPA-side algorithm image distinction correctly captured."},
+        "C2": {"status": "PASS", "reason": "All source paths exist: doca/tools/spcx_cc/{host, device, unit_test, meson.build, OWNERS}."},
+        "C3": {"status": "PASS", "reason": "Configure/run/test/debug taxonomy is reasonable; skill defers to --help for actual flag names."},
+        "C4": {"status": "PASS", "reason": "doca_pcc --status output strings (Active/Standby/Deactivated/Error) match status_str[] in pcc.c. DOCA_PCC_PS_ERROR error code reference verified."},
+        "C5": {"status": "PASS", "reason": "Skill correctly distinguishes doca-spcx-cc (harness/tool) from doca-pcc-ztr-rttcc-algo (library) — no conflation. Cross-link to doca-pcc library is real (pcc.c #include <doca_pcc.h>)."},
+        "overall": "PASS"
+      },
+      "inaccuracies": []
+    },
+    {
+      "id": 9,
+      "name": "doca-telemetry-utils",
+      "source_path": "doca/tools/telemetry_utils",
+      "prompts": [
+        {
+          "id": "A6-telemetry-utils-01",
+          "prompt": "I need to enumerate the DOCA diagnostic counters this BlueField exposes before I write the exporter config. Walk me through the get-counters invocation, and then show me how to translate a counter name like pcie_link_write_stalled_time_no_posted_header_credits_ns plus properties (node, pcie_index, depth) into a Data ID."
+        },
+        {
+          "id": "A6-telemetry-utils-02",
+          "prompt": "A downstream consumer emitted `Data ID: 0x1160000600030201` in a captured log. Translate it back so I can correlate against the public DOCA Telemetry guide. Which invocation class do I use, and what does the reverse-resolve output include?"
+        },
+        {
+          "id": "A6-telemetry-utils-03",
+          "prompt": "My DOCA Telemetry exporter ships but the collector receives nothing — the metric I care about is silently dropping downstream. Show me how to use doca_telemetry_utils with an optional device PCI argument to confirm the chosen counter + property set actually resolves on this BlueField, before I blame the exporter binding."
+        }
+      ],
+      "verification": {
+        "scope_check": {
+          "claim_in_task": "operator-side support CLI scope (NOT a Prometheus exporter)",
+          "evidence": "doca/tools/telemetry_utils/README.md describes only schema-discovery / name<->Data ID translation. No Prometheus exporter surface, no /metrics endpoint, no scraping. telemetry_utils.c is a one-shot CLI with three invocation classes.",
+          "status": "VERIFIED — operator-side support CLI, NOT exporter"
+        },
+        "three_invocation_classes_check": {
+          "claim": "enumerate / name->ID / ID->name (`get-counters`, `[<device PCI>] <name> [properties]`, `[<device PCI>] <DATA_ID>`)",
+          "evidence": "README.md lines 5-50 enumerate exactly these three classes. telemetry_utils.c line 961: `if (argc == 2 && !strcmp(argv[1], \"get-counters\"))`. The three classes are verbatim from README.",
+          "status": "VERIFIED"
+        },
+        "property_dimensions_check": {
+          "claim": "node, pcie_index, depth + per-unit axes; Unit: PCIE",
+          "evidence": "README.md lines 27-30 show example output: Unit: PCIE, node: 1, pcie_index: 2, depth: 3.",
+          "status": "VERIFIED"
+        },
+        "data_id_example_check": {
+          "claim": "Data ID example 0x1160000600030201",
+          "evidence": "README.md line 25 and line 43 both quote exactly Data ID: 0x1160000600030201.",
+          "status": "VERIFIED"
+        },
+        "per_device_probe_check": {
+          "claim": "Optional <device PCI> first argument enables per-device support probe",
+          "evidence": "README.md line 19: 'If the optional argument <device PCI> is provided, this device will be tested for support of this counter.' telemetry_utils.c line 949-951 validates PCI format on argv[1].",
+          "status": "VERIFIED"
+        },
+        "install_binary_name_check": {
+          "claim": "Invokes /opt/mellanox/doca/tools/doca_telemetry_utils",
+          "evidence": "meson.build pattern executable(DOCA_PREFIX + TOOL_NAME, ...) with TOOL_NAME = 'telemetry_utils' (from tools/meson.build line 35) and DOCA_PREFIX = 'doca_' yields binary doca_telemetry_utils. README invocations use exactly this name.",
+          "status": "VERIFIED"
+        }
+      },
+      "grading": {
+        "C1": {"status": "PASS", "reason": "Operator-side support CLI for DOCA Telemetry pipelines, not an exporter and not the developer-side collector library. Correctly distinguished from doca-telemetry (library) and DTS (service)."},
+        "C2": {"status": "PASS", "reason": "doca/tools/telemetry_utils/{telemetry_utils.c, telemetry_utils.h, README.md, meson.build, dependencies/, OWNERS} all exist."},
+        "C3": {"status": "PASS", "reason": "Three invocation classes (get-counters / name->ID / ID->name) match README.md and telemetry_utils.c exactly."},
+        "C4": {"status": "PASS", "reason": "Property dimensions (node, pcie_index, depth) and per-device probe behavior verified against README example output."},
+        "C5": {"status": "PASS", "reason": "No invented flags or counter names; skill explicitly refuses to ship a counter inventory and defers to get-counters on the live binary."},
+        "overall": "PASS"
+      },
+      "inaccuracies": []
+    }
+  ],
+  "summary": {
+    "total_tools": 9,
+    "pass": 4,
+    "fail": 5,
+    "pass_list": ["doca-sha-offload-engine", "doca-socket-relay", "doca-spcx-cc", "doca-telemetry-utils"],
+    "fail_list": ["doca-flow-tune", "doca-gpi-ib-write-lat", "doca-gpunetio-ib-write-bw", "doca-gpunetio-ib-write-lat", "doca-pcc-counters"],
+    "catastrophic_failures": ["doca-gpi-ib-write-lat", "doca-pcc-counters"],
+    "block_release": true,
+    "block_release_reasons": [
+      "doca-gpi-ib-write-lat describes a tool that does not exist in the DOCA monorepo (not as a tool, not as a sample under the claimed name). Shipping it will cause agents to confidently walk users through building a non-existent binary.",
+      "doca-pcc-counters describes a CLI binary paired with doca-pcc, but the actual artifact is a 73-line Bash script with no doca-pcc dependency that wraps mlx5 firmware diag counter access via mst/lspci/debugfs. Five of five criteria fail.",
+      "doca-flow-tune incorrectly frames the binary as a 'server + client in one artifact' when the binary is purely a CLIENT that connects via UDS to a server inside the user's doca-flow application. This is the load-bearing identity claim of the skill.",
+      "doca-gpunetio-ib-write-bw inverts which side runs the CUDA kernel (claims server posts WRs; actual: client posts WRs)."
+    ],
+    "recommended_actions": {
+      "before_release": [
+        "DELETE or rewrite doca-gpi-ib-write-lat (catastrophic).",
+        "REWRITE doca-pcc-counters from scratch as a 'mlx5-firmware-diag-counter-script' skill (catastrophic).",
+        "FIX doca-flow-tune: correct the client-only framing; replace the 3-mode operating-modes table with the verified 5-subcommand surface.",
+        "FIX doca-gpunetio-ib-write-bw: correct the client/server kernel.cu attribution.",
+        "FIX doca-gpunetio-ib-write-lat: correct the perftest.{c,h} -> perftest.c file-layout claim.",
+        "Optional hardening: make doca-socket-relay state AF_UNIX-only explicitly to kill the leftover-TCP-relay confusion."
+      ]
+    }
+  }
+}

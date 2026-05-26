@@ -189,7 +189,7 @@ guide once the user's question is narrow enough to be about a single library.
 | DOCA Arg Parser | <https://docs.nvidia.com/doca/sdk/DOCA-Arg-Parser/index.html> | Argument parser used by every shipped DOCA sample and reference application. Worth knowing when the user adapts a sample's CLI surface. Covered by the [`doca-argp`](../libs/doca-argp/SKILL.md) skill. |
 | DOCA Device Emulation (umbrella) | <https://docs.nvidia.com/doca/sdk/DOCA-Device-Emulation/index.html> | Umbrella for the device-emulation libraries (PCI Generic, virtio, virtio-fs). Start here if the user is building emulated PCIe devices on BlueField. Covered by the [`doca-devemu`](../libs/doca-devemu/SKILL.md) skill. |
 | DOCA MGMT | <https://docs.nvidia.com/doca/sdk/DOCA-Libraries/index.html> | Programmatic management of DOCA device state (library-side). Pairs with `doca-dms` (service-side). Covered by the [`doca-mgmt`](../libs/doca-mgmt/SKILL.md) skill. **No standalone SDK doc page in the public index today — use the umbrella above to discover.** |
-| DOCA RDMI | <https://docs.nvidia.com/doca/sdk/DOCA-Libraries/index.html> | Redfish Device Management Interface — Redfish-compliant device-management surface. Pairs with `doca-mgmt`. Covered by the [`doca-rdmi`](../libs/doca-rdmi/SKILL.md) skill. **No standalone SDK doc page in the public index today — use the umbrella above to discover.** |
+| DOCA RDMI | <https://docs.nvidia.com/doca/sdk/DOCA-Libraries/index.html> | DOCA RDMA Initiator — accelerator-initiated (host or DPA-kernel) one-sided RDMA flow surface; pairs with `doca-rdma` (the general RDMA library) and `doca-dpa` / `doca-verbs` for the DPA-kernel-initiated path. Covered by the [`doca-rdmi`](../libs/doca-rdmi/SKILL.md) skill. **No standalone SDK doc page in the public index today — use the umbrella above to discover.** |
 | DOCA Storage Applications | <https://docs.nvidia.com/doca/sdk/DOCA-Storage-Applications/index.html> | Index of DOCA's storage-focused reference applications (Comch-to-RDMA zero-copy, GGA offload, SBC generator, initiator, target). Use this entry when the user's question is *"how do I move storage I/O across the BlueField?"* before drilling into a specific app guide. Covered by the [`doca-sta`](../libs/doca-sta/SKILL.md) skill. |
 | DOCA Rivermax | <https://docs.nvidia.com/doca/sdk/DOCA-Rivermax/index.html> | DOCA's Rivermax integration (media / streaming workloads). Covered by the [`doca-rmax`](../libs/doca-rmax/SKILL.md) skill. |
 | DOCA STA | <https://docs.nvidia.com/doca/sdk/DOCA-STA/index.html> | Storage Transport Acceleration library. Covered by the [`doca-sta`](../libs/doca-sta/SKILL.md) skill. |
@@ -270,9 +270,9 @@ on the right one:
   authoritative public references are the **DOCA Programming
   Guide** (build, link, runtime preconditions:
   <https://docs.nvidia.com/doca/sdk/DOCA-Programming-Guide/index.html>),
-  the **DPU / BlueField User Manual** (PCIe topology, devlink,
-  representor naming, `mlxconfig` device introspection:
-  <https://docs.nvidia.com/doca/sdk/BlueField+and+DOCA+User+Types.md>), and
+  the **DPU / BlueField Platform Software Manual** (PCIe topology,
+  devlink, representor naming, `mlxconfig` device introspection:
+  <https://docs.nvidia.com/doca/sdk/bluefield-platform-software/index.html>), and
   the per-library guides listed below in this map.
 - The **front-door routing decision** between the two — *"which
   path applies to my workload?"* — is owned by
@@ -470,7 +470,7 @@ the user to share source code.
 | `/opt/mellanox/doca/samples` | One subdirectory per library, each containing a self-contained sample (typical files: `<library>_main.c`, `meson.build`). | The authoritative example for that library on the installed version. Read these before answering "show me a sample of X". |
 | `/opt/mellanox/doca/applications` | Full reference applications (e.g. `doca_pcc`, `doca_dpi`). | Larger, integrated examples. Inspect their `meson.build` to see how they declare DOCA dependencies. |
 | `/opt/mellanox/doca/tools` | Shipped CLIs (e.g. `doca_caps`, `doca_telemetry_exporter`). | Use them for runtime introspection before answering capability questions. |
-| `/opt/mellanox/doca/infrastructure` | Headers, libraries, and `pkg-config` files used to build against DOCA. | Inspect `*.pc` here to verify the exact Meson dependency name for a library (`doca-flow`, `doca-common`, etc.). |
+| `/opt/mellanox/doca/infrastructure` *(legacy / split-profile installs only)* OR `/opt/mellanox/doca/lib/<arch>-linux-gnu/` + `/opt/mellanox/doca/include/` *(default on DOCA 3.3+)* | Headers, libraries, and `pkg-config` files used to build against DOCA. The `infrastructure/` subtree is present in some legacy / split installer profiles; on most current DOCA 3.3+ installs the layout has flattened and `infrastructure/` may NOT exist. ALWAYS resolve via `pkg-config --variable=includedir doca-common` and `pkg-config --variable=libdir doca-common` rather than hard-coding either path. | Inspect `*.pc` to verify the exact Meson dependency name for a library (`doca-flow`, `doca-common`, etc.). |
 | `/opt/mellanox/doca/services` | Bundled services (DTS, telemetry agents, etc.). | Read service-specific README files inside each subdirectory before suggesting service-level changes. |
 
 Useful enumeration commands to suggest to the user (read-only, safe):
@@ -486,7 +486,8 @@ To build against DOCA from a user-owned directory, the canonical environment
 hint is to expose the DOCA `pkg-config` directory before running `meson setup`:
 
 ```bash
-export PKG_CONFIG_PATH="/opt/mellanox/doca/infrastructure/lib/pkgconfig:${PKG_CONFIG_PATH}"
+PCDIR="$(dirname "$(find /opt/mellanox/doca -name doca-common.pc -print -quit 2>/dev/null)")"
+export PKG_CONFIG_PATH="${PCDIR}:${PKG_CONFIG_PATH}"  # commonly /opt/mellanox/doca/lib/<arch>-linux-gnu/pkgconfig on DOCA 3.3+; or /opt/mellanox/doca/infrastructure/lib/pkgconfig on legacy / split-profile installs
 ```
 
 If `pkg-config --modversion doca-common` fails after that, treat it as a real
@@ -545,7 +546,7 @@ When the user asks something, route as follows:
 | "Which package gives me library X?" | Installation Guide section on package matrix; then verify on the user's system with `pkg-config --list-all`. |
 | "Show me a sample that uses library X." | `/opt/mellanox/doca/samples/doca_<X>/` if installed; otherwise the per-library guide on `docs.nvidia.com/doca/sdk/` (each library guide documents the samples shipped with it). |
 | "How do I build a DOCA sample?" | Library guide + the sample's own `meson.build` inside `/opt/mellanox/doca/samples/...`. |
-| "What is the API for X?" | Library guide; confirm by inspecting headers under `/opt/mellanox/doca/infrastructure/include`. |
+| "What is the API for X?" | Library guide; confirm by inspecting headers under `$(pkg-config --variable=includedir doca-common)` (commonly `/opt/mellanox/doca/include/` on DOCA 3.3+; `/opt/mellanox/doca/infrastructure/include/` on legacy / split-profile installs). |
 | "Why does my build fail with `pkg-config` not finding `doca-...`?" | "Layout of an installed DOCA package" section above (`PKG_CONFIG_PATH`), then Installation Guide. |
 | "What is the latest version / what changed?" | Release Notes. |
 | "What does the DOCA version number mean? Is LTS still supported?" | Compatibility Policy (Public documentation entry points table). |

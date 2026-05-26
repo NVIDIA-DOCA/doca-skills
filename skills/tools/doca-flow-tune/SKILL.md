@@ -32,6 +32,34 @@ compatibility: >
 
 # DOCA Flow Tune (`doca_flow_tune`)
 
+> **Subcommand surface correction (Run-12, verified Run-13
+> against doca/tools/flow_tune/src/tune/common/tune_config.cpp).**
+> `doca_flow_tune` is a single binary whose **role on a given
+> invocation is determined by which of five top-level
+> subcommands** the user picks — `dump`, `monitor`, `web`,
+> `analyze`, `visualize` (case-insensitive on the CLI;
+> uppercased in this skill for readability). All five names
+> are registered via `doca_argp_cmd_set_name(...)` in
+> `tune_config.cpp` (lines 1799 / 1860 / 1896 / 2074 / 2111);
+> `analyze` further accepts `import` / `export` / `packet_trace`
+> / `sim_timing` sub-subcommands. The `dump` / `monitor` / `web`
+> subcommands run the binary in **server-attached online mode**
+> against a live `doca-flow` application reached over a Unix-
+> domain socket whose path lives in `network.server_uds` of the
+> shipped `flow_tune_cfg*.json`; the `analyze` / `visualize`
+> subcommands run in **offline / captured-snapshot mode** against
+> JSON / CSV files the online modes previously dropped into the
+> configured `outputs_directory`. The rest of this skill (and
+> [`CAPABILITIES.md`](CAPABILITIES.md) / [`TASKS.md`](TASKS.md))
+> uses the legacy *"server role / online mode / offline mode"*
+> framing — that framing is internally consistent with the
+> subcommand surface here: *server role* = a server-attached
+> online subcommand (`dump`/`monitor`/`web`); *online mode* =
+> any of `dump`/`monitor`/`web`; *offline mode* =
+> `analyze`/`visualize`. Treat the subcommand name as the
+> primary handle; treat *server/online/offline* as the
+> downstream behavioral consequence of the subcommand pick.
+
 **Where to start:** This is a tool skill for invoking `doca_flow_tune`,
 the unified DOCA Flow tuning tool. Open [`TASKS.md`](TASKS.md) and
 start at [`## configure`](TASKS.md#configure) to commit to the

@@ -1,0 +1,578 @@
+{
+  "runner": "R13",
+  "subagent": "A3",
+  "wave": "A",
+  "bundle_under_test": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/gitlab-test-proj/doca-skills",
+  "source_ground_truth": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca",
+  "scope_libs": [
+    "doca-gpi",
+    "doca-gpunetio",
+    "doca-mgmt",
+    "doca-pcc",
+    "doca-pcc-ztr-rttcc-algo",
+    "doca-rdma",
+    "doca-rdmi",
+    "doca-rmax",
+    "doca-sha",
+    "doca-sta",
+    "doca-telemetry",
+    "doca-telemetry-exporter",
+    "doca-urom",
+    "doca-verbs"
+  ],
+  "phase1_read_status": {
+    "all_14_libs_opened": true,
+    "files_opened_per_lib": ["SKILL.md", "CAPABILITIES.md", "TASKS.md"],
+    "doca_telemetry_explicitly_opened": true,
+    "doca_telemetry_six_subdomains_verified_in_monorepo": true,
+    "monorepo_subdomain_headers_found": [
+      "doca/libs/doca_telemetry/include/public/doca_telemetry_pcc.h",
+      "doca/libs/doca_telemetry/include/public/doca_telemetry_dpa.h",
+      "doca/libs/doca_telemetry/include/public/doca_telemetry_diag.h",
+      "doca/libs/doca_telemetry/include/public/doca_telemetry_adp_retx.h",
+      "doca/libs/doca_telemetry/include/public/doca_telemetry_phy.h",
+      "doca/libs/doca_telemetry/include/public/doca_telemetry_pci.h"
+    ]
+  },
+  "doca_telemetry_framing_verdict": {
+    "frontmatter_correct": true,
+    "frontmatter_evidence": "doca-telemetry/SKILL.md frontmatter (lines 1-30) correctly identifies the library as a per-domain hardware-counter READER for doca_dev and enumerates the six sub-libraries _pcc/_dpa/_diag/_adp_retx/_phy/_pci.",
+    "capabilities_admonition_correct": true,
+    "capabilities_admonition_evidence": "doca-telemetry/CAPABILITIES.md (top admonition) correctly redirects the framing to per-domain hardware-counter READER.",
+    "body_capabilities_inconsistent": true,
+    "body_tasks_inconsistent": true,
+    "end_to_end_correct": false,
+    "summary": "Frontmatter + CAPABILITIES.md admonition are corrected to the per-domain HW-counter READER framing with all six sub-libraries listed; the REST of CAPABILITIES.md body and almost ALL of TASKS.md still describe a NetFlow / IPFIX / local-socket / schema-collector framework. The library is therefore NOT correctly framed end-to-end -- there is a hard contradiction inside the same skill."
+  },
+  "prompts": [
+    {
+      "id": "doca-gpi-1",
+      "lib": "doca-gpi",
+      "prompt": "I want my CUDA kernel to issue RDMA writes directly from GPU memory to a remote NIC without bouncing through the host. Walk me through standing up a doca-gpi context, binding GPU memory, and obtaining the GPU-side handle the kernel needs.",
+      "grades": {"C1": "pass", "C2": "fail", "C3": "fail", "C4": "pass", "C5": "fail"},
+      "fails_because": "C2/C3 fail: SKILL/CAPABILITIES claim doca_gpi_set_channel_num, doca_gpi_bind_memory, doca_gpi_channel_get_handle, doca_gpi_as_ctx -- the actual public header doca/libs/doca_gpi/include/public/doca_gpi.h uses doca_gpi_domain_create + doca_gpi_channel_create + doca_gpi_gpu_channel_get + doca_gpi_domain_attach_local_mmap. C5 fails: capability section recommends doca_gpi_cap_get_max_channel_num/_max_rdma_queue_per_channel_num/_max_rdma_queue_size which do not exist in the public header. Net: fabricated API surface."
+    },
+    {
+      "id": "doca-gpi-2",
+      "lib": "doca-gpi",
+      "prompt": "I am sizing my GPI deployment: I need to know the max number of channels, RDMA queues per channel and queue depth this device supports. What capability calls do I make?",
+      "grades": {"C1": "pass", "C2": "fail", "C3": "fail", "C4": "pass", "C5": "fail"},
+      "fails_because": "Bundle (CAPABILITIES.md and TASKS.md) instructs the user to call doca_gpi_cap_get_max_channel_num / doca_gpi_cap_get_max_rdma_queue_per_channel_num / doca_gpi_cap_get_max_rdma_queue_size against a transient context. None of those three symbols exist in doca/libs/doca_gpi/include/public/doca_gpi.h. The agent would prescribe non-buildable code."
+    },
+    {
+      "id": "doca-gpi-3",
+      "lib": "doca-gpi",
+      "prompt": "Should I use doca-gpi or doca-gpunetio for direct-from-GPU networking?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "partial", "C4": "pass", "C5": "pass"},
+      "fails_because": "Routing rule is mostly correct (doca-gpi == GPU-initiated RDMA / one-sided; doca-gpunetio == GPU-initiated Eth send/recv). Minor: bundle treats them as parallel siblings, but they actually compose -- GPI itself sits on top of the gpunetio gpu-context layer in newer DOCA. Not catastrophic."
+    },
+    {
+      "id": "doca-gpunetio-1",
+      "lib": "doca-gpunetio",
+      "prompt": "I want a persistent CUDA kernel that pulls Ethernet frames straight into GPU memory. Walk me through setting up doca_gpu and the GPU-visible RX queue.",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "fail", "C4": "pass", "C5": "partial"},
+      "fails_because": "Bundle (SKILL.md and CAPABILITIES.md) names doca_gpu_eth_rxq / doca_gpu_eth_txq as if they were host-side functions inside doca_gpunetio.h. The actual public header doca/libs/doca_gpunetio/include/public/doca_gpunetio.h exposes doca_gpu_create / doca_gpu_mem_alloc / doca_gpu_semaphore_create / doca_gpu_verbs_export_qp -- the Ethernet RX/TX queue construction is done on a doca_eth_rxq/txq from the doca-eth library and then passed in, not built inside gpunetio. The bundle elides this dependency."
+    },
+    {
+      "id": "doca-gpunetio-2",
+      "lib": "doca-gpunetio",
+      "prompt": "What is the CUDA toolkit / driver / DOCA matrix that determines whether GPU-initiated I/O actually works on my host?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "The triple-axis precondition discipline (CUDA toolkit + nvidia-smi reported driver + DOCA cap-query + nvidia_peermem.ko loaded) is taught accurately; verified vs public guidance."
+    },
+    {
+      "id": "doca-gpunetio-3",
+      "lib": "doca-gpunetio",
+      "prompt": "I am getting DOCA_ERROR_NOT_PERMITTED on doca_gpu_create. Where do I start?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Debug ladder correctly inspects nvidia_peermem.ko load, IOMMU mode, capability gate against doca_devinfo, and CUDA visibility before recommending an API change."
+    },
+    {
+      "id": "doca-mgmt-1",
+      "lib": "doca-mgmt",
+      "prompt": "My fleet agent needs to query a BlueField for its current ICM quota and modify the diagnostics-data sampling without restarting traffic. How do I do this safely?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "CAPABILITIES.md correctly cites doca_mgmt_dev_ctx_create + doca_mgmt_cap_icm_quota_is_supported + doca_mgmt_cap_diagnostics_data_multi_domain_is_supported, pairs every _set with a prior _get for rollback, and surfaces DOCA_EXPERIMENTAL. All four DOCA_MGMT_CMD_SCOPE_* enum values match the headers in doca/libs/doca_mgmt/include/public/."
+    },
+    {
+      "id": "doca-mgmt-2",
+      "lib": "doca-mgmt",
+      "prompt": "I need to issue a raw firmware command that has no dedicated wrapper. Which scope do I pick and what discipline do I have to follow?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "The four DOCA_MGMT_CMD_SCOPE_{CONFIGURATION,DEBUG_READ_ONLY,DEBUG_WRITE,DEBUG_WRITE_FULL} enum values and the narrowest-scope rule are correctly tied to the actual enum in doca_mgmt.h. The maintenance-window + OOB precondition gate for DEBUG_WRITE_FULL is enforced."
+    },
+    {
+      "id": "doca-mgmt-3",
+      "lib": "doca-mgmt",
+      "prompt": "I want a continuous Prometheus-style time series of device counters. Is doca-mgmt the right surface?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly routes streaming/continuous metric requests to doca-telemetry + doca-telemetry-exporter and keeps doca-mgmt scoped to point-in-time programmatic query/modify."
+    },
+    {
+      "id": "doca-pcc-1",
+      "lib": "doca-pcc",
+      "prompt": "I have a custom RoCE congestion-control algorithm written for the BlueField DPA. How do I package it and load it onto a BlueField port from my host application?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Two-side-program model (host doca-pcc + DPA-side dpacc-compiled algorithm) is faithful; doca_pcc_create + doca_pcc_set_app + doca_pcc_set_*_probe_packet_format symbols are all in doca/libs/doca_pcc/host/include/public/doca_pcc.h."
+    },
+    {
+      "id": "doca-pcc-2",
+      "lib": "doca-pcc",
+      "prompt": "doca_caps says PCC is supported on my host but doca_pcc_start returns DOCA_ERROR_NOT_PERMITTED. What am I missing?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Triple-axis precondition (DOCA cap-query + BlueField generation actually exposing DPA + firmware custom-PCC slot enabled) is precisely the right answer; the bundle teaches it."
+    },
+    {
+      "id": "doca-pcc-3",
+      "lib": "doca-pcc",
+      "prompt": "Should I use doca-pcc to inspect existing PCC counters or for tweaking the default firmware PCC?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Path-selection table correctly steers counter-inspection users to the doca_pcc_counter CLI (separate artifact) and default-PCC users away from doca-pcc entirely. doca-pcc is only for custom algorithms."
+    },
+    {
+      "id": "doca-pcc-ztr-rttcc-algo-1",
+      "lib": "doca-pcc-ztr-rttcc-algo",
+      "prompt": "I want a drop-in DPA-side congestion-control algorithm for RoCE v2 on BlueField-3 -- can I use the ZTR RTTCC reference algo without writing my own?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "partial", "C4": "pass", "C5": "pass"},
+      "fails_because": "RoCE-v2 / BlueField-3 / DPA-side framing is correct (verified vs doca/libs/doca_pcc_ztr_rttcc_algo/README.md and ztr_rttcc_common.h). C3 partial: bundle references DOCA_PCC_DEV_STATUS_OK/FAIL constants as the algo return type, but the public header doca_pcc_dev_ztr_rttcc_algo.h declares functions returning doca_pcc_dev_error_t (the STATUS_* constants do exist but only in unit tests / mock algos, not as the public return type)."
+    },
+    {
+      "id": "doca-pcc-ztr-rttcc-algo-2",
+      "lib": "doca-pcc-ztr-rttcc-algo",
+      "prompt": "I want to use the ZTR RTTCC algorithm with my Ethernet (non-RoCE) traffic. Is that supported?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly refuses non-RoCE traffic; verified against ztr_rttcc_common.h event-type symbols and the README which both restrict the algorithm to RoCE-v2 paths."
+    },
+    {
+      "id": "doca-pcc-ztr-rttcc-algo-3",
+      "lib": "doca-pcc-ztr-rttcc-algo",
+      "prompt": "Which variants ship with the reference algorithm and what do they trade off?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "partial", "C4": "pass", "C5": "pass"},
+      "fails_because": "Variants enumerated by the bundle (vanilla / path-migration / RX-rate / multipath / window-probeless) match the variant set in the doca_pcc_ztr_rttcc_algo README, but a couple of variant entry-point symbols cited in the bundle's CAPABILITIES.md table are not present in the *public* DPA header (they live in restricted/ headers)."
+    },
+    {
+      "id": "doca-rdma-1",
+      "lib": "doca-rdma",
+      "prompt": "I have an InfiniBand fabric. Do I configure 'IB' on the doca-rdma context or 'RC'? They look like the same axis to me.",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly separates link-layer (IB vs RoCE, a port-config / device property surfaced via doca_devinfo, not a doca-rdma setter) from transport type (RC vs DC, set via doca_rdma_set_transport_type). Verified against doca/libs/doca_rdma/include/public/doca_rdma.h."
+    },
+    {
+      "id": "doca-rdma-2",
+      "lib": "doca-rdma",
+      "prompt": "I want UD (Unreliable Datagram) RDMA between two nodes. How do I set the transport type?",
+      "grades": {"C1": "pass", "C2": "fail", "C3": "fail", "C4": "pass", "C5": "fail"},
+      "fails_because": "Bundle (SKILL.md, CAPABILITIES.md) lists UD alongside RC and DC as supported doca_rdma transport types. doca/libs/doca_rdma/include/public/doca_rdma.h enum doca_rdma_transport_type defines ONLY DOCA_RDMA_TRANSPORT_TYPE_RC and DOCA_RDMA_TRANSPORT_TYPE_DC. UD is not a valid value for doca_rdma_set_transport_type."
+    },
+    {
+      "id": "doca-rdma-3",
+      "lib": "doca-rdma",
+      "prompt": "What task types does doca-rdma expose and how do I pick connection-establishment (RDMA-CM vs OOB)?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle claims 11 task types; doca_rdma.h has 9 distinct task-supported caps (Receive, Send, Send-Imm, Read, Write, Write-Imm, Atomic CmpSwap, Atomic FetchAdd, Remote Net Sync Event Get/Set/Add counted as a family). The connection-method matrix (RDMA-CM vs OOB-bridge vs gRPC sideband) is conceptually correct."
+    },
+    {
+      "id": "doca-rdmi-1",
+      "lib": "doca-rdmi",
+      "prompt": "I want my DPA-side kernel to initiate one-sided RDMA Read/Write into remote memory. How is doca-rdmi different from doca-rdma?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Framing as RDMA Initiator (DPA-kernel-initiated one-sided datapath) is correct; verified against doca/libs/doca_rdmi/include/public/{doca_rdmi_connection.h,doca_rdmi_poster.h,doca_rdmi_dev_connection.h,doca_rdmi_dev_poster.h,doca_rdmi_dev_cqe.h}. NOT Redfish."
+    },
+    {
+      "id": "doca-rdmi-2",
+      "lib": "doca-rdmi",
+      "prompt": "How do I convert a doca_rdmi_connection back into a doca_ctx so I can run it on a doca-pe progress engine?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "partial", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle references doca_rdmi_connection_as_ctx() as a public conversion. The symbol exists in the implementation (doca/libs/doca_rdmi/src/host/rdmi_connection.cpp) and the version.map, but is NOT declared in any public header. The agent would prescribe a symbol that links but is not a documented public API -- borderline fabrication, not a hard one."
+    },
+    {
+      "id": "doca-rdmi-3",
+      "lib": "doca-rdmi",
+      "prompt": "I want to use doca-rdmi to manage out-of-band server hardware (sensor data, power, fan speed). Is that what it's for?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly refuses the Redfish misreading and routes the user away from doca-rdmi; verified by header naming (RDMA Initiator)."
+    },
+    {
+      "id": "doca-rmax-1",
+      "lib": "doca-rmax",
+      "prompt": "I want to receive an SMPTE ST 2110 video flow with hardware-accurate PTP timestamps and very low jitter. Is doca-rmax the right surface?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly scopes doca-rmax to Rivermax-backed timing-precise media-over-IP (SMPTE ST 2110); confirmed against doca/libs/doca_rmax/include/public/doca_rmax.h."
+    },
+    {
+      "id": "doca-rmax-2",
+      "lib": "doca-rmax",
+      "prompt": "What licensing / kernel module / runtime libraries do I need before doca-rmax will work?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly surfaces the Rivermax SDK + libmlx5 + Rivermax license prerequisite chain as an env-precondition matrix; nothing API-side fabricated."
+    },
+    {
+      "id": "doca-rmax-3",
+      "lib": "doca-rmax",
+      "prompt": "Can I use doca-rmax for ordinary 100GbE socket-style RX instead of doca-eth?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly steers generic Ethernet RX to doca-eth and refuses doca-rmax for non-media use cases (and warns about the Rivermax license cost)."
+    },
+    {
+      "id": "doca-sha-1",
+      "lib": "doca-sha",
+      "prompt": "How do I check whether this device can hardware-accelerate SHA-256 before submitting a task?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly references doca_sha_cap_task_hash_get_supported(devinfo, DOCA_SHA_ALGORITHM_SHA256); verified at doca/libs/doca_sha/include/public/doca_sha.h. No fake _cap_is_algorithm_supported reference remains in any of the three doca-sha docs."
+    },
+    {
+      "id": "doca-sha-2",
+      "lib": "doca-sha",
+      "prompt": "What's the difference between the one-shot hash task and the incremental hash task and when do I use each?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle teaches the one-shot vs partial/incremental split correctly; matches public header task-cap function family."
+    },
+    {
+      "id": "doca-sha-3",
+      "lib": "doca-sha",
+      "prompt": "How big does my destination buffer need to be for a SHA-512 result?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly defers buffer sizing to doca_sha_cap_get_min_dst_buf_size(devinfo, DOCA_SHA_ALGORITHM_SHA512, &min_dst); confirmed in doca_sha.h."
+    },
+    {
+      "id": "doca-sta-1",
+      "lib": "doca-sta",
+      "prompt": "I want to offload my NVMe-oF target to a BlueField so the host CPU is out of the data path. Is that what doca-sta does?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "partial", "C4": "pass", "C5": "partial"},
+      "fails_because": "Framing as NVMe-oF target-side transport acceleration is correct (doca_sta_subsystem.h, doca_sta_io_qp.h, doca_sta_be.h). C2/C3 partial: bundle invents a TRANSPORT_TYPE_RDMA vs TRANSPORT_TYPE_TCP enum split in the doca-sta API surface; doca/libs/doca_sta/include/public/doca_sta.h only ships doca_sta_cap_is_supported, no transport-type enum is publicly exposed in doca_sta.h itself."
+    },
+    {
+      "id": "doca-sta-2",
+      "lib": "doca-sta",
+      "prompt": "Can I use doca-sta on the initiator side too, to replace my NVMe-over-TCP kernel initiator?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "partial", "C4": "pass", "C5": "partial"},
+      "fails_because": "Bundle describes initiator support, but the public header set (doca_sta.h + doca_sta_subsystem.h + doca_sta_io_qp.h + doca_sta_be.h) is clearly target-shaped (subsystems, namespaces, IO queue-pairs). The initiator framing is at best aspirational and not backed by the public symbols."
+    },
+    {
+      "id": "doca-sta-3",
+      "lib": "doca-sta",
+      "prompt": "Does doca-sta integrate with SPDK or does it replace it?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Routing rule (doca-sta is the BlueField-side NVMe-oF transport offload; SPDK still runs the application/admin plane) is reasonable and not contradicted by headers."
+    },
+    {
+      "id": "doca-telemetry-1",
+      "lib": "doca-telemetry",
+      "prompt": "I want to read live PCC (congestion-control) counters off a BlueField from my host fleet agent. Which DOCA library and which calls?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "fail", "C4": "fail", "C5": "fail"},
+      "fails_because": "Frontmatter + CAPABILITIES.md admonition correctly point at the per-domain doca_telemetry_pcc surface (doca_telemetry_pcc_cap_is_supported, doca_telemetry_pcc_create, etc., verified in doca/libs/doca_telemetry/include/public/doca_telemetry_pcc.h). However the bulk of CAPABILITIES.md body and almost all of TASKS.md describe a NetFlow/IPFIX/schema-collector framework with publisher/collector/socket-IPC objects -- those objects belong to doca-telemetry-exporter, not to doca-telemetry. An agent that follows the body of the skill will fabricate a non-existent collector API."
+    },
+    {
+      "id": "doca-telemetry-2",
+      "lib": "doca-telemetry",
+      "prompt": "I want to read live DPA counters (instruction count, hazards, etc.) off the BlueField. Which DOCA surface?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "fail", "C4": "fail", "C5": "fail"},
+      "fails_because": "Same root cause as doca-telemetry-1. doca_telemetry_dpa.h exists and exposes doca_telemetry_dpa_cap_is_supported + doca_telemetry_dpa_read; the bundle's body still talks about schemas / sources / IPC publishers as if DPA counters flowed through a NetFlow-like emitter."
+    },
+    {
+      "id": "doca-telemetry-3",
+      "lib": "doca-telemetry",
+      "prompt": "I want PHY-layer counters (FEC errors, BER, link symbol errors) from a ConnectX adapter.",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "fail", "C4": "fail", "C5": "fail"},
+      "fails_because": "Same root cause: doca_telemetry_phy.h is the right header; bundle body still wraps it in a NetFlow/IPFIX collector framing."
+    },
+    {
+      "id": "doca-telemetry-4",
+      "lib": "doca-telemetry",
+      "prompt": "I want my BlueField application to emit OpenTelemetry / OTLP-shaped events to my observability stack. Where do I start?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Routing is correct: doca-telemetry is the READER for on-chip HW counters and is NOT an OTLP emitter; the right home for emitting events is doca-telemetry-exporter (schema/source/type publisher with IPC socket dir). Bundle correctly routes here."
+    },
+    {
+      "id": "doca-telemetry-5",
+      "lib": "doca-telemetry",
+      "prompt": "I want to export NetFlow / IPFIX records from this BlueField to my flow collector. Is doca-telemetry the right library?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "fail", "C4": "partial", "C5": "fail"},
+      "fails_because": "Correct refusal at the SKILL.md/CAPABILITIES.md admonition level (doca-telemetry is a HW-counter reader, not a NetFlow emitter). HOWEVER: the bundle then sends the user *out* of DOCA to an external NetFlow product, missing the fact that doca/libs/doca_telemetry_exporter/include/public/doca_telemetry_exporter_netflow.h actually DOES exist and ships a NetFlow exporter API in the doca-telemetry-exporter library. The correct routing is 'no, not doca-telemetry; YES, doca-telemetry-exporter via doca_telemetry_exporter_netflow.h'."
+    },
+    {
+      "id": "doca-telemetry-exporter-1",
+      "lib": "doca-telemetry-exporter",
+      "prompt": "I want to declare a custom metric schema, register a source per worker, and publish typed events to the local IPC socket the collector consumes from. Walk me through the object model.",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "schema_init / type_create / type_add_field / schema_add_type / source_create / source_start / source_report / source_opaque_report / source_flush / source_destroy + the schema_get_ipc_* knobs all match doca/libs/doca_telemetry_exporter/include/public/doca_telemetry_exporter.h."
+    },
+    {
+      "id": "doca-telemetry-exporter-2",
+      "lib": "doca-telemetry-exporter",
+      "prompt": "Does this library emit NetFlow?",
+      "grades": {"C1": "pass", "C2": "partial", "C3": "fail", "C4": "pass", "C5": "fail"},
+      "fails_because": "Bundle says NetFlow is out of scope for doca-telemetry-exporter -- but doca/libs/doca_telemetry_exporter/include/public/doca_telemetry_exporter_netflow.h ships a NetFlow v9/v10 exporter API and a 150 KB types header. The bundle is wrong by omission: this library *does* publish NetFlow."
+    },
+    {
+      "id": "doca-telemetry-exporter-3",
+      "lib": "doca-telemetry-exporter",
+      "prompt": "What error from source_report means the collector daemon is not running?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly maps the IPC-reconnect failure path to the DOCA_ERROR_* surface and to the schema_get_ipc_reconnect_time / _tries / _socket_timeout knobs that exist in the header."
+    },
+    {
+      "id": "doca-urom-1",
+      "lib": "doca-urom",
+      "prompt": "I want to offload my MPI collective primitives (UCC) from the host onto the BlueField DPU. Is doca-urom the right framework?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "partial", "C4": "pass", "C5": "pass"},
+      "fails_because": "doca/libs/doca_urom/core/include/public/doca_urom.h (line 17) declares it as 'Unified Resource and Offload Manager ... a framework for offloading a portion of parallel computing tasks, such as those related to HPC or AI workloads and frameworks, from the host to the NVIDIA DPUs'. UCC collectives are one prominent plugin (via doca_urom_plugin.h), not the whole story; the bundle's narrower 'this is UCC-collectives offload' framing is acceptable but loose."
+    },
+    {
+      "id": "doca-urom-2",
+      "lib": "doca-urom",
+      "prompt": "What is the Worker / Service / Plugin relationship in doca-urom?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly teaches the Service-on-DPU + Worker-process-on-DPU + Plugin-as-the-offloaded-code model and matches doca_urom_plugin.h."
+    },
+    {
+      "id": "doca-urom-3",
+      "lib": "doca-urom",
+      "prompt": "I want to use doca-urom for one-sided RDMA put/get and skip the rest. Should I?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle correctly routes one-sided RDMA put/get to doca-rdma (host-initiated) or doca-rdmi (DPA-kernel-initiated), and reserves doca-urom for HPC/AI parallel-runtime offloads."
+    },
+    {
+      "id": "doca-verbs-1",
+      "lib": "doca-verbs",
+      "prompt": "I have a libibverbs sender/receiver that uses IBV_SEND_INLINE and a tweaked QP attribute. Should I port it onto doca-rdma or onto doca-verbs?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle's drop-down decision routes the user back UP to doca-rdma unless the user can name the specific raw verb / opcode / WR flag the higher-level surface does not expose. Climb-back-up rule is enforced."
+    },
+    {
+      "id": "doca-verbs-2",
+      "lib": "doca-verbs",
+      "prompt": "I need to attach a custom congestion-control group to my QP. How does doca-verbs expose that?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "doca_verbs_cc_group_* + doca_verbs_qp_attr_get_cc_group / set_cc_group symbols are real (doca/libs/doca_verbs/include/public/doca_verbs.h)."
+    },
+    {
+      "id": "doca-verbs-3",
+      "lib": "doca-verbs",
+      "prompt": "Can I mix existing ibv_* calls with doca_verbs_* calls on the same QP?",
+      "grades": {"C1": "pass", "C2": "pass", "C3": "pass", "C4": "pass", "C5": "pass"},
+      "fails_because": "Bundle enforces the no-mixing rule (everything has to flow through the doca_verbs_context + DOCA Core progress engine); aligned with the doca_verbs_bridge.h conversion-only surface."
+    }
+  ],
+  "prompt_grade_summary": {
+    "total_prompts": 44,
+    "all_5_pass": 23,
+    "had_at_least_one_fail_or_partial": 21,
+    "hard_fails_due_to_fabricated_symbols": [
+      "doca-gpi-1",
+      "doca-gpi-2",
+      "doca-gpunetio-1",
+      "doca-rdma-2",
+      "doca-telemetry-1",
+      "doca-telemetry-2",
+      "doca-telemetry-3",
+      "doca-telemetry-5",
+      "doca-telemetry-exporter-2"
+    ]
+  },
+  "inaccuracies": [
+    {
+      "lib": "doca-telemetry",
+      "file": "skills/libs/doca-telemetry/SKILL.md",
+      "line_range": "31-end (body after frontmatter)",
+      "severity": "CRITICAL",
+      "evidence": "Frontmatter correctly frames the library as a per-domain hardware-counter READER with sub-libs _pcc/_dpa/_diag/_adp_retx/_phy/_pci. The body of SKILL.md then reverts to describing it as a NetFlow / IPFIX / local-socket / publisher collector framework -- which is actually the doca-telemetry-exporter shape, not doca-telemetry.",
+      "ground_truth": "doca/libs/doca_telemetry/include/public/doca_telemetry_{pcc,dpa,diag,adp_retx,phy,pci}.h each export doca_telemetry_<domain>_cap_is_supported + create/destroy/read; there is no NetFlow/IPFIX/schema-collector object in doca_telemetry public headers.",
+      "suggested_fix": "Rewrite the SKILL.md body (sections after the frontmatter) to mirror the frontmatter framing: doca-telemetry is the per-domain HW-counter reader with six sub-libraries; the NetFlow/IPFIX/local-socket collector framework belongs to doca-telemetry-exporter and must be cross-linked there."
+    },
+    {
+      "lib": "doca-telemetry",
+      "file": "skills/libs/doca-telemetry/CAPABILITIES.md",
+      "line_range": "below the top admonition through end of file",
+      "severity": "CRITICAL",
+      "evidence": "Top admonition correctly redirects to the per-domain HW-counter reader framing and names the six sub-libs. The rest of the file's tables, object model, error taxonomy, observability, and safety sections still describe publisher/collector/schema-query/NetFlow/IPFIX surfaces that are not in doca_telemetry public headers.",
+      "ground_truth": "doca/libs/doca_telemetry/include/public/ ships only the six per-domain readers; no schema, no source, no NetFlow, no IPFIX, no IPC publisher.",
+      "suggested_fix": "Delete the publisher/collector/schema sections and replace them with per-domain tables for each of the six sub-libs (cap_is_supported + create/destroy/read + the doca_devinfo gate). Keep the admonition as the load-bearing framing rule."
+    },
+    {
+      "lib": "doca-telemetry",
+      "file": "skills/libs/doca-telemetry/TASKS.md",
+      "line_range": "entire file",
+      "severity": "CRITICAL",
+      "evidence": "TASKS.md describes 'configure / build / modify / run / test / debug' workflows for publisher/collector workflows -- there is no such workflow in doca-telemetry. Following these tasks would lead an agent to fabricate non-existent collector-side calls.",
+      "ground_truth": "The real workflow is: pick a domain (pcc / dpa / diag / adp_retx / phy / pci); call doca_telemetry_<domain>_cap_is_supported on the doca_devinfo; create the per-domain reader; periodically call its read function; interpret returned counter struct.",
+      "suggested_fix": "Rewrite TASKS.md from scratch around the per-domain reader pattern, with one worked example per sub-lib and an explicit refusal-and-route block for OTLP (-> doca-telemetry-exporter) and NetFlow/IPFIX (-> doca-telemetry-exporter NetFlow API)."
+    },
+    {
+      "lib": "doca-telemetry",
+      "file": "skills/libs/doca-telemetry/SKILL.md",
+      "line_range": "wherever NetFlow/IPFIX is mentioned as 'out of DOCA scope'",
+      "severity": "high",
+      "evidence": "The skill refuses NetFlow/IPFIX and routes the user outside DOCA. doca/libs/doca_telemetry_exporter/include/public/doca_telemetry_exporter_netflow.h actually exists in the monorepo and exposes a NetFlow exporter API in doca-telemetry-exporter.",
+      "ground_truth": "doca_telemetry_exporter_netflow.h (15 KB) + doca_telemetry_exporter_netflow_types.h (150 KB) in the doca-telemetry-exporter public include directory.",
+      "suggested_fix": "Refuse-and-route NetFlow / IPFIX inside doca-telemetry, but route to doca-telemetry-exporter's NetFlow surface, NOT outside of DOCA."
+    },
+    {
+      "lib": "doca-telemetry-exporter",
+      "file": "skills/libs/doca-telemetry-exporter/SKILL.md or CAPABILITIES.md",
+      "line_range": "scope section",
+      "severity": "high",
+      "evidence": "The doca-telemetry-exporter skill scopes itself to a generic IPC schema/source/type publisher but does not mention the NetFlow exporter API that ships in the same library.",
+      "ground_truth": "doca/libs/doca_telemetry_exporter/include/public/doca_telemetry_exporter_netflow.h + doca_telemetry_exporter_netflow_types.h.",
+      "suggested_fix": "Add a 'NetFlow v9 / v10 publishing' capability section to CAPABILITIES.md and a corresponding TASKS.md sub-section; keep the schema/source/type model as the primary surface but acknowledge NetFlow as a second built-in surface."
+    },
+    {
+      "lib": "doca-gpi",
+      "file": "skills/libs/doca-gpi/CAPABILITIES.md and TASKS.md",
+      "line_range": "every reference to doca_gpi_cap_get_max_channel_num / doca_gpi_cap_get_max_rdma_queue_per_channel_num / doca_gpi_cap_get_max_rdma_queue_size / doca_gpi_set_channel_num / doca_gpi_set_rdma_queue_num / doca_gpi_set_rdma_queue_size / doca_gpi_set_gpu_queue_size / doca_gpi_bind_memory / doca_gpi_bind_memory_get_descriptor / doca_gpi_channel_get_handle / doca_gpi_channel_get_gpu_handle / doca_gpi_channel_get_rdma_queue_descriptor / doca_gpi_channel_connect_rdma_queue / doca_gpi_as_ctx",
+      "severity": "CRITICAL",
+      "evidence": "None of these symbols exist in doca/libs/doca_gpi/include/public/doca_gpi.h. The actual public API uses doca_gpi_create + doca_gpi_domain_attr_create + doca_gpi_domain_create + doca_gpi_channel_attr_create + doca_gpi_channel_create + doca_gpi_gpu_channel_get + doca_gpi_channel_ep_conn_info_create + doca_gpi_channel_ep_connect + doca_gpi_domain_attach_local_mmap + doca_gpi_start/stop.",
+      "ground_truth": "Grep doca/libs/doca_gpi/include/public/doca_gpi.h.",
+      "suggested_fix": "Rewrite the API tables in CAPABILITIES.md and the TASKS.md cap-discovery + sizing steps around the actual domain/channel attribute-builder pattern; replace every fabricated symbol."
+    },
+    {
+      "lib": "doca-gpunetio",
+      "file": "skills/libs/doca-gpunetio/SKILL.md and CAPABILITIES.md",
+      "line_range": "wherever doca_gpu_eth_rxq / doca_gpu_eth_txq are referenced as host-side functions in doca_gpunetio.h",
+      "severity": "high",
+      "evidence": "doca/libs/doca_gpunetio/include/public/doca_gpunetio.h does not declare host-side doca_gpu_eth_rxq / doca_gpu_eth_txq constructors. The Eth queue object is built in doca-eth (doca_eth_rxq / doca_eth_txq) and then a GPU handle is obtained via doca_eth_*_get_gpu_handle (or similar).",
+      "ground_truth": "doca_gpu_create, doca_gpu_mem_alloc, doca_gpu_semaphore_create, doca_gpu_verbs_export_qp are the public host-side calls in doca_gpunetio.h.",
+      "suggested_fix": "Reframe the queue-construction step: stand up the doca-eth queue first, then pull its GPU-visible handle into the doca_gpu context. Cross-link doca-eth as a prerequisite."
+    },
+    {
+      "lib": "doca-rdma",
+      "file": "skills/libs/doca-rdma/SKILL.md and CAPABILITIES.md and TASKS.md",
+      "line_range": "every claim that doca_rdma_set_transport_type accepts UD",
+      "severity": "high",
+      "evidence": "enum doca_rdma_transport_type in doca/libs/doca_rdma/include/public/doca_rdma.h defines only DOCA_RDMA_TRANSPORT_TYPE_RC and DOCA_RDMA_TRANSPORT_TYPE_DC. UD is not a member.",
+      "ground_truth": "Grep doca/libs/doca_rdma/include/public/doca_rdma.h for 'enum doca_rdma_transport_type'.",
+      "suggested_fix": "Remove UD from every list of supported doca_rdma transport types. If UD is needed, route the user to doca-verbs (which can build UD-shaped QPs)."
+    },
+    {
+      "lib": "doca-rdma",
+      "file": "skills/libs/doca-rdma/CAPABILITIES.md",
+      "line_range": "task-type count claim",
+      "severity": "low",
+      "evidence": "Bundle claims '11 task types'. doca_rdma.h has 9 distinct task-family caps (Receive, Send, Send-Imm, Read, Write, Write-Imm, Atomic CmpSwap, Atomic FetchAdd, Remote Net Sync Event {Get,Set,Add}).",
+      "ground_truth": "Grep doca/libs/doca_rdma/include/public/doca_rdma.h for doca_rdma_cap_task_*_is_supported.",
+      "suggested_fix": "Either list the 9 task families explicitly, or count Sync Event Get/Set/Add as three (= 11) and explain the breakdown."
+    },
+    {
+      "lib": "doca-rdmi",
+      "file": "skills/libs/doca-rdmi/CAPABILITIES.md",
+      "line_range": "reference to doca_rdmi_connection_as_ctx",
+      "severity": "medium",
+      "evidence": "doca_rdmi_connection_as_ctx is implemented in doca/libs/doca_rdmi/src/host/rdmi_connection.cpp and exposed in version.map, but is not declared in any public header.",
+      "ground_truth": "Grep doca/libs/doca_rdmi/include/public/ -- no _as_ctx declaration.",
+      "suggested_fix": "Mark the symbol as 'available in ABI but not in public header' or remove the reference until the symbol is publicly declared."
+    },
+    {
+      "lib": "doca-pcc-ztr-rttcc-algo",
+      "file": "skills/libs/doca-pcc-ztr-rttcc-algo/CAPABILITIES.md",
+      "line_range": "error-taxonomy section",
+      "severity": "low",
+      "evidence": "Bundle uses DOCA_PCC_DEV_STATUS_OK/FAIL as the algorithm-side return type. The public header doca/libs/doca_pcc_ztr_rttcc_algo/device/include/public/doca_pcc_dev_ztr_rttcc_algo.h declares functions returning doca_pcc_dev_error_t. STATUS_OK/FAIL constants live in unit tests (doca/libs/doca_pcc/unit_test/offline/pcc_mock_algo.c), not in the public algorithm return-type contract.",
+      "ground_truth": "Grep doca_pcc_dev_ztr_rttcc_algo.h for 'doca_pcc_dev_error_t'.",
+      "suggested_fix": "Replace STATUS_OK/FAIL references with the doca_pcc_dev_error_t taxonomy."
+    },
+    {
+      "lib": "doca-sta",
+      "file": "skills/libs/doca-sta/CAPABILITIES.md and TASKS.md",
+      "line_range": "transport-type and initiator-role claims",
+      "severity": "medium",
+      "evidence": "Bundle invents a TRANSPORT_TYPE_RDMA vs TRANSPORT_TYPE_TCP enum and a symmetric initiator/target story. doca/libs/doca_sta/include/public/doca_sta.h ships only doca_sta_cap_is_supported. The neighboring headers (doca_sta_subsystem.h, doca_sta_io_qp.h, doca_sta_be.h) are clearly target-shaped (NVMe-oF subsystems, namespaces, io queue-pairs).",
+      "ground_truth": "ls doca/libs/doca_sta/include/public/ + Grep doca_sta.h.",
+      "suggested_fix": "Scope doca-sta to NVMe-oF target-side transport acceleration; remove the initiator-symmetric claims; remove the TRANSPORT_TYPE_* enum until it appears in public headers."
+    },
+    {
+      "lib": "doca-urom",
+      "file": "skills/libs/doca-urom/SKILL.md",
+      "line_range": "scoping paragraph",
+      "severity": "low",
+      "evidence": "Bundle narrows doca-urom to 'UCC collectives offload'. The actual public header (doca/libs/doca_urom/core/include/public/doca_urom.h line 17) describes it as 'Unified Resource and Offload Manager ... a framework for offloading a portion of parallel computing tasks, such as those related to HPC or AI workloads and frameworks'. UCC is one plugin, not the whole library.",
+      "ground_truth": "Read doca_urom.h line 17 + doca_urom_plugin.h.",
+      "suggested_fix": "Widen the scoping to 'plugin-based HPC/AI offload framework; UCC collectives are one major plugin' and link to the plugin model in doca_urom_plugin.h."
+    }
+  ],
+  "verification_evidence_for_aggressive_checks": {
+    "doca_pcc_ztr_rttcc_algo_roce_only": {
+      "claim_in_bundle": "RoCE-v2 only on BlueField-3 DPA",
+      "verified": true,
+      "evidence_paths": [
+        "doca/libs/doca_pcc_ztr_rttcc_algo/README.md",
+        "doca/libs/doca_pcc_ztr_rttcc_algo/device/algo/ztr_rttcc_common.h",
+        "doca/libs/doca_pcc_ztr_rttcc_algo/device/include/public/doca_pcc_dev_ztr_rttcc_algo.h"
+      ]
+    },
+    "doca_rdma_link_layer_vs_transport_type": {
+      "claim_in_bundle": "Link-layer (IB / RoCE) is a port/devinfo property; transport-type (RC / DC / UD) is set via doca_rdma_set_transport_type.",
+      "verified_link_layer_separation": true,
+      "verified_transport_type_set_call": true,
+      "verified_transport_type_enum_membership": "ONLY RC + DC present in public header; UD missing.",
+      "evidence_path": "doca/libs/doca_rdma/include/public/doca_rdma.h"
+    },
+    "doca_rdmi_is_rdma_initiator_not_redfish": {
+      "verified": true,
+      "evidence_paths": [
+        "doca/libs/doca_rdmi/include/public/doca_rdmi_connection.h",
+        "doca/libs/doca_rdmi/include/public/doca_rdmi_poster.h",
+        "doca/libs/doca_rdmi/include/public/doca_rdmi_dev_connection.h",
+        "doca/libs/doca_rdmi/include/public/doca_rdmi_dev_poster.h",
+        "doca/libs/doca_rdmi/include/public/doca_rdmi_dev_cqe.h"
+      ]
+    },
+    "doca_verbs_is_libibverbs_shaped_low_level_surface": {
+      "verified": true,
+      "evidence_path": "doca/libs/doca_verbs/include/public/doca_verbs.h",
+      "evidence_symbols": [
+        "doca_verbs_context_create",
+        "doca_verbs_qp / doca_verbs_cq / doca_verbs_pd / doca_verbs_mr / doca_verbs_srq / doca_verbs_ah",
+        "doca_verbs_cc_group_*",
+        "doca_verbs_eth_sq / doca_verbs_eth_rq"
+      ]
+    },
+    "doca_sha_cap_task_hash_get_supported": {
+      "claim_in_bundle": "doca_sha_cap_task_hash_get_supported(devinfo, algorithm)",
+      "verified_present_in_public_header": true,
+      "evidence_path": "doca/libs/doca_sha/include/public/doca_sha.h",
+      "fake_cap_is_algorithm_supported_residue": "NONE -- the older fake symbol _cap_is_algorithm_supported was searched for and not found in any of the three doca-sha docs."
+    },
+    "doca_urom_is_offload_framework_for_ucc": {
+      "verified_partial": true,
+      "evidence_path": "doca/libs/doca_urom/core/include/public/doca_urom.h line 17 + doca_urom_plugin.h",
+      "note": "Real doc string: 'Unified Resource and Offload Manager ... HPC or AI workloads and frameworks'. UCC is one plugin, not the whole library."
+    }
+  },
+  "aggregate_grade": {
+    "release_ready": false,
+    "blocking_libs": [
+      "doca-telemetry",
+      "doca-gpi"
+    ],
+    "high_severity_libs": [
+      "doca-gpunetio",
+      "doca-rdma",
+      "doca-sta",
+      "doca-telemetry-exporter"
+    ],
+    "low_severity_libs": [
+      "doca-rdmi",
+      "doca-pcc-ztr-rttcc-algo",
+      "doca-urom"
+    ],
+    "clean_libs": [
+      "doca-mgmt",
+      "doca-pcc",
+      "doca-rmax",
+      "doca-sha",
+      "doca-verbs"
+    ]
+  },
+  "ten_line_summary": [
+    "R13/A3 reviewed all 14 doca-skills libraries against the live doca/ monorepo as the source of truth.",
+    "doca-telemetry is NOT correctly framed end-to-end: only the SKILL.md frontmatter and the CAPABILITIES.md top admonition carry the corrected per-domain HW-counter reader framing.",
+    "Below that admonition, CAPABILITIES.md body and almost all of TASKS.md still describe a NetFlow / IPFIX / publisher-collector framework that does not exist in doca_telemetry's public headers.",
+    "All six sub-library headers _pcc / _dpa / _diag / _adp_retx / _phy / _pci verified present under doca/libs/doca_telemetry/include/public/.",
+    "doca-gpi is the second blocker: CAPABILITIES.md and TASKS.md fabricate doca_gpi_cap_get_max_*, doca_gpi_set_channel_num, doca_gpi_bind_memory, doca_gpi_channel_get_handle and doca_gpi_as_ctx -- none exist in the public header.",
+    "doca-rdma incorrectly lists UD as a supported doca_rdma_set_transport_type value; the public enum only has RC and DC; link-layer-vs-transport-type separation is otherwise correct.",
+    "doca-sta over-claims a symmetric initiator/target story and a TRANSPORT_TYPE_RDMA/TCP enum that the public header does not expose; the library is target-shaped (subsystem / io-qp / be).",
+    "doca-telemetry-exporter omits its built-in NetFlow surface (doca_telemetry_exporter_netflow.h + _netflow_types.h), which is also the right home for the NetFlow refusal-and-route in doca-telemetry.",
+    "doca-mgmt, doca-pcc, doca-pcc-ztr-rttcc-algo (modulo error-taxonomy nit), doca-rmax, doca-sha, doca-verbs, doca-rdmi (modulo as_ctx) and doca-urom (modulo UCC-only narrowing) are substantively accurate.",
+    "Release verdict: NOT ready -- doca-telemetry and doca-gpi must be rewritten before first production release; the other inaccuracies above are fixable diffs."
+  ]
+}

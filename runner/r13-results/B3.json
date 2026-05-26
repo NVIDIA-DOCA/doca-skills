@@ -1,0 +1,405 @@
+{
+  "subagent": "B3",
+  "wave": "B-without-doca",
+  "run": "r13",
+  "bundle_under_test": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/gitlab-test-proj/doca-skills",
+  "monorepo_access": false,
+  "monorepo_path_off_limits": "/Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca/",
+  "rubric": {
+    "C1": "In-scope coverage — SKILL.md description + body trigger the right activation and stay on the lib's actual API surface (no scope creep / wrong-direction misrouting).",
+    "C2": "Correctness — substantive content (object model, lifecycle, API surface, pkg-config slot, errors) is internally consistent with itself across SKILL.md / CAPABILITIES.md / TASKS.md.",
+    "C3": "Cross-link & catalog hygiene — anchors used in body cross-links resolve to real H2s in this skill or another in-bundle skill; catalog rows in SKILLS.md and README.md describe the same surface as the SKILL.md frontmatter.",
+    "C4": "Non-goal & sibling routing — out-of-scope questions (e.g. NetFlow / IPFIX / OTLP / Prometheus / DTS-as-deployed / external SDKs) get refused or routed via doca-public-knowledge-map / sibling skill rather than silently authored as in-scope.",
+    "C5": "AgentSkills.io & frontmatter compliance — name matches dir, metadata.kind set, description ≤ 1024 chars, imperative phrasing, compatibility block present and meaningful.",
+    "pass_rule": "Pass = all 5; any C-failure = Fail (with at least one inaccuracy surfaced)."
+  },
+  "phase1_read": {
+    "all_14_libs_opened": true,
+    "doca_telemetry_opened_and_exercised": true,
+    "doca_telemetry_framing_self_consistency_check": {
+      "claim_under_test": "SKILL.md framing of doca-telemetry as per-domain hardware-counter reader (PCC/DPA/DIAG/ADP_RETX/PHY/PCI), NOT a NetFlow/IPFIX/local-socket collector, is internally consistent across SKILL.md ↔ CAPABILITIES.md ↔ TASKS.md ↔ SKILLS.md catalog ↔ README.md catalog.",
+      "result": "FAIL — only PARTIALLY corrected; the bundle is at war with itself.",
+      "evidence": [
+        "SKILL.md frontmatter description (lines 3-21): NEW correct framing — 'counter-READER surface — there is no NetFlow / IPFIX / local-socket collector framework here; the bundle previously framed it that way and that framing is wrong.' Names the six per-domain libs explicitly: doca_telemetry_pcc / _dpa / _diag / _adp_retx / _phy / _pci.",
+        "SKILL.md body 'Where to start' (lines 32-62): repeats the correction. Says NOT a NetFlow/IPFIX collector.",
+        "SKILL.md body 'Example questions' / 'Audience' / 'When to load' / 'What this skill provides' (lines 63-253): IMMEDIATELY reverts to the OLD framing — collector-vs-exporter role split, schema-must-match-with-publisher, NetFlow / IPFIX listener transports, DTS as canonical aggregator, DOCA_ERROR_AGAIN consumer-queue, DOCA_ERROR_NOT_FOUND on schema-query, etc. Cites doca-log and external Prometheus / OTLP collectors as adjacencies that only make sense for an event-collector framework.",
+        "CAPABILITIES.md head (lines 1-24): NEW correct framing as an explicit 'CRITICAL framing correction (Run-12)' callout, explicitly admitting 'the rest of this file talks about a generic collector / schema-query / NetFlow / IPFIX surface that does NOT exist in the public header; treat that prose as a known bug.' The bundle ships a self-admitted known-bug body.",
+        "CAPABILITIES.md body (lines 25-358): OLD wrong framing throughout — Pattern overview enumerates SEVEN collector patterns, role-split tables with 'Collector context' / 'Schema-query objects' / 'Event consumption primitives', schema-must-match contract with publishers, configuration-shape table listing 'local domain socket / NetFlow listener / IPFIX listener', error taxonomy keyed off AGAIN-means-consumer-queue-full, safety policy keyed off transport-endpoint bind permissions, deferred-topic boundaries treating downstream NetFlow/IPFIX/Prometheus/Grafana/OTLP analyzers as the natural fan-out.",
+        "TASKS.md (entire file, ~490 lines): WRONG framing only. No 'Run-12 framing correction' callout. configure/build/modify/run/test/debug verbs all talk about a collector-vs-exporter publisher/consumer flow, single-event smoke between publisher and collector, NetFlow/IPFIX listeners, DTS as canonical aggregator. None of the per-domain reader APIs (doca_telemetry_pcc / _dpa / _diag / _adp_retx / _phy / _pci) appear anywhere in TASKS.md.",
+        "SKILLS.md catalog row (line 96): OLD wrong framing — 'DOCA Telemetry — collector library; schemas, sampling, DTS integration.'",
+        "README.md catalog row (line 220): NEW correct framing — 'Per-domain DOCA hardware-counter / diagnostic readers (PCC / PCI / PHY / DPA / DIAG / ADP-RETX). For publishing application metrics, see doca-telemetry-exporter instead. Distinct from the deployed DTS service (non-goal #7 routing).'",
+        "Net effect: 2/5 surfaces (SKILL.md frontmatter + CAPABILITIES.md head callout + README.md catalog) advertise the per-domain reader. 3/5 surfaces (SKILL.md body + CAPABILITIES.md body + TASKS.md + SKILLS.md catalog) still teach the old collector-with-NetFlow-and-IPFIX framing. An external tester loading this skill gets internally contradictory guidance, with the bundle itself flagging its own body as a known bug."
+      ]
+    }
+  },
+  "phase2_prompts": [
+    {
+      "lib": "doca-gpi",
+      "prompts": [
+        "My CUDA kernel needs to post one-sided RDMA writes directly from GPU memory to a remote DPU — should I use doca-gpi or doca-gpunetio, and how do I get a doca_gpu_gpi_channel* into my kernel's argument list?",
+        "doca_gpi_channel_get_gpu_handle is returning DOCA_ERROR_BAD_STATE; what lifecycle step did I miss before calling it?",
+        "Is 64 RDMA queues per channel with 1024 work-request slots each allowed on a BlueField-3 + ConnectX-7 host? Which cap query gives me the truth?"
+      ]
+    },
+    {
+      "lib": "doca-gpunetio",
+      "prompts": [
+        "How do I bring up a persistent CUDA kernel that drains a doca_gpu_eth_rxq built on top of a representor's doca_eth_rxq?",
+        "My host has one Ampere and one Turing GPU — which one supports GPU-initiated networking? What do I need to check besides the DOCA cap query?",
+        "First doca_gpu_create returns DOCA_ERROR_DRIVER on a host where doca-eth came up fine — what is the most likely missing kernel module?"
+      ]
+    },
+    {
+      "lib": "doca-mgmt",
+      "prompts": [
+        "I'm building a fleet tool that walks every BlueField in our DC and reads its data_direct capability — do I use doca-mgmt, doca-telemetry, or doca_caps?",
+        "I have a vendor-documented opcode I want to fire via doca_mgmt_raw_cmd — which doca_mgmt_cmd_scope should I pass and what's the blast radius?",
+        "doca_mgmt_raw_cmd returns DOCA_ERROR_IO_FAILED on a device the user can otherwise see; which kernel device + permission do I check first?"
+      ]
+    },
+    {
+      "lib": "doca-pcc",
+      "prompts": [
+        "I want to deploy my own custom programmable congestion-control algorithm onto a BlueField-3 port carrying RoCE traffic — what is the host-side load-and-attach workflow with doca-pcc?",
+        "My doca_pcc_*  algorithm-load call returns DOCA_ERROR_NOT_PERMITTED even though I have doca_dev access — which firmware-side precondition is the prime suspect?",
+        "I only want to read PCC counters at runtime, not write a custom algorithm — is doca-pcc the right surface, or do I want the doca_pcc_counter CLI?"
+      ]
+    },
+    {
+      "lib": "doca-pcc-ztr-rttcc-algo",
+      "prompts": [
+        "I have a BlueField-3 carrying production RoCE-v2 from a GPU cluster — is the shipped ZTR RTTCC algorithm a sane default, or do I need custom logic?",
+        "The shipped library exposes one public symbol doca_pcc_dev_ztr_rttcc_algo but the device-side source ships several variants — how do I pick the multipath variant at dpacc build time?",
+        "Algorithm is loaded but PCC counters are flat — what does the on-wire 'is this algorithm actually dispatching' check look like under doca-pcc?"
+      ]
+    },
+    {
+      "lib": "doca-rdma",
+      "prompts": [
+        "How do I set up an RDMA sender + receiver with RDMA CM on a single host for first-run testing?",
+        "I want to do hardware Atomic Compare-and-Swap over RoCE — which task type do I use, and which doca_rdma_cap_*_is_supported query gates it?",
+        "doca_rdma_connection_disconnect is returning DOCA_ERROR_BAD_STATE — what lifecycle order am I violating?"
+      ]
+    },
+    {
+      "lib": "doca-rdmi",
+      "prompts": [
+        "I have a DPA kernel that needs to fire 1 MB RDMA writes at a remote responder — do I use doca-rdmi or doca-rdma?",
+        "How do I attach a doca_dpa_completion to a doca_rdmi_connection so my DPA kernel polls completions directly? What lifecycle step does that have to happen at?",
+        "Is doca_rdmi_poster_post GA on my installed DOCA, or still DOCA_EXPERIMENTAL? Where do I get the ABI-tier truth from?"
+      ]
+    },
+    {
+      "lib": "doca-rmax",
+      "prompts": [
+        "I want to stand up a SMPTE ST 2110-20 video receive stream on a representor of a BlueField-3 port — what's the per-stream object lifecycle and which adjacent libraries do I also need?",
+        "First doca_rmax create returns DOCA_ERROR_NOT_PERMITTED on a host where DOCA is otherwise healthy — what's the most likely missing precondition?",
+        "Rivermax stream started cleanly but no recv events fire — which layer should I check first: doca-flow steering, doca-eth queues, or the Rivermax license?"
+      ]
+    },
+    {
+      "lib": "doca-sha",
+      "prompts": [
+        "I'm verifying file integrity on a 4 GiB image — is doca-sha worth the setup vs OpenSSL on the CPU? What's the path-selection rule?",
+        "My input is 1 GiB but doca_sha_cap_get_max_src_buf_size returns 64 MiB — do I use one-shot or partial hash, and how do I chain partials safely?",
+        "doca_sha_task_hash returns DOCA_ERROR_NOT_PERMITTED on the destination mmap — which doca_mmap permission flag did I forget?"
+      ]
+    },
+    {
+      "lib": "doca-sta",
+      "prompts": [
+        "Set up an NVMe-over-RDMA initiator that uses BlueField to offload the transport layer, with SPDK still owning the NVMe semantics on top — what's the doca_sta context bring-up sequence?",
+        "I want 16 I/O queues at depth 1024 per NVMe-oF connection — which doca_sta_cap_* query gates that and what do I do when the device caps it lower?",
+        "doca_sta IO returns DOCA_ERROR_IO_FAILED on a target I can ping over RoCE — which layer below DOCA do I narrow to first?"
+      ]
+    },
+    {
+      "lib": "doca-telemetry",
+      "prompts": [
+        "How do I export DOCA telemetry to NetFlow / IPFIX?",
+        "I want to sample DPA counter exports from my BlueField application — which per-domain reader library do I link, and what's the cap-query I have to run first?",
+        "I'm reading PCC counters from my BlueField host application — is that the same library as doca-telemetry-exporter, and how do I open a doca_telemetry_pcc context on a doca_dev?",
+        "How do I expose PHY / PCI / DIAG hardware counters from this doca_dev without standing up a NetFlow listener?",
+        "Is the doca_telemetry_adp_retx reader available on my installed DOCA + this firmware, and what's the cap_is_supported(devinfo) call I have to run before doca_ctx_start?"
+      ]
+    },
+    {
+      "lib": "doca-telemetry-exporter",
+      "prompts": [
+        "I want my DOCA Flow program to publish a per-second packets_processed counter to a downstream collector — which DOCA artifact do I link?",
+        "doca_telemetry_exporter_source_report returns DOCA_ERROR_NOT_FOUND on the very first call — what lifecycle step did I skip?",
+        "My emit loop starts returning DOCA_ERROR_AGAIN once the consumer falls behind — do I sleep-and-retry or drop?"
+      ]
+    },
+    {
+      "lib": "doca-urom",
+      "prompts": [
+        "My MPI all-reduce is consuming host CPU cycles I'd rather use for compute — how do I push that work onto the BlueField via doca-urom?",
+        "First doca_urom_* call returns DOCA_ERROR_NOT_PERMITTED on a host where DOCA is otherwise healthy — what env-side precondition is the prime suspect?",
+        "Does my BlueField support remote atomic Fetch-and-Add for an MPI window? Which doca_urom_cap_* query is the truth?"
+      ]
+    },
+    {
+      "lib": "doca-verbs",
+      "prompts": [
+        "I want to set a specific raw work-request flag the doca_rdma_task_* abstraction doesn't expose — should I drop to doca-verbs, or am I missing something higher up?",
+        "I have existing ibv_* code — can I keep using libibverbs and call doca_verbs_* next to it on the same QP?",
+        "How do I ask whether this device advertises the QP feature my raw WR needs? Which doca_verbs_query_device + doca_verbs_device_attr_get_* call is canonical?"
+      ]
+    }
+  ],
+  "phase3_grades": [
+    {
+      "lib": "doca-gpi",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "SKILL.md frontmatter + body are aligned (channel + queue object model, doca_gpu_gpi_channel* handoff, doca_gpi_cap_get_* discovery, DOCA_STABLE vs DOCA_EXPERIMENTAL split). Routes raw libibverbs / general RDMA / CUDA programming to siblings cleanly. Cross-links to doca-gpunetio, doca-rdma, doca-rdmi resolve and the relationship is stated correctly (GPU-side handoff is consumed BY the CUDA kernel surface owned by doca-gpunetio)."
+    },
+    {
+      "lib": "doca-gpunetio",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Dual capability check rule (DOCA cap-query + cudaGetDeviceProperties) is the unique correct framing. nvidia_peermem precondition surfaced. Anchors (## configure / ## test / ## debug / ## rollback) consistent across CAPABILITIES.md ↔ TASKS.md. Catalog rows in SKILLS.md ('GPU-initiated networking + CUDA integration') and README.md agree with SKILL.md frontmatter."
+    },
+    {
+      "lib": "doca-mgmt",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "fail",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "FAIL",
+      "notes": "Body is internally consistent (doca_mgmt_dev_ctx / doca_mgmt_dev_rep_ctx / raw-cmd scope ladder / fwctl-ioctl precondition). But README catalog row (line 212) advertises the library as 'devlink, firmware-version queries, NIC-state introspection' — the actual surface in SKILL.md / CAPABILITIES.md / TASKS.md is the kernel fwctl character device (/dev/fwctl*) and the doca_mgmt_raw_cmd opcode space, NOT devlink. README is naming an unrelated Linux subsystem; tester will catch this as catalog drift."
+    },
+    {
+      "lib": "doca-pcc",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Tight triple-axis precondition (DPA-capable BF + firmware custom-PCC slot enabled + doca_pcc_cap_* query). Cleanly distinguishes itself from doca_pcc_counter CLI (read-only inspection) and from the DPA-side algorithm body (routed to doca-dpa + public DOCA PCC programming guide). Three-skill chain doca-pcc / doca-pcc-ztr-rttcc-algo / doca-pcc-counters is consistent."
+    },
+    {
+      "lib": "doca-pcc-ztr-rttcc-algo",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Correctly framed as 'reference algorithm CONSUMED BY doca-pcc framework' (not standalone). Variants table (vanilla / PM / RX-rate / multipath / multipath+credits / window-probeless) is non-trivial and unique. BF3 + DPACC version match precondition surfaced. Pairs back to doca-pcc and doca-pcc-counters via stable anchors."
+    },
+    {
+      "lib": "doca-rdma",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Eleven task types enumerated and each cap-gated via doca_rdma_cap_task_*_is_supported. Permission matrix calls out mmap + RDMA permissions split. Connection-method selection (RDMA CM vs bridge/OOB vs gRPC exchange) is unambiguous. Routes generic libibverbs theory out, doca-verbs/doca-rdmi/doca-gpi cross-links are accurate."
+    },
+    {
+      "lib": "doca-rdmi",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Initiator-vs-general routing (doca-rdmi for DPA-kernel-initiated one-sided RDMA; doca-rdma for two-sided / host-CPU) is a single load-bearing decision that the skill leads with. DPA-completion attach lifecycle (must precede doca_ctx_start) is the unique correct framing. EXPERIMENTAL-tag policy called out at frontmatter + CAPABILITIES.md."
+    },
+    {
+      "lib": "doca-rmax",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Skill leads with the Rivermax SDK + license precondition (DOCA does not bundle Rivermax; it wraps it) and routes the SDK-install / license question out via doca-public-knowledge-map non-goal #7. Three-skill stack (doca-rmax integration / doca-eth queue / doca-flow steering) is consistent. The 'no recv events' question gets answered at the right precondition layer rather than diving straight into doca_rmax code."
+    },
+    {
+      "lib": "doca-sha",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Path-selection rule includes a real 'when NOT to use doca-sha' (small inputs / one-shot CPU-fast hashes / SHA-3) instead of pretending the accelerator is always cheapest. One-shot vs partial-hash chaining is gated on doca_sha_cap_get_max_src_buf_size — concrete and falsifiable. mmap permission matrix is the right place for NOT_PERMITTED."
+    },
+    {
+      "lib": "doca-sta",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Correctly positions doca-sta as a TRANSPORT-LAYER offload that an SPDK or kernel-nvme stack sits on TOP of, NOT a complete NVMe stack. NVMe-over-RDMA-on-doca-rdma vs NVMe-over-TCP path-select via doca_sta_cap_*. Routes flow-steering to doca-flow and RDMA substrate to doca-rdma cleanly."
+    },
+    {
+      "lib": "doca-telemetry",
+      "C1": "fail",
+      "C2": "fail",
+      "C3": "fail",
+      "C4": "fail",
+      "C5": "pass",
+      "verdict": "FAIL",
+      "notes": "This is the one we missed last time and it is broken hard. Frontmatter + CAPABILITIES.md head + README catalog all describe a per-domain hardware-counter reader (doca_telemetry_pcc / _dpa / _diag / _adp_retx / _phy / _pci). SKILL.md body + CAPABILITIES.md body + TASKS.md (entire) + SKILLS.md catalog still describe a NetFlow / IPFIX / local-socket event collector that consumes from publisher schemas registered via doca-telemetry-exporter. CAPABILITIES.md opens with an explicit 'CRITICAL framing correction (Run-12)' block that admits 'the rest of this file talks about a generic collector / schema-query / NetFlow / IPFIX surface that does NOT exist in the public header; treat that prose as a known bug.' So the bundle is shipping a self-admitted known-bug body. On the user's load-bearing test prompt 'How do I export DOCA telemetry to NetFlow / IPFIX?' the frontmatter would refuse + route external (correct non-goal handling per C4), but the CAPABILITIES.md / TASKS.md body would happily walk the user into setting up a NetFlow / IPFIX listener as if it were an in-bundle DOCA surface — which would fail at link time because there is no such API on the install. Net effect: an agent that loads the full skill would emit contradictory guidance on the same prompt."
+    },
+    {
+      "lib": "doca-telemetry-exporter",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "fail",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "FAIL",
+      "notes": "Skill itself is internally self-consistent (schema → source → type with register-before-emit lifecycle, AGAIN-means-drop-not-block hot-path rule, NOT_FOUND-means-schema-not-registered, exporter-vs-DTS-service split). But README catalog row (line 221) advertises 'schema + source + type lifecycle plus labeled-metrics (metrics_*) and OTLP-logs (otlp_logs_*) surfaces' — neither metrics_* nor otlp_logs_* nor 'OTLP' nor 'labeled-metrics' appear anywhere in SKILL.md / CAPABILITIES.md / TASKS.md (grep confirmed zero hits in the exporter's own files). README is naming an API surface the skill doesn't teach. Either README is selling vapor or the skill is missing the OTLP / labeled-metrics half of the API. Either way it's catalog drift a tester will spot in 30 seconds by asking 'show me how to use otlp_logs_*' and watching the agent fail."
+    },
+    {
+      "lib": "doca-urom",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "Host-library + DPU-side service is a paired contract — the skill leads with this and routes operating the DPU-side UROM Service to doca-public-knowledge-map ## DOCA services (anchor confirmed present). Path-selection ('UROM is for when host-CPU is the bottleneck on the comm overhead; small / simple point-to-point stays on doca-rdma') is sharp."
+    },
+    {
+      "lib": "doca-verbs",
+      "C1": "pass",
+      "C2": "pass",
+      "C3": "pass",
+      "C4": "pass",
+      "C5": "pass",
+      "verdict": "PASS",
+      "notes": "The skill's primary job is route-UP — the explicit decision gate at the top ('1. Has the user confirmed the matching higher-level DOCA library does not expose the semantic they need? If no, stop here, route back to doca-rdma / doca-eth / doca-rmax') is exactly the right framing for an escape-hatch skill. EXPERIMENTAL ABI tier called out. doca-verbs-vs-libibverbs boundary rule is precise."
+    }
+  ],
+  "phase4_inaccuracies": [
+    {
+      "id": "INACC-1",
+      "severity": "critical",
+      "class": "internal_contradiction",
+      "lib": "doca-telemetry",
+      "summary": "doca-telemetry/SKILL.md frontmatter declares the library a per-domain hardware-counter reader (doca_telemetry_pcc / _dpa / _diag / _adp_retx / _phy / _pci) and explicitly disavows the NetFlow / IPFIX / local-socket / schema-collector framing as 'wrong'. The SKILL.md body itself (Example questions / Audience / When to load / What this skill provides / Loading order), CAPABILITIES.md body, and TASKS.md (entire) STILL teach the disavowed collector-with-NetFlow-and-IPFIX framing. CAPABILITIES.md head ships an explicit 'CRITICAL framing correction (Run-12)' block that itself admits the rest of the file is a known bug. The bundle is shipping a self-admitted known-bug body.",
+      "evidence_paths": [
+        "skills/libs/doca-telemetry/SKILL.md lines 3-21 (NEW framing)",
+        "skills/libs/doca-telemetry/SKILL.md lines 32-62 (NEW framing repeat)",
+        "skills/libs/doca-telemetry/SKILL.md lines 63-377 (OLD framing reverts: collector, NetFlow, IPFIX, publisher schemas, DTS attachment, doca-log adjacency, OTLP/Prometheus)",
+        "skills/libs/doca-telemetry/CAPABILITIES.md lines 1-24 (explicit Run-12 'known bug' framing-correction callout)",
+        "skills/libs/doca-telemetry/CAPABILITIES.md lines 25-358 (OLD framing body: SEVEN collector patterns, role-split, schema-must-match, transport listeners, AGAIN-means-consumer-queue-full)",
+        "skills/libs/doca-telemetry/TASKS.md lines 1-490 (OLD framing only — no per-domain reader content at all; no Run-12 correction)"
+      ]
+    },
+    {
+      "id": "INACC-2",
+      "severity": "critical",
+      "class": "catalog_drift",
+      "lib": "doca-telemetry",
+      "summary": "SKILLS.md catalog row (line 96) describes doca-telemetry as 'collector library; schemas, sampling, DTS integration' — i.e. the OLD wrong framing the SKILL.md frontmatter and README catalog now disavow. README.md catalog row (line 220) describes it as 'Per-domain DOCA hardware-counter / diagnostic readers (PCC / PCI / PHY / DPA / DIAG / ADP-RETX)' — the NEW framing. SKILLS.md and README.md disagree about what the SAME library does.",
+      "evidence_paths": [
+        "SKILLS.md line 96",
+        "README.md line 220",
+        "skills/libs/doca-telemetry/SKILL.md frontmatter (matches README, contradicts SKILLS.md)"
+      ]
+    },
+    {
+      "id": "INACC-3",
+      "severity": "high",
+      "class": "routing_failure",
+      "lib": "doca-telemetry",
+      "summary": "Because the SKILL.md body, CAPABILITIES.md body, and TASKS.md still teach the collector / NetFlow / IPFIX framing, when a user asks 'How do I export DOCA telemetry to NetFlow / IPFIX?' the bundle's behavior depends on how deep into the skill the agent loads: a frontmatter-only load (per the AgentSkills.io progressive-disclosure model) yields the correct refuse + route external; a fully-loaded skill yields contradictory guidance (walks the user through configuring a NetFlow listener as if it were a real doca_telemetry_* surface). The bundle's contract relies on the agent loading the body, so the externally-observable behavior is the wrong one.",
+      "evidence_paths": [
+        "skills/libs/doca-telemetry/CAPABILITIES.md lines 161-174 (configuration shape table listing 'local domain socket / NetFlow listener / IPFIX listener' as install-bound transport options)",
+        "skills/libs/doca-telemetry/TASKS.md lines 91-99 ('Pick the transport from the install's cap-queried set ... NetFlow or IPFIX listener for network-shipped telemetry')"
+      ]
+    },
+    {
+      "id": "INACC-4",
+      "severity": "high",
+      "class": "tool_lib_confusion_in_routing",
+      "lib": "doca-telemetry vs doca-telemetry-exporter",
+      "summary": "The bundle's correct routing for OpenTelemetry / OTLP traffic from a DOCA app should be: doca-telemetry (reader, hardware counters) is NOT the OTLP surface; doca-telemetry-exporter is the publish library; OTLP downstream sinks are non-DOCA. But the README.md catalog row for doca-telemetry-exporter (line 221) calls out 'OTLP-logs (otlp_logs_*) surfaces' as an in-scope surface of the EXPORTER. Yet the exporter SKILL.md / CAPABILITIES.md / TASKS.md never mention otlp_logs_*, metrics_*, OTLP, or labeled-metrics anywhere (grep confirms 0 hits in the exporter's three files). Meanwhile the doca-telemetry SKILL.md body mentions 'publishes structured telemetry / labeled metrics / OTLP logs' as if those were exporter capabilities. So a user asking 'how do I export DOCA app metrics as OTLP logs?' would be routed to doca-telemetry-exporter but find no OTLP material there.",
+      "evidence_paths": [
+        "README.md line 221 (claims metrics_* + otlp_logs_* in exporter)",
+        "skills/libs/doca-telemetry-exporter/{SKILL.md,CAPABILITIES.md,TASKS.md} (zero hits on OTLP / metrics_* / otlp_logs_* / labeled-metrics)",
+        "skills/libs/doca-telemetry/SKILL.md lines 50-54 (mentions exporter publishes 'labeled metrics / OTLP logs')"
+      ]
+    },
+    {
+      "id": "INACC-5",
+      "severity": "medium",
+      "class": "catalog_drift",
+      "lib": "doca-mgmt",
+      "summary": "README.md catalog row (line 212) describes doca-mgmt as exposing 'devlink, firmware-version queries, NIC-state introspection' APIs. The SKILL.md / CAPABILITIES.md / TASKS.md never use devlink — the library uses the kernel fwctl framework (/dev/fwctl* character device, doca_mgmt_raw_cmd opcode space). 'devlink' is an unrelated Linux subsystem; mentioning it here misleads the user about what kernel feature has to be present for doca-mgmt to work.",
+      "evidence_paths": [
+        "README.md line 212",
+        "skills/libs/doca-mgmt/SKILL.md frontmatter lines 27-30 (calls out /dev/fwctl* character device, not devlink)",
+        "skills/libs/doca-mgmt/CAPABILITIES.md (doca_mgmt_raw_cmd scope ladder, no devlink)"
+      ]
+    },
+    {
+      "id": "INACC-6",
+      "severity": "medium",
+      "class": "stale_version_alignment",
+      "lib": "bundle-wide",
+      "summary": "SKILLS.md ## Index header (line 69) declares 'strict 1:1 with doca/{libs,services,tools} at the internal monorepo cut used to build this bundle, currently doca/VERSION=3.5.0019; the externally-released DOCA the bundle is documented for is 3.3.0109'. README.md (line 18) declares 'strictly 1:1 with the doca/{libs,services,tools}/ monorepo at the currently-aligned DOCA release (DOCA 3.3 / doca-3.3.0109)'. The two release-anchor declarations disagree: SKILLS.md admits the strict-1:1 is against the 3.5 INTERNAL cut while marketing the release as 3.3; README.md only claims 3.3. An external tester comparing the two will spot the mismatch and ask which monorepo cut the bundle actually mirrors.",
+      "evidence_paths": [
+        "SKILLS.md line 69",
+        "README.md line 18"
+      ]
+    },
+    {
+      "id": "INACC-7",
+      "severity": "low",
+      "class": "internal_cross_link_anchor_naming",
+      "lib": "doca-telemetry",
+      "summary": "doca-telemetry/SKILL.md ## When to load this skill (line 196-200) writes 'doca-log — the right primitive when the user actually wanted plain structured stdout logging'. The bundle never ships a doca-log SKILL.md (it is the doca-common log primitive, not a top-level skill). The cross-link is bare-name and unlinked, so the agent has nowhere to route. This pattern repeats in doca-telemetry/CAPABILITIES.md line 158 ('use doca-log; the collector's schema-aware discipline is overhead the user does not need') and in doca-telemetry-exporter/SKILL.md line 160 ('doca_log when stdout / structured-log shipping is enough').",
+      "evidence_paths": [
+        "skills/libs/doca-telemetry/SKILL.md line 196-200 (and 365-371)",
+        "skills/libs/doca-telemetry/CAPABILITIES.md line 158",
+        "skills/libs/doca-telemetry-exporter/SKILL.md line 160",
+        "SKILLS.md ## Index has no row for doca-log; only doca-common owns log primitives"
+      ]
+    },
+    {
+      "id": "INACC-8",
+      "severity": "low",
+      "class": "broken_route_destination",
+      "lib": "doca-pcc",
+      "summary": "doca-pcc/SKILL.md lines 58-60 routes a 'inspect PCC counters at runtime' question to '[doca-public-knowledge-map ## DOCA tools](../../doca-public-knowledge-map/SKILL.md#doca-tools)' — but the right route under the bundle's own architecture is directly to the doca-pcc-counters TOOL skill (skills/tools/doca-pcc-counters/SKILL.md), which is the bundle's canonical PCC-counter-inspection surface. doca-pcc-ztr-rttcc-algo/SKILL.md does route to doca-pcc-counters correctly (line 57), but doca-pcc/SKILL.md goes through the routing index unnecessarily and dumps the user into a generic tools list.",
+      "evidence_paths": [
+        "skills/libs/doca-pcc/SKILL.md lines 56-60",
+        "skills/libs/doca-pcc-ztr-rttcc-algo/SKILL.md lines 54-58",
+        "skills/tools/doca-pcc-counters/SKILL.md (exists)"
+      ]
+    }
+  ],
+  "summary_stats": {
+    "libs_in_scope": 14,
+    "libs_opened": 14,
+    "libs_passed": 11,
+    "libs_failed": 3,
+    "critical_inaccuracies": 2,
+    "high_inaccuracies": 2,
+    "medium_inaccuracies": 2,
+    "low_inaccuracies": 2,
+    "doca_telemetry_status": "OPENED + EXERCISED — major framing inconsistency confirmed across SKILL.md frontmatter (NEW) vs SKILL.md body + CAPABILITIES.md body + TASKS.md + SKILLS.md catalog (OLD). CAPABILITIES.md explicitly admits the body is a Run-12 known-bug. This is the inaccuracy we missed last wave and B3 has now surfaced it with line-level evidence.",
+    "monorepo_compliance": "PASS — no reads against /Users/ttevet/Documents/git/tmp-proj/mcp-agents/doca/ this wave."
+  }
+}

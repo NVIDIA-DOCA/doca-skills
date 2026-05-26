@@ -12,9 +12,9 @@ description: >
   include "move my socket app onto the BlueField without rewriting
   it", "host app gets ECONNREFUSED on the relay", "relay accepts the
   connection but bytes never arrive on the DPU side", "first
-  round-trip works, the rest hang", "bridge a TCP/UDS service to a
-  DPU peer", or "I want a sidecar that forwards my socket to the
-  BlueField". Refuse and route elsewhere for the comch programming
+  round-trip works, the rest hang", "bridge an AF_UNIX (UDS) socket
+  to a DPU peer over Comch", or "I want a sidecar that forwards my
+  socket to the BlueField". Refuse and route elsewhere for the comch programming
   API, line-rate raw packet I/O via doca-eth, and DOCA
   install/bring-up — those belong to other skills.
 metadata:

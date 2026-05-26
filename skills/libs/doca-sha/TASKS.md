@@ -38,10 +38,12 @@ Steps the agent should walk the user through:
    `doca_caps --list-devs` to see which devices have SHA capability,
    then run the per-`doca_devinfo` `doca_sha_cap_*` queries against
    the candidate device. Record at minimum:
-   `doca_sha_cap_task_hash_is_supported(devinfo)`,
-   `doca_sha_cap_task_partial_hash_is_supported(devinfo)`, and for
-   each algorithm the user is considering,
-   `doca_sha_cap_is_algorithm_supported(devinfo, DOCA_SHA_ALGORITHM_*)`.
+   `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)` and
+   `doca_sha_cap_task_partial_hash_get_supported(devinfo, algorithm)`
+   for each algorithm the user is considering — these two folded
+   calls cover both task-support and algorithm-support; there is
+   no separate `_is_supported` or `doca_sha_cap_is_algorithm_supported`
+   cap query in the public header.
    Also record `doca_sha_cap_get_min_dst_buf_size(devinfo, algorithm)`
    and `doca_sha_cap_get_max_src_buf_size(devinfo)`. The capability
    surface to compare against lives in
@@ -123,7 +125,7 @@ before recommending any code-level edit:
 | --- | --- | --- |
 | 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_sha/`? Or the File Integrity reference application under `/opt/mellanox/doca/applications/`? | Pick the closest in *task direction* (one-shot vs partial / incremental) to the user's intent. Do NOT bridge across both axes — a smaller diff is always safer than a re-architecture |
 | 2. Task type added or removed | Which task type from the two? | Each added type needs its own `doca_sha_task_*_set_conf` call before `doca_ctx_start()`, plus its matching cap-query in [`## configure`](#configure) step 2 |
-| 3. Algorithm change | Switching from SHA-256 to SHA-1 or SHA-512? | Re-run `doca_sha_cap_is_algorithm_supported(devinfo, algorithm)` and `doca_sha_cap_get_min_dst_buf_size(devinfo, algorithm)`; the digest size and minimum destination buffer change per algorithm |
+| 3. Algorithm change | Switching from SHA-256 to SHA-1 or SHA-512? | Re-run `doca_sha_cap_task_hash_get_supported(devinfo, new_algorithm)` (and `_task_partial_hash_get_supported(devinfo, new_algorithm)` if using partial-hash), and `doca_sha_cap_get_min_dst_buf_size(devinfo, new_algorithm)`; the digest size and minimum destination buffer change per algorithm |
 | 4. Buffer-size changes | Source or destination buffer size changing? | Source must be ≤ `doca_sha_cap_get_max_src_buf_size(devinfo)`; destination must be ≥ `doca_sha_cap_get_min_dst_buf_size(devinfo, algorithm)`; over-broad permissions are a silent security regression |
 | 5. Streaming model change | Adding chunk-by-chunk streaming on top of an existing one-shot sample? | This is a re-architecture, not a tweak. If yes, recommend the user start from the partial-hash sample instead of patching a one-shot sample over |
 
@@ -186,7 +188,8 @@ device) and escalated to the matching skill.
 Iteration shape:
 
 1. **Capability re-check.** Re-run
-   `doca_sha_cap_is_algorithm_supported(devinfo, algorithm)`,
+   `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)`
+   (and `_task_partial_hash_get_supported(devinfo, algorithm)`),
    `_task_hash_is_supported`, `_task_partial_hash_is_supported`,
    `_get_min_dst_buf_size`, and `_get_max_src_buf_size` against
    the active `doca_devinfo`. If any return false / unexpected →

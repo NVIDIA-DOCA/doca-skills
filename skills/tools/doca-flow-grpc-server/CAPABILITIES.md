@@ -26,7 +26,7 @@ one specific application.
 | `doca_flow_grpc_server` pattern | Class shape | Where the substance lives |
 | --- | --- | --- |
 | 1. Decide remote-vs-direct | Is a remote gRPC control plane the right answer, or should the client just link `libdoca_flow.so` directly? The agent must surface the trade-off (network boundary, language barrier, deployment topology) instead of defaulting to gRPC because it sounds modern. | [`## Capabilities and modes`](#capabilities-and-modes) remote-vs-direct decision + [TASKS.md ## configure](TASKS.md#configure) |
-| 2. Locate the `.proto` contract | The `.proto` files shipped under the tool's source tree on the user's install are the AUTHORITATIVE gRPC contract. Inventing RPC names or message field shapes from generic gRPC intuition is the canonical hallucination failure. | [`## Capabilities and modes`](#capabilities-and-modes) `.proto`-as-contract bullet + [TASKS.md ## configure](TASKS.md#configure) |
+| 2. Locate the `.proto` contract | The `.proto` files are the AUTHORITATIVE gRPC contract. **Monorepo layout:** the Flow gRPC `.proto` files live under `doca/libs/doca_flow/grpc/` (`common.proto`, `doca_flow.proto`, and `packet_buffering/packet_buffering.proto`) — NOT under `doca/tools/flow_grpc_server/`. **Binary install layout:** they are shipped via the doca-flow include / share path on the installed tree (`pkg-config doca-flow --variable=prefix` for the prefix; agent should confirm via `find <prefix> -name '*.proto'` on the user's install rather than assume a hard-coded path). Inventing RPC names or message field shapes from generic gRPC intuition is the canonical hallucination failure. | [`## Capabilities and modes`](#capabilities-and-modes) `.proto`-as-contract bullet + [TASKS.md ## configure](TASKS.md#configure) |
 | 3. Pick auth / TLS / network segment | The transport posture is the operator's call: mTLS / TLS / plaintext-on-trusted-segment, token-based auth or none, the network segment the endpoint binds on. Per the [`## Safety policy`](#safety-policy), this is an admin attack surface. | [`## Capabilities and modes`](#capabilities-and-modes) auth-transport bullet + [`## Safety policy`](#safety-policy) |
 | 4. Smoke-before-bulk | Start → bind → confirm one client (in the client language the operator actually plans to use) can dial the endpoint, complete the TLS / auth handshake, issue one read-only RPC, and confirm the underlying Flow application is the one being programmed. THEN, and only then, expose the endpoint to additional clients or mutating RPCs. | [TASKS.md ## test](TASKS.md#test) + [`## Safety policy`](#safety-policy) smoke-before-bulk rule |
 | 5. Diagnose connect / TLS / RPC failures | Walk the layered error taxonomy in [`## Error taxonomy`](#error-taxonomy) — server-not-started / server-binding-failed / TLS-or-auth-rejected / RPC-call-error / Flow-precondition-failed / version / cross-cutting — instead of guessing at causes from a generic gRPC status code. | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
@@ -97,6 +97,30 @@ The agent's rule:
   message field; never quote a name from prose or memory.
 
 ### Auth / TLS / network-segment decision axes
+
+> **CRITICAL (Run-12 + R13).** The shipped `doca_flow_grpc_server`
+> binary hard-codes `grpc::InsecureServerCredentials()` (gRPC
+> C++ **server-side** API); the C++ `doca_flow_grpc_client`
+> binary hard-codes `grpc::InsecureChannelCredentials()` (gRPC
+> C++ **client-side** API); the Python client uses
+> `grpc.aio.insecure_channel(...)`. The substantive "no TLS / no
+> mTLS / no token-auth" posture is identical across all three;
+> the correct symbol name on the **server** side is
+> `InsecureServerCredentials`, NOT `InsecureChannelCredentials`
+> (a Grep against `tools/flow_grpc_server/server/` will return
+> the server-side symbol). The "Auth" and
+> "TLS" axes below are **NOT** in-binary knobs — there is no
+> shipped flag, config file, env var, or build option that
+> turns on TLS or mTLS or token-auth on this server today. The
+> only sound posture is **plaintext-on-a-trusted-segment behind
+> an external TLS/identity layer** (a TLS-terminating reverse
+> proxy, a service mesh sidecar, a WireGuard tunnel, etc.).
+> The decision the operator makes is therefore: *which external
+> hardening layer* will gate this plaintext endpoint — NOT which
+> in-binary auth/TLS knob to flip. Any prose below that suggests
+> the operator picks an in-binary auth/TLS mode is the bundle's
+> previous aspirational framing and is wrong against the shipped
+> source.
 
 The operator must commit to three independent transport
 decisions before exposing the endpoint.

@@ -34,7 +34,7 @@ The anti-pattern to refuse: silently raising the log level in the user's persist
 
 ## build
 
-> **Anchor exists for lint compliance.** Substantive build content for cross-cutting debug (build flags that aid debugging — `-g`, `-O0`, `-DALLOW_EXPERIMENTAL_API`, the `doca-<library>-trace` `pkg-config` module) lives at [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build). Read that section directly. The trace flavor specifically is documented in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes).
+> **Anchor exists for lint compliance.** Substantive build content for cross-cutting debug (build flags that aid debugging — `-g`, `-O0`, `-DDOCA_ALLOW_EXPERIMENTAL_API`, the `doca-<library>-trace` `pkg-config` module) lives at [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build). Read that section directly. The trace flavor specifically is documented in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes).
 
 Debug-specific build overlay (a CLASS of build mutations, not a recipe
 — each row applies to every DOCA library, not just one):
@@ -43,7 +43,7 @@ Debug-specific build overlay (a CLASS of build mutations, not a recipe
 | --- | --- | --- |
 | `-g -O0` | Symbols + no inlining so `gdb` / `valgrind` show real call sites | [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) |
 | Swap `pkg-config doca-<library>` → `pkg-config doca-<library>-trace` | Selects the trace `.so`; emits TRACE/DEBUG lines the release `.so` never emits | [`## configure`](#configure) step 3 + [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability) |
-| Keep `-DALLOW_EXPERIMENTAL_API` (when applicable) | Some debug-relevant APIs live behind the experimental gate; dropping the flag in a debug build re-introduces the build failure the user is debugging | [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) |
+| Keep `-DDOCA_ALLOW_EXPERIMENTAL_API` (when applicable) | Some debug-relevant APIs live behind the experimental gate; dropping the flag in a debug build re-introduces the build failure the user is debugging | [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build) |
 | Use `pkg-config --libs` output verbatim | The single most common link-failure class (layer 4) is a hand-typed `-l` line that omits one of DOCA Flow's 5 split `.so`s | [`## debug`](#debug) layer 4 |
 | Rebuild against the *currently installed* DOCA, not a cached one | Mixed-version `*.so` is the second most common cross-cutting bug; ensure the build sees the *runtime* DOCA install | [`## debug`](#debug) layer 2 (version coherence) |
 
@@ -167,7 +167,7 @@ If any disagree, the install is partial / mixed — route to [`doca-setup ## deb
 **Layer 3 — Build.** Once version is coherent, confirm the build can find DOCA.
 
 - `pkg-config --list-all | grep -i doca` — should show the libraries the user expects to link against.
-- The full failing compile command, with the exact error string. Most build failures fall into one of three buckets: `pkg-config` cannot find module (env), header not found (env), missing experimental-API flag (program — see the `-DALLOW_EXPERIMENTAL_API` requirement documented in [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build)).
+- The full failing compile command, with the exact error string. Most build failures fall into one of three buckets: `pkg-config` cannot find module (env), header not found (env), missing experimental-API flag (program — see the `-DDOCA_ALLOW_EXPERIMENTAL_API` requirement documented in [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build)).
 - For build env failures, route to [`doca-setup ## debug`](../doca-setup/TASKS.md#debug) layer 4. For program-side build failures (e.g. wrong source layout, missing experimental-API flag), route to [`doca-programming-guide ## build`](../doca-programming-guide/TASKS.md#build).
 
 **Layer 4 — Link.** Once the build compiles, confirm it links.

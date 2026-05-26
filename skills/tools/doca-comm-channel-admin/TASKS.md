@@ -1,5 +1,27 @@
 # DOCA Comm Channel Admin Tool — Tasks
 
+> **CRITICAL — body-interpretation banner.** This file repeatedly
+> says *"drain"*, *"restart"*, *"per-channel inspect"*,
+> *"state-changing operation"*, *"list-first → inspect-one →
+> drain-or-restart"*, *"smoke-before-bulk"*, including in the
+> Command appendix table rows. Those names are the **operator's
+> mental model**; they are NOT subcommands or flags the
+> `doca_comm_channel_admin` binary ships. The binary registers ZERO
+> application-level arguments. Whenever a workflow step below says
+> *"drain a channel"* or *"restart it"*, the operator does that
+> through [`doca-comch`](../../libs/doca-comch/SKILL.md) (program-side
+> reconnect lifecycle: `doca_ctx_stop()` → reset →
+> `doca_ctx_start()`), [`doca-setup`](../../doca-setup/SKILL.md) +
+> [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md) (driver
+> reload, BlueField-mode flip), or RShim/BFB (deepest reset) — NEVER
+> by re-running the admin binary with a flag that does not exist.
+> The Command appendix rows for *"Drain a stuck channel"* and
+> *"Restart a stuck channel"* describe **what the operator does next
+> via those other paths**, not a subcommand of this tool. The
+> [`SKILL.md`](SKILL.md) top-of-file banner is the authoritative
+> surface contract; this file's flow language is the operator
+> overlay on top of it.
+
 **Where to start:** The verbs that carry real workflow content are
 `## run`, `## test`, and `## debug`. The other three (`configure`,
 `build`, `modify`) are documented routing stubs that exist because

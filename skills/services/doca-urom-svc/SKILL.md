@@ -1,23 +1,23 @@
 ---
 name: doca-urom-svc
 description: >
-  Use this skill when operating the DOCA UROM Service container
-  on a BlueField Arm to execute remote memory operations (puts,
-  gets, atomics, collectives) that paired hosts enqueue through
-  the host-side `doca-urom` library — pulling the NGC container
-  under the BlueField container runtime, choosing the
-  UCX-component / collective surface, sizing the enqueue queue,
-  wiring host-endpoint authorization, or pinning the host-library
-  + service paired versions per the DOCA Compatibility Policy.
-  Trigger even when the user does not say "DOCA UROM Service" —
-  typical implicit phrasings include "MPI/UCX collectives slow on
-  host CPU, want BlueField offload", "enqueue returns
-  NOT_PERMITTED though doca_dev access is fine", "operations
-  enqueued but completions never fire", "DOCA_ERROR_AGAIN after N
-  submits", or "cap query says supported but runtime says
-  NOT_SUPPORTED". Refuse and route elsewhere for host-side
-  application code, MPI/UCX stack integration, RDMA substrate
-  bring-up, or installing DOCA — those belong to other skills.
+  Use when operating the DOCA UROM Service container on a
+  BlueField Arm to execute remote memory ops (puts, gets,
+  atomics, collectives) that paired hosts enqueue through the
+  host-side `doca-urom` library — pulling the NGC container,
+  choosing UCX-component / collective surface, sizing enqueue
+  queue, wiring DOCA Comch endpoint pairing with `doca-urom`
+  (the binary has NO standalone authz list / `allowed_host` /
+  `allowed_users` / `auth_token` / `NOT_PERMITTED` knob — access
+  is governed by Comch pairing + RDMA permissions), or pinning
+  host-library + service paired versions per the DOCA
+  Compatibility Policy. Trigger even without "DOCA UROM" —
+  implicit forms: "MPI/UCX collectives slow on host CPU, want
+  BlueField offload", "enqueue returns NOT_PERMITTED though
+  doca_dev access is fine", "ops enqueue but completions never
+  fire", "cap query says supported but runtime says
+  NOT_SUPPORTED". Refuse for host-side app code, MPI/UCX
+  integration, RDMA substrate bring-up, or installing DOCA.
 metadata:
   kind: service
 compatibility: >
@@ -87,12 +87,15 @@ load-bearing piece; the worked example is one instance.
   though `doca_dev` access is fine — is this the service?"** —
   worked example: *"first enqueue from host returns
   `DOCA_ERROR_NOT_PERMITTED` after a clean `doca_ctx_start()`"*.
-  Answered by the service-side-authorization layer in
+  Answered by the Comch-pairing / RDMA-permissions layer in
   [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
   + the layered ladder in
   [`TASKS.md ## debug`](TASKS.md#debug), which surfaces *"is
-  this host endpoint authorized to offload to this service"*
-  BEFORE blaming the host's permissions.
+  the DOCA Comch endpoint pair correctly established and is the
+  underlying RDMA permission stack happy"* BEFORE blaming a
+  service-side authz layer (no such layer exists in the shipped
+  binary — `NOT_PERMITTED` here is a Comch / RDMA signal, not a
+  UROM-service authz signal).
 - **"Operations enqueue but never complete — service or
   substrate?"** — worked example: *"host enqueue succeeds, the
   progress engine never sees the completion, what layer is
@@ -121,10 +124,13 @@ BlueField to receive and execute the remote memory operations
 HPC / UCX / MPI workloads on the host enqueue through
 `doca-urom`. Concretely: people running the service container
 on BlueField Arm, choosing which UCX components and collectives
-it exposes, sizing the enqueue queue depth, wiring the
-host-endpoint authorization list, and validating the
-host-library + DPU-service paired contract end-to-end before
-scaling a real HPC workload on top.
+it exposes, sizing the enqueue queue depth, wiring the DOCA
+Comch endpoint pairing between host `doca-urom` and the
+service container (the shipped binary has NO standalone
+service-side "host-endpoint authorization list" — access is
+governed by Comch pairing + the underlying RDMA permissions),
+and validating the host-library + DPU-service paired contract
+end-to-end before scaling a real HPC workload on top.
 
 It is **not** for NVIDIA developers contributing to the DOCA
 UROM Service itself, and it is **not** a programming guide for

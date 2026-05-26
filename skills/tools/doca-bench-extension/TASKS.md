@@ -17,7 +17,7 @@ through the task verbs every artifact in this bundle exposes.
 The bench-extension framework itself is **shipped pre-built**
 with the DOCA install — the reference
 `doca_bench_cuda_impl` shared library and the in-tree
-`doca/tools/doca-bench-extension/` source tree (which an
+`doca/tools/bench_extension/` source tree (which an
 operator copies forward into a custom extension) ship with
 DOCA when the bench / GPU components are present in the
 install profile.
@@ -71,7 +71,7 @@ Steps the agent should walk the user through, in order:
    surface).
 3. **Locate the shipped reference extension.** Confirm
    the operator's install contains
-   `doca/tools/doca-bench-extension/doca_bench_cuda/`
+   `doca/tools/bench_extension/doca_bench_cuda/`
    (the reference exemplar source tree). The agent must
    ask the operator to confirm the path on their install
    rather than asserting one.
@@ -131,13 +131,13 @@ Steps the agent should walk the user through, in order:
 
 1. **Copy the reference exemplar subtree to the
    operator's working tree.** The reference is
-   `doca/tools/doca-bench-extension/doca_bench_cuda/` on
+   `doca/tools/bench_extension/doca_bench_cuda/` on
    the DOCA install. The operator copies the subtree,
    not edits it in place — the shipped reference must
    stay pristine for cross-check during
    [`## debug`](#debug).
 2. **Adapt the `meson.build`.** Per the shipped
-   `doca/tools/doca-bench-extension/meson.build` shape:
+   `doca/tools/bench_extension/meson.build` shape:
    - the shared library MUST carry
      `version : doca_version` and
      `soversion : doca_so_version` so the parent loader
@@ -187,7 +187,7 @@ reference, the build command line, the resulting
 operator authors or adapts.
 
 **Do not modify the shipped reference exemplar
-(`doca/tools/doca-bench-extension/doca_bench_cuda/`) in
+(`doca/tools/bench_extension/doca_bench_cuda/`) in
 place.** It is the pristine baseline the agent
 cross-references in [`## debug`](#debug) and on every DOCA
 upgrade per the
@@ -487,9 +487,9 @@ the agent should:
 
 | Purpose (class) | Invocation (shape) | Owning step | Reads as healthy when … |
 | --- | --- | --- | --- |
-| Discover the documented bench-extension surface | Inspect the shipped `doca/tools/doca-bench-extension/` source tree on the user's install + the public DOCA Bench documentation on `docs.nvidia.com` (via [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)) | [`## configure`](#configure) steps 3-4 + [`## debug`](#debug) layer 4 | The reference exemplar is reachable on the user's install; the public guide documents the runtime discovery mechanism the parent uses. |
+| Discover the documented bench-extension surface | Inspect the shipped `doca/tools/bench_extension/` source tree on the user's install + the public DOCA Bench documentation on `docs.nvidia.com` (via [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)) | [`## configure`](#configure) steps 3-4 + [`## debug`](#debug) layer 4 | The reference exemplar is reachable on the user's install; the public guide documents the runtime discovery mechanism the parent uses. |
 | Confirm DOCA `version` / `so_version` for the build | `pkg-config --modversion doca-common` or equivalent DOCA version probe on the build host | [`## configure`](#configure) step 7 + [`## debug`](#debug) layer 6 | The reported version matches the parent `doca-bench`'s linked DOCA version per [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2. |
-| Build the extension shared library | A `meson` configure + compile invocation adapted from the shipped `doca/tools/doca-bench-extension/meson.build`, with `version : doca_version` and `soversion : doca_so_version` preserved | [`## build`](#build) steps 2-4 | Exits 0; produces a `.so` with the expected `SONAME`; install path is on the parent loader's search path. |
+| Build the extension shared library | A `meson` configure + compile invocation adapted from the shipped `doca/tools/bench_extension/meson.build`, with `version : doca_version` and `soversion : doca_so_version` preserved | [`## build`](#build) steps 2-4 | Exits 0; produces a `.so` with the expected `SONAME`; install path is on the parent loader's search path. |
 | Confirm the built library's `SONAME` | `readelf -d <library>.so` or `objdump -p <library>.so` | [`## build`](#build) step 5 + [`## debug`](#debug) layer 3 | `SONAME` carries the matching `so_version`; `ldd` resolves all dependencies. |
 | Confirm the extension exports the expected entry points | `nm -D <library>.so` cross-referenced against the `DOCA_EXPERIMENTAL`-marked surface in the shipped `doca_bench_cuda.h` | [`## debug`](#debug) layer 4 | The exported symbols match the surface shape (and the *spelling* matches what the parent expects per the public DOCA Bench documentation). |
 | Run the no-op smoke through the parent | `doca-bench` invocation that points at the extension and invokes its no-op kernel (the reference's `doca_bench_cuda_start_nop_kernel` family is the example; the exact CLI surface the parent exposes lives in the parent's documentation) | [`## run`](#run) step 2 + [`## test`](#test) step 1 | Exit 0; parent logs show the extension loaded; the no-op entry returned `DOCA_SUCCESS`. |
@@ -501,7 +501,7 @@ Three cross-cutting rules for this appendix:
 - **Never invent a build flag, runtime discovery path, or
   `DOCA_EXPERIMENTAL` entry-point name beyond what the
   shipped reference exemplar demonstrates.** The shipped
-  `doca/tools/doca-bench-extension/` source tree on the
+  `doca/tools/bench_extension/` source tree on the
   user's install plus the public DOCA Bench documentation
   are the joint contract; prose-derived names are the
   most common hallucination failure for this skill.
@@ -528,7 +528,7 @@ A few rules that apply across every verb in this file:
 
 - The **public DOCA Bench documentation on
   `docs.nvidia.com`** + the shipped
-  `doca/tools/doca-bench-extension/` source tree + the
+  `doca/tools/bench_extension/` source tree + the
   parent `doca-bench`'s `--help` are the joint source of
   truth.
 - The **shipped reference exemplar is the schema by

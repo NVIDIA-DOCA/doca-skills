@@ -1,22 +1,22 @@
 ---
 name: doca-comm-channel-admin
 description: >
-  Use this skill when the user needs to inspect, drain, or restart
-  a host↔DPU DOCA comch (formerly Comm Channel) control channel
-  from the outside — listing active channels on a BlueField or
-  host, reading a channel's connection state, cross-checking the
-  admin tool's view against a program's connection callback, or
-  walking the drain-vs-restart decision for a wedged channel.
-  Trigger even when the user does not explicitly mention "DOCA
-  Comm Channel Admin Tool" or "comch" — typical implicit phrasings
-  include "my Comch send-task is hanging", "producer/consumer has
-  no completions for 30 seconds", "program says CONNECTED but I
-  see no channel from the host side", "list returned empty on a
-  known-good client", or "is this channel stuck — should I drain
-  or restart it". Refuse and route elsewhere for the comch
-  programming API, library install, comch protocol design, or
-  general DOCA orientation — those belong to doca-comch,
-  doca-setup, and doca-public-knowledge-map.
+  Use this skill to enumerate host↔DPU DOCA comch (formerly
+  Comm Channel) servers and connections via the shipped
+  doca_comm_channel_admin binary — listing comch-capable
+  devices and decoding the per-device server / connection
+  table (server name, PID, in-use / max, PCIe address). The
+  shipped binary is a SINGLE-SHOT SCAN-AND-PRINT tool with no
+  registered arguments — NO list / inspect / drain / restart
+  subcommands; one inventory pass over every comch-capable
+  doca_dev on this side. Channel reset / drain / restart go to
+  doca-comch (program side), doca-setup / doca-hardware-safety
+  (driver reload), or BFB / RShim — NOT to this binary.
+  Trigger on phrasings like "list comch servers", "which
+  channels are active on this BlueField", or "verify admin
+  tool sees same channel as program." Refuse and route
+  elsewhere for the comch programming API, library install,
+  protocol design, channel reset, or general orientation.
 metadata:
   kind: tool
 compatibility: >
@@ -30,19 +30,66 @@ compatibility: >
 
 # DOCA Comm Channel Admin Tool
 
+> **CRITICAL — how to read the body of this skill (drain / restart /
+> inspect / state-changing-operation framing).** The shipped
+> `doca_comm_channel_admin` binary is a SINGLE-SHOT, READ-ONLY,
+> SCAN-AND-PRINT tool. It registers ZERO application-level arguments
+> in `register_comm_channel_admin_params()` (only ARGP defaults are
+> registered), it shells out to `resourcedump` (MFT) per device, and
+> it prints two ASCII tables. There is NO `drain` subcommand, NO
+> `restart` subcommand, NO `inspect <channel-id>` subcommand, NO
+> state-changing operation, and NO `list-first → inspect-one →
+> drain-or-restart` workflow exposed BY THIS BINARY. Wherever the
+> sections below (`## Example questions`, [`CAPABILITIES.md`](CAPABILITIES.md),
+> [`TASKS.md`](TASKS.md)) say *"drain a channel"*, *"restart it"*,
+> *"per-channel inspect step"*, *"state-changing operation gate"*,
+> or *"smoke-before-bulk"*, read those as **conceptual operator
+> actions the operator performs via OTHER paths AFTER reading this
+> tool's tables** — not as subcommands the admin binary itself ships.
+> Concretely: the operator drains/resets/reconnects by going to the
+> **program side** through [`doca-comch`](../../libs/doca-comch/SKILL.md)
+> (the comch library's `doca_ctx_stop()` → reset → `doca_ctx_start()`
+> reconnect lifecycle), or by reloading the BlueField driver / mode
+> via [`doca-setup`](../../doca-setup/SKILL.md) +
+> [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md), or by
+> RShim / BFB reset for the deepest cases — NEVER by re-invoking the
+> admin binary with a flag, because no such flag exists. The body
+> below uses the legacy *drain/restart/inspect/state-changing* names
+> because they describe the operator's mental model; this banner is
+> the authoritative mapping from that model onto the actual binary
+> surface.
+
 **Where to start:** This is a tool skill for invoking the DOCA Comm
-Channel Admin Tool — the admin CLI counterpart to the
-[`doca-comch`](../../libs/doca-comch/SKILL.md) library. Open
-[`TASKS.md`](TASKS.md) and start at [`## run`](TASKS.md#run) for the
-list-then-inspect entry point, or [`## debug`](TASKS.md#debug) when
-the user reports a stuck channel. Open
+Channel Admin Tool — the **read-only inventory** CLI counterpart
+to the [`doca-comch`](../../libs/doca-comch/SKILL.md) library. The
+shipped `doca_comm_channel_admin` binary takes **no arguments
+beyond ARGP defaults** (`--help`, `--version`, `--log-level`,
+`--sdk-log-level`, `--json`) and performs **one inventory pass**
+per invocation: it walks every `doca_dev` on this side, filters
+to comch-capable devices, shells out to `resourcedump` (MFT) on
+each, and prints two ASCII tables (SERVERS and CONNECTIONS).
+There is no `list` subcommand, no `inspect` subcommand, no
+`drain` flag, and no `restart` flag — those are not part of the
+tool's surface. Open [`TASKS.md`](TASKS.md) and start at
+[`## run`](TASKS.md#run) for the single-shot invocation, or
+[`## debug`](TASKS.md#debug) when the user reports the tool sees
+a different channel set than the program. Open
 [`CAPABILITIES.md`](CAPABILITIES.md) when the question is *what
-state can this tool report and change* on a comch channel. If the
-user has not installed DOCA yet, route to
-[`doca-setup`](../../doca-setup/SKILL.md) first. If the user is
-holding pre-2.5 docs that mention "Comm Channel", route to
+the printed tables actually mean* and *what is not in this
+tool's scope*. If the user has not installed DOCA yet, route to
+[`doca-setup`](../../doca-setup/SKILL.md) first; if the user
+needs MFT (`mst start` + `resourcedump` on PATH and root/sudo
+privileges to invoke it), `doca-setup` + `doca-public-knowledge-map`
+cover that. If the user is holding pre-2.5 docs that mention
+"Comm Channel", route to
 [`doca-comch CAPABILITIES.md ## Version compatibility`](../../libs/doca-comch/CAPABILITIES.md#version-compatibility)
-for the rename rule.
+for the rename rule. If the user wants to *change* channel
+state (reset / drain / restart), route to the program-side
+reconnect lifecycle in [`doca-comch`](../../libs/doca-comch/SKILL.md)
+or to BlueField mode / driver reload in
+[`doca-setup`](../../doca-setup/SKILL.md) +
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md) — **not**
+to this tool.
 
 ## Example questions this skill answers well
 

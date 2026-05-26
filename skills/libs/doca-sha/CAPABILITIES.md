@@ -53,7 +53,7 @@ algorithm-selection surface.
 
 **The two task types.** DOCA SHA exposes two task types; each has
 its own `doca_sha_task_*_set_conf` (enable the task) and its own
-matching `doca_sha_cap_task_*_is_supported` (capability query)
+matching `doca_sha_cap_task_*_get_supported(devinfo, algorithm)` (capability query)
 entry point. The agent must call the capability query before
 assuming the task type is available on the user's device.
 
@@ -98,7 +98,7 @@ enum surface advertises:
 | `DOCA_SHA_ALGORITHM_SHA512` | 512-bit SHA-2 digest |
 
 The agent must NOT add algorithm names beyond this enum (no MD5, no
-SHA-3, no Keccak, no Blake) unless `doca_sha_cap_is_algorithm_supported`
+SHA-3, no Keccak, no Blake) unless `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)`
 returns true for them on the user's device — the enum above is the
 public surface this skill commits to.
 
@@ -108,9 +108,8 @@ query against the active `doca_devinfo`:
 
 | Capability | Query | Why the agent must ask |
 | --- | --- | --- |
-| One-shot hash task supported | `doca_sha_cap_task_hash_is_supported(devinfo)` | One-shot hash is the baseline task; if false, the device has no SHA accelerator and the user must fall back to CPU |
-| Partial / incremental hash task supported | `doca_sha_cap_task_partial_hash_is_supported(devinfo)` | Partial hash is not on every device; agent must not silently assume it for streaming inputs |
-| Algorithm supported | `doca_sha_cap_is_algorithm_supported(devinfo, algorithm)` | Per-algorithm boolean; SHA-1 / -256 / -512 are not uniformly available across all generations |
+| One-shot hash + algorithm supported | `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)` | Returns `DOCA_SUCCESS` if both the one-shot hash task *and* the given algorithm are supported on this device. Any other return is "not supported." The "task supported" and "algorithm supported" axes are folded into this one call — there is no separate `doca_sha_cap_task_hash_is_supported` or `doca_sha_cap_is_algorithm_supported` in the public header. |
+| Partial / incremental hash + algorithm supported | `doca_sha_cap_task_partial_hash_get_supported(devinfo, algorithm)` | Same shape, for the partial-hash task. Partial hash is not on every device-and-algorithm pair; agent must not silently assume it for streaming inputs. |
 | Minimum destination buffer size | `doca_sha_cap_get_min_dst_buf_size(devinfo, algorithm)` | Algorithm-dependent; a destination buffer smaller than this returns `DOCA_ERROR_INVALID_VALUE` at submit time |
 | Maximum source buffer size | `doca_sha_cap_get_max_src_buf_size(devinfo)` | Hardware-bound ceiling on one-shot input size; inputs larger than this force the partial-hash path |
 
@@ -130,8 +129,8 @@ For the canonical DOCA version-detection chain, the four-way match rule, NGC con
 
 **The SHA-specific overlay** is:
 
-- **Algorithm enum membership is device-bound, not version-bound.** The agent must not infer *"DOCA version X includes SHA-Y"* from release notes alone; the runtime authority is `doca_sha_cap_is_algorithm_supported(devinfo, DOCA_SHA_ALGORITHM_*)` against the active device. Per the cross-cutting cap-query rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability), the cap query is the runtime authority — never quote an algorithm as available from agent memory.
-- **`doca_sha_task_partial_hash` is newer than the one-shot task.** When the user reports *"the partial-hash API I'm reading about isn't on my install"*, the first hypothesis is that the install pre-dates partial-hash support. Confirm via `doca_sha_cap_task_partial_hash_is_supported(devinfo)`; if false, route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) before invoking the partial-hash codepath.
+- **Algorithm enum membership is device-bound, not version-bound.** The agent must not infer *"DOCA version X includes SHA-Y"* from release notes alone; the runtime authority is `doca_sha_cap_task_hash_get_supported(devinfo, DOCA_SHA_ALGORITHM_*)` against the active device (which folds task-support and algorithm-support into a single call). Per the cross-cutting cap-query rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability), the cap query is the runtime authority — never quote an algorithm as available from agent memory.
+- **`doca_sha_task_partial_hash` is newer than the one-shot task.** When the user reports *"the partial-hash API I'm reading about isn't on my install"*, the first hypothesis is that the install pre-dates partial-hash support. Confirm via `doca_sha_cap_task_partial_hash_get_supported(devinfo, algorithm)` for each algorithm the user needs; if it returns anything other than `DOCA_SUCCESS`, route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) before invoking the partial-hash codepath.
 - **`doca-sha.pc` plus `doca-common.pc` must both match `doca_caps --version`** at the four-way-match check (per [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)). A common partial-install pattern on hosts where the SHA package was installed separately from the rest of DOCA is that `doca-sha.pc` reports release *X* while `doca-common.pc` reports release *Y*; route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 before any SHA-layer diagnosis.
 
 ## Error taxonomy
@@ -146,7 +145,7 @@ disambiguate before falling back to the cross-library response.
 | --- | --- | --- |
 | `DOCA_ERROR_BAD_STATE` | Any call after `doca_ctx_stop()` or before `doca_ctx_start()`; `doca_sha_task_partial_hash` final-submit before any intermediate submit | Lifecycle violation OR partial-hash out-of-order. Walk the call sequence against the lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); for partial-hash specifically, confirm at least one intermediate submit fired before the finalize call. |
 | `DOCA_ERROR_INVALID_VALUE` | `doca_sha_task_hash_alloc_init`; `doca_sha_task_partial_hash_alloc_init`; submit time | The destination buffer is smaller than `doca_sha_cap_get_min_dst_buf_size(devinfo, algorithm)`, OR the source buffer is larger than `doca_sha_cap_get_max_src_buf_size(devinfo)`. Re-run the matching cap query, then resize. |
-| `DOCA_ERROR_NOT_SUPPORTED` | `doca_sha_task_*_set_conf`; submit with an algorithm enum | The algorithm enum is not in this device's accelerator, OR `doca_sha_task_partial_hash` is requested on a device that advertises only the one-shot task. Re-run `doca_sha_cap_is_algorithm_supported` / `_task_partial_hash_is_supported` against the active `doca_devinfo`; if false, that is the answer — fall back to CPU or change algorithm. |
+| `DOCA_ERROR_NOT_SUPPORTED` | `doca_sha_task_*_set_conf`; submit with an algorithm enum | The algorithm enum is not in this device's accelerator, OR `doca_sha_task_partial_hash` is requested on a device that advertises only the one-shot task for that algorithm. Re-run `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)` / `doca_sha_cap_task_partial_hash_get_supported(devinfo, algorithm)` against the active `doca_devinfo`; if either returns anything other than `DOCA_SUCCESS`, that is the answer — fall back to CPU or change algorithm. |
 | `DOCA_ERROR_NOT_PERMITTED` | First task submission | The source mmap does not have `DOCA_ACCESS_FLAG_LOCAL_READ_ONLY` (or a stronger flag that supersedes it), OR the destination mmap is missing `DOCA_ACCESS_FLAG_LOCAL_READ_WRITE`. Re-check the matrix in [`## Safety policy`](#safety-policy). |
 | `DOCA_ERROR_AGAIN` | `doca_task_submit` on either SHA task type | The task queue is full. This is *not* a hardware error; the program must drain completions via `doca_pe_progress()` before re-submitting. Same as the cross-library *"would-block, retry after progress"* pattern. |
 | `DOCA_ERROR_DRIVER` | Any submit / completion call | The layer below DOCA reported failure. Capture state and route to env-class debug ([`doca-setup ## debug`](../../doca-setup/TASKS.md#debug)) — the layer below DOCA is the suspect, not the SHA program. |
@@ -220,7 +219,7 @@ setup:
   recommend doca-sha only when the input is ≥ a few hundred KiB
   *or* repeated, *or* the input is already pinned in `doca_mmap`
   memory because another DOCA library produced it.
-- **Unsupported algorithm.** If `doca_sha_cap_is_algorithm_supported`
+- **Unsupported algorithm.** If `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)`
   returns false for the user's intended algorithm on the active
   device, the answer is to use OpenSSL (or a similar CPU library),
   not to invent a partial-hash workaround.

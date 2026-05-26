@@ -1,22 +1,23 @@
 ---
 name: doca-dms
 description: >
-  Use this skill when the user is operating NVIDIA DOCA Management
-  Service (DMS) on a BlueField DPU, BlueField Arm host, x86 host, or
-  Kubernetes pod — bringing up the `dmsd` frontend and `dmspe`
-  privileged backend, picking a deployment shape, choosing an auth
-  mode (localhost / PAM / credentials / mTLS), wiring `dmsgroup`
-  authorization, issuing gNMI `Get`/`Set` on YANG paths, invoking
-  gNOI for reboot, OS install, factory-reset, file transfer,
-  `mlxconfig`, or `containerz`, or debugging frontend-vs-backend
-  errors and DMS logs. Trigger even when the user does not say "DMS"
-  or "dmsd" — typical implicit phrasings include "manage a remote
-  BlueField over gRPC", "set MTU on a ConnectX from a controller",
-  "gNOI reboot from my orchestrator", "OS install over gRPC to a
-  SmartNIC", "fleet management of DPUs", or "`mlxconfig` failed
-  through the daemon". Refuse and route for gNMI Subscribe streaming
-  telemetry (use DTS), DOCA install, and library-API or sample-build
-  questions — those belong to other skills.
+  Use this skill for operating NVIDIA DOCA Management Service
+  (DMS) on a BlueField, Arm host, x86 host, or K8s pod — bringing
+  up `dmsd` frontend + `dmspe` backend, picking deployment shape,
+  choosing auth (localhost / PAM / credentials / mTLS), wiring
+  `-allowed_users` (gRPC client allow-list) + `dmsgroup` (Unix
+  group for `dmspe`), issuing gNMI Get/Set on YANG paths, gNMI
+  Subscribe for streaming telemetry (STREAM / SAMPLE 1s–60s,
+  ONCE supported; POLL + Aggregation Unimplemented), gNOI for
+  reboot/OS install/factory-reset/file transfer/`mlxconfig`/
+  `containerz`, or debugging frontend-vs-backend errors and logs.
+  Trigger even without "DMS" — implicit forms: "manage a remote
+  BlueField over gRPC", "gNOI reboot from orchestrator", "OS
+  install over gRPC to a SmartNIC", "fleet management of DPUs".
+  Refuse and route for DOCA install, library-API / sample-build
+  questions, and the externally-productized DOCA Telemetry
+  Service (DTS, out-of-scope) when the user wants a turnkey
+  aggregator-side stream consumer.
 metadata:
   kind: service
 compatibility: >

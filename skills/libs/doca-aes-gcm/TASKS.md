@@ -41,8 +41,11 @@ Steps the agent should walk the user through:
    queries against the candidate device. Record at minimum:
    `doca_aes_gcm_cap_task_encrypt_is_supported(devinfo)`,
    `doca_aes_gcm_cap_task_decrypt_is_supported(devinfo)`, and for
-   each key size the user is considering,
-   `doca_aes_gcm_cap_is_key_size_supported(devinfo, key_size)`.
+   each key type the user is considering
+   (`DOCA_AES_GCM_KEY_128` and/or `DOCA_AES_GCM_KEY_256` —
+   AES-192 is not in the enum and is not supported),
+   `doca_aes_gcm_cap_task_encrypt_is_key_type_supported(devinfo, key_type)`
+   and the matching `_decrypt_is_key_type_supported`.
    Also record
    `doca_aes_gcm_cap_task_encrypt_get_max_buf_size(devinfo)`. The
    capability surface to compare against lives in
@@ -134,7 +137,7 @@ before recommending any code-level edit:
 | --- | --- | --- |
 | 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_aes_gcm/`? | Pick the closest in *task direction* (encrypt vs decrypt vs both) to the user's intent. Do NOT bridge across both axes — a smaller diff is always safer than a re-architecture |
 | 2. Task type added or removed | Which task type from the two? | Each added type needs its own `doca_aes_gcm_task_*_set_conf` call before `doca_ctx_start()`, plus its matching cap-query in [`## configure`](#configure) step 2 |
-| 3. Key size change | Switching from AES-128-GCM to AES-256-GCM (or to AES-192-GCM)? | Re-run `doca_aes_gcm_cap_is_key_size_supported(devinfo, new_key_size)`; the key buffer length the user provides MUST match the new key size in bytes (16 / 24 / 32). The agent must remind the user that hard-coding key bytes in the diff is a leak; the key comes from the user's KMS, not the source file |
+| 3. Key size change | Switching from AES-128-GCM to AES-256-GCM? (AES-192-GCM is not in the library — `enum doca_aes_gcm_key_type` only has `DOCA_AES_GCM_KEY_128` and `DOCA_AES_GCM_KEY_256`. If the user actually needs AES-192, route to a CPU library.) | Re-run `doca_aes_gcm_cap_task_encrypt_is_key_type_supported(devinfo, new_key_type)` (and the matching `_decrypt_is_key_type_supported`); the key buffer length the user provides MUST match the new key type in bytes (16 for `_KEY_128`, 32 for `_KEY_256`). The agent must remind the user that hard-coding key bytes in the diff is a leak; the key comes from the user's KMS, not the source file |
 | 4. Buffer-size changes | Plaintext size per submission changing? | Per-submission plaintext must be ≤ `doca_aes_gcm_cap_task_encrypt_get_max_buf_size(devinfo)`; if the user has larger records, the application layer must fragment (this library does not auto-fragment). Over-broad mmap permissions are a silent security regression |
 | 5. AAD shape change | Adding / removing / resizing the additional-authenticated-data field? | AAD must match exactly between encrypt and decrypt for the tag to verify. If the protocol the user is implementing binds a sequence number or header into the AAD, both ends must agree byte-for-byte. AAD mismatches surface only as decrypt tag-verification failures, not as configure-time errors — they are silent until decrypt |
 
