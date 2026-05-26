@@ -59,22 +59,26 @@ public DOCA Capabilities Print Tool guide:
    per-representor attributes (`ib_port`, `host_index`, `pf_index`,
    `vf_index`, `pci_func_type`, `hotplug`, `vuid`, `iface_name`,
    `iface_index`).
-3. **DOCA library list** — prints the DOCA libraries supported by
-   the running OS and their availability for specific OS targets.
-   This is the documented authoritative answer to *"which DOCA
-   libraries does this install actually support on my OS?"*
+3. **DOCA library list** (CLI flag: `--list-libs`) — prints the
+   DOCA libraries supported by the running OS and their availability
+   for specific OS targets. This is the documented authoritative
+   answer to *"which DOCA libraries does this install actually
+   support on my OS?"*
 4. **DOCA library capabilities** — for every DOCA device, prints the
    capabilities it supports in every DOCA library. This is the
    documented authoritative answer to *"can DOCA library X actually
    do Y on this device?"*
-5. **DOCA logger list** — prints the available logger names of DOCA
-   libraries. Useful when configuring `doca_log_*` filters.
+5. **DOCA logger list** (CLI flag: `--list-loggers`) — prints the
+   available logger names of DOCA libraries. Useful when configuring
+   `doca_log_*` filters.
 
-The two invocations the public guide explicitly walks through are
-`--list-devs` and `--list-rep-devs`, both of which can be scoped to
-a single PCIe address with `--pci-addr`. The exact, current flag
-inventory and example output live in the public guide and in the
-tool's own `--help` on the installed version — see
+The flags the binary registers in `tools/caps/main.c` are
+`--list-devs`, `--list-rep-devs`, `--list-libs`, `--list-loggers`,
+`--pci-addr` (scope to a single PCIe address), and `--lib`. Any of
+the `--list-*` flags above can be combined with `--pci-addr` /
+`--lib` to narrow the output. The exact, current flag inventory
+and example output live in the public guide and in the tool's own
+`--help` on the installed version — see
 [`TASKS.md ## run`](TASKS.md#run).
 
 The tool has **no execution modes** beyond the flag-driven
