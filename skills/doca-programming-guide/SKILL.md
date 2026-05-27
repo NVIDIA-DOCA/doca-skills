@@ -74,6 +74,15 @@ skill answers the library-agnostic shape.
   [`TASKS.md ## build`](TASKS.md#build) (FFI against the public C
   ABI) and the language-neutral lifecycle in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
+- **"How should I classify and build all the shipped DOCA samples and
+  applications? What's the difference between a sample and an
+  application?"** — worked example: *"I tried to build all DOCA apps
+  and 20/159 failed — which ones are real regressions vs missing
+  optional stacks?"* Answered by the sample-vs-application model and
+  the category / dependency / skip-vs-fail taxonomy in
+  [`TASKS.md ## sample-and-app-categorization`](TASKS.md#sample-and-app-categorization),
+  which separates *"the SDK is broken"* from *"the optional GPU /
+  RMAX / MPI stack is not on this BlueField"*.
 
 If the question is env-class (install / build env / hugepages /
 devices), route to [`doca-setup`](../doca-setup/SKILL.md). If it is

@@ -1,6 +1,0 @@
-$ pkg-config --modversion doca-common
-2.9.0
-$ pkg-config --list-all | grep doca | head -3
-doca-common                                          DOCA common runtime
-doca-flow                                            DOCA Flow library
-doca-rdma                                            DOCA RDMA library

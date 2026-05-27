@@ -66,7 +66,7 @@ break agent discovery.
 | `doca-container-deployment` | [skills/doca-container-deployment/SKILL.md](skills/doca-container-deployment/SKILL.md) | The user is deploying any DOCA service container on BlueField (kubelet-standalone + pod-spec drop). The CONTAINER half of the two-path deployment landscape; the bare-metal half lives in `doca-bare-metal-deployment`. Every in-bundle per-service skill cross-links here. If the developer has NOT yet decided container vs. bare-metal, route them back to `doca-setup ## recognize` first. |
 | `doca-bare-metal-deployment` | [skills/doca-bare-metal-deployment/SKILL.md](skills/doca-bare-metal-deployment/SKILL.md) | The user is deploying a DOCA-linked **application binary** directly on hardware — no container — on host x86 (DOCA host install talking to a remote BlueField NIC over PCIe) OR on BlueField Arm bare-metal (DOCA app on the DPU cores). Owns the launch contract (direct / tmux / systemd), hardware-resource binding (PF/VF/representor + NUMA + CPU pinning + IRQ affinity), per-tenant isolation (cgroup-v2 + namespaces + numactl), the bare-metal error taxonomy, observability (stdout / journald / devlink / sysfs), and the restart-loop-is-HIGH-STAKES rule. The BARE-METAL half of the two-path deployment landscape; the container half lives in `doca-container-deployment`. Routed to from `doca-setup ## recognize`. |
 
-### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` at the internal monorepo cut used to build this bundle, currently `doca/VERSION=3.5.0030`; the externally-released DOCA the bundle is documented for is `3.3.0109` — see README.md "Standards & Compatibility")
+### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` at the **publicly-released DOCA the bundle is documented for, currently `3.3.0109`** — see README.md "Standards & Compatibility")
 
 This bundle ships one skill per artifact in the DOCA monorepo at the
 DOCA release the bundle is aligned to. The agent loads the matching
@@ -119,7 +119,7 @@ the shared infra dirs `base_image` and `framework`, which are not
 user-facing services). External NVIDIA productized services that are
 **not** in `doca/services/` (e.g. HBN, BlueMan, SNAP, Virtio-net,
 Telemetry-Service-as-deployed) are intentionally out of scope — see
-[AGENTS.md `## Non-goals`](AGENTS.md#non-goals).
+[AGENTS.md `## Non-goals`](AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely).
 
 | Skill | Source | What it covers |
 | --- | --- | --- |

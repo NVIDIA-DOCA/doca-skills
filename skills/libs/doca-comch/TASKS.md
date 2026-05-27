@@ -45,8 +45,8 @@ Steps the agent should walk the user through:
    Sketch the call sequence per side before writing code.
 3. **Run capability discovery against the active `doca_devinfo`.**
    For the slow-path: `doca_comch_cap_get_max_msg_size`. For
-   the fast-path: `doca_comch_cap_consumer_is_supported`,
-   `_producer_is_supported`. For the server: `_server_get_max_num_clients`.
+   the fast-path: `doca_comch_consumer_cap_is_supported`,
+   `doca_comch_producer_cap_is_supported`. For the server: `doca_comch_cap_get_max_clients`.
    Quote the queried values back to the user; do not assume from
    prior installs.
 4. **Choose the path per side.** Slow-path only, fast-path only,
@@ -86,7 +86,7 @@ This skill carries only the Comch-specific overlay:
 | Slot | Value | Why it matters |
 | --- | --- | --- |
 | `pkg-config` module name | `doca-comch` on installs ≥ 2.5; `doca-comm-channel` on installs < 2.5 (renamed; see [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility)) | Wrong module name = `pkg-config: Package 'doca-comch' was not found` on an old install, or *"the API I'm reading about isn't here"* on the legacy install. |
-| Include flags | `pkg-config --cflags doca-comch` | Resolves to headers under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) for the comch subset |
+| Include flags | `pkg-config --cflags doca-comch` | Resolves to headers under $(pkg-config --variable=includedir doca-common) for the comch subset |
 | Link flags | `pkg-config --libs doca-comch` | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) |
 | Companion libraries | `doca-argp` for argument parsing (if the consumer uses the standard DOCA arg style); `doca-rdma` only if the consumer also uses RDMA (Comch does not require it) | Adding unnecessary companion libs bloats the link line and obscures real partial-install issues |
 
@@ -222,9 +222,13 @@ at the *runtime* and *program* layers.
   `doca_pe_progress()` in the user's main loop. Do not recommend
   a retry loop; recommend a progress call.
 - A *"server seems up; client hangs at start"* pattern is
-  most often that the server-side `_set_max_num_clients` is at
-  its default of 1 and a previous client did not cleanly
-  disconnect (leaked connection object on the server side).
+  most often that the server-side accept slot is occupied — the
+  device's per-server cap from `doca_comch_cap_get_max_clients(devinfo)`
+  is reached because a previous client did not cleanly disconnect
+  (leaked connection object on the server side). The cap is a
+  device capability, not a user-settable knob: agent must
+  enumerate live connections and prune the leaked one, not
+  invent a "raise the limit" setter.
 
 **Layer 6 (program) — Comch overlay.**
 

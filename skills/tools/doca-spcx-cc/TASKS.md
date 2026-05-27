@@ -262,6 +262,26 @@ of the flow, not verbatim command lines (per
 [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
 *"do not invent flags"*).
 
+> **Do-not-invent guard (flags vs subcommands).** The
+> `doca_spcx_cc` binary takes **flags only — it has no
+> subcommand surface**. Real downstream agents have
+> hallucinated a `load` / `start` / `observe` / `stop`
+> subcommand family for this binary; it does not exist.
+> The flag inventory the bundle enumerates verbatim is
+> `--device`, `--threads`, `--wait-time`,
+> `--probe-packet-format`, plus algorithm-image and
+> capture-surface flags (see
+> [`## Command appendix`](#command-appendix)). The role
+> (RP vs NP) is hard-coded in the shipped sample's
+> `pcc.c` (`cfg.role = PCC_ROLE_RP`) on this DOCA
+> release and is **not** registered as a CLI flag — do
+> not quote `--role` against `--help` output that does
+> not list it. The host-side status values reported by
+> the bundle (`Active`, `Standby`, `Deactivated`,
+> `Error` per
+> [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes))
+> are status indicators, not subcommands.
+
 1. **Confirm prerequisites.** Per [`## install`](#install)
    and [`## configure`](#configure): binary present,
    library + DPACC + firmware-slot + SPCX availability

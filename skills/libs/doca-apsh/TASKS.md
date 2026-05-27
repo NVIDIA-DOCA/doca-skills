@@ -61,9 +61,14 @@ Steps the agent should walk the user through:
 4. **Discover the device + host-OS capability surface for App
    Shield.** Run `doca_caps --list-devs` (per
    [`doca-caps`](../../tools/doca-caps/SKILL.md)) on the DPU side
-   to confirm the device the program will open, then run the
-   matching `doca_apsh_cap_*` queries against the candidate
-   `doca_devinfo` to discover which introspection targets are
+   to confirm the device the program will open, then dry-run
+   each enumerator (`doca_apsh_processes_get`, module / lib /
+   thread variants) against the candidate started
+   `doca_apsh_system` and inspect the return code — App Shield
+   does NOT ship a separate `doca_apsh_cap_*` query family; the
+   negative-cap signal is `DOCA_ERROR_NOT_SUPPORTED` returned by
+   the enumerator itself — to discover which introspection
+   targets are
    actually supported on this host OS / kernel version. Quote the
    queried values back to the user; do not assume from a prior
    host. The capability matrix to compare against lives in
@@ -218,8 +223,11 @@ Iteration shape:
    succeeds without `DOCA_ERROR_NOT_PERMITTED`. If it fails, do
    not advance — re-walk the privilege + symbol-map matrix in
    [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
-2. **Capability re-check.** Re-run the `doca_apsh_cap_*` queries
-   against the active `doca_devinfo`. If a target the user wants
+2. **Capability re-check.** Re-run the dry enumeration sweep
+   (matching `doca_apsh_*_get()` enumerators) against the active
+   `doca_devinfo` — App Shield has no separate `doca_apsh_cap_*`
+   query family, so the enumerator return is the cap signal. If
+   a target the user wants
    returns false, that *is* the answer for this host OS / kernel
    version; update the user's intent or update the host install
    before adding code.
@@ -254,7 +262,7 @@ Eval-loop overlay — why this is a loop, not a one-shot pass:
 | --- | --- | --- |
 | `DOCA_ERROR_NOT_PERMITTED` on `doca_apsh_system_create` | The DPU-side privilege state or symbol-map load is wrong | Re-walk the prerequisite matrix in [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy); do not advance to enumerators |
 | `DOCA_ERROR_NOT_FOUND` on a target the user expected | Either the target really is absent right now (normal), or the symbol map is mismatched and App Shield is walking the wrong kernel layout | Cross-check by enumerating a known-running target (e.g. `init` / `systemd`); if THAT returns `NOT_FOUND` too, the symbol map is the suspect, not the per-target query |
-| `DOCA_ERROR_NOT_SUPPORTED` on an enumerator | The cap query at configure time was assumed; the device + host-OS reality differs | Re-run `doca_apsh_cap_*` against the *active* `doca_devinfo`; the wrong-host or wrong-OS case is the most common cause |
+| `DOCA_ERROR_NOT_SUPPORTED` on an enumerator | The negative-cap signal returned by the enumerator itself (App Shield has no separate `doca_apsh_cap_*` query family); the device + host-OS reality differs from what the program assumed | Dry-run the same enumerator against the *active* `doca_devinfo`; the wrong-host or wrong-OS case is the most common cause |
 | Enumerator returns an empty list after smoke was green | The lifecycle or the symbol map regressed between smoke and broad scan; or a host kernel upgrade landed between runs | Wire the lifecycle trace per [`doca-debug TASKS.md ## debug`](../../doca-debug/TASKS.md#debug); confirm the symbol map's host-OS-version match against the current host kernel |
 | Same code passes on host A, returns `NOT_FOUND` for known-running targets on host B | Symbol map is for host A's kernel; host B has a different kernel version | Refresh / regenerate the symbol map for host B's kernel; do not edit the App Shield code |
 
@@ -306,9 +314,12 @@ manifestation at layers 5 (runtime) and 6 (program):
   before the `doca_apsh_system` reached `RUNNING`.
 - Capability assumption: an enumerator that returns
   `DOCA_ERROR_NOT_SUPPORTED` after a smoke ran is not a hardware
-  failure; it is the cap-query result the user did not check at
-  configure time. Re-read the matching `doca_apsh_cap_*` against
-  the active `doca_devinfo`.
+  failure; it is the enumerator's own negative-cap return that
+  the user did not check at configure time. Re-run the matching
+  `doca_apsh_*_get()` enumerator against the active
+  `doca_devinfo` — App Shield does NOT ship a separate
+  `doca_apsh_cap_*` query family; the enumerator return is the
+  authoritative cap signal.
 
 Once the layer is identified, route to the matching debug verb on
 the matching skill: install / build / link / driver to
@@ -330,8 +341,11 @@ debug answer before declaring done:
 2. **Triple capture (READ-ONLY).** Capture (a) the configured
    `doca_apsh_system` shape: PCIe path, host OS type, symbol
    map filename + sha, (b) the capability set the host kernel
-   actually exposes via `doca_apsh_cap_*` against the active
-   `doca_devinfo`, (c) DPU-side trace at
+   actually exposes — captured by dry-running each `doca_apsh_*_get()`
+   enumerator against the active `doca_devinfo` and recording
+   `DOCA_SUCCESS` vs `DOCA_ERROR_NOT_SUPPORTED` per enumerator,
+   since App Shield has no separate `doca_apsh_cap_*` query
+   family — (c) DPU-side trace at
    `DOCA_LOG_LEVEL=DEBUG` for the offending enumerator call.
    The triple is the rollback target.
 3. **Single-variable mutation SMALLER than the original

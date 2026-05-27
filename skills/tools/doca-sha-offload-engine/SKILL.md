@@ -28,7 +28,7 @@ compatibility: >
   BlueField DPU or ConnectX NIC attached, plus OpenSSL
   ≥ 1.1.1 and libssl-dev (or distro equivalent) on the
   build host. The engine ships under
-  /opt/mellanox/doca/tools/doca_sha_offload_engine/ as
+  /opt/mellanox/doca/infrastructure/doca_sha_offload_engine/ as
   libdoca_sha_offload_engine.so; reads the user's local
   install via `pkg-config doca-sha` and inspects
   /opt/mellanox/doca/{lib,include,samples,applications}.
@@ -39,7 +39,7 @@ compatibility: >
 **Where to start:** This is a tool skill for the OpenSSL
 ENGINE shipped in the DOCA SOURCE tree under
 `doca/tools/sha_offload_engine/` and INSTALLED on the host
-under `${DOCA_DIR}/tools/doca_sha_offload_engine/` as
+under `${DOCA_DIR}/infrastructure/doca_sha_offload_engine/` as
 `libdoca_sha_offload_engine.so`. The directory-name shift
 (`sha_offload_engine` in the source layout vs
 `doca_sha_offload_engine` in the install layout) is an

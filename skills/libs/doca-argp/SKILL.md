@@ -54,9 +54,9 @@ single instance.
 
 - **"How do I add a new flag to a DOCA sample without breaking
   the standard CLI?"** — worked example: *"add `--my-flag` to
-  `/opt/mellanox/doca/samples/doca_dma/dma_copy/` so the sample
-  still accepts `--device <PCI>` and `--sdk-log-level <level>`
-  the same way it did before"*. Answered by the
+  `/opt/mellanox/doca/samples/doca_dma/dma_local_copy/` so the
+  sample still accepts `--device <PCI>` and `--sdk-log-level
+  <level>` the same way it did before"*. Answered by the
   reuse-the-Arg-Parser rule in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the register-before-start workflow in

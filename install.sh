@@ -8,12 +8,21 @@
 #
 # Quickstart:
 #
-#   ./install.sh --agent cursor                     # install all 61 skills into Cursor
-#   ./install.sh --agent claude-code                # install all 61 skills into Anthropic Claude Code
-#   ./install.sh --agent codex                      # install all 61 skills into OpenAI Codex CLI
-#   ./install.sh --agent gemini-cli                 # install all 61 skills into Google Gemini CLI
-#   ./install.sh --agent kiro-cli                   # install all 61 skills into Kiro CLI
-#   ./install.sh --agent custom --dest /some/path/  # install to any AgentSkills.io target
+#   ./install.sh --agent cursor                     # install all 61 skills into Cursor          (~/.cursor/skills/)
+#   ./install.sh --agent claude-code                # install all 61 skills into Anthropic Claude (~/.claude/skills/)
+#   ./install.sh --agent codex                      # install all 61 skills into OpenAI Codex CLI (~/.agents/skills/)
+#   ./install.sh --agent gemini-cli                 # install all 61 skills into Google Gemini CLI(~/.gemini/skills/)
+#   ./install.sh --agent kiro-cli                   # install all 61 skills into Kiro CLI         (~/.kiro/skills/)
+#   ./install.sh --agent agents                     # install into the cross-platform target      (~/.agents/skills/)
+#   ./install.sh --agent custom --dest /some/path/  # install to any AgentSkills.io-compliant dir
+#
+# Note on `codex` and `agents`:
+#   OpenAI Codex CLI's PRIMARY skill location per the official spec is
+#   ~/.agents/skills/ (the cross-platform Agent Skills standard). The legacy
+#   path ~/.codex/skills/ is still read for backward-compat, but new installs
+#   should land in ~/.agents/skills/. `--agent codex` and `--agent agents`
+#   both target ~/.agents/skills/. If you need the legacy path explicitly
+#   (very old Codex CLI), use:  --agent custom --dest ~/.codex/skills
 #
 # Targeted install:
 #
@@ -22,7 +31,7 @@
 #
 # Multi-agent fan-out:
 #
-#   ./install.sh --agent cursor --agent claude-code --agent codex
+#   ./install.sh --agent cursor --agent claude-code --agent codex --agent gemini-cli --agent kiro-cli
 #
 # Other flags:
 #
@@ -181,10 +190,10 @@ if [[ ${#AGENTS[@]} -eq 0 ]]; then
     if [[ -n "$DEST_OVERRIDE" ]]; then
       AGENTS=(custom)
     else
-      die "no --agent given and --yes was passed; pick one of: cursor | claude-code | codex | gemini-cli | kiro-cli | custom"
+      die "no --agent given and --yes was passed; pick one of: cursor | claude-code | codex | gemini-cli | kiro-cli | agents | custom"
     fi
   else
-    printf 'Which agent do you want to install into? (cursor / claude-code / codex / gemini-cli / kiro-cli / custom): '
+    printf 'Which agent do you want to install into? (cursor / claude-code / codex / gemini-cli / kiro-cli / agents / custom): '
     read -r choice
     [[ -n "$choice" ]] || die "no agent picked, aborting"
     AGENTS=("$choice")
@@ -205,13 +214,27 @@ dest_for_agent() {
   case "$agent" in
     cursor)         printf '%s/.cursor/skills' "$base" ;;
     claude-code)    printf '%s/.claude/skills' "$base" ;;
-    codex)          printf '%s/.codex/skills' "$base" ;;
+    # OpenAI Codex CLI's PRIMARY user-scope path per the official spec is
+    # ~/.agents/skills/ (the cross-platform Agent Skills standard).
+    # The legacy ~/.codex/skills/ path is still read by Codex for backward-
+    # compat; if you need to write there explicitly, use:
+    #   --agent custom --dest ~/.codex/skills
+    codex)          printf '%s/.agents/skills' "$base" ;;
+    # Gemini CLI reads BOTH ~/.gemini/skills/ AND ~/.agents/skills/ (alias);
+    # when both exist, ~/.agents/skills/ takes precedence. We default to the
+    # agent-specific path so the install is unambiguous. Use --agent agents to
+    # land in the cross-platform path instead.
     gemini-cli)     printf '%s/.gemini/skills' "$base" ;;
     kiro-cli)       printf '%s/.kiro/skills' "$base" ;;
+    # `agents` is the cross-platform Agent Skills target: ~/.agents/skills/.
+    # Codex reads it natively; Gemini treats it as an aliased high-precedence
+    # source. Use this if you want a single shared skill pool for multiple
+    # agents on the same host.
+    agents)         printf '%s/.agents/skills' "$base" ;;
     custom)
       [[ -n "$DEST_OVERRIDE" ]] || die "--agent custom requires --dest <path>"
       printf '%s' "$DEST_OVERRIDE" ;;
-    *)              die "unsupported --agent '$agent' (supported: cursor | claude-code | codex | gemini-cli | kiro-cli | custom)" ;;
+    *)              die "unsupported --agent '$agent' (supported: cursor | claude-code | codex | gemini-cli | kiro-cli | agents | custom)" ;;
   esac
 }
 

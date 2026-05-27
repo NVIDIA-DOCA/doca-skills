@@ -209,7 +209,7 @@ there; this skill does not duplicate it.
 - **Headers win over docs.** When the user reports *"the doc says
   this verb / opcode / flag is supported but the symbol isn't in
   my headers"*, the headers on the user's install
-  (the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile)) are the
+  ($(pkg-config --variable=includedir doca-common)) are the
   authoritative truth for what the *built* library exposes. The
   agent must not assert a symbol exists without confirming it
   there — per the headers-win-over-docs rule in

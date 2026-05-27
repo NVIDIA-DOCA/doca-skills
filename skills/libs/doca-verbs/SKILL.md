@@ -158,7 +158,7 @@ skill.
 DOCA Verbs ships as a C library with `pkg-config` module name
 `doca-verbs`. The public headers live under the installed DOCA
 infrastructure tree
-(`the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) doca_verbs.h` and the
+(`$(pkg-config --variable=includedir doca-common) doca_verbs.h` and the
 adjacent `doca_verbs_*.h` family); per the
 headers-win-over-docs rule in
 [`doca-version`](../../doca-version/SKILL.md), the headers on the

@@ -85,9 +85,24 @@ Steps the agent should walk the user through:
 
 2. **Set `PKG_CONFIG_PATH` for the build environment.** The DOCA `*.pc` files live at `/opt/mellanox/doca/infrastructure/lib/pkgconfig/`. Add this to `PKG_CONFIG_PATH` in the user's shell profile (or in the build invocation itself) so that `pkg-config --modversion doca-flow` (or any other DOCA module) succeeds. Verify with `pkg-config --list-all | grep -i doca`. If the list is empty, the path or the install profile is wrong — see [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy).
 
-3. **Set `LD_LIBRARY_PATH` for the runtime, if using the trace build flavor.** The program-side rationale for picking trace vs release lives in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the env mechanics here are: either link with the `doca-<lib>-trace` `pkg-config` module at build time, or set `LD_LIBRARY_PATH=/opt/mellanox/doca/lib/<arch>-linux-gnu/trace:$LD_LIBRARY_PATH` at runtime.
+   - **Non-DOCA `pkg-config` paths the user often also needs.** Many DOCA applications and samples integrate with DPDK, SPDK, FlexIO, UCX, or Rivermax — each ships its own `.pc` files in a separate prefix the kernel's default `pkg-config` discovery does NOT see. The agent surfaces the documented locations so the operator can decide whether to add them; it does not fabricate paths. The canonical locations are:
 
-4. **Mount and reserve hugepages.** Required by all DPDK-based DOCA libraries (Flow in particular). The agent must read [CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) item 2 before recommending the change; hugepages are global state. The minimum-viable sequence is:
+     - DPDK: `/opt/mellanox/dpdk/lib/<arch>-linux-gnu/pkgconfig/` (per the DOCA installer's documented layout).
+     - SPDK: `/opt/mellanox/spdk/lib/pkgconfig/` (per the SPDK install on DOCA-shipped hosts).
+     - FlexIO: `/opt/mellanox/flexio/lib/pkgconfig/` (present on hosts with the FlexIO toolchain installed).
+     - UCX / OpenMPI: per the user's OS package manager (paths vary; verify with `pkg-config --list-all`).
+
+     The verification step is the same as for DOCA: after adding any extra path, `pkg-config --list-all | grep -E '<module>'` and confirm the expected modules appear. Empty result = path wrong or component not installed; do NOT push forward with a build that depends on an invisible module.
+
+3. **Confirm the build-tool baseline is installed.** A clean DOCA build environment expects the following host-OS packages to be present BEFORE the user attempts any sample or application build. On Ubuntu / Debian: `build-essential`, `meson`, `ninja-build`, `cmake`, `pkg-config`, `libjson-c-dev` (DOCA Argp + several services consume `json-c`), `liblz4-dev` (some shipped storage samples link `lz4` — see [`doca-programming-guide TASKS.md ## sample-and-app-categorization` → known sample-build quirks](../doca-programming-guide/TASKS.md#known-sample-build-quirks) for the `doca_storage_gga_offload_sbc_generator` quirk this is the documented fix for). On RHEL / OEL: the equivalent `@"Development Tools"` group plus `meson`, `ninja-build`, `cmake`, `pkgconfig`, `json-c-devel`, `lz4-devel`. The agent surfaces the package set as a precondition checklist (`dpkg -s <pkg>` / `rpm -q <pkg>` per package) BEFORE recommending an install line; on missing packages, ask the user to install them OR surface that this target shape can only build a subset of the DOCA catalog (per [`doca-programming-guide ## sample-and-app-categorization`](../doca-programming-guide/TASKS.md#sample-and-app-categorization) skip vs fail rules).
+
+4. **Detect non-standard MPI layouts before MPI-dependent builds.** Several DOCA applications (UROM / HPC-class) require an MPI compiler wrapper (`mpicc`, `mpic++`, `mpirun`). On BlueField OS images the documented MPI install can live at a NON-standard prefix — for example `/usr/mpi/gcc/openmpi-<ver>/bin/mpicc` instead of `/usr/bin/mpicc`. Before the agent tells the user "the build will pick up `mpicc` automatically", the agent verifies: (a) `command -v mpicc` returns a non-empty path; (b) if (a) is empty, the agent runs the documented discovery (`ls /usr/mpi/gcc/openmpi-*/bin/mpicc 2>/dev/null`, `find /opt -name mpicc 2>/dev/null`, `dpkg -L openmpi-bin | grep bin/mpicc 2>/dev/null`, `rpm -ql openmpi 2>/dev/null`) to surface where MPI actually landed. If MPI is found at a non-standard prefix, the agent recommends `export PATH=<found-prefix>:$PATH` BEFORE the build (and surfaces that the build's `PATH` must be inherited correctly — `sudo` typically resets it). If MPI is genuinely not installed, the agent surfaces that the MPI-dependent subset of DOCA apps will skip-env-absent per the [`doca-programming-guide ## sample-and-app-categorization`](../doca-programming-guide/TASKS.md#sample-and-app-categorization) classification.
+
+5. **Apt-source consistency precheck (load-bearing for any subsequent install).** Before recommending ANY `apt install doca-*` line on a host that already has DOCA installed, the agent walks the apt-source precheck in [`doca-version TASKS.md ## apt-source consistency`](../doca-version/TASKS.md#apt-source-consistency) to surface the most common partial-install root cause: `/etc/apt/sources.list.d/doca.list` pointed at one release channel (e.g. `latest` or `3.5`) while the host's installed packages are pinned to a different release (e.g. `3.1.0105`). Installing on top of a mismatched source is the most common cause of *"my BlueField was rolled back to 3.1, but my host packages came back as 3.5 and now nothing works"* — the agent NEVER skips this precheck.
+
+6. **Set `LD_LIBRARY_PATH` for the runtime, if using the trace build flavor.** The program-side rationale for picking trace vs release lives in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the env mechanics here are: either link with the `doca-<lib>-trace` `pkg-config` module at build time, or set `LD_LIBRARY_PATH=/opt/mellanox/doca/lib/<arch>-linux-gnu/trace:$LD_LIBRARY_PATH` at runtime.
+
+7. **Mount and reserve hugepages.** Required by all DPDK-based DOCA libraries (Flow in particular). The agent must read [CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) item 2 before recommending the change; hugepages are global state. The minimum-viable sequence is:
 
    ```bash
    echo '1024' | sudo tee -a /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
@@ -97,9 +112,9 @@ Steps the agent should walk the user through:
 
    Verify with `mount | grep huge` and `cat /proc/meminfo | grep -i huge`.
 
-5. **Confirm device and representor visibility.** `devlink dev show` lists the network devices the kernel sees; `cat /sys/class/net/*/phys_port_name` shows the names of any active representors. If the user expects representors and the listing is empty, switching the eswitch to `switchdev` mode is required (`devlink dev eswitch set <pcie> mode switchdev`) — but only with the user's explicit consent, since the change disrupts existing flows.
+8. **Confirm device and representor visibility.** `devlink dev show` lists the network devices the kernel sees; `cat /sys/class/net/*/phys_port_name` shows the names of any active representors. If the user expects representors and the listing is empty, switching the eswitch to `switchdev` mode is required (`devlink dev eswitch set <pcie> mode switchdev`) — but only with the user's explicit consent, since the change disrupts existing flows.
 
-6. **Sanity-check before any program work.** Confirm with the user: which BlueField (or which host PCIe slot), which install version, which mode (host / DPU / switch). If any of these is unclear, stop and ask. Once these are confirmed, hand off to [`doca-programming-guide ## configure`](../doca-programming-guide/TASKS.md#configure) for the program-side configuration.
+9. **Sanity-check before any program work.** Confirm with the user: which BlueField (or which host PCIe slot), which install version, which mode (host / DPU / switch). If any of these is unclear, stop and ask. Once these are confirmed, hand off to [`doca-programming-guide ## configure`](../doca-programming-guide/TASKS.md#configure) for the program-side configuration.
 
 ## build
 
@@ -304,7 +319,7 @@ the *when* and *why*. New commands must come from a public NVIDIA source
 (documented in [CAPABILITIES.md ## Capabilities and modes](CAPABILITIES.md#capabilities-and-modes)
 or [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md));
 agent-invented flags fail the bundle's anti-hallucination contract
-declared in [AGENTS.md `## Ground rules`](../../AGENTS.md#ground-rules).
+declared in [AGENTS.md `## Ground rules`](../../AGENTS.md#ground-rules-every-agent-must-follow).
 
 ## Deferred task verbs
 

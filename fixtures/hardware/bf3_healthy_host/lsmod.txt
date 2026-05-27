@@ -1,4 +1,0 @@
-$ lsmod | grep -E 'mlx5_core|mlx5_ib|mlx_compat'
-mlx5_ib               503808  0
-mlx5_core            2027520  1 mlx5_ib
-mlx_compat             32768  2 mlx5_core,mlx5_ib

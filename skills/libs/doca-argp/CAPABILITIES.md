@@ -142,7 +142,7 @@ there; this skill does not duplicate it.
   that `doca-argp.pc` lingers from the previous release; route
   to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug)
   layer 2 before any Arg-Parser-layer diagnosis.
-- **Headers in the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile)
+- **Headers in $(pkg-config --variable=includedir doca-common)
   win over public docs.** Per the headers-win-over-docs rule
   in [`doca-version`](../../doca-version/SKILL.md), if a
   public Arg Parser doc page mentions a `doca_argp_*` symbol

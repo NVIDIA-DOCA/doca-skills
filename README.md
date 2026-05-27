@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-NVIDIA%20Software-green.svg)](#license)
 
 > 📖 **DOCA SDK docs:** [docs.nvidia.com/doca/sdk](https://docs.nvidia.com/doca/sdk/index.html) &nbsp;·&nbsp;
-> 🧪 **DOCA samples + applications:** [github.com/NVIDIA-DOCA/doca-samples-demo](https://github.com/NVIDIA-DOCA/doca-samples-demo) &nbsp;·&nbsp;
+> 🧪 **DOCA samples + applications:** [github.com/NVIDIA-DOCA/doca-samples](https://github.com/NVIDIA-DOCA/doca-samples) &nbsp;·&nbsp;
 > 🛠️ **DOCA Platform Framework:** [github.com/NVIDIA/doca-platform](https://github.com/NVIDIA/doca-platform) &nbsp;·&nbsp;
 > 💬 **DOCA Developer Forum:** [forums.developer.nvidia.com/c/infrastructure/doca/370](https://forums.developer.nvidia.com/c/infrastructure/doca/370)
 
@@ -27,7 +27,7 @@ The whole bundle is **vendor-neutral by design**: the directory layout is `skill
 
 > **Repository host (read this before you copy a clone URL).** The `doca-skills` bundle is currently staged on the **NVIDIA-internal** GitLab at `gitlab-master.nvidia.com/doca-devops/doca-skills.git` for the internal-tester drop ahead of the public release. The clone URLs in the Quickstart below resolve from inside the NVIDIA corporate network only. When the bundle is mirrored to a public host the URLs in this section will be updated; the rest of the bundle (skill content, AGENTS.md, CI gates) is host-agnostic. The bundle's own ground rule *"never reference internal NVIDIA hostnames"* governs **skill body content** (so an agent never cites `gitlab-master`, `gerrit-master`, `nvbugs`, internal wikis as a "fact" about DOCA to the user) — it does NOT prohibit this README, which is the install path for the bundle itself, from naming the host the bundle currently lives on. If you are reading a future public mirror of this README and the URLs below still say `gitlab-master`, that is a mirror-staleness bug, not a ground-rule violation.
 
-The same one-liner installs into **any AgentSkills.io-aware agent** — `cursor`, `claude-code`, `codex`, `gemini-cli`, `kiro-cli`, or `custom --dest /path/to/anywhere`. Replace `<agent>` with whichever you want:
+The same one-liner installs into **any AgentSkills.io-aware agent** — `cursor`, `claude-code`, `codex`, `gemini-cli`, `kiro-cli`, `agents` (the cross-platform standard), or `custom --dest /path/to/anywhere`. Replace `<agent>` with whichever you want:
 
 ```bash
 git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git \
@@ -43,18 +43,35 @@ git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doc
 # Anthropic Claude Code   → ~/.claude/skills/
 git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent claude-code
 
-# OpenAI Codex CLI        → ~/.codex/skills/
+# OpenAI Codex CLI        → ~/.agents/skills/   (Codex's PRIMARY path per the official Codex Skills spec)
 git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent codex
 
-# Google Gemini CLI       → ~/.gemini/skills/
+# Google Gemini CLI       → ~/.gemini/skills/   (Gemini also reads ~/.agents/skills/ as alias)
 git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent gemini-cli
 
-# Kiro CLI                → ~/.kiro/skills/
+# Kiro CLI                → ~/.kiro/skills/     (auto-discovered by Kiro's default agent since v1.26.0)
 git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent kiro-cli
+
+# Cross-platform AgentSkills.io target → ~/.agents/skills/  (shared by Codex; aliased by Gemini)
+git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent agents
 
 # Any AgentSkills.io target you control → /path/you/give/it
 git clone https://gitlab-master.nvidia.com/doca-devops/doca-skills.git && cd doca-skills && ./install.sh --agent custom --dest /path/to/your/agent/skills
 ```
+
+> **Per-agent skill-discovery paths (where each agent looks for `<name>/SKILL.md`).**
+> The installer below maps `--agent <name>` to that agent's spec-correct location so you don't have to remember each one. The flat `<dest>/<skill-name>/SKILL.md` layout is honored by every AgentSkills.io-aware agent; the bundle's `libs/` / `services/` / `tools/` slot is collapsed at install time, so a skill named `doca-flow` lands at `<dest>/doca-flow/SKILL.md` regardless of which slot it lives in inside the bundle.
+>
+> | Agent | Spec-correct install path | Notes |
+> |---|---|---|
+> | Cursor | `~/.cursor/skills/<name>/SKILL.md` | Loads on the next agent reload. |
+> | Anthropic Claude Code | `~/.claude/skills/<name>/SKILL.md` | Loads on the next session. |
+> | OpenAI Codex CLI | `~/.agents/skills/<name>/SKILL.md` | The PRIMARY path per the [official Codex Skills spec](https://developers.openai.com/codex/skills/). The legacy `~/.codex/skills/` is also read for backward-compat; if you need to write there specifically, use `--agent custom --dest ~/.codex/skills`. Make sure skills are enabled — either pass `--enable skills` or set `skills = true` in `~/.codex/config.toml`. |
+> | Google Gemini CLI | `~/.gemini/skills/<name>/SKILL.md` | Gemini also reads `~/.agents/skills/` as an alias (with precedence when both exist). |
+> | Kiro CLI | `~/.kiro/skills/<name>/SKILL.md` | Auto-discovered by the `kiro_default` agent since Kiro v1.26.0; on older Kiro you have to add `"skill://~/.kiro/skills/*/SKILL.md"` to your custom agent's `resources` field. |
+> | Cross-platform (`agents`) | `~/.agents/skills/<name>/SKILL.md` | This is the emerging cross-platform Agent Skills standard — Codex reads it natively, Gemini treats it as an aliased high-precedence source. Use this when you want one shared pool for multiple agents on the same host. |
+>
+> **"Reload your agent" — what does that mean?** Most agents discover skills only at session start. After running `install.sh`, open a new agent session / tab / CLI invocation (or, in Cursor's case, use the IDE command palette's *Reload Window*). Then ask a DOCA question that matches one of the skill descriptions and the bundle will activate.
 
 Or, if you prefer a single pipe-to-bash form (no manual `cd` required) — works for every agent with one flag swap:
 
@@ -67,7 +84,7 @@ curl -fsSL https://gitlab-master.nvidia.com/doca-devops/doca-skills/-/raw/main/i
 You can also fan out into multiple agents in a single run:
 
 ```bash
-./install.sh --agent cursor --agent claude-code --agent codex --agent gemini-cli --agent kiro-cli
+./install.sh --agent cursor --agent claude-code --agent codex --agent gemini-cli --agent kiro-cli --agent agents
 ```
 
 > **Why two commands and not `npx`?** The bundle ships as a portable directory of [AgentSkills.io](https://agentskills.io/specification)-compliant skill folders, not as a published npm package, so the install path is `git clone` + `./install.sh` rather than `npx`. The installer is intentionally a small (~310-line) bash script with zero runtime dependencies beyond `bash` / `cp` / `ln` / `mkdir` / `readlink` — auditable, offline-friendly, and reproducible on every Linux / macOS host without any package manager surface. Once installed, the activation flow (`AGENTS.md` → `SKILLS.md` → per-skill `SKILL.md`) is identical to every other AgentSkills.io-aware bundle including [`NVIDIA/skills`](https://github.com/NVIDIA/skills).
@@ -76,7 +93,7 @@ The installer copies (or symlinks) the skill folders into your agent's skill dis
 
 > *"Help me build a DOCA Flow application that steers SMPTE-2110 traffic on my BlueField-3 to specific RX queues for a Rivermax receiver."*
 
-…and the bundle's `doca-setup` + `doca-version` + `doca-programming-guide` + `doca-flow` + `doca-rmax` + `doca-eth` skills activate in the right order, against the DOCA samples shipped in the public [`NVIDIA-DOCA/doca-samples-demo`](https://github.com/NVIDIA-DOCA/doca-samples-demo) repository and against your live `/opt/mellanox/doca` install.
+…and the bundle's `doca-setup` + `doca-version` + `doca-programming-guide` + `doca-flow` + `doca-rmax` + `doca-eth` skills activate in the right order, against the DOCA samples shipped in the public [`NVIDIA-DOCA/doca-samples`](https://github.com/NVIDIA-DOCA/doca-samples) repository and against your live `/opt/mellanox/doca` install.
 
 ### Install for a specific agent
 
@@ -89,14 +106,17 @@ The installer recognizes these common AgentSkills.io-aware clients (one-flag, id
 # Anthropic Claude Code (writes to ~/.claude/skills/)
 ./install.sh --agent claude-code
 
-# OpenAI Codex CLI (writes to ~/.codex/skills/)
+# OpenAI Codex CLI (writes to ~/.agents/skills/ — Codex's PRIMARY path per the official spec)
 ./install.sh --agent codex
 
-# Gemini CLI (writes to ~/.gemini/skills/)
+# Gemini CLI (writes to ~/.gemini/skills/ — Gemini also reads ~/.agents/skills/ as alias)
 ./install.sh --agent gemini-cli
 
-# Kiro CLI (writes to ~/.kiro/skills/)
+# Kiro CLI (writes to ~/.kiro/skills/ — auto-discovered by default agent since Kiro v1.26.0)
 ./install.sh --agent kiro-cli
+
+# Cross-platform Agent Skills target (writes to ~/.agents/skills/)
+./install.sh --agent agents
 
 # Generic AgentSkills.io target (just writes to the path you give it)
 ./install.sh --agent custom --dest /path/to/your/agent/skills/
@@ -105,7 +125,7 @@ The installer recognizes these common AgentSkills.io-aware clients (one-flag, id
 Use `--agent` more than once to install the same skill bundle into multiple agents:
 
 ```bash
-./install.sh --agent claude-code --agent cursor --agent codex
+./install.sh --agent claude-code --agent cursor --agent codex --agent gemini-cli --agent kiro-cli
 ```
 
 ### Install one skill without prompts
@@ -394,4 +414,9 @@ For **DOCA contributions** — patches to the libraries / services / tools thems
 
 ## License
 
-This bundle is released under the **NVIDIA Software License Agreement** that governs the NVIDIA DOCA SDK and its public samples. The DOCA samples and applications referenced from the public [`NVIDIA-DOCA/doca-samples-demo`](https://github.com/NVIDIA-DOCA/doca-samples-demo) repository retain their upstream licenses as shipped with the NVIDIA DOCA SDK.
+Dual-licensed — same scheme as the upstream [`NVIDIA/skills`](https://github.com/NVIDIA/skills) catalog:
+
+- **Apache License 2.0** for code and configuration (the `install.sh` installer, the YAML metadata files, and any future scripted assets).
+- **Creative Commons Attribution 4.0 International (CC BY 4.0)** for documentation (every `*.md` under `skills/`, plus `AGENTS.md`, `BENCHMARK.md`, `CODE_OF_CONDUCT.md`, `README.md`, `SKILLS.md`).
+
+The full license text lives in [`LICENSE`](LICENSE) at repo root. SPDX header: `Apache-2.0 AND CC-BY-4.0`. The DOCA samples and applications referenced from the public [`NVIDIA-DOCA/doca-samples`](https://github.com/NVIDIA-DOCA/doca-samples) repository retain their upstream licenses as shipped with the NVIDIA DOCA SDK.

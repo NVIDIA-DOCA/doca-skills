@@ -111,7 +111,7 @@ Steps the agent should walk the user through:
    documents for the underlying RDMA substrate). The exact
    symbol names for memory registration / export are
    install-bound and must be read from the headers under
-   the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) and the
+   $(pkg-config --variable=includedir doca-common) and the
    shipped samples under
    `/opt/mellanox/doca/samples/doca_urom/`.
 8. **Sanity check before the first enqueue.** Confirm with
@@ -146,7 +146,7 @@ This skill carries only the UROM-specific overlay:
 | --- | --- | --- |
 | `pkg-config` module name | `doca-urom` | The library's `.pc` file installed by the DOCA host packages |
 | Required runtime libs | `libdoca-common`, `libdoca-urom`, plus the underlying RDMA-substrate libraries referenced transitively by `pkg-config --libs doca-urom` | UROM rides on top of the same RDMA substrate `doca-rdma` documents; the transitive `*.so` dependencies surface through `pkg-config` and must NOT be hand-edited away in the user's link line |
-| Header check | `doca_urom.h` (or the matching public header set) resolvable under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) | If `pkg-config --cflags doca-urom` resolves but the include is missing, the install is partial; route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
+| Header check | `doca_urom.h` (or the matching public header set) resolvable under $(pkg-config --variable=includedir doca-common) | If `pkg-config --cflags doca-urom` resolves but the include is missing, the install is partial; route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
 | Companion DOCA libs | `doca-argp` for argument parsing (if the consumer uses the standard DOCA arg style); `doca-rdma` only when the consumer also directly drives the RDMA substrate (UROM does NOT require the consumer to link `doca-rdma` itself — the substrate is reached transitively) | Adding unnecessary companion libs bloats the link line and obscures real partial-install issues |
 | Minimum DOCA version | Query with `pkg-config --modversion doca-urom`; never hardcode in build files | Cross-version build/runtime mixing breaks per [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility); the *DPU-side service version must agree* overlay is the load-bearing UROM-specific axis on top of the cross-library four-way match |
 | Sample tree | `/opt/mellanox/doca/samples/doca_urom/` | The shipped C samples are the verified UROM source code on the user's install; `meson.build` files inside each sample subdirectory show the exact build wiring `pkg-config doca-urom` produces |

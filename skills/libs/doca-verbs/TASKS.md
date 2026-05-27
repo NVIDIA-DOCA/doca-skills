@@ -53,7 +53,7 @@ raw-verbs work:
    A verbs-only upgrade against an older `doca-common` install is
    a partial-install hazard.
 3. **The verbs headers are resolvable** under
-   the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_verbs.h`
+   $(pkg-config --variable=includedir doca-common) (`doca_verbs.h`
    plus the adjacent `doca_verbs_*.h` family) per the
    headers-win-over-docs rule in
    [`doca-version`](../../doca-version/SKILL.md).
@@ -90,7 +90,7 @@ Steps the agent should walk the user through:
    `doca_verbs_*` symbol surface is install-bound (and shipped
    under the experimental ABI tier on this release); the agent
    must not quote symbols from memory. Direct the user to
-   the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) for the verbs
+   $(pkg-config --variable=includedir doca-common) for the verbs
    headers and to `ls /opt/mellanox/doca/samples/` for the
    shipped samples that demonstrate the live API. Per
    [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility),
@@ -187,7 +187,7 @@ This skill carries only the raw-verbs-specific overlay:
 | --- | --- | --- |
 | `pkg-config` module name | `doca-verbs` (NOT `doca-rdma`; NOT `libibverbs`; NOT `doca-eth` even when the workload is Ethernet-side) | The library's `.pc` file installed by the DOCA host packages. A typo to `doca-rdma` silently links the wrong library; a fallback to `libibverbs` puts the user on the wrong side of the boundary in [CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) |
 | Required runtime libs | `libdoca_common` plus the verbs runtime referenced by `pkg-config --libs doca-verbs` | The raw-verbs library depends on Core (`doca-common`); it does NOT auto-pull `doca-rdma` / `doca-eth` / `doca-rmax`, and adding any of them on the link line as a *"just in case"* hides the drop-down decision the agent and user already made |
-| Header check | The verbs headers resolvable under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_verbs.h` and the adjacent `doca_verbs_*.h` family) | If `pkg-config --cflags doca-verbs` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) |
+| Header check | The verbs headers resolvable under $(pkg-config --variable=includedir doca-common) (`doca_verbs.h` and the adjacent `doca_verbs_*.h` family) | If `pkg-config --cflags doca-verbs` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-verbs`; never hardcode in build files | Cross-version build/runtime mixing breaks per [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility), and verbs-only upgrades are a documented partial-install pattern. The doca-verbs ABI is on the experimental tier and may shift between releases |
 | Coexistence with the higher-level library on the same link line | Allowed only if BOTH libraries are independently used in the same binary; never *just in case* | Adding `doca-rdma` (or `doca-eth` / `doca-rmax`) to a binary that only uses `doca-verbs` is a code-smell that suggests the drop-down was not actually needed |
 
@@ -658,9 +658,9 @@ the agent should:
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-verbs` | [`## configure`](#configure) step 3; [`## build`](#build) | What is the build-time raw-verbs version? | A semver string matching `pkg-config --modversion doca-common` AND `doca_caps --version`. Disagreement = verbs-only partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-verbs` | [`## build`](#build) | What include + link flags does the linker need? | Includes resolve under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile); libs include the verbs runtime plus `-ldoca_common`; should NOT auto-pull `-ldoca-rdma` or `-ldoca-eth` |
+| `pkg-config --cflags --libs doca-verbs` | [`## build`](#build) | What include + link flags does the linker need? | Includes resolve under $(pkg-config --variable=includedir doca-common); libs include the verbs runtime plus `-ldoca_common`; should NOT auto-pull `-ldoca-rdma` or `-ldoca-eth` |
 | `ls /opt/mellanox/doca/samples/` | [`## modify`](#modify) slot 1 | Which DOCA samples ship in this install — and which one is the closest starting point for the user's QP shape / completion-handling choice? | A list of sample subdirectories; the user picks the closest in QP shape + completion path |
-| `ls the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile)  \| grep doca_verbs` | [`## configure`](#configure) step 2 | Which `doca_verbs_*.h` headers are installed (the headers-win-over-docs anchor)? | A list including `doca_verbs.h` and any adjacent `doca_verbs_*.h` files the release ships |
+| `ls $(pkg-config --variable=includedir doca-common)  \| grep doca_verbs` | [`## configure`](#configure) step 2 | Which `doca_verbs_*.h` headers are installed (the headers-win-over-docs anchor)? | A list including `doca_verbs.h` and any adjacent `doca_verbs_*.h` files the release ships |
 | `doca_caps --list-devs` | [`## configure`](#configure) step 4 | Which devices on this host can be used as a `doca_dev`? | One row per visible device with PCIe address and capability flags; raw verbs needs at least one row, same as the higher-level RDMA / Eth / Rmax libraries |
 | `doca_caps --version` | [`## configure`](#configure) step 3; [`## test`](#test) step 2 | What is the *runtime* DOCA version on this host? | A semver string matching `pkg-config --modversion doca-verbs` |
 | `cat /opt/mellanox/doca/applications/VERSION` | [`## configure`](#configure) step 3; [`## debug`](#debug) layer 1 | What does the install tree itself claim its version is? | A semver string matching the other two version sources |
@@ -681,7 +681,7 @@ Three cross-cutting rules for this appendix:
 - **Never invent verbs symbols or flags.** The verbs ABI is large,
   version-gated, and shipped under the experimental tier on this
   release; `ls
-  the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile)  | grep doca_verbs`
+  $(pkg-config --variable=includedir doca-common)  | grep doca_verbs`
   on the user's install is the only safe source.
 - **Never paraphrase a verbs `DOCA_ERROR_*`.** Quote
   `doca_error_get_descr()` verbatim — the layer-classifier in

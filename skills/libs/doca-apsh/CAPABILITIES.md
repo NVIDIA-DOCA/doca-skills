@@ -26,7 +26,7 @@ examples shown.
 | 2. Decide App Shield is the right library | The workload is read-mostly observation of host kernel state for security monitoring; it is NOT bulk data movement, packet I/O, or a real-time event stream | [`## Capabilities and modes`](#capabilities-and-modes) path-selection bullet |
 | 3. Load the host kernel symbol map | Without a host-OS-version-matching kernel symbol map on the DPU side, App Shield cannot walk the host's data structures; this is a hard prerequisite, not an optimisation | [`## Safety policy`](#safety-policy) symbol-map row + [TASKS.md ## configure](TASKS.md#configure) step 2 |
 | 4. Stand up the system + object lifecycle | DOCA Core lifecycle: create `doca_apsh_system` → configure (symbol map, host PCIe path, OS type) → start → enumerate `_proc` / `_module` / `_lib` / `_thread` → stop → destroy | [`## Capabilities and modes`](#capabilities-and-modes) object table + [TASKS.md ## configure](TASKS.md#configure) |
-| 5. Discover capabilities before enumerating | `doca_apsh_cap_*` against the active `doca_devinfo` BEFORE assuming a particular introspection target works on this host OS / kernel version | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
+| 5. Treat `DOCA_ERROR_NOT_SUPPORTED` from enumerators as the cap signal | The public App Shield API does NOT ship a separate `doca_apsh_cap_*` query family; the negative-cap signal is `DOCA_ERROR_NOT_SUPPORTED` returned by the matching `doca_apsh_*_get()` enumerator (or by `doca_apsh_system_start()` before any enumerator runs) on a (host OS, kernel version, DPU install) tuple that does not carry that introspection target | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
 | 6. Diagnose an App Shield error | Map symptom (`BAD_STATE`, `NOT_PERMITTED`, `NOT_FOUND`, `NOT_SUPPORTED`, `INVALID_VALUE`) to root cause without leaving the App Shield layer prematurely; in particular, recognise `NOT_FOUND` as a *normal answer*, not a bug | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 
 Two cross-cutting rules that apply to *every* pattern above:
@@ -40,8 +40,9 @@ Two cross-cutting rules that apply to *every* pattern above:
   Without an OS-version-matching symbol map loaded on the DPU side,
   no enumerator works. The map is host-OS-version-specific; a map
   that worked for the host's previous kernel will silently stop
-  working after a host kernel upgrade. Cap-query, lifecycle, and
-  permission set are all downstream of this prerequisite.
+  working after a host kernel upgrade. Lifecycle, permission set,
+  and the negative-cap signal (`DOCA_ERROR_NOT_SUPPORTED` from the
+  enumerator itself) are all downstream of this prerequisite.
 
 ## Capabilities and modes
 
@@ -73,17 +74,23 @@ the public surface is closed.
 | `doca_apsh_lib` | A loaded library on a given host process | Per (host process, loaded library) | Hangs off a `doca_apsh_proc`, not directly off the system; the per-process library list snapshots at enumeration time |
 | `doca_apsh_thread` | A thread on a given host process | Per (host process, thread) | Hangs off a `doca_apsh_proc`; useful when the integrity check is at thread granularity rather than process granularity |
 
-**Capability discovery — the only rule.** Before enumerating any
-target, call the matching `doca_apsh_cap_*` query against the
-active `doca_devinfo` (per the cross-cutting cap-query rule in
-[`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability)).
-The query is the runtime authority for *"is this introspection
-target supported on this host OS / kernel version against this DPU's
-DOCA install"*. Quoting *"App Shield enumerates X"* from memory
-without the cap query is the silent-fail case — when the user's
-host OS / kernel pair doesn't carry that introspection target, the
-program returns `DOCA_ERROR_NOT_SUPPORTED` at enumerate time and the
-user has no idea why.
+**Capability discovery — the only rule.** Unlike most DOCA
+libraries, App Shield's public API does NOT ship a separate
+`doca_apsh_cap_*` query family. The capability surface is
+*implicit in the enumerator return code*: when the user's (host
+OS, kernel version, DPU install) tuple does not carry a given
+introspection target, the matching `doca_apsh_*_get()` enumerator
+(or `doca_apsh_system_start()` before any enumerator runs)
+returns `DOCA_ERROR_NOT_SUPPORTED` — that return is the runtime
+authority. The agent must therefore (a) name the enumerator it
+is about to call before calling it (so a `NOT_SUPPORTED` return
+maps to a specific introspection target rather than an opaque
+*"App Shield failed"*), and (b) NOT quote *"App Shield enumerates
+X"* from memory as if it were universal — per the cross-cutting
+rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability),
+the headers + the live enumerator return are the only authority.
+Quoting from memory and skipping the enumerator probe is the
+silent-fail case.
 
 **Path selection — App Shield vs the adjacent libraries.** App
 Shield is for read-mostly observation of host kernel state. It is
@@ -112,7 +119,7 @@ For the canonical DOCA version-detection chain, the four-way match rule, NGC con
 
 **The App Shield-specific overlay** is:
 
-- **The set of introspection targets that work on a given install is host-OS-version-bound, not just DOCA-version-bound.** Per the cross-cutting cap-query rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability), use the `doca_apsh_cap_*` query family against the active `doca_devinfo` at runtime to discover what's actually enumerable on *this* host OS — a target that works against one host kernel may return `DOCA_ERROR_NOT_SUPPORTED` against another, even on the same DOCA install. Use `pkg-config --modversion doca-apsh` as the build-time anchor (per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure)).
+- **The set of introspection targets that work on a given install is host-OS-version-bound, not just DOCA-version-bound.** Per the cross-cutting cap-query rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability), use the matching `doca_apsh_*_get()` enumerator's `DOCA_ERROR_NOT_SUPPORTED` return against the active `doca_devinfo` at runtime to discover what's actually enumerable on *this* host OS — a target that works against one host kernel may return `DOCA_ERROR_NOT_SUPPORTED` against another, even on the same DOCA install. (App Shield does NOT ship a separate `doca_apsh_cap_*` query family; the enumerator return is the runtime cap signal.) Use `pkg-config --modversion doca-apsh` as the build-time anchor (per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure)).
 - **The host kernel symbol map is the second version axis.** A symbol map baked for one host kernel will silently stop working after a host kernel upgrade; this is not an App Shield bug, it's the OS-symbol surface having moved. When the user reports *"my enumerator worked yesterday and returns `NOT_PERMITTED` today"*, the first hypothesis is a host kernel upgrade that invalidated the loaded symbol map. Route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) for the cross-cutting version-mismatch diagnosis pattern, and then refresh the symbol map.
 - **`doca-apsh.pc` plus `doca-common.pc` must both match `doca_caps --version`** at the four-way-match check (per [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)). A common partial-install pattern after a DOCA upgrade on the DPU side is that `doca-apsh.pc` lingers from the previous release while `doca-common.pc` was refreshed; route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) ladder step 2 before any App Shield-layer diagnosis.
 
@@ -129,8 +136,8 @@ must disambiguate before falling back to the cross-library response.
 | `DOCA_ERROR_BAD_STATE` | Enumerator call (`doca_apsh_processes_get`, module / lib / thread variants) before `doca_ctx_start()`; or destroying the `doca_apsh_system` while an enumerator's returned list is still being walked | Lifecycle violation. Walk the call sequence against the lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the most common case is enumerating before the `doca_apsh_system` is in `RUNNING`. |
 | `DOCA_ERROR_NOT_PERMITTED` | `doca_apsh_system_create`, first enumerator call | The DPU side is missing required privileges (sudo / raw PCIe + memory access path), OR the host kernel symbol map is not loaded / not loadable on this install. Walk the matrix in [`## Safety policy`](#safety-policy) before any code change. |
 | `DOCA_ERROR_NOT_FOUND` | Process / module / library / thread enumerator with a specific target identifier (name, PID, …) | The requested target does not exist on the host *right now*. **This is a normal answer, not an error.** The fix is on the caller side: re-enumerate at snapshot time, treat absence as data, do not retry-loop. Surfacing `NOT_FOUND` as a bug is the single most common first-app misinterpretation. |
-| `DOCA_ERROR_NOT_SUPPORTED` | Capability query (`doca_apsh_cap_*`), or enumerator first call | The requested introspection target is not available for this host OS / kernel version against the current App Shield + DOCA install. Re-run the matching `doca_apsh_cap_*` query; if it returns false, that *is* the answer — the user's host pair does not carry that target right now. |
-| `DOCA_ERROR_INVALID_VALUE` | Enumerator with malformed input (wrong PID type, wrong identifier shape) | The input passed to the enumerator is malformed. The fix is to inspect the user-side input against the public App Shield headers in the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile); per the headers-win-over-docs rule in [`doca-version`](../../doca-version/SKILL.md), the headers describe what *this* install can accept. |
+| `DOCA_ERROR_NOT_SUPPORTED` | Enumerator first call (`doca_apsh_processes_get`, module / lib / thread variants), or `doca_apsh_system_start()` | The requested introspection target is not available for this host OS / kernel version against the current App Shield + DOCA install. (App Shield does NOT ship a separate `doca_apsh_cap_*` query family — this enumerator return *is* the negative-cap signal.) Re-confirm by calling the same enumerator after refreshing the kernel symbol map; if it still returns `NOT_SUPPORTED`, the user's host pair does not carry that target right now. |
+| `DOCA_ERROR_INVALID_VALUE` | Enumerator with malformed input (wrong PID type, wrong identifier shape) | The input passed to the enumerator is malformed. The fix is to inspect the user-side input against the public App Shield headers in $(pkg-config --variable=includedir doca-common); per the headers-win-over-docs rule in [`doca-version`](../../doca-version/SKILL.md), the headers describe what *this* install can accept. |
 | `DOCA_ERROR_DRIVER` | `doca_apsh_system_create`, first enumerator call | The layer below DOCA reported failure on the PCIe path the DPU uses to read host memory. Capture state and route to env-class debug ([`doca-setup ## debug`](../../doca-setup/TASKS.md#debug)) — the layer below DOCA is the suspect, not the App Shield program. |
 
 The agent's rule: **never recommend a retry loop on
@@ -154,12 +161,19 @@ Three primary signals the agent should reach for:
    per-object handles. The agent must inspect both: the error
    value carries the diagnosis (per [`## Error taxonomy`](#error-taxonomy)),
    and the populated list is the per-snapshot reality.
-2. **Capability snapshot at configure time.** The output of every
-   `doca_apsh_cap_*` query is a snapshot of *what App Shield said
-   was possible* before any enumerator was called. Save it as the
-   baseline; if a later enumerator returns `DOCA_ERROR_NOT_SUPPORTED`
-   the diff against this snapshot is the bug, not the enumerator
-   call itself.
+2. **Enumerator-return snapshot at configure time.** App Shield
+   does not ship a separate `doca_apsh_cap_*` query family; the
+   agent's substitute is to run a one-shot dry enumeration of
+   every enumerator the program will later depend on
+   (`doca_apsh_processes_get`, module / lib / thread variants),
+   capture each return code, and save it as the
+   *enumerator-availability baseline* for this (host OS, kernel
+   version, DPU install) tuple. If a later run returns
+   `DOCA_ERROR_NOT_SUPPORTED` from one of those enumerators when
+   the baseline showed `DOCA_SUCCESS`, the diff against the
+   baseline is the bug (most often a host kernel upgrade that
+   invalidated the loaded symbol map), not the enumerator call
+   itself.
 3. **Lifecycle / state transitions.** Trace-level DOCA logs
    (`DOCA_LOG_LEVEL=trace`) show when the `doca_apsh_system`
    context moved from `INIT` to `STARTING` to `RUNNING`. An

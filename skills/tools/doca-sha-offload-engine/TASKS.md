@@ -201,6 +201,21 @@ The detailed OpenSSL surface lives in the upstream
 OpenSSL documentation; this section names the *shape* of
 the flow, not the verbatim recipe.
 
+> **Do-not-invent guard (openssl flag spellings).** Real
+> downstream agents have hallucinated an `-engine-options`
+> flag for `openssl dgst` — **it does not exist** in
+> upstream OpenSSL. The bundle's canonical pattern is two
+> commands: first
+> `openssl engine dynamic -pre NO_VCHECK:1 -pre SO_PATH:<path> -pre LOAD -vvv -t -c`
+> to probe the engine, then `openssl dgst -sha256 -engine <path> -engine_impl`
+> to run the digest through it. The bundle's exact spelling
+> is `-engine_impl` with an **underscore** — not `-engine-impl`
+> with a hyphen; some OpenSSL builds may accept both, but the
+> bundle's verbatim form is the underscore. The engine ID is
+> `doca_sha_offload_engine`; the install path of the `.so` is
+> `${DOCA_DIR}/infrastructure/doca_sha_offload_engine/` (NOT
+> under `${DOCA_DIR}/tools/`).
+
 1. **Confirm the `.so` and the environment.** Per
    [`## install`](#install), [`## configure`](#configure),
    and [`## build`](#build).
@@ -231,7 +246,7 @@ the flow, not the verbatim recipe.
    `readme.md`:
    ```
    ENGINE *e;
-   const char *doca_engine_path = "${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so";
+   const char *doca_engine_path = "${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so";
    ENGINE_load_dynamic();
    e = ENGINE_by_id(doca_engine_path);
    ENGINE_ctrl_cmd_string(e, "set_pci_addr", doca_engine_pci_addr, 0);
@@ -325,7 +340,7 @@ layers in order:
 1. **Load-layer.** `openssl engine dynamic -pre LOAD
    -vvv` fails or the verbose output does not list
    the engine. Confirm the `SO_PATH` is the verified
-   `${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so`;
+   `${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so`;
    run `ldd <engine.so>` to surface missing transitive
    dependencies; confirm OpenSSL on the host matches
    what the engine was built against.

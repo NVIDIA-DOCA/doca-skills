@@ -1,24 +1,23 @@
 ---
 name: doca-apsh
 description: >
-  Use this skill when the user is doing hands-on DOCA App Shield
-  work on a BlueField DPU to introspect a paired host's kernel
-  state — standing up a doca_apsh_system, enumerating host
-  processes / kernel modules / libraries / threads from the DPU
-  side, loading the host kernel symbol map, running
-  doca_apsh_cap_* queries, or debugging DOCA_ERROR_* returns from
-  the App Shield API. Trigger even when the user does not
-  explicitly mention "DOCA App Shield" or "doca_apsh" — typical
-  implicit phrasings include "agent-less rootkit detection on
-  BlueField", "list processes on the host from the DPU",
+  Use this skill for hands-on DOCA App Shield work on a BlueField
+  DPU to introspect a paired host's kernel state — standing up a
+  doca_apsh_system, enumerating host processes / kernel modules /
+  libraries / threads from the DPU side, loading the host kernel
+  symbol map, running doca_apsh_*_get() enumerators (App Shield
+  has no separate cap-query family; DOCA_ERROR_NOT_SUPPORTED from
+  the enumerator is the cap signal), or debugging DOCA_ERROR_*
+  returns. Trigger even without explicit mention of "App Shield"
+  or "doca_apsh"; implicit phrasings include "agent-less rootkit
+  detection on BlueField", "list host processes from the DPU",
   "DPU-side host kernel introspection", "enumerator worked
-  yesterday, returns NOT_PERMITTED today", "process query returns
-  NOT_FOUND but ps shows it", or "kernel module integrity check
-  from the DPU". Refuse and route elsewhere for host kernel
-  symbol-map authoring, bulk host↔DPU memory copies (doca-dma),
-  packet I/O / flow steering (doca-eth / doca-flow), and
-  real-time host event streams (doca-comch) — those belong to
-  other skills.
+  yesterday, NOT_PERMITTED today", "process query NOT_FOUND but
+  ps shows it", "kernel module integrity check from the DPU".
+  Refuse and route elsewhere for host kernel symbol-map authoring,
+  bulk host↔DPU memory copies (doca-dma), packet I/O / flow
+  steering (doca-eth / doca-flow), and real-time host event
+  streams (doca-comch).
 metadata:
   kind: library
 compatibility: >
@@ -135,8 +134,12 @@ work, in any language. Concretely:
   libraries on a process), `doca_apsh_thread` (threads on a
   process).
 - Reading the device + host-OS capability surface for App Shield
-  via the `doca_apsh_cap_*` query family against the active
-  `doca_devinfo` before assuming a particular introspection target
+  via dry-running each enumerator (`doca_apsh_processes_get`,
+  module / lib / thread variants) and inspecting the
+  `DOCA_ERROR_NOT_SUPPORTED` return — App Shield does NOT ship a
+  separate `doca_apsh_cap_*` query family; the enumerator return
+  *is* the negative-cap signal — before assuming a particular
+  introspection target
   works on this host OS / kernel version.
 - Loading or refreshing the host kernel symbol map ("VMA / OS
   symbols" file) on the DPU side, recognising that the map is
@@ -169,8 +172,10 @@ specific material lives in two companion files:
 - `CAPABILITIES.md` — what App Shield can express on this version:
   the DPU-side / host-side asymmetry rule, the object family
   (`doca_apsh_system` → `_proc` / `_module` / `_lib` / `_thread`)
-  and its read-mostly observation shape, the capability-query
-  surface (`doca_apsh_cap_*`), the App Shield error taxonomy
+  and its read-mostly observation shape, the implicit
+  capability-query surface (enumerator return code; App Shield
+  does NOT ship a separate `doca_apsh_cap_*` family), the App
+  Shield error taxonomy
   (mapped onto the cross-library `DOCA_ERROR_*` set with the
   *"`NOT_FOUND` is a normal answer"* rule called out explicitly),
   the observability surface (per-query return + per-snapshot

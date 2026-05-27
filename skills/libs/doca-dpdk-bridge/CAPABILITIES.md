@@ -85,7 +85,7 @@ The agent must NOT invent additional bridge objects beyond what
 the headers and the `pkg-config --exists doca-dpdk-bridge`
 install advertise. When the user asks about *"any other DPDK ↔
 DOCA helper"*, the right answer is to walk the headers under
-the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) and the samples
+$(pkg-config --variable=includedir doca-common) and the samples
 under `/opt/mellanox/doca/samples/doca_dpdk_bridge/`.
 
 **mbuf ↔ DOCA-buf conversion — the only rule.** Convert at the

@@ -123,7 +123,7 @@ Two load patterns, both verified in the shipped
    ```
    openssl engine dynamic \
        -pre NO_VCHECK:1 \
-       -pre SO_PATH:${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so \
+       -pre SO_PATH:${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so \
        -pre LOAD \
        -vvv -t -c
    ```
@@ -134,7 +134,7 @@ Two load patterns, both verified in the shipped
 2. **Programmatic:** per the shipped readme,
    ```
    ENGINE *e;
-   const char *doca_engine_path = "${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so";
+   const char *doca_engine_path = "${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so";
    ENGINE_load_dynamic();
    e = ENGINE_by_id(doca_engine_path);
    ENGINE_ctrl_cmd_string(e, "set_pci_addr", doca_engine_pci_addr, 0);
@@ -145,7 +145,7 @@ Two load patterns, both verified in the shipped
    `ENGINE_finish(e)` → `ENGINE_free(e)`.
 
 The agent quotes the shipped path verbatim
-(`${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so`)
+(`${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so`)
 rather than inventing one.
 
 ### Message-size window: when offload is a perf win
@@ -230,7 +230,7 @@ in escalating order:
    missing transitive dependencies (the engine's `.so`
    pulls in `libdoca_sha.so` and other DOCA shared
    objects). Routing: confirm the path is the verified
-   `${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so`;
+   `${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so`;
    run `ldd` on the engine `.so` to surface missing
    dependencies; confirm the OpenSSL on the host
    matches the OpenSSL the engine was built against.

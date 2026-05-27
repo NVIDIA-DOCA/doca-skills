@@ -50,9 +50,14 @@ Steps the agent should walk the user through:
    the reference is the `*_main.c` file in every sample
    under `/opt/mellanox/doca/samples/<library>/<sample>/`.
    Pick one whose other-library context already matches the
-   user's intent (e.g. `doca_dma/dma_copy/dma_copy_main.c`
-   when the user is modifying a DMA sample's CLI) so the
-   surrounding code is familiar.
+   user's intent (e.g.
+   `doca_dma/dma_local_copy/dma_local_copy_main.c` when the
+   user is modifying a DMA sample's CLI, or
+   `applications/dma_copy/` for the reference *application* —
+   `samples/doca_dma/dma_copy/` does not exist as a sample
+   directory in the public DOCA install; the public samples
+   are `dma_local_copy`, `dma_copy_dpu`, `dma_copy_host`) so
+   the surrounding code is familiar.
 3. **Sketch the lifecycle on paper before writing code.** Per
    the lifecycle table in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes):
@@ -99,7 +104,7 @@ This skill carries only the Arg-Parser-specific overlay:
 | Slot | Value for Arg Parser | Why it matters |
 | --- | --- | --- |
 | `pkg-config` module name | `doca-argp` | The library's `.pc` file installed by the DOCA host packages. Wrong module name = `pkg-config: Package 'doca-argp' was not found`. Presence is profile-dependent; confirm with `pkg-config --exists doca-argp` per [`## configure`](#configure) step 1 |
-| Include flags | `pkg-config --cflags doca-argp` | Resolves to `doca_argp.h` under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) |
+| Include flags | `pkg-config --cflags doca-argp` | Resolves to `doca_argp.h` under $(pkg-config --variable=includedir doca-common) |
 | Link flags | `pkg-config --libs doca-argp` | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) |
 | Header check | the artifact's public header resolvable under whichever include directory `pkg-config --cflags` reports (do not hardcode the include path — the install layout can move) | If `pkg-config --cflags doca-argp` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
 | Companion libraries | Always paired with the user's actual DOCA library (`doca-dma`, `doca-comch`, `doca-rdma`, …) — doca-argp alone does no DOCA work | Building doca-argp into a binary that calls no other `doca_*` symbol is a path-selection mistake; re-read the *Do not use doca-argp when …* column in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) |

@@ -180,6 +180,22 @@ flow, not the verbatim command lines (per
 [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
 *"do not invent flags"*).
 
+> **Do-not-invent guard (specific flag names).** Real downstream
+> agents have hallucinated the following plausibly-named but
+> non-existent flags for `doca_bench`: `--pipeline`, `--mode`,
+> `--device`, `--csv-output`, `--target-library`. None of these
+> appear in the bundle or in `doca_bench --help` on the public
+> DOCA release. The flag inventory the bundle DOES name verbatim
+> is `--core-mask`, `--core-list`, `--core-count`,
+> `--threads-per-core`, the `--run-limit-*` family, `--sweep`,
+> and the `--csv-*` family — and those are named as *classes*,
+> not as ready-to-paste literals; the agent MUST read
+> `doca_bench --help` on the installed bench and use only the
+> names that appear there. Any example invocation written in
+> this skill MUST keep tokens like `<flag-from-help>` or
+> `<chosen-mode-from-help>` as placeholders for the
+> per-install-variable inventory.
+
 1. **Confirm the binary, version, and granular-build
    inventory.** Per [`## configure`](#configure) steps 1-2;
    without this the next four steps will burn the operator's
@@ -247,7 +263,7 @@ one library × mode):
 | --- | --- | --- |
 | Smoke completed; number is far below datasheet headline | Could be cold pipeline, wrong workload shape, wrong NUMA, or actually-right for this install. Do not assume datasheet first. | Confirm warm-up applied per [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy) layer 5; re-check axis 2 (workload shape) in [`## configure`](#configure) step 4; only then question hardware. |
 | Throughput-mode number swings > X% across short re-runs | Steady-state not reached; outlier-dominated run | Lengthen the run via the documented duration / job-count limit; re-run; if still volatile, switch to bulk-latency mode to surface the distribution. |
-| Precision-latency mean looks good; 99.99th percentile is huge | Tail-latency story is the actual answer; the mean is misleading | Quote the percentile breakdown, not the mean, per [`## Observability`](#observability) the precision-latency mode's reported distribution. |
+| Precision-latency mean looks good; 99.99th percentile is huge | Tail-latency story is the actual answer; the mean is misleading | Quote the percentile breakdown, not the mean, per [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability) the precision-latency mode's reported distribution. |
 | Same invocation produces different numbers on two hosts at the same DOCA version | NUMA / firmware / driver delta below DOCA | Walk axis 2 environment (cores / threads / NUMA) and the version layer per [`doca-version TASKS.md ## test`](../../doca-version/TASKS.md#test) before blaming bench. |
 | Same invocation produces different numbers on the same host across DOCA versions | This *is* a regression signal — provided both four-tuples are captured | Cross-link the two baselines, name the changed fields, route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) for the version-delta diagnosis. |
 | `--sweep` of a parameter shows a discontinuity | Could be a real performance cliff (capacity / cache / queue depth) or a measurement artefact at the swept value | Re-run the boundary points without the sweep to confirm; if real, that is the answer the user came for. |
