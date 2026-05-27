@@ -20,10 +20,9 @@ contract without forcing the reader to leave the repository.
   contributions about hardware safety, version pinning, and rollback paths
   with the same care you would give a production change.
 - No private commercial information, no embargoed feature names, no
-  NVIDIA-internal URLs. Public sources only, enforced by
-  [`ci/check-skill.sh`](ci/check-skill.sh).
-- Follow [`CONTRIBUTING.md`](CONTRIBUTING.md) for the rules of engagement and
-  [`AUTHORING.md`](AUTHORING.md) for the deep contributor contract.
+  NVIDIA-internal URLs. Public sources only — enforced upstream by the
+  DOCA skills development pipeline and by NVCARPS at publication time.
+- Follow [`CONTRIBUTING.md`](CONTRIBUTING.md) for the rules of engagement.
 
 ## Reporting
 
