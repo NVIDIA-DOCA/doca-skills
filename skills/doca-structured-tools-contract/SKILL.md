@@ -69,7 +69,7 @@ load-bearing piece — the worked example is a single instance.
   the manual fallback being the library's own constructor-time
   validation surface (e.g. for DOCA Flow, treat the
   `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return
-  from `doca_flow_pipe_create_v1` as the validate signal — the
+  from `doca_flow_pipe_create` as the validate signal — the
   public Flow header does not ship a separate `doca_flow_pipe_validate`
   call at the bundle-aligned release, and the agent must not
   invent one).
@@ -285,7 +285,7 @@ structured tool, if installed, lives at the same `$PATH` location as
 **Detection probe:** `command -v doca-validate` (cross-library) OR the
 library-specific constructor-time validation surface (e.g. for Flow,
 the `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return
-from `doca_flow_pipe_create_v1` — the public Flow header at this
+from `doca_flow_pipe_create` — the public Flow header at this
 release does not ship a separate `doca_flow_pipe_validate` symbol;
 the agent uses the constructor-failure path as the validate signal).
 The structured tool wraps the library-specific calls and returns a
@@ -305,10 +305,11 @@ uniform JSON result.
 1. Find the library-specific validate surface in the matching skill's
    `## test` workflow. For some libs this is a dedicated `_validate`
    call; for others (notably DOCA Flow) it is the
-   constructor-time validation embedded in `doca_<lib>_*_create_v1`
-   whose `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED`
-   return is the validate signal. The lib's per-skill `## test`
-   anchor names which.
+   constructor-time validation embedded in the `_create` / `_cfg`
+   call family (e.g. `doca_flow_pipe_create` for Flow) whose
+   `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return
+   is the validate signal. The lib's per-skill `## test` anchor
+   names which.
 2. Invoke it before any commit / create / submit call.
 3. Treat a non-`DOCA_SUCCESS` return as `result: fail`; map the
    `doca_error_get_descr()` text into a single `checks` entry.
@@ -360,7 +361,7 @@ when you build the Command appendix, do not duplicate the manual
 fallback chain — link to this skill's matching schema section and
 add only the *per-library overlay* (e.g. "Flow-specific: treat the
 `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return
-from `doca_flow_pipe_create_v1` as the validate signal; the public
+from `doca_flow_pipe_create` as the validate signal; the public
 Flow header at this release does not ship a separate
 `doca_flow_pipe_validate` symbol — do not invent one"). The
 fallback chain itself lives here.

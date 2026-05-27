@@ -1,7 +1,0 @@
-pci/0000:17:00.1: nested_devlink u32
-pci/0000:17:00.1:
-  reload_failed false
-  reload_action driver_reinit
-  remote_reload_stats:
-    driver_reinit:
-      synced 0 unsynced 0

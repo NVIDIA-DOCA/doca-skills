@@ -395,12 +395,36 @@ cross-cutting rules above. The convention is:
 > cutting rules.
 
 Skills that overlay this meta-policy with artifact-specific
-hardware safety include the firmware-slot precondition in
-`doca-virtio-net`, the
-storage-side firmware-slot equivalent in
-`doca-snap`, the HIGH-STAKES
-control-plane-ownership rule in
-`doca-hbn`, and the per-service
-preconditions captured in every container-shaped service skill's
-own `## Safety policy`. Each of those is an overlay; this skill is
-the meta-policy they share.
+hardware safety are the in-bundle services, device-touching
+libraries, and hardware-touching tools whose own `## Safety
+policy` adds the per-artifact preconditions on top of the meta-
+policy here. The canonical in-bundle overlays are:
+
+- Services (kubelet-standalone container deployments that touch
+  device state): [`doca-argus`](../services/doca-argus/SKILL.md),
+  [`doca-dms`](../services/doca-dms/SKILL.md),
+  [`doca-firefly`](../services/doca-firefly/SKILL.md),
+  [`doca-flow-inspector`](../services/doca-flow-inspector/SKILL.md),
+  [`doca-os-inspector`](../services/doca-os-inspector/SKILL.md),
+  [`doca-urom-svc`](../services/doca-urom-svc/SKILL.md).
+- Device-touching libraries:
+  [`doca-flow`](../libs/doca-flow/SKILL.md),
+  [`doca-rdma`](../libs/doca-rdma/SKILL.md),
+  [`doca-eth`](../libs/doca-eth/SKILL.md),
+  [`doca-pcc`](../libs/doca-pcc/SKILL.md),
+  [`doca-rmax`](../libs/doca-rmax/SKILL.md).
+- Hardware-touching tools:
+  [`doca-spcx-cc`](../tools/doca-spcx-cc/SKILL.md),
+  [`doca-pcc-counters`](../tools/doca-pcc-counters/SKILL.md),
+  [`doca-flow-tune`](../tools/doca-flow-tune/SKILL.md).
+
+Each of those is an overlay; this skill is the meta-policy they
+share. **Externally-productized analogs** — `doca-virtio-net`,
+`doca-snap`, `doca-hbn`, BlueMan, DPF — are NOT in-bundle skills;
+their per-product safety policies live in the public product
+documentation reached through
+[`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+The meta-policy in this skill still applies operationally (OOB
+console, preflight, maintenance window, rollback), but the
+artifact-specific preconditions for those products are owned by
+their public docs, not by this bundle.

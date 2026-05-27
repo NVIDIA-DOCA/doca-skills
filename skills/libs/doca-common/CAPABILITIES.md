@@ -4,7 +4,7 @@
 foundation**. Five subsystems live here as their own H2 anchors —
 `## log`, `## buf`, `## ctx`, `## dev`, `## progress engine` — each
 corresponds to a public-header family under
-the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) and to a verb-side
+$(pkg-config --variable=includedir doca-common) and to a verb-side
 workflow in [TASKS.md](TASKS.md). The opening `## Capabilities and
 modes` is the routing layer that names which subsystem owns which
 class of question; the closing `## Version compatibility`,
@@ -364,7 +364,7 @@ there; this skill does not duplicate it.
 - **The set of `doca_*` symbols available is observable from the
   Common header set.** Per the headers-win-over-docs rule in
   [`doca-version`](../../doca-version/SKILL.md), the headers under
-  the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_buf.h`,
+  $(pkg-config --variable=includedir doca-common) (`doca_buf.h`,
   `doca_ctx.h`, `doca_dev.h`, `doca_pe.h`, `doca_log.h`,
   `doca_mmap.h`, …) are the authoritative truth for what the built
   library exposes. When the user reports an `undefined reference`

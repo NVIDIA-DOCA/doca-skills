@@ -104,7 +104,7 @@ This skill carries only the Ethernet-specific overlay:
 | Slot | Value | Why it matters |
 | --- | --- | --- |
 | `pkg-config` module name | `doca-eth` | The library's `.pc` file installed by the DOCA host packages |
-| Include flags | `pkg-config --cflags doca-eth` | Resolves to headers under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) for the Ethernet subset |
+| Include flags | `pkg-config --cflags doca-eth` | Resolves to headers under $(pkg-config --variable=includedir doca-common) for the Ethernet subset |
 | Link flags | `pkg-config --libs doca-eth` | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) (plus device-side providers as the `.pc` declares them) |
 | Companion libraries | `doca-flow` only if the consumer programs its own steering; `doca-argp` for argument parsing if the consumer uses the standard DOCA arg style; `doca-gpunetio` only if the consumer also uses GPU-initiated I/O on these same queues | Adding unnecessary companion libs bloats the link line and obscures real partial-install issues |
 | Minimum required DOCA version | Query with `pkg-config --modversion doca-eth`; never hardcode in build files | Cross-version build / runtime mixing breaks per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |

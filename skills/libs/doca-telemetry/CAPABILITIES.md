@@ -107,7 +107,7 @@ a small set of cooperating object types. The agent must not
 invent additional ones; the public surface is closed. Exact
 symbol names are install-bound — confirm against the user's
 installed headers under
-the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) per the headers-
+$(pkg-config --variable=includedir doca-common) per the headers-
 win-over-docs rule in
 [`doca-version`](../../doca-version/SKILL.md).
 

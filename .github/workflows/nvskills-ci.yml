@@ -1,0 +1,131 @@
+# .github/workflows/nvskills-ci.yml
+#
+# Public-repo-only PR pre-check. This workflow runs in the public
+# `doca-skills` repository — the one NVCARPS scans and the NVIDIA Skills
+# catalog mirrors from — and is intentionally self-contained: it does NOT
+# depend on any internal CI tooling.
+#
+# What it enforces:
+#   * Every PR commit carries a `Signed-off-by:` line (DCO required by
+#     NVIDIA/skills and by NVCARPS).
+#   * Every shipping artifact under `skills/<kind>/<art>/` has both
+#     `evals/evals.json` and `SKILLCARD.yaml` present, with the right
+#     `source.path` self-reference.
+#   * `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`,
+#     `BENCHMARK.md` are present at repo root.
+#
+# What it does NOT do (those run in the upstream DOCA development repo):
+#   * The 15-gate structural-regression suite.
+#   * The deep end-to-end per-skill grading suite.
+#
+# A green run here means the bundle is ready for NVCARPS to scan +
+# sign. Trigger NVCARPS by commenting `/nvskills-ci` on the PR — the
+# NVCARPS GitHub App listens for that comment and starts the
+# server-side scanning + signing pipeline.
+
+name: public-repo PR pre-check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-precheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: DCO sign-off on every PR commit
+        if: github.event_name == 'pull_request'
+        run: |
+          set -eu
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          if [ -z "${BASE}" ] || [ -z "${HEAD}" ]; then
+            echo "Could not determine PR base/head SHA; skipping DCO check"
+            exit 0
+          fi
+          MISSING=$(git log --format='%H %s' "${BASE}..${HEAD}" | \
+                    awk '!/Signed-off-by:/{print $1}')
+          if [ -n "${MISSING}" ]; then
+            echo "::error::DCO sign-off missing on commit(s):"
+            echo "${MISSING}"
+            echo "::error::Use 'git commit -s' (or amend with 'git commit --amend -s')."
+            exit 1
+          fi
+          echo "OK: every PR commit has Signed-off-by"
+
+      - name: Repo-root files (LICENSE + CoC + CONTRIBUTING + SECURITY + BENCHMARK)
+        run: |
+          set -eu
+          fails=0
+          for f in LICENSE CODE_OF_CONDUCT.md CONTRIBUTING.md SECURITY.md \
+                   BENCHMARK.md README.md AGENTS.md SKILLS.md; do
+              if [ -f "${f}" ]; then
+                  echo "OK:   ${f}"
+              else
+                  echo "::error::Missing required public file: ${f}"
+                  fails=$((fails + 1))
+              fi
+          done
+          if [ "${fails}" -ne 0 ]; then
+              exit 1
+          fi
+          if head -1 LICENSE | grep -q 'SPDX-License-Identifier: Apache-2.0 AND CC-BY-4.0'; then
+              echo "OK:   LICENSE SPDX header"
+          else
+              echo "::error::LICENSE first line must be 'SPDX-License-Identifier: Apache-2.0 AND CC-BY-4.0'"
+              exit 1
+          fi
+
+      - name: Per-skill evals.json + SKILLCARD.yaml present
+        run: |
+          set -eu
+          fails=0
+          for kind_dir in libs services tools; do
+              [ -d "skills/${kind_dir}" ] || continue
+              for art_dir in skills/${kind_dir}/*/; do
+                  [ -d "${art_dir}" ] || continue
+                  art=$(basename "${art_dir}")
+                  for required in evals/evals.json SKILLCARD.yaml; do
+                      if [ ! -s "${art_dir}${required}" ]; then
+                          echo "::error::skills/${kind_dir}/${art}: missing ${required}"
+                          fails=$((fails + 1))
+                      fi
+                  done
+                  card="${art_dir}SKILLCARD.yaml"
+                  if [ -s "${card}" ] && ! grep -q "skills/${kind_dir}/${art}/SKILL.md" "${card}"; then
+                      echo "::error::skills/${kind_dir}/${art}/SKILLCARD.yaml: source.path does not match skills/${kind_dir}/${art}/SKILL.md"
+                      fails=$((fails + 1))
+                  fi
+              done
+          done
+          if [ "${fails}" -ne 0 ]; then
+              echo "::error::${fails} issue(s) — fix and re-push"
+              exit 1
+          fi
+          total=$(find skills/libs skills/services skills/tools -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+          echo "OK: all ${total} shipping artifacts have valid evals/evals.json + SKILLCARD.yaml"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Public-repo PR pre-check summary"
+            echo ""
+            echo "When this workflow is green, comment \`/nvskills-ci\` on the PR"
+            echo "to ask the official NVCARPS GitHub App to scan + sign the bundle."
+            echo ""
+            echo "After the NVCARPS run is green, the bundle is ready to be"
+            echo "mirrored into <https://github.com/NVIDIA/skills> by the daily"
+            echo "catalog sync (registered via components.d/doca.yml)."
+          } >> "${GITHUB_STEP_SUMMARY}"

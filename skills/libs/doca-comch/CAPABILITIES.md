@@ -48,7 +48,7 @@ relevant capability-query.
 
 | Role | Side | What it does | Object | Key calls |
 | --- | --- | --- | --- | --- |
-| Server | DPU (BlueField Arm) | Listens on a host representor; accepts up to `max_num_clients` simultaneous client connections; owns the connection-accept callback | `doca_comch_server` | `doca_comch_server_create`, `_set_max_num_clients`, `_set_connection_event_cb` |
+| Server | DPU (BlueField Arm) | Listens on a host representor; accepts up to the device's per-server connection cap (query with `doca_comch_cap_get_max_clients(devinfo)` before start); owns the connection-accept callback | `doca_comch_server` | `doca_comch_server_create`, `_set_connection_event_cb` |
 | Client | Host (x86 / Arm) | Initiates a single connection to a server, identified by its `doca_dev_rep` (representor on the DPU side surfaced to the host) | `doca_comch_client` | `doca_comch_client_create`, `_set_connection_event_cb` |
 
 **Path selection — slow-path vs fast-path.** Both paths can coexist
@@ -66,17 +66,23 @@ or assuming a message length, call the matching
 | Capability | Query | Why the agent must ask |
 | --- | --- | --- |
 | Maximum slow-path message size | `doca_comch_cap_get_max_msg_size(devinfo)` | Device-dependent; sending past the cap silently truncates or fails with `DOCA_ERROR_INVALID_VALUE` |
-| Maximum server connections | `doca_comch_cap_server_get_max_num_clients(devinfo)` | DPU-side ceiling; oversizing returns `DOCA_ERROR_NOT_SUPPORTED` at start |
-| Producer / consumer presence | `doca_comch_cap_consumer_is_supported(devinfo)` / `_producer_is_supported(devinfo)` | Fast-path is not on every device; agent must not silently assume it |
-| Maximum send queue depth | `doca_comch_cap_get_max_send_queue_size(devinfo)` | Used to size the slow-path outstanding-task budget |
+| Maximum server connections | `doca_comch_cap_get_max_clients(devinfo)` | DPU-side ceiling; oversizing returns `DOCA_ERROR_NOT_SUPPORTED` at start |
+| Producer / consumer presence | `doca_comch_consumer_cap_is_supported(devinfo)` / `doca_comch_producer_cap_is_supported(devinfo)` | Fast-path is not on every device; agent must not silently assume it |
+| Maximum send queue depth | `doca_comch_cap_get_max_send_tasks(devinfo)` | Used to size the slow-path outstanding-task budget |
 
 **Configuration shape.** *Mandatory* configurations before
 `doca_ctx_start()`: at least one of (slow-path recv callback,
 producer attached, consumer attached) per side, and the connection
-state callback per side. *Optional* configurations (max msg size
-override, max clients override, send queue size, max-num-tasks)
-use the `doca_comch_set_*` family with defaults coming from the
-library; query the active value with `doca_comch_cap_get_*`.
+state callback per side. *Optional* configurations on the server
+side include `doca_comch_server_set_max_msg_size(server, …)` (and
+the matching `_client_set_max_msg_size`); the max-clients value is
+a device capability (`doca_comch_cap_get_max_clients(devinfo)`)
+and is not user-settable via a public setter — the cap is the
+hard ceiling on what a server is allowed to accept. Query the
+active capability values with the matching
+`doca_comch_cap_get_*` / `doca_comch_(consumer|producer)_cap_*`
+queries before start; do not assume a setter exists for every
+capability.
 
 ## Version compatibility
 
@@ -85,7 +91,7 @@ For the canonical DOCA version-detection chain, the four-way match rule, NGC con
 **The Comch-specific overlay** is:
 
 - **The library was renamed in DOCA 2.5.** Old name: *DOCA Comm Channel*, `pkg-config` module `doca-comm-channel`. New name: *DOCA Comch*, `pkg-config` module `doca-comch`, URL slug `DOCA-Comch`. On installs ≥ 2.5 the agent must use the new name; on installs < 2.5 the agent must say so explicitly when the user's installed version (per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure)) predates the rename, and route the user to the legacy Comm Channel guide via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
-- **`doca_comch_producer` / `doca_comch_consumer` are newer than the slow-path.** When the user reports *"the API I'm reading about isn't on my install"*, the first hypothesis is that the install pre-dates the fast-path. Confirm via `doca_comch_cap_consumer_is_supported(devinfo)` / `_producer_is_supported(devinfo)` per the cross-cutting cap-query rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability).
+- **`doca_comch_producer` / `doca_comch_consumer` are newer than the slow-path.** When the user reports *"the API I'm reading about isn't on my install"*, the first hypothesis is that the install pre-dates the fast-path. Confirm via `doca_comch_consumer_cap_is_supported(devinfo)` / `doca_comch_producer_cap_is_supported(devinfo)` per the cross-cutting cap-query rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability).
 - **`doca-comch.pc` and `doca-common.pc` must both match `doca_caps --version`** at the four-way-match check (per [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)). A common partial-install pattern after a 2.4 → 2.5 upgrade is that `doca-comm-channel.pc` lingers alongside the new `doca-comch.pc`; the agent must surface that as a partial-install hazard, not as a *"both APIs are usable"* convenience.
 
 ## Error taxonomy
@@ -99,7 +105,7 @@ disambiguate before falling back to the cross-library response.
 | Error | Comch context where it shows up | Comch-specific cause |
 | --- | --- | --- |
 | `DOCA_ERROR_NOT_PERMITTED` | `doca_comch_server_create`, `_client_create` | The representor (DPU side) or PCIe address (host side) is not visible to this process / user. Route to [`doca-setup CAPABILITIES.md ## Observability`](../../doca-setup/CAPABILITIES.md#observability) for representor enumeration. |
-| `DOCA_ERROR_NOT_SUPPORTED` | `_set_max_num_clients`, fast-path `_create` | The requested clients count exceeds device cap, or the device does not advertise consumer / producer support. Re-run the matching `doca_comch_cap_*` query against the active `doca_devinfo`. |
+| `DOCA_ERROR_NOT_SUPPORTED` | `doca_ctx_start()` on the server, fast-path `_create` | The implied clients count exceeds the device cap reported by `doca_comch_cap_get_max_clients(devinfo)`, or the device does not advertise consumer / producer support. The public Comch API does not ship a setter for max-clients — the device cap is the hard ceiling; agent must surface the cap value and reshape the program, not invent a setter. |
 | `DOCA_ERROR_BAD_STATE` | Any call after `doca_ctx_stop()` or before `doca_ctx_start()`; calling `_send_task_submit` before the connection callback reports CONNECTED | Lifecycle violation. Walk the call sequence against the lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the most common case is sending before the server-side accept callback has fired. |
 | `DOCA_ERROR_AGAIN` | `_send_task_submit` slow-path; producer submit fast-path | The send queue is full. This is *not* a hardware error; the program must drain completions via `doca_pe_progress()` before re-submitting. Same as the cross-library *"would-block, retry after progress"* pattern. |
 | `DOCA_ERROR_CONNECTION_RESET` | Slow-path send-task completion, recv callback | The peer disconnected. The connection state callback will have fired with the matching DISCONNECTED transition; agent must not invent a reconnection policy — defer to the user's higher-level protocol. |

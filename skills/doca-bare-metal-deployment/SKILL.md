@@ -1,23 +1,23 @@
 ---
 name: doca-bare-metal-deployment
 description: >
-  Use this skill when the user is launching, supervising, or
-  debugging a DOCA-linked binary directly on hardware (host x86
-  with a BlueField NIC over PCIe, or BlueField Arm bare-metal) —
-  no container, no kubelet. Covers picking a launch mode (direct,
-  tmux/screen, systemd-supervised with a documented Restart=
-  policy), binding to the right PCI function / NUMA node / CPU
-  set / IRQ affinity, isolating co-tenant DOCA processes
-  (cgroup-v2 / netns / numactl), and a seven-layer error taxonomy.
-  Trigger even when user does not say "bare-metal" — typical
-  implicit phrasings include "binary exits with status 1 right
+  Use this skill for launching, supervising, debugging, OR
+  platform lifecycle on a BlueField — BFB install, RShim/TMFIFO,
+  host PF rebind, post-BFB recovery — taking a DOCA-linked binary
+  to a healthy run directly on hardware (host x86 + BlueField NIC
+  over PCIe, or BlueField Arm bare-metal). No container, no
+  kubelet. Covers launch mode (direct, tmux, systemd), PCI/NUMA/
+  CPU/IRQ binding, co-tenant isolation (cgroup-v2/netns/numactl),
+  a seven-layer error taxonomy, and a six-state BlueField
+  lifecycle classifier. Trigger even when user does not say
+  "bare-metal" — implicit phrasings include "binary exits 1 right
   after launch", "systemd keeps restarting it", "no matching
-  device on the BF", "throughput is a third of the docs, wrong
-  NUMA?", or "two DOCA processes on one BlueField interfere".
-  Refuse and route elsewhere for container/kubelet deployment,
-  library-API internals, DOCA install / hugepage / IOMMU env
-  prep, hardware-state changes (mlxconfig set, BFB reflash), and
-  building the binary — those belong to other skills.
+  device on the BF", "bfb-install exited 0 but DPU is dead",
+  "ping 192.168.100.2 works but ssh fails", "host PFs aren't
+  showing netdevs". Mutating-step meta-policy (firmware burn,
+  mlxconfig set, kernel boot params) is doca-hardware-safety,
+  loaded alongside; container deployment, library APIs, env prep,
+  and binary build belong to other skills.
 metadata:
   kind: library
 compatibility: >
@@ -116,6 +116,23 @@ load-bearing piece; the worked example is one instance.
   Answered by the per-tenant isolation rules in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the [`### isolation`](TASKS.md#isolation) sub-anchor.
+- **"My host is fine and the BlueField was working last week, but
+  after a BFB push it never came back. `bfb-install` exited 0,
+  but I cannot ssh to the BF, `ping 192.168.100.2` works but
+  feels wrong, and `ip link` doesn't show any BlueField netdev on
+  the host any more."** — worked example: *"DOCA 3.3 host
+  upgrade is fine; BFB install on the BlueField reported `Ubuntu
+  installation completed` then `INFO[MISC]: NIC firmware update
+  failed`, but `bfb-install` still exited 0; now the DPU never
+  reaches `DPU is ready`, host PFs are present in `lspci -d 15b3:`
+  but `ip link` doesn't list their netdevs."* Answered by the
+  BlueField lifecycle anchor in
+  [`TASKS.md ## bluefield-lifecycle`](TASKS.md#bluefield-lifecycle)
+  (the `bfb-install` partial-failure recognition + the
+  `192.168.100.2` host-loopback `ip route get` gotcha + the host
+  PF rebind sequence + the post-BFB four-way version-match
+  re-close) and the six-state classifier in
+  [`### bluefield-state-classifier`](TASKS.md#bluefield-state-classifier).
 
 ## Audience
 
@@ -242,13 +259,20 @@ companion files:
 - `TASKS.md` — step-by-step workflows for the in-scope bare-metal
   verbs: `configure`, `build`, `modify`, `run` (with an explicit
   `### isolation` sub-anchor covering cgroup-v2 / namespaces /
-  numactl per-tenant primitives), `test`, `debug`, the
+  numactl per-tenant primitives), `test`, `debug`,
+  `bluefield-lifecycle` (the BFB-install → RShim/TMFIFO →
+  post-BFB-recovery operational sequencing ladder, with the
+  six-state `bluefield-state-classifier` sub-anchor), the
   `Command appendix` (documented commands the agent may quote,
   each cross-linked to its public-doc source — no invented
   commands), and the `Deferred task verbs` block routing
   container-path / cluster / library-API / env-prep /
   hardware-state-change / cross-library questions out to their
-  owning skills.
+  owning skills. (The change-application discipline for any
+  mutating burn invoked from `## bluefield-lifecycle` is still
+  meta-policy owned by
+  [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md),
+  loaded alongside.)
 
 The skill assumes a host or BlueField target where:
 
@@ -315,9 +339,10 @@ does not contain — and pull requests should not add:
    [CAPABILITIES.md](CAPABILITIES.md).**
 3. **For step-by-step workflows — `configure`, `build` (routing
    stub), `modify` (routing stub), `run` (with `### isolation`
-   sub-anchor), `test`, `debug`, plus the `Command appendix` and
-   the `Deferred task verbs` block — see
-   [TASKS.md](TASKS.md).**
+   sub-anchor), `test`, `debug`, `bluefield-lifecycle` (BFB
+   install + RShim/TMFIFO + post-BFB recovery + the six-state
+   `bluefield-state-classifier`), plus the `Command appendix` and
+   the `Deferred task verbs` block — see [TASKS.md](TASKS.md).**
 
 ## Related skills
 

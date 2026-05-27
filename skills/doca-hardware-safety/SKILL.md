@@ -226,16 +226,31 @@ companion files:
   skill's `## run` cross-links there for the program-side
   observability surface that must be visible before any production
   workload moves.
-- Per-artifact `## Safety policy` anchors (e.g. the firmware-slot
-  precondition in
-  `doca-virtio-net`, the
-  storage-side equivalent in
-  `doca-snap`, the HIGH-STAKES
-  control-plane-ownership rule in
-  `doca-hbn`) — every per-artifact
-  skill's `## Safety policy` overlays this meta-policy with
-  artifact-specific safety. The cross-link is intentionally
-  bidirectional: per-artifact skills link here for the meta-policy;
-  this skill enumerates the per-artifact overlays in
+- Per-artifact `## Safety policy` anchors in each in-bundle
+  service / library / tool skill — e.g. the firmware-slot
+  precondition in [`doca-argus`](../services/doca-argus/SKILL.md),
+  [`doca-dms`](../services/doca-dms/SKILL.md),
+  [`doca-firefly`](../services/doca-firefly/SKILL.md),
+  [`doca-flow-inspector`](../services/doca-flow-inspector/SKILL.md),
+  [`doca-os-inspector`](../services/doca-os-inspector/SKILL.md),
+  [`doca-urom-svc`](../services/doca-urom-svc/SKILL.md); the
+  device-touching libraries
+  ([`doca-flow`](../libs/doca-flow/SKILL.md),
+  [`doca-rdma`](../libs/doca-rdma/SKILL.md),
+  [`doca-eth`](../libs/doca-eth/SKILL.md),
+  [`doca-pcc`](../libs/doca-pcc/SKILL.md),
+  [`doca-rmax`](../libs/doca-rmax/SKILL.md)); and the
+  hardware-touching tools (e.g.
+  [`doca-spcx-cc`](../tools/doca-spcx-cc/SKILL.md),
+  [`doca-pcc-counters`](../tools/doca-pcc-counters/SKILL.md)).
+  Every in-bundle artifact skill's `## Safety policy` overlays
+  this meta-policy with artifact-specific safety. The cross-link is
+  intentionally bidirectional: per-artifact skills link here for
+  the meta-policy; this skill enumerates the in-bundle overlays in
   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
-  as "skills that overlay this meta-policy".
+  as "skills that overlay this meta-policy". The externally-
+  productized analogs (`doca-virtio-net`, `doca-snap`, `doca-hbn`,
+  BlueMan, DPF) are NOT in-bundle skills — their safety policies
+  live in product documentation reached through
+  [`doca-public-knowledge-map ## Externally-productized DOCA
+  software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).

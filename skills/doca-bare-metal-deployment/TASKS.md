@@ -57,14 +57,14 @@ later verb assumes the operator has read it here.
       [`doca-setup ## test`](../doca-setup/TASKS.md#test).
     - Hugepages mounted and reserved per
       [`doca-setup ## configure`](../doca-setup/TASKS.md#configure)
-      step 4 (or its BlueField-Arm equivalent on the BlueField OS
+      step 7 (or its BlueField-Arm equivalent on the BlueField OS
       image).
     - Devices and representors visible per
       [`doca-setup ## configure`](../doca-setup/TASKS.md#configure)
-      step 5.
+      step 8.
     - `LD_LIBRARY_PATH` set correctly per
       [`doca-setup ## configure`](../doca-setup/TASKS.md#configure)
-      step 3 — the runtime install version MUST match the binary's
+      step 6 — the runtime install version MUST match the binary's
       link-time `pkg-config doca-*` version per
       [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility).
     - The four-way version match is closed per
@@ -511,6 +511,393 @@ without clearing the layer above. The seven layers match
    [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md)
    instead of touching device state from this skill.
 
+## bluefield-lifecycle
+
+The BlueField **platform lifecycle** anchor — the workflow for taking
+a BlueField from "powered card in the slot" to "Arm OS healthy,
+TMFIFO up, host PFs bound, four-way version match closed, DOCA-linked
+binary safely launchable per [`## run`](#run)". This anchor exists
+because the bare-metal-deployment skill's downstream verbs (`## run`,
+`## test`, `## debug`) all assume a working BlueField; when that
+assumption breaks, the bundle previously routed the operator out to
+[`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) for the
+mutating-change meta-policy AND out to
+[`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+for the BSP/BFB documentation entry, but the **operational sequencing
+ladder itself** (which evidence to collect in which order, which
+failure mode each evidence pattern points to, which recovery action
+lattices to which evidence) had no home. This section is that home.
+
+This is a **reasoning ladder, not a script.** The agent does not ship
+a `bfb-install-wrapper.sh` or a `classify-bluefield-state.sh`; it
+prescribes the *order in which an operator should collect evidence
+and the recovery action each evidence pattern lattices to*, quoting
+documented commands from the public BlueField Platform Software
+Manual (reached through
+[`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)),
+the MFT manual (`flint`, `mlxconfig`, `mlxfwmanager`), and the Linux
+man pages for `modprobe(8)`, `lspci(8)`, `ip-route(8)`. Every
+mutating step (firmware burn, BFB reflash, `mlxconfig set`, kernel
+boot parameter change) STILL routes through
+[`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) for the
+meta-policy (preflight, OOB console, maintenance window, rollback)
+— this section adds only the *bare-metal-deployment-specific
+sequencing* on top.
+
+### bfb-install lifecycle
+
+The canonical "push a BFB image from the host to the BlueField" flow.
+The agent walks the operator through this verb-by-verb; it does NOT
+fabricate the host-side `bfb-install` flag set, the BFB image
+filename, the RShim character-device path, or the `bf.cfg` schema —
+all four come from live `--help` on the installed tool and the
+public BlueField Platform Software Manual.
+
+1. **Pre-flight inventory.** Capture, BEFORE any push:
+    - The current BFB image / BSP version on the BlueField, from the
+      BSP version-query path documented in the BlueField Platform
+      Software Manual (do NOT guess a command name).
+    - The current ConnectX firmware version on the BlueField's NIC
+      side, from `flint -d <bdf> q` (per the MFT manual); on a
+      BlueField this is the NIC PSID + firmware revision the new
+      BFB will or will not match.
+    - The host-side RShim userspace daemon state (`dpkg -s
+      rshim` / `rpm -q rshim` for package install, `systemctl
+      status rshim` for `active (running)`, `pgrep -a rshim` for
+      a live `/usr/sbin/rshim` process, `ls /dev/rshim*` for the
+      character-device tree — all per the BSP manual). On DOCA
+      3.3+ there is NO `rshim` kernel module (the in-tree
+      module was removed); `lsmod | grep rshim` is expected to
+      be empty and is NOT failure evidence. If the daemon /
+      `/dev/rshim*` tree is missing, the host has no path to
+      push.
+    - The OOB management path the operator will use if the push
+      breaks the Arm OS: BMC console-over-Redfish, BMC IPMI
+      serial-over-LAN, or the physical UART (per the
+      [`BlueField BMC Software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+      row in the public-knowledge-map). Without one of these, the
+      bar for proceeding is "stop, escalate" per
+      [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md).
+    - The BFB image's SHA matches the SHA the operator
+      downloaded from the documented DOCA Downloads page (per
+      [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md#public-documentation-entry-points))
+      — pushing a corrupted BFB is the load-bearing first-run
+      failure for the entire flow.
+2. **Author `bf.cfg` from the documented schema.** The BFB-install
+   path takes an installer configuration file (`bf.cfg`) that
+   controls post-install state on the Arm side — root/ubuntu
+   password, hostname, and `bfb_modify_os()` shell-script hooks
+   that run during the install to seed any state the documented
+   `bf.cfg` parameters do NOT cover directly. **Two
+   operator-relevant rules**:
+   (a) If the operator wants passwordless SSH to survive the
+   install, the `bf.cfg` MUST set the documented `ubuntu_PASSWORD`
+   parameter (or equivalent per the schema, e.g. `ROOT_PASSWORD`)
+   AND seed the SSH public key via a `bfb_modify_os()` hook that
+   writes `/mnt/home/ubuntu/.ssh/authorized_keys` on the
+   to-be-installed rootfs (the rootfs is mounted under `/mnt`
+   during install per the BSP manual). The default BFB install
+   rewrites `/home/ubuntu/.ssh/`, so any pre-existing key on the
+   previous image is GONE unless reseeded by this hook. Do NOT
+   invent an `authorized_keys` top-level `bf.cfg` parameter — the
+   schema does not have one; the mechanism is the
+   `bfb_modify_os()` hook.
+   (b) For separated-host / bump-in-the-wire / scalable-function
+   deployments where the BlueField must boot in a specific
+   internal-CPU / port-owner / SF mode (e.g. `SEPARATED_HOST(0)`,
+   `EMBEDDED_CPU(1)`), the required `mlxconfig set` invocations
+   are run from a `bfb_modify_os()` hook in `bf.cfg` at
+   BFB-install time; reconfiguring the same modes after the
+   install typically requires another BFB push (per the BSP
+   manual). The agent quotes the `bf.cfg` parameter keys from the
+   public schema (and references the `bfb_modify_os()` script
+   pattern) and does NOT invent key names from memory.
+3. **Push the BFB.** Run the host-side `bfb-install` invocation
+   per its `--help` and the BSP manual. The push streams the BFB
+   to the BlueField over RShim/PCIe; the Arm side reboots through
+   UEFI → Linux up → first-boot init.
+4. **Do not trust `bfb-install` exit code 0 alone.** This is the
+   single most expensive failure mode in the operator's loop.
+   `bfb-install` has been observed in the field to exit 0 while
+   the Arm-side flow only partially completed — the canonical
+   field-reported signature is *"Ubuntu installation completed"*
+   (or *"Ubuntu installation finished"*, both phrasings have
+   been seen in different BFB releases) followed by an
+   `INFO[MISC]: NIC firmware update failed` line in the RShim
+   console / log, meaning the OS image landed but the
+   firmware-update sub-step silently failed. The agent ALWAYS
+   parses the actual console / log output the installer wrote,
+   in addition to the exit code, and looks for: (a) any `[MISC]`
+   or `[ERR]` line whose text contains a failure verb
+   ("failed", "error", "abort"), (b) the documented `Linux up`
+   marker, (c) the documented `DPU is ready` marker. If any of
+   `(a)` is present or `(b)` / `(c)` are absent, the install is
+   treated as **partial**, not complete, and the agent advances
+   to
+   [`### bluefield-state-classifier`](#bluefield-state-classifier)
+   instead of declaring success.
+5. **Distinguish "BFB install completed" from "readiness wait
+   failed".** "Completed" means the installer's I/O is done; it
+   does NOT mean the Arm OS is up, TMFIFO is reachable, SSH is
+   live, or host PFs are bound. The agent always runs the
+   readiness sequence in
+   [`### post-bfb-recovery`](#post-bfb-recovery) before re-declaring
+   the BlueField healthy.
+6. **Routing for the firmware burn itself.** A BFB push is a
+   mutating change against live device state — the meta-policy in
+   [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md)
+   governs the preflight / OOB-console / rollback discipline that
+   wraps this step. This section adds only the *sequencing
+   ladder*; the agent loads `doca-hardware-safety` ALONGSIDE this
+   skill whenever the operator's question reaches step 3 above.
+
+### rshim and tmfifo
+
+RShim is the host-side surface that exposes the BlueField's
+Arm-side console (`/dev/rshim<N>/console`) AND the host-side
+network endpoint of the TMFIFO recovery interface (factory
+defaults per the BlueField Platform Software Manual: host-side
+address `192.168.100.1/30`, BlueField-side address
+`192.168.100.2/30`; the agent does NOT fabricate the subnet from
+memory). On DOCA 3.3+ hosts the RShim surface ships as a
+**userspace daemon** (`/usr/sbin/rshim` started by
+`rshim.service`); the legacy in-tree kernel module is no longer
+shipped. The TMFIFO interface is the *recovery* path when the
+BlueField's normal management network is broken; it is NOT a
+primary data path.
+
+1. **Verify RShim is attached on the host.** The agent runs all
+   three of: `dpkg -s rshim` / `rpm -q rshim` (the userspace
+   package is installed), `systemctl status rshim` (the daemon is
+   `active (running)`), and `ls /dev/rshim*` (character-device
+   tree is present per the BSP manual). On DOCA 3.3+
+   `lsmod | grep rshim` is EXPECTED to be empty and is NOT
+   evidence of failure — the in-tree kernel module is gone; the
+   surface is delivered entirely by the userspace daemon. If
+   `systemctl status rshim` is not `active (running)` OR the
+   `/dev/rshim*` tree is missing, the host has no path to the
+   BlueField's recovery surface and downstream TMFIFO checks are
+   meaningless.
+2. **Verify the TMFIFO network endpoint on the host.** `ip
+   addr show tmfifo_net0` (per the BSP manual's documented
+   interface name; verify the name on the operator's host —
+   different driver versions have shipped slightly different
+   names). The address should be the host-side documented address.
+3. **Critical TMFIFO gotcha — ALWAYS `ip route get` before
+   `ping`.** A real failure mode the bundle has hit in the wild
+   is: the BlueField-side TMFIFO address (e.g. `192.168.100.2`)
+   gets accidentally added to the **host's** loopback or to
+   `tmfifo_net0` itself, so `ping 192.168.100.2` from the host
+   succeeds — but it is pinging *the host*, not the BlueField.
+   The diagnostic that catches this in one command is:
+    - `ip route get <bf-tmfifo-address>` on the host. **Healthy
+      outputs** the agent should accept as "the route is going to
+      the BlueField": `<bf-addr> dev tmfifo_net0 src <host-addr>`
+      (driver versions that expose the TMFIFO interface directly)
+      OR `<bf-addr> dev tm-br src <host-addr>` (BSP / DOCA-host
+      installs that bridge `tmfifo_net0` into a `tm-br` bridge —
+      observed in the wild on DOCA 3.3 hosts where the BFB-side
+      RShim driver is configured to bridge the TMFIFO endpoint
+      with the host-side management bridge). **Broken output** is
+      always: `<bf-addr> dev lo src 127.0.0.1` or
+      `local <bf-addr> dev lo` — the address has been bound
+      LOCALLY and *every* ping / ssh / curl to it is hitting the
+      host, not the BlueField. The agent ALWAYS runs
+      `ip route get` before trusting `ping` for TMFIFO recovery,
+      and accepts either `tmfifo_net0` or `tm-br` as the egress
+      interface on the host side.
+4. **Soft-reset is a recovery action, not a routine action.** The
+   `rshim` soft-reset path documented in the BSP manual is
+   appropriate when the Arm side is stuck in a known-recoverable
+   state (UEFI hang post-BFB-install, console responsive but
+   userspace dead); it is NOT routine. Routing: the operator
+   captures the BlueField state per
+   [`### bluefield-state-classifier`](#bluefield-state-classifier)
+   FIRST, then decides whether soft-reset, cold power cycle, or
+   re-push BFB is the appropriate recovery — and loads
+   [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md)
+   ALONGSIDE for the meta-policy on any of those.
+
+### post-bfb-recovery
+
+After a BFB push lands, the BlueField's downstream surface (Arm
+OS health, TMFIFO reachability, SSH liveness, host PFs bound,
+firmware version match) must be re-verified before the
+bare-metal-deployment skill returns to [`## run`](#run). This is
+the "did the install actually take?" gate.
+
+1. **Wait for the documented readiness markers, not for a
+   timer.** A wall-clock sleep is not equivalent to a readiness
+   probe. The agent polls for the documented `Linux up` / `DPU is
+   ready` markers in the RShim console buffer (per the BSP
+   manual), AND for the documented Arm-side SSH endpoint
+   responding, AND for the documented BMC health endpoint
+   reporting `OK`. If any of these never report ready within the
+   manual's documented bound, the BlueField is in a partial state
+   and the agent advances to
+   [`### bluefield-state-classifier`](#bluefield-state-classifier)
+   rather than declaring success.
+2. **Host PF rebind sequence.** A BFB push can leave the host
+   side's mlx5 driver in a stale state: the PCI devices for the
+   BlueField PFs are present (`lspci -d 15b3:` lists them) but
+   `ip link show` does not enumerate the netdevs, RDMA enumeration
+   is empty, and any DOCA program that attaches by representor
+   name fails. The documented recovery is:
+    - `modprobe mlx5_core` (no-op if already loaded; loads if not).
+    - For each BlueField PF BDF captured at pre-flight (e.g.
+      `0000:b3:00.0`, `0000:b3:00.1`): `echo <bdf> >
+      /sys/bus/pci/drivers/mlx5_core/bind` per the kernel sysfs
+      driver-binding documentation.
+    - Re-verify: `ip link show` enumerates the BlueField netdevs;
+      `ibv_devinfo` enumerates the BlueField RDMA devices;
+      `devlink dev show` lists the BlueField devlink instance.
+   The agent does NOT invent the BDF strings from memory; they
+   come from the pre-flight `lspci -d 15b3:` capture.
+3. **`/home/ubuntu` operational gotcha (Arm-side BlueField OS).**
+   On certain BlueField OS images, `/home/ubuntu` ships owned by
+   `root` rather than `ubuntu`, which breaks the normal pattern of
+   the `ubuntu` user writing logs / scratch files under their own
+   home directory. The agent: (a) checks `stat -c '%U:%G' /home/ubuntu`
+   after first SSH; (b) if it is `root:root`, flags it to the
+   operator and proposes the documented `chown -R ubuntu:ubuntu
+   /home/ubuntu` fix (per the BSP manual) BEFORE the operator
+   pastes any script that writes there. The fix itself is
+   trivially documented Linux; the value is the recognition
+   *during* lifecycle recovery instead of after a script fails.
+4. **Log copy-back to host workspace.** All install / readiness /
+   recovery evidence collected on the Arm side (the RShim console
+   buffer, the cloud-init log, the documented BSP install log,
+   the readiness probe output) should be copied BACK to the host
+   workspace before the operator re-attempts the workload. Two
+   rules: (a) use `scp ubuntu@<bf-mgmt-addr>:<path> .` (or the
+   documented BSP log-export path) from the host side — pulling
+   is safer than pushing host credentials onto the BF; (b) do NOT
+   wrap the copy step in `sudo` on the host unless the operator
+   explicitly entered `sudo` mode for this lifecycle session, per
+   the smoke-before-bulk rule in
+   [`## run`](#run) step 4.
+5. **Four-way version-match re-close.** Once Arm OS is healthy
+   and host PFs are bound, the BlueField's new BFB / firmware
+   stack must satisfy the four-way version match owned by
+   [`doca-version TASKS.md`](../doca-version/TASKS.md). The
+   agent walks the four-way match against the new BlueField state
+   BEFORE returning to [`## configure`](#configure) step 7. A
+   skipped re-close after a BFB push is the most common cause of
+   "ran fine yesterday, breaks today" symptoms.
+
+### bluefield-state-classifier
+
+When a BFB push, a soft-reset, or a host PF rebind has been done
+and the BlueField is *not yet* confirmed healthy, the agent walks
+this six-state classifier IN ORDER and stops at the first state
+the evidence matches. Each state names the evidence that
+identifies it, the most-likely root cause class, and the
+*sequencing* of the recovery action (mutating steps still load
+[`doca-hardware-safety`](../doca-hardware-safety/SKILL.md)
+alongside; this ladder names the order, not the burns).
+
+This is a **reasoning ladder, not a binary**: an Arm OS can be
+"Linux up" AND "host PFs unbound" simultaneously; the agent
+walks the ladder top-to-bottom and reports every state that
+matches, not just the first. The point is the *sequencing of
+evidence collection*, so two ops engineers reading the same
+console output reach the same triage step.
+
+1. **`installer-still-running`.** Evidence: `bfb-install` is still
+   resident on the host (`ps -ef | grep bfb-install`), AND the
+   RShim console buffer is still emitting documented installer
+   progress lines per the BSP manual. Root cause class: install
+   in flight, not failure. Recovery: WAIT, do not abort. The
+   `bfb-install` push can take many minutes on first-flash;
+   aborting it mid-write is what *creates* the next state down.
+2. **`uefi-only`.** Evidence: the RShim console buffer reports
+   `exit Boot Service` (or the BSP manual's equivalent UEFI-exit
+   marker) but never reaches the documented `Linux up` marker.
+   Root cause class: kernel did not hand off to userspace —
+   common after a partial BFB-install with a firmware-update
+   error (see [`### bfb-install lifecycle`](#bfb-install-lifecycle)
+   step 4). Recovery sequencing: capture full RShim console
+   buffer to host, capture host-side `dmesg`, do NOT immediately
+   re-push BFB; first perform a    documented cold power cycle of
+   the BlueField (via BMC per the
+   [`BlueField BMC Software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   row, not just `reboot` from the unresponsive Arm side); only
+   if cold power cycle does NOT recover, re-push BFB under
+   [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md)
+   meta-policy.
+3. **`linux-up-tmfifo-down`.** Evidence: documented `Linux up`
+   marker present in RShim console, BUT TMFIFO probe per
+   [`### rshim and tmfifo`](#rshim-and-tmfifo) step 2 returns
+   no host-side address. Root cause class: TMFIFO interface
+   never came up (driver / udev / link-state). Recovery
+   sequencing: re-check host-side RShim daemon, run the
+   documented TMFIFO bring-up procedure from the BSP manual,
+   THEN re-run [`### rshim and tmfifo`](#rshim-and-tmfifo)
+   step 3 (the `ip route get` gotcha) — a freshly-bound TMFIFO
+   on the host can land in the loopback failure mode and look
+   like it is working.
+4. **`tmfifo-up-ssh-down`.** Evidence: documented TMFIFO probe
+   passes (and `ip route get` confirms the route is going to the
+   BlueField, not local loopback), BUT SSH to the documented
+   Arm-side management endpoint refuses or hangs. Root cause
+   class: Arm-side sshd not yet listening (still in init), OR
+   the operator's authorized_keys / `ubuntu_PASSWORD` was NOT in
+   the `bf.cfg` per [`### bfb-install lifecycle`](#bfb-install-lifecycle)
+   step 2. Recovery sequencing: wait the documented sshd-ready
+   bound from the BSP manual; if still down, fall through to the
+   RShim console (`/dev/rshim<N>/console`) for a userspace
+   prompt and re-seed credentials there; on the next BFB push,
+   put the `authorized_keys` IN the `bf.cfg`.
+5. **`arm-ok-host-pfs-unbound`.** Evidence: Arm-side SSH alive,
+   Arm OS reports healthy (uptime > a few seconds, `dmesg` clean),
+   BUT host-side enumeration is broken — `lspci -d 15b3:` shows
+   the BlueField PFs, `ip link show` does NOT show the BlueField
+   netdevs, `ibv_devinfo` is empty, DOCA programs cannot attach
+   by representor name. Root cause class: stale host mlx5
+   driver-binding state post-BFB push. Recovery sequencing: run
+   [`### post-bfb-recovery`](#post-bfb-recovery) step 2 (the
+   documented PF-rebind sequence). Do NOT proceed to launch any
+   DOCA-linked binary in this state — every device-open will
+   fail with a misleading error.
+6. **`host-bf-version-mismatch`.** Evidence: everything above
+   looks healthy, but the four-way version match owned by
+   [`doca-version`](../doca-version/SKILL.md) does not close —
+   host DOCA install version, BlueField BFB / BSP version,
+   ConnectX firmware version, and binary's link-time
+   `pkg-config doca-*` version do not satisfy the documented
+   compatibility matrix in the DOCA Compatibility Policy
+   (linked from
+   [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md#public-documentation-entry-points)).
+   Root cause class: the operator pushed a BFB but did not
+   simultaneously align the host DOCA-Host install, OR the
+   `/etc/apt/sources.list.d/doca.list` is pointed at a
+      different release channel than what is now installed (see
+      [`doca-version TASKS.md ## apt-source consistency`](../doca-version/TASKS.md#apt-source-consistency)).
+   Recovery sequencing: walk
+   [`doca-version TASKS.md`](../doca-version/TASKS.md) in full;
+   resolve any apt-source / repo-pin drift BEFORE installing
+   anything new; route any host-side DOCA reinstall through
+   [`doca-setup`](../doca-setup/SKILL.md).
+
+Two cross-cutting rules for this classifier:
+
+- **Match multiple states; do not stop at the first.** A
+  BlueField that just came back from a partial BFB-install can
+  match `uefi-only` initially, then `arm-ok-host-pfs-unbound`
+  after a cold power cycle. The agent reports the *current*
+  state set and the most-recently-observed transition, not just
+  the first match.
+- **Never declare healthy from absence of evidence.** "TMFIFO
+  ping succeeded" without `ip route get` is NOT evidence the
+  BlueField is reachable (see [`### rshim and tmfifo`](#rshim-and-tmfifo)
+  step 3). "Arm SSH connected" without `uptime` / `dmesg` / a
+  documented health probe is NOT evidence the Arm OS finished
+  initialising. "host-side `lspci` shows the PFs" is NOT
+  evidence the PFs are usable (see
+  [`### post-bfb-recovery`](#post-bfb-recovery) step 2). The
+  classifier states are walked top-to-bottom precisely so the
+  agent does not skip an unverified gate.
+
 ## Command appendix
 
 Bare-metal-deployment commands the verbs above reach for, grouped
@@ -618,14 +1005,21 @@ Three cross-cutting rules for this appendix:
   [`doca-setup ## configure`](../doca-setup/TASKS.md#configure)
   and [`doca-setup ## test`](../doca-setup/TASKS.md#test); the
   bare-metal launch assumes these are already done.
-- **Hardware-state changes** (`mlxconfig set`, BFB reflash,
-  firmware burn, BlueField mode flip, kernel-boot-parameter
-  changes for IOMMU or hugepage reservation, BlueField cold
-  reboot) — out of scope here. Route to
-  [`doca-hardware-safety ## modify`](../doca-hardware-safety/TASKS.md#modify)
-  for the change-application discipline; this skill only
-  resumes once the hardware-state change is complete and
-  verified per the meta-policy.
+- **Hardware-state changes** (`mlxconfig set`, firmware burn,
+  BlueField mode flip, kernel-boot-parameter changes for IOMMU
+  or hugepage reservation) — the *change-application discipline*
+  (preflight, OOB console, maintenance window, rollback) is
+  meta-policy owned by
+  [`doca-hardware-safety ## modify`](../doca-hardware-safety/TASKS.md#modify);
+  this skill always loads `doca-hardware-safety` ALONGSIDE when
+  a mutating step is on the table. The bare-metal **operational
+  sequencing ladder** for BFB-install / RShim / TMFIFO / host PF
+  rebind / post-BFB recovery — what evidence to collect in what
+  order, which classifier state lattices to which recovery
+  action — is **in scope** here, in
+  [`## bluefield-lifecycle`](#bluefield-lifecycle); the meta-policy
+  governing each mutating burn is still
+  `doca-hardware-safety`'s.
 - **Cross-library programming questions** (the canonical build
   pattern, the modify-a-sample first-app workflow, the
   cross-library `DOCA_ERROR_*` taxonomy, the program-side

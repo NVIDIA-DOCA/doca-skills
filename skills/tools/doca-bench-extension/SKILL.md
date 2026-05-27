@@ -22,7 +22,7 @@ metadata:
 compatibility: >
   Requires DOCA SDK installed at /opt/mellanox/doca on Linux
   (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
-  ConnectX NIC. Source tree: `doca/tools/bench_extension/`
+  ConnectX NIC. Source tree: `/opt/mellanox/doca/tools/bench_extension/`
   (underscored, NOT kebab-case); the built shared library
   `libdoca_bench_cuda_impl.so` lands in the platform libdir on a
   binary install. Also needs `pkg-config doca-common` and, for
@@ -69,7 +69,7 @@ invocation*. If `doca-bench` itself is the question, route to
   drives DOCA GPUNetIO RX and TX queues. Where do I start?
   Is there a reference extension I can copy?"* — the agent
   surfaces the shipped `doca_bench_cuda` extension under
-  `doca/tools/bench_extension/doca_bench_cuda/` as the
+  `/opt/mellanox/doca/tools/bench_extension/doca_bench_cuda/` as the
   reference exemplar and walks the operator through its
   API surface and build shape.
 - *"How does `doca-bench` actually discover and load my
@@ -131,7 +131,7 @@ A `doca-bench` extension surfaces as:
 1. A **versioned shared library** on Linux (`.so` with
    `soversion` matching the DOCA release), built via the
    `doca-bench-extension` Meson rules in the shipped
-   `doca/tools/bench_extension/meson.build` and the
+   `/opt/mellanox/doca/tools/bench_extension/meson.build` and the
    per-extension subdirectory (the reference exemplar is
    `doca_bench_cuda/`).
 2. A small set of **`DOCA_EXPERIMENTAL`-marked C entry
@@ -228,7 +228,7 @@ The combined skill teaches an AI agent to drive the
 *extension-author-and-wire-in class* of `doca-bench`
 questions: confirm an extension is needed at all; locate
 the shipped reference exemplar
-(`doca/tools/bench_extension/doca_bench_cuda/`); copy
+(`/opt/mellanox/doca/tools/bench_extension/doca_bench_cuda/`); copy
 its build + API surface shape; build a versioned shared
 library that matches the DOCA release; smoke that the
 parent `doca-bench` actually loads it; diagnose layered

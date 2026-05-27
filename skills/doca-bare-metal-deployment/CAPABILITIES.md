@@ -73,7 +73,7 @@ differ.
 | Where the binary runs | On the host x86 CPU; calls into DOCA libraries that talk to the BlueField NIC over PCIe | On the BlueField Arm cores; calls into DOCA libraries that talk to the local NIC silicon directly |
 | Device enumeration | `devlink dev show` on the host lists the BlueField as a remote NIC; `lspci -d 15b3:` enumerates the BlueField PFs / VFs | `devlink dev show` on the BlueField Arm side lists the local NIC; representor naming follows the documented BlueField OS convention |
 | NUMA topology to bind against | The host's NUMA topology; the NUMA node owning the PCIe root complex that the BlueField is plugged into is the load-bearing one | The BlueField Arm's NUMA topology per the BlueField OS image's documentation |
-| Hugepage backing | Reserved on the host per [`doca-setup ## configure`](../doca-setup/TASKS.md#configure) step 4 | Reserved on the BlueField Arm side per the BlueField OS image's documented procedure (routed via the BlueField / DPU User Manual reached through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)) |
+| Hugepage backing | Reserved on the host per [`doca-setup ## configure`](../doca-setup/TASKS.md#configure) step 7 | Reserved on the BlueField Arm side per the BlueField OS image's documented procedure (routed via the BlueField / DPU User Manual reached through [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)) |
 | Sibling deployment shape | The container path for this mode is *also* host-side (a container running on the host x86 that talks to the BlueField NIC over PCIe); the kubelet-standalone shape covered by [`doca-container-deployment`](../doca-container-deployment/SKILL.md) is the BlueField-Arm analog | The container path for this mode is the kubelet-standalone shape covered by [`doca-container-deployment`](../doca-container-deployment/SKILL.md) — the operator chooses container or bare metal at the recognition step in [`doca-setup`](../doca-setup/SKILL.md), not after the fact |
 
 Operators frequently have BOTH host modes in play (a host x86 with a
@@ -224,8 +224,8 @@ this skill does not duplicate it.
   the runtime `LD_LIBRARY_PATH`'d install.** A DOCA-linked binary
   resolves DOCA symbols against whatever `libdoca_*.so` is on the
   runtime `LD_LIBRARY_PATH` (or the default loader search path).
-  If the binary was built against `doca-common 3.5.x` headers
-  but the runtime install is `doca-common 3.4.x` (or vice
+  If the binary was built against (for example) `doca-common 3.3.x`
+  headers but the runtime install is `doca-common 3.2.x` (or vice
   versa), the binary fails at the first symbol that moved
   between releases — sometimes immediately at `dlopen` time,
   sometimes at the first call site, sometimes silently with
@@ -320,28 +320,12 @@ BSP / DOCA Platform Framework documentation for those steps.
    RShim, eMMC image install, BFB-side firmware update, BFB-side OS bring-
    up to `Linux up` / `DPU is ready`, TMFIFO recovery, BFB-side apt
    vocabulary, `bf.cfg`) is **externally-productized** (BlueField BSP layer
-
-   **RShim instance ↔ BlueField disambiguation (canonical one-liner).**
-   Multi-DPU hosts expose multiple RShim character devices under
-   `/dev/rshim<N>/`. To map each RShim instance to a specific
-   BlueField (so `bfb-install --rshim /dev/rshim<N>` targets the
-   right DPU, and `cat /dev/rshim<N>/misc` reads the right
-   console), read the `DEV_NAME` field of each `misc` file:
-
-   ```bash
-   for r in /dev/rshim*/misc; do echo "== $r =="; grep -E '^DEV_NAME' "$r"; done
-   ```
-
-   `DEV_NAME` returns the PCIe BDF that RShim instance is
-   attached to (e.g. `DEV_NAME pcie-0000:03:00.2`); cross-match
-   against `lspci -d 15b3: -nn` to identify which physical
-   BlueField is on which `/dev/rshim<N>`. This one-liner is the
-   canonical disambiguation step before any per-DPU
-   `bfb-install`, `rshim` config edit, or console capture on a
-   multi-DPU host; skipping it is the #1 cause of "I flashed
-   the wrong DPU" incidents.
-
-   plus, for fleet-scale deployments, DOCA Platform Framework). It is out
+   plus, for fleet-scale deployments, DOCA Platform Framework). The
+   *operational sequencing ladder* for the single-host BFB lifecycle
+   itself — what evidence to capture, in which order, and which recovery
+   action each evidence pattern lattices to — is in scope and lives in
+   [`TASKS.md ## bluefield-lifecycle`](TASKS.md#bluefield-lifecycle); the
+   *productized framework / BSP / BFB image / firmware tooling* is out
    of scope for this bundle's strict-1:1 monorepo alignment, but the
    bundle's `AGENTS.md ## Non-goals #7` contract still applies: the agent
    MUST produce the three-part response shape (recognize + name boundary
@@ -377,6 +361,32 @@ end: every step's preconditions established by the prior steps, no
 "upgrade complete" claimed on exit-code alone, the BFB / BSP
 boundary explicitly named and routed out rather than silently
 synthesized. See [`AGENTS.md ## The universal verification contract`](../../AGENTS.md#the-universal-verification-contract).
+
+### RShim instance ↔ BlueField disambiguation (canonical one-liner)
+
+Multi-DPU hosts expose multiple RShim character devices under
+`/dev/rshim<N>/`. To map each RShim instance to a specific
+BlueField (so `bfb-install --rshim /dev/rshim<N>` targets the
+right DPU, and `cat /dev/rshim<N>/misc` reads the right
+console), read the `DEV_NAME` field of each `misc` file:
+
+```bash
+for r in /dev/rshim*/misc; do
+  echo "== $r =="
+  grep -E '^DEV_NAME' "$r"
+done
+```
+
+`DEV_NAME` returns the PCIe BDF that RShim instance is attached
+to (e.g. `DEV_NAME pcie-0000:03:00.2`); cross-match against
+`lspci -d 15b3: -nn` to identify which physical BlueField is on
+which `/dev/rshim<N>`. This one-liner is the canonical
+disambiguation step before any per-DPU `bfb-install`, `rshim`
+config edit, or console capture on a multi-DPU host; skipping it
+is the #1 cause of *"I flashed the wrong DPU"* incidents. The
+mapping is consumed downstream by every step in
+[`TASKS.md ## bluefield-lifecycle`](TASKS.md#bluefield-lifecycle)
+that takes a `--rshim` or `/dev/rshim<N>` argument.
 
 ## Error taxonomy
 

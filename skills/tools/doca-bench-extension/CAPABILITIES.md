@@ -130,8 +130,8 @@ ground truth on the user's install, NOT this skill.
 
 ### Build / registration / discovery flow
 
-Per the shipped `doca/tools/bench_extension/meson.build`
-and `doca/tools/bench_extension/doca_bench_cuda/`
+Per the shipped `/opt/mellanox/doca/tools/bench_extension/meson.build`
+and `/opt/mellanox/doca/tools/bench_extension/doca_bench_cuda/`
 subtree, an extension is:
 
 - a **versioned shared library** (the reference builds

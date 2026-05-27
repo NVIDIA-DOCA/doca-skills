@@ -1,5 +1,0 @@
-pci/0000:17:00.1/1: type eth netdev enp23s0f1np1 flavour physical port 1
-pci/0000:17:00.1/2: type eth netdev pf0vf0 flavour pcivf controller 0 pfnum 0 vfnum 0 splittable false
-pci/0000:17:00.1/3: type eth netdev pf0vf1 flavour pcivf controller 0 pfnum 0 vfnum 1 splittable false
-pci/0000:17:00.1/4: type eth netdev pf0vf2 flavour pcivf controller 0 pfnum 0 vfnum 2 splittable false
-pci/0000:17:00.1/5: type eth netdev pf0vf3 flavour pcivf controller 0 pfnum 0 vfnum 3 splittable false

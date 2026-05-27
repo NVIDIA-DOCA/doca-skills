@@ -1,8 +1,0 @@
-$ lsmod | grep -E 'mlx5_core|mlx5_ib|mlx_compat'
-$ echo "(no output — kernel modules are not loaded; check OFED install vs current kernel)"
-(no output — kernel modules are not loaded; check OFED install vs current kernel)
-$ uname -r
-6.5.0-35-generic
-$ ls /var/lib/dkms/mlnx-ofa_kernel/24.04-OFED.24.04.0.6.6.1/build 2>/dev/null
-$ echo "(no output — no OFED build for the running kernel)"
-(no output — no OFED build for the running kernel)

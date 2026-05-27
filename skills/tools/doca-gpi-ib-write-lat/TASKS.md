@@ -220,6 +220,21 @@ no exceptions. The detailed flag surface lives in the
 binary's `--help` on the installed build; this section names
 the *shape* of the flow, not the verbatim command lines.
 
+> **Do-not-invent guard (paths + binary shape).** Real
+> downstream agents have hallucinated a `/opt/mellanox/doca/samples/gpi/`
+> subtree for this tool — it does not exist. The bundle's
+> verbatim source path is
+> `/opt/mellanox/doca/tools/gpi_ib_write_lat/{main.c,perftest.c,kernel.cu,meson.build}`
+> (per [`SKILL.md`](SKILL.md) compatibility block); discover
+> with `ls /opt/mellanox/doca/tools/ | grep gpi_ib_write_lat`,
+> NOT under `/opt/mellanox/doca/samples/`. The tool ships as a
+> **single binary** that acts as server by default and switches
+> to client when invoked with `-c <server-ip>` — do not
+> describe it as two separate binaries. CUDA pairing rules
+> live in
+> [`../../libs/doca-gpunetio/CAPABILITIES.md ## Version compatibility`](../../libs/doca-gpunetio/CAPABILITIES.md#version-compatibility);
+> there is no `cuda-toolkit` skill in this bundle.
+
 1. **Confirm the build artifact and the environment.** Per
    [`## install`](#install) and [`## configure`](#configure).
    Without this, the next steps will burn the operator's

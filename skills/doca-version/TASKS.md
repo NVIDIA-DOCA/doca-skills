@@ -221,6 +221,128 @@ For the other ladder layers — install, build, link, runtime,
 program, driver — route to the matching skill (`doca-setup`,
 `doca-programming-guide`, `doca-debug`).
 
+## apt-source consistency
+
+The single most expensive class of partial-install failure on Debian /
+Ubuntu hosts is *apt-source mismatch*: the host's
+`/etc/apt/sources.list.d/doca.list` (or equivalent) is pointed at one
+DOCA release channel (frequently `latest`, or a specific point release
+like `3.5`), while the host's *already-installed* `doca-*` packages
+are pinned to a different release (e.g. `3.1.0105`). The symptom set
+is wide and confusing:
+
+- "I rolled back the BlueField to `3.1.0105` for a bug repro, but on
+  the host `apt upgrade` re-installed `doca-tools` from `latest` and
+  now nothing on host/BF agrees."
+- "I ran the documented install line from the DOCA Installation Guide
+  for release X, but on this host the package candidate is from
+  release Y."
+- "Two co-tenants installed DOCA on the same host from different
+  channels and now `doca-common` is from one release and
+  `doca-tools` is from another."
+- "Everything looked fine yesterday; today `apt update && apt
+  upgrade` quietly pulled a newer DOCA point release and broke my
+  build."
+
+This anchor is the **agent's precheck** for any host that has DOCA
+installed AND is about to receive any subsequent `apt install` /
+`apt upgrade` invocation. It runs BEFORE
+[`doca-setup ## configure`](../doca-setup/TASKS.md#configure) and is
+referenced from the cross-cutting precondition step there.
+
+1. **Capture the configured DOCA apt source(s).** On Debian / Ubuntu:
+   `grep -R 'doca' /etc/apt/sources.list /etc/apt/sources.list.d/
+   2>/dev/null`. The agent reads back to the user (a) the source
+   file path(s) DOCA is configured from, and (b) the **release
+   channel string** the source resolves to. Three shapes the agent
+   should recognize and treat equivalently when reasoning about
+   "which release this host will pull from":
+    - **Network URL form** — typically
+      `https://linux.mellanox.com/public/repo/doca/<channel>/<distro>/<arch>/`,
+      where `<channel>` is either `latest` (rolling) or a pinned
+      `X.Y.Z` (e.g. `3.3.0/`). This is the canonical form the
+      DOCA Installation Guide documents for fresh installs.
+    - **Local file-repo form** — `file:/usr/share/doca-host-<full-build-id>/repo ./`,
+      dropped on disk by the `doca-host` meta-package on Ubuntu /
+      Debian hosts that installed via the offline `.deb` bundle.
+      Observed in the wild on real DOCA 3.3 installs (the build-id
+      embeds the release: e.g. `doca-host-3.3.0-088910-26.01-ubuntu2204`
+      is DOCA 3.3.0 host build 088910, OFED 26.01, on Ubuntu 22.04).
+      The release channel is the `X.Y.Z` inside the build-id; it
+      is **already pinned** by the bundle and cannot drift across
+      `apt upgrade` unless `doca-host` itself is upgraded.
+    - **RHEL / OEL equivalent** — `/etc/yum.repos.d/doca*.repo`
+      with a `baseurl=` line; the same three-way distinction
+      (network URL with channel, or pinned URL with `X.Y.Z`, or
+      local file-repo dropped by `doca-host`) applies.
+
+2. **Capture the installed DOCA package version(s).** Run
+   `dpkg -l | grep -E '^ii\s+doca-' | awk '{print $2, $3}'` (Ubuntu)
+   or `rpm -qa | grep '^doca-' | sort` (RHEL). The agent reads back
+   to the user the installed versions of the canonical anchors
+   `doca-common`, `doca-tools`, `doca-host`, `doca-samples` (any
+   that are installed).
+
+3. **Cross-check the two captures.** The release channel in step 1
+   MUST be the **same** release as the installed versions in step 2.
+   The mismatches that are *load-bearing failure modes*:
+    - Step 1 source channel = `latest`, step 2 installed = a pinned
+      `X.Y.Z` — the next `apt upgrade` will silently move the host
+      to whatever `latest` resolves to at that moment, which may not
+      be the release the operator's BlueField / co-tenant assumes.
+    - Step 1 source channel = `X.Y.Z`, step 2 installed = a
+      *different* `A.B.C` — the host was installed from one channel,
+      the source list points at another. `apt-cache policy
+      doca-common` will report a "Candidate" version that *also*
+      differs from "Installed", and any subsequent `apt install` of
+      a new DOCA-coupled package will pull from the channel, not
+      from the installed release.
+    - Step 1 returns no DOCA source AND step 2 reports DOCA
+      installed — the host was installed once and then the apt
+      source was removed; future `apt upgrade` cannot keep DOCA in
+      sync, and the agent surfaces that the host is on a frozen
+      release.
+
+4. **Action depending on which mismatch.** The agent surfaces the
+   mismatch to the user AND surfaces the documented apt-source-pin
+   recommendation BEFORE any further `apt install` / `apt upgrade`
+   runs:
+    - Prefer pinning the apt source to the explicit `X.Y.Z` URL
+      form documented in the DOCA Installation Guide (reached
+      through
+      [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md#public-documentation-entry-points))
+      for any controlled upgrade — `latest` channels are for fresh
+      installs, NOT for landing on a known target release.
+    - When the source channel and installed version genuinely
+      diverge, the safe path is: (a) pick the release the operator
+      WANTS this host on, (b) reconfigure the apt source to that
+      explicit `X.Y.Z` channel, (c) `apt update && apt-cache policy
+      doca-common` to confirm "Candidate" matches the target, (d)
+      THEN re-install the DOCA package set to converge the host on
+      that release (per the documented Installation Guide procedure
+      — the agent does not invent the package list).
+
+5. **Tie back to the four-source detection chain.** Once the apt
+   source is reconciled with the installed release, re-run the
+   four-source chain in [`## configure`](#configure) step 1 — the
+   match is only meaningful AFTER the apt source is no longer
+   silently disagreeing with what is installed.
+
+6. **For BFB / BlueField side.** The same class of failure exists on
+   the BlueField side when the operator pushed a different BFB
+   (e.g. rolled the BF back to `3.1.0105`) but did NOT
+   simultaneously reconfigure the host's apt source to match. This
+   is exactly the
+   [`doca-bare-metal-deployment ## bluefield-state-classifier`](../doca-bare-metal-deployment/TASKS.md#bluefield-state-classifier)
+   state `host-bf-version-mismatch`; the apt-source precheck above
+   is the *host-side cause* of that state.
+
+The precheck is intentionally simple to run (two grep / dpkg
+captures plus a comparison) precisely because the agent should run
+it on EVERY install-shaped session. Skipping it is the most common
+way an otherwise-clean version-handling session ends with the user
+on a release they did not ask for.
+
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are
@@ -262,7 +384,7 @@ unprivileged user unless noted; sudo is called out per row.
 | `cat /opt/mellanox/doca/applications/VERSION` | `## configure` step 2 | What does the install tree itself claim? | A semver string matching the other sources |
 | `doca_caps --version` | `## configure` step 2; `## run` step 1 | What is the runtime DOCA version? | A semver string matching `pkg-config --modversion doca-common` |
 | `bfver` (BlueField Arm console, or on the host against a standalone BFB file) and `cat /etc/mlnx-release` (BlueField Arm side) | `## configure` step 2 (BlueField only) | What is the BFB-side DOCA version? | A semver string from `bfver` and a full BFB image string from `/etc/mlnx-release`, both matching the host package version. Do NOT use `mlxprivhost` or `bfb-info` for this — see [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes). |
-| `grep -RHn 'DOCA_VERSION_' the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) doca_version.h` | `## configure` step 2; `## build` slot 2 | What macros does this install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR / MINOR / PATCH` triple matching the runtime version |
+| `grep -RHn 'DOCA_VERSION_' $(pkg-config --variable=includedir doca-common)/doca_version.h` | `## configure` step 2; `## build` slot 2 | What macros does this install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR / MINOR / PATCH` triple matching the runtime version |
 | `ldconfig -p | grep doca` | `## run` step 2; `## debug` layer 2 | Which DOCA `*.so` files does the runtime linker see? | One install's set of `*.so` files; multiple installs visible = the runtime might resolve to the wrong one |
 | `ls "$(dirname "$(find /opt/mellanox/doca -name doca-common.pc -print -quit)")"` (commonly `/opt/mellanox/doca/lib/<arch>-linux-gnu/pkgconfig/` on DOCA 3.3+, OR `/opt/mellanox/doca/infrastructure/lib/pkgconfig/` on legacy / split-profile installs) | `## debug` layer 2 | Which `*.pc` files does this install ship? | One `*.pc` per installed library; `doca-common.pc` MUST be present |
 | Look up capability in `version-matrix.json` if present per [`doca-structured-tools-contract`](../doca-structured-tools-contract/SKILL.md#schemas); else fetch the matching per-library docs page via [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md) and extract the *"available since"* prose | `## test` step 2 | Is capability X available on the user's installed version? | Min-version row (structured) OR quoted prose (manual) — both saying *"available since DOCA Y.Z.W"* |

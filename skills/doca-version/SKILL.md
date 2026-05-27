@@ -86,6 +86,17 @@ instance.
   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
   + the worked-example template in
   [`TASKS.md ## modify`](TASKS.md#modify).
+- **"My `apt list` shows DOCA `3.3.0109`, but `/etc/apt/sources.list.d/doca.list`
+  is pinned at `latest` / a different release — is the next
+  `apt install doca-*` going to silently upgrade me?"** — worked
+  example: *"I rolled back BFB to 3.1.0105 but my sources still
+  point at the latest channel."* Answered by the apt-source
+  consistency precheck in
+  [`TASKS.md ## apt-source consistency`](TASKS.md#apt-source-consistency),
+  which enumerates the three legitimate shapes of a configured
+  DOCA apt source (network URL, local file-repo, RHEL/OEL
+  equivalent) and the *do-not-install-until-the-source-matches*
+  rule that protects pinned installs from accidental drift.
 
 ## When to load this skill
 

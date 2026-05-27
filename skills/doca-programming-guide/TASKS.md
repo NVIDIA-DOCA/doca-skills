@@ -52,7 +52,7 @@ The shipped DOCA samples and reference applications are C, built with meson. You
 
 DOCA does not ship official bindings in non-C languages inside this repository. The consumption path is FFI / language-specific bindings against the same `*.so` libraries the C samples link against.
 
-1. **Confirm the install host gives you the C ABI surface.** `pkg-config --cflags --libs doca-<library>` returns the include path and link flags; the headers under the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) are the authoritative symbol declarations; the `*.so` files under `/opt/mellanox/doca/lib/<arch>-linux-gnu/` are what your binding loads at runtime. Verify all three are present before any binding-side work. If any of those checks fails, route to [`doca-setup ## debug`](../doca-setup/TASKS.md#debug).
+1. **Confirm the install host gives you the C ABI surface.** `pkg-config --cflags --libs doca-<library>` returns the include path and link flags; the headers under $(pkg-config --variable=includedir doca-common) are the authoritative symbol declarations; the `*.so` files under `/opt/mellanox/doca/lib/<arch>-linux-gnu/` are what your binding loads at runtime. Verify all three are present before any binding-side work. If any of those checks fails, route to [`doca-setup ## debug`](../doca-setup/TASKS.md#debug).
 
 2. **Pick the binding strategy honestly.** If a community or user-built binding for the user's language exists, point at its repository (the agent **must** verify it exists by fetching its repo or package registry — never invent a binding name). Otherwise the user is doing direct FFI: `bindgen` for Rust, `cgo` for Go, `cffi` / `ctypes` for Python, equivalents for other languages.
 
@@ -237,6 +237,192 @@ Investigation order — **always**:
 
 If the agent finds itself recommending a library-internal code change before completing (1)–(5), it is jumping layers — back up.
 
+## sample-and-app-categorization
+
+The cross-library **build-sweep model** the agent uses when the user
+asks "build all DOCA samples" / "build all DOCA apps" / "which DOCA
+samples work on my hardware". The honest answer is *"that depends on
+which category you mean, which dependency stack you have, and which
+target shape you are on"* — and treating *all DOCA samples* or *all
+DOCA applications* as a single bucket is the load-bearing failure
+mode the external feedback flagged (a build sweep that returns
+"139/159 built" hides the fact that the 20 misses are mostly *env
+not present* (GPUNetIO needs `nvcc`, RMAX needs `doca-rmax`), not
+*the DOCA SDK is broken*).
+
+This anchor is the **agent's reasoning model**, not a script: the
+bundle does NOT ship a `build-sweep.sh`, a categorization JSON
+manifest, or a dependency-resolver. It teaches the agent the
+*classification*, the *evidence each tag is derived from*, and the
+*report shape* a build sweep should produce so two operators reading
+the same sweep output reach the same triage step.
+
+### Samples vs applications
+
+The two artifact shapes ship from different trees, are written for
+different audiences, and answer different questions. The agent
+makes the distinction *before* it picks a sweep strategy.
+
+- **Samples** live under `/opt/mellanox/doca/samples/<library>/` on
+  an installed host (and under `samples/` in the public
+  [`NVIDIA-DOCA/doca-samples`](https://github.com/NVIDIA-DOCA/doca-samples)
+  repo). A sample is a *library-level
+  build probe* — it answers the question *"can this installed SDK
+  compile code against this library's headers and link against its
+  shipped `.so`?"*. A sample build pass is evidence for the
+  install + the build env + that one library; a sample build pass
+  is **not** evidence for application-level integration. Samples
+  are the right target for the first `## test` step of every
+  library skill.
+- **Applications** live under `/opt/mellanox/doca/applications/` on
+  an installed host (and under `applications/` in the public
+  [`NVIDIA-DOCA/doca-samples`](https://github.com/NVIDIA-DOCA/doca-samples)
+  repo — the public samples repo carries both `samples/` and
+  `applications/` trees). An application is an
+  *integrated reference workload* — it typically pulls in multiple
+  DOCA libraries (Flow + Eth + Common; RDMA + DMA; etc.), often
+  requires external packages (DPDK, SPDK, CUDA toolkit, MPI, the
+  RMAX SDK, OpenMPI, UCX), often needs runtime topology to
+  exercise (a peer host, a specific BlueField mode, a specific
+  firmware capability, GPU + GPUDirect RDMA wiring), and sometimes
+  needs a host ↔ DPU pair to run end-to-end. An application build
+  pass is evidence for the *full integration stack* underneath
+  it. An application build *fail* therefore has many more
+  legitimate causes than a sample fail; classify before declaring.
+
+The agent never tells a user *"build all apps"* without first
+clarifying which subset: *all samples* (cheap, library-level),
+*all top-level applications* (heavier, integration-level), *all
+optional-stack apps* (per-category), or *build-only vs runnable on
+this target* (whether the sweep is just a compile check or an
+end-to-end run). The clarification is one sentence to the user,
+not a guess.
+
+### Category taxonomy
+
+A canonical category labels every sample / app by the *DOCA stack
+shape* it exercises. The agent applies categories from the
+artifact's `meson.build`, its `README`, and the parent directory it
+ships from — NOT from inferring the name. Categories the bundle
+treats as first-class:
+
+| Category | Stack shape | Representative artifacts |
+| --- | --- | --- |
+| `security` | DOCA App Shield, DOCA IPsec, packet inspection, file integrity, secure-channel patterns | `app_shield_agent`, `ipsec_security_gw`, `psp_gateway`, `secure_channel`, `yara_inspection`, APSH samples, file-integrity samples |
+| `storage` | NVMe emulation, virtio-fs, storage path samples, NVMe-oF integration | `nvme_emulation`, `storage/*`, `virtiofs`, STA/NVMe-oF related samples |
+| `networking` | DOCA Flow, DOCA Eth, DOCA RDMA, DOCA Comch — line-rate or control-plane packet/RDMA path | `eth_l2_fwd`, `simple_fwd_vnf`, `switch`, `upf_accel`, `ip_frag`, Flow samples, RDMA samples, Comch samples |
+| `acceleration` | DOCA DMA, AES-GCM, SHA, Compress, Erasure Coding — offloading specific compute kernels | DMA samples, AES-GCM samples, SHA samples, Compress samples, Erasure Coding samples |
+| `dpa-hpc` | DOCA DPA programs (DPACC build, FlexIO DEV) plus the PCC / UROM / RDMO HPC pieces | `dpa_all_to_all`, `pcc`, `urom_rdmo`, DPA samples, UROM samples |
+| `gpu-media` | DOCA GPUNetIO, DOCA GPI, NVIDIA Rivermax integration, RMAX-class media samples | `gpu_packet_processing`, GPUNetIO samples, RMAX / Rivermax-shaped samples |
+| `telemetry` | DOCA Telemetry library + DOCA Telemetry Exporter — counter readers and per-process counter publishers (the on-host **DOCA Telemetry Service** as-deployed binary is externally productized and out of bundle scope per [`AGENTS.md ## Non-goals`](../../AGENTS.md)) | Telemetry samples, telemetry-exporter samples, in-bundle telemetry-shaped diagnostics |
+
+The agent does NOT add a sample / app to a category without
+evidence (its meson target, its README's "what this does"
+paragraph, the libraries it depends on per `pkg-config`). When
+evidence is ambiguous, the agent reports the artifact uncategorized
+rather than guessing — uncategorized is honest, mis-categorized is
+the kind of drift that breaks operator trust.
+
+### Dependency tags
+
+Categories say *which DOCA stack shape*; dependency tags say *which
+non-trivial dependencies the artifact needs at build / run time*.
+A dependency tag is derived from the artifact's `meson.build`
+(`dependency('libdpdk')`, `dependency('cuda')`, etc.), its build
+log, its README, or — where authoritative information is missing —
+from a known-good documented quirk (see below). The agent applies
+the union of all that evidence; tags do not stand on
+"probably-needs-this" guesses.
+
+| Tag | Evidence | Meaning |
+| --- | --- | --- |
+| `needs_cuda` | `nvcc`, `dependency('cuda')` in meson, `<cuda.h>` include | Build requires CUDA Toolkit; runtime requires NVIDIA GPU driver loaded. |
+| `needs_rmax` | `dependency('doca-rmax')`, `rmax/` include path, `doca-rmax` `pkg-config` | Build requires the NVIDIA Rivermax SDK (separate license + install). |
+| `needs_mpi` | `mpicc` / `mpic++` / `mpirun` references, `dependency('mpi')` | Build requires an MPI implementation (OpenMPI, MPICH, …). On BlueField the MPI install can live at non-standard prefixes (e.g. `/usr/mpi/gcc/openmpi-<ver>/bin/`) — see [`doca-setup TASKS.md ## configure`](../doca-setup/TASKS.md#configure). |
+| `needs_dpdk` | `dependency('libdpdk')` in meson, `rte_*` symbols | Build requires a matched DPDK install pulled in via `pkg-config libdpdk`. |
+| `needs_spdk` | `dependency('spdk')` in meson, `spdk_*` symbols | Build requires the SPDK install (typically `/opt/mellanox/spdk/`). |
+| `needs_dpa` | DPACC + FlexIO DEV build path, `dependency('doca-dpa')` | Build requires DOCA DPA + the DPACC compiler; runs only on BlueField. |
+| `needs_host_peer` | README requires a peer-host process, *_host vs *_dpu split | Runtime requires a paired peer (the sample is incomplete without the other side). |
+| `needs_lz4` | `dependency('liblz4')` in meson, `<lz4.h>` include | Build requires `liblz4-dev` (Ubuntu) / `lz4-devel` (RHEL). One known quirk lives at [`### known-sample-build-quirks`](#known-sample-build-quirks). |
+
+The agent records the tag set for every artifact it sweeps. Missing
+evidence is reported as "tag unknown" — never as "tag absent",
+because the agent has no way to *prove* absence without reading the
+artifact end-to-end.
+
+### Skip vs fail (build-sweep classification)
+
+The single most expensive classification error a build sweep can
+make is conflating "skipped because dependency absent" with
+"failed because the SDK is broken". The agent NEVER reports a
+single `passed / failed` ratio without separating the two:
+
+| Result class | Meaning | Operator action |
+| --- | --- | --- |
+| `built` | Build succeeded against this target's full required stack. | Move to runtime check (if the operator wanted runtime evidence). |
+| `skipped-env-absent` | Build was attempted but a tagged dependency is not installed on this target (e.g. `needs_cuda` and `nvcc` is missing; `needs_rmax` and `doca-rmax` is not installed; `needs_dpa` and the operator is on host x86, not BlueField). | Report which dependency is missing, route the operator to install it (or accept that this artifact is not in scope for this target shape). |
+| `built-with-known-quirk` | Build succeeded but only after applying a documented workaround listed in [`### known-sample-build-quirks`](#known-sample-build-quirks). | Report the quirk verbatim from the sweep output; do NOT silently suppress it. |
+| `fail-sdk-class` | Build attempt reached the DOCA SDK headers / libs and a documented DOCA symbol / API surface was missing or wrong — this points at a partial install, a version-skew, or a real DOCA SDK bug. | Route to [`doca-debug ## debug`](../doca-debug/TASKS.md#debug) layer 3 (link) or layer 4 (runtime); do NOT close the sweep as "DOCA broken" without the layer 1-2 evidence in hand. |
+| `fail-unknown` | Build failed and the failure does not match any of the patterns above. | Capture the build log, surface it verbatim to the operator, do NOT classify as SDK fail until evidence narrows it. |
+
+A sweep report MUST present these as separate counters. The
+canonical report shape:
+
+```
+sweep summary (target = <host shape>, DOCA = <observed pkg-config doca-common>):
+
+  category          built  skipped-env-absent  built-with-known-quirk  fail-sdk-class  fail-unknown  total
+  --------          -----  ------------------  ----------------------  --------------  ------------  -----
+  security          N      0                   0                       0               0             N
+  storage           N      0                   1 (lz4 quirk on X)      0               0             N+1
+  networking        N      0                   0                       0               0             N
+  acceleration      N      0                   0                       0               0             N
+  dpa-hpc           0      M (needs_dpa)       0                       0               0             M
+  gpu-media         0      P (needs_cuda)      0                       0               0             P
+  telemetry         N      0                   0                       0               0             N
+  uncategorized     -      -                   -                       -               -             -
+  --------          -----  ------------------  ----------------------  --------------  ------------  -----
+  total             ...    ...                 ...                     ...             ...           ...
+
+dependency-tag inventory on this target (from probe, not from memory):
+  needs_cuda: present? <yes/no/unknown>
+  needs_rmax: present? <yes/no/unknown>
+  needs_mpi:  present? <yes/no/unknown> (binary path: <mpicc path or "not on PATH">)
+  needs_dpdk: present? <yes/no/unknown>
+  needs_spdk: present? <yes/no/unknown>
+  needs_dpa:  applicable? <yes if BlueField Arm, no if host x86, unknown if not detected>
+  needs_lz4:  present? <yes/no/unknown>
+
+per-fail evidence (only for fail-sdk-class + fail-unknown — never for skipped-env-absent):
+  <artifact>: <one-line classification>  <log path on host or BF>
+```
+
+The point of this shape is that an external developer reading it
+can: (a) tell at a glance which categories are usable on this
+target *right now*; (b) tell which categories need a missing
+dependency (and what the dependency is); (c) see the per-fail
+evidence ONLY for real failures, not for missing-env skips that
+are out of scope for this target.
+
+### known-sample-build-quirks
+
+A short, evidence-tagged list of build quirks the agent has seen
+in shipped DOCA samples / applications. Each row is reported AS A
+QUIRK in any sweep that hits it — the row exists so the agent does
+not classify a documented quirk as `fail-sdk-class` and lose
+operator trust by mis-reporting a workaround as an SDK fault.
+
+| Quirk | Evidence | Documented workaround |
+| --- | --- | --- |
+| `doca_storage_gga_offload_sbc_generator` needs `-llz4` at link time | The application's link step fails on `lz4_*` symbols (`undefined reference to LZ4_compress_*`) even though its meson target does not explicitly declare a `liblz4` dependency in some shipped versions; the linker needs `-llz4` added (or the meson dependency added back). | Either pass `LDFLAGS="$(pkg-config --libs liblz4)"` for the build invocation, OR (if the operator is modifying the sample, per [`## modify`](#modify)) add `dependency('liblz4')` to the meson target. Mark the result as `built-with-known-quirk` (rationale = "DOCA storage sample expected `lz4` dependency was not declared by the meson target in some shipped versions; explicit `-llz4` closes the gap"). Do NOT classify the original failure as `fail-sdk-class`; this is a sample-build-script quirk, not a DOCA SDK bug. The agent surfaces the workaround verbatim, does NOT bake the workaround into a script, and does not silently suppress the original error. |
+
+The list is intentionally small: the agent only adds a row when
+the quirk is *documented evidence in a real build log* AND the
+workaround has been *applied successfully*. The bundle does not
+fabricate quirks from memory; an unfamiliar build failure is
+reported as `fail-unknown` and surfaced verbatim, not silently
+mapped to a fabricated "quirk".
+
 ## Command appendix
 
 The commands the verbs above expect the agent to issue, grouped by
@@ -265,7 +451,7 @@ Two cross-cutting rules:
   [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md),
   the library's own `--help`, or the sample's `README`). Agent-invented
   flags are the failure mode the
-  [AGENTS.md `## Ground rules`](../../AGENTS.md#ground-rules)
+  [AGENTS.md `## Ground rules`](../../AGENTS.md#ground-rules-every-agent-must-follow)
   anti-hallucination clause forbids; they break trust in every other
   command in the same answer.
 - **Cite the version the user is on, not "latest".** Every command

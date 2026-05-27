@@ -144,7 +144,7 @@ language-specific build/FFI work back to the consumer.
   `doca-flow` library. Citations belong against the public
   [DOCA Flow Programming Guide](https://docs.nvidia.com/doca/sdk/doca-flow/index.html)
   for behavior and lifecycle; the installed C headers under
-  the install's actual include directory (resolved via `pkg-config --variable=includedir`, commonly `/opt/mellanox/doca/include/` or `/opt/mellanox/doca/infrastructure/include/` depending on profile) (`doca_flow.h`,
+  $(pkg-config --variable=includedir doca-common) (`doca_flow.h`,
   `doca_flow_*.h`) are the canonical source for symbol signatures.
   Any non-C wrapper has to honor the same lifecycle, capability gate,
   and validation rules described in
@@ -391,7 +391,7 @@ existing doca-flow setup:
   pre-modify cap-query.
 - A 5-tuple shape change (e.g. adding overlay-aware CT to a
   previously plain CT setup) requires a new per-overlay cap-query.
-- After modify: rely on `doca_flow_pipe_create_v1`'s
+- After modify: rely on `doca_flow_pipe_create`'s
   constructor-time validation (any spec inconsistency surfaces as
   a constructor failure with `DOCA_ERROR_INVALID_VALUE` or
   `DOCA_ERROR_NOT_SUPPORTED`) plus the staged-entry / dry-run
@@ -563,8 +563,8 @@ Flow pipe / entry / action edit on an already-up port, capture
 target port (root status, match spec, action spec, monitor /
 counter attachment, miss-pipe linkage), (b) per-pipe counter
 baseline (pre-edit values from
-`doca_flow_resource_query_pipe_miss_v1` +
-`doca_flow_resource_query_entry_v1`), and
+`doca_flow_query_pipe_miss` +
+`doca_flow_query_entry`), and
 (c) the device cap snapshot the agent gated on
 (`doca_caps --list-devs` + Flow cap query results for the
 specific match / action kinds). The triple IS the rollback
@@ -589,8 +589,8 @@ without it.
    (d) **monitor / counter attach** — `doca_flow` does not
    expose a public `doca_flow_monitor_destroy`; the reversal
    is `doca_flow_pipe_destroy` on the affected pipe +
-   `doca_flow_pipe_create_v1` with a `doca_flow_pipe_cfg`
-   that does NOT call `doca_flow_pipe_cfg_set_monitor_v1`.
+   `doca_flow_pipe_create` with a `doca_flow_pipe_cfg`
+   that does NOT call `doca_flow_pipe_cfg_set_monitor`.
    For miss-pipe linkage edits, the snapshot's linkage spec
    IS the rollback target.
 3. **Trigger the rollback from the [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger).**
@@ -598,7 +598,7 @@ without it.
    [`## test`](#test) step 1 is the verification contract's
    step 3 smoke probe for the pipeline-edit-class context. If
    the post-edit smoke does NOT return green (counter
-   increment + clean `doca_flow_pipe_create_v1` reconstruction
+   increment + clean `doca_flow_pipe_create` reconstruction
    of the modified pipe shape) within the bounded debug-loop
    iteration, the rollback
    above MUST be walked before any further pipeline edit. The
@@ -646,7 +646,7 @@ binary or `pkg-config` against the installed `.pc`, not prose recall.
 | Discover Flow link flags (trace flavor) | `pkg-config --libs doca-flow-trace` | [`## debug`](#debug) step 3 + [doca-debug ## configure](../../doca-debug/TASKS.md#configure) step 3 | Selects the trace `.so` that emits per-pipe / per-entry trace output. |
 | Discover device + steering-mode capabilities | `doca_caps --list-devs` | [`## configure`](#configure) step 2 + [doca-caps](../../tools/doca-caps/SKILL.md) | Lists every device DOCA sees with the active steering mode and supported match / action kinds. |
 | Enumerate ports / representors | `devlink dev show` + the installed Flow port-enumeration sample | [`## configure`](#configure) step 3 | Shows the BlueField port and every representor the user expects to forward to. |
-| Validate a pipe spec (read-only) | `doca_flow_pipe_create_v1` itself performs constructor-time validation; treat its `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return as the validate signal. There is no separate `doca_flow_pipe_validate` public symbol in the current release. Use the dry-run / staged-entry pattern from the shipped sample for a fuller validation surface. | [`## test`](#test) step 1 | A successful return from `doca_flow_pipe_create_v1` means the spec is internally consistent against the current device caps; an error means the spec is invalid — do not retry without changing the spec. |
+| Validate a pipe spec (read-only) | `doca_flow_pipe_create` itself performs constructor-time validation; treat its `DOCA_ERROR_INVALID_VALUE` / `DOCA_ERROR_NOT_SUPPORTED` return as the validate signal. There is no separate `doca_flow_pipe_validate` public symbol in the current release. Use the dry-run / staged-entry pattern from the shipped sample for a fuller validation surface. | [`## test`](#test) step 1 | A successful return from `doca_flow_pipe_create` means the spec is internally consistent against the current device caps; an error means the spec is invalid — do not retry without changing the spec. |
 | Raise log verbosity for a Flow run | `--sdk-log-level 70` on the program command line | [`## run`](#run) + [doca-debug CAPABILITIES.md ## Observability](../../doca-debug/CAPABILITIES.md#observability) | TRACE / DEBUG lines appear in stderr; the Flow lifecycle calls are visible. |
 | Read per-entry / per-pipe counters | The Flow counter API (Flow API reference) | [`## debug`](#debug) step 1 | Counter for the suspected entry is non-zero under expected traffic. |
 | Dump the programmed-entry table | `doca-flow-inspector` (or the trace flavor's dump path) | [`## debug`](#debug) step 3 | Output matches the user's mental model of the pipe. Diff = bug. |

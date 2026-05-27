@@ -176,6 +176,18 @@ The smoke-before-bulk flow — every session goes through it.
 The detailed flag surface lives in the binary's `--help` on
 the installed build.
 
+> **Do-not-invent guard (paths + binary layout).** Real
+> downstream agents have hallucinated a
+> `/opt/mellanox/doca/samples/gpunetio/` subtree for this
+> tool — it does not exist. The bundle's verbatim source path
+> is `/opt/mellanox/doca/tools/gpunetio_ib_write_bw/{client/,server/}`
+> (per [`SKILL.md`](SKILL.md) compatibility block); discover
+> with `ls /opt/mellanox/doca/tools/ | grep gpunetio_ib_write_bw`,
+> NOT under `/opt/mellanox/doca/samples/`. CUDA pairing rules
+> live in
+> [`../../libs/doca-gpunetio/CAPABILITIES.md ## Version compatibility`](../../libs/doca-gpunetio/CAPABILITIES.md#version-compatibility);
+> there is no `cuda-toolkit` skill in this bundle.
+
 1. **Confirm the build artifacts and the environment.** Per
    [`## install`](#install) and [`## configure`](#configure).
 2. **Bring up the server first.** On the host that hosts
