@@ -60,9 +60,12 @@ set the device is in:
   (VXLAN, GENEVE, GRE — availability varies by firmware), and metadata
   fields. Always verify the requested match kind is in the device's
   capability set before building the spec.
-- **Action kinds.** Forward to representor, drop, modify (header rewrite,
-  decap, encap), counter, jump-to-pipe, mirror. Encap/decap availability
-  depends on the firmware feature set.
+- **Action kinds.** Forward to representor (`DOCA_FLOW_FWD_PORT`),
+  forward to another pipe (`DOCA_FLOW_FWD_PIPE`), forward to a *target*
+  (`DOCA_FLOW_FWD_TARGET` — see § *Forward-to-target actions* below),
+  RSS (`DOCA_FLOW_FWD_RSS`), drop (`DOCA_FLOW_FWD_DROP`), modify
+  (header rewrite, decap, encap), counter, jump-to-pipe, mirror.
+  Encap/decap availability depends on the firmware feature set.
 - **Capability discovery at runtime.** Before relying on a capability,
   agents should encourage the user to query it through the installed
   `doca_caps` tool and the Flow capability-query API rather than guessing
@@ -72,6 +75,81 @@ When the user has not yet checked steering mode and feature support, the
 correct first move is to walk them through capability discovery in
 [TASKS.md ## configure](TASKS.md#configure) — not to guess a working pipe
 spec.
+
+## Forward-to-target actions (pass-to-kernel and friends)
+
+DOCA Flow exposes a *forward-to-target* action kind
+(`DOCA_FLOW_FWD_TARGET`) that is **the only safe forward action for
+demos or production filters that run inline on a port carrying live
+host traffic** (e.g. a BlueField PF that the host is currently using
+for SSH, package mirrors, or telemetry). Picking the wrong forward
+action on a live management port can disrupt the host's network
+session; getting this right is therefore part of the
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md) overlay,
+not just a doca-flow detail.
+
+**Pattern (three public API symbols, no invention):**
+
+| Symbol | Where it comes from | What it does |
+|---|---|---|
+| `DOCA_FLOW_FWD_TARGET` | `doca_flow.h` (`enum doca_flow_fwd_type`) | Tells the pipe that the forward action is *send-to-target* rather than send-to-port / RSS / drop. |
+| `enum doca_flow_target_type` (e.g. `DOCA_FLOW_TARGET_KERNEL`) | `doca_flow.h` | Names which built-in target the action resolves to. `DOCA_FLOW_TARGET_KERNEL` is the *pass-traffic-back-to-the-host-Linux-kernel* target — matched packets are observed by the pipe (counters, mirror, …) and **continue up the kernel networking stack on the same port** instead of being diverted away. |
+| `doca_flow_get_target(target_type, &target_ptr)` | `doca_flow.h` | Resolves a `doca_flow_target_type` enum value to a `struct doca_flow_target *` that the pipe's `doca_flow_fwd` action carries in its `.target` field. |
+
+**Canonical wiring** (the agent quotes the verbatim shape from the
+shipped sample at
+`/opt/mellanox/doca/samples/doca_flow/flow_fwd_target/` — see
+[`TASKS.md ## build`](TASKS.md#build) Track 1 — it does not invent the
+field names from this table):
+
+```c
+struct doca_flow_fwd      fwd      = {0};
+struct doca_flow_fwd      fwd_miss = {0};
+struct doca_flow_target  *kernel_target;
+doca_error_t              result;
+
+result = doca_flow_get_target(DOCA_FLOW_TARGET_KERNEL, &kernel_target);
+if (result != DOCA_SUCCESS) { /* report + bail per CAPABILITIES.md ## Error taxonomy */ }
+
+fwd.type           = DOCA_FLOW_FWD_TARGET;
+fwd.target         = kernel_target;          /* matched traffic continues to the kernel */
+fwd_miss.type      = DOCA_FLOW_FWD_TARGET;
+fwd_miss.target    = kernel_target;          /* unmatched traffic ALSO continues to the kernel —
+                                                this is what makes the filter "inline" and safe
+                                                to enable on a live management port */
+```
+
+**When to pick this action (binding decision table):**
+
+| The user is building … | On … | Pick |
+|---|---|---|
+| An *inline filter* that should count / observe matched traffic without diverting it from the host | A live host management port (the user can still SSH into the host while the filter is up) | **`DOCA_FLOW_FWD_TARGET` + `DOCA_FLOW_TARGET_KERNEL`** for both `fwd` AND `fwd_miss` (the demo / DPU-traffic-gate shape) |
+| A VNF that *replaces* the kernel data path on a dedicated DOCA-managed port | A BlueField PF or VF that the host does NOT use | `DOCA_FLOW_FWD_PORT` to the egress representor (the classic VNF shape) |
+| A connection-tracked NAT / 5-tuple flow | A BlueField with HWS + CT enabled | `doca-flow-ct` (see `## flow-ct` below); CT wraps the underlying forward action transparently |
+
+**Required safety overlays when the user picks `FWD_TARGET` on a live
+management port:**
+
+- [`doca-hardware-safety ## Safety policy`](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) — even with the pass-to-kernel action, capture per-port counters BEFORE and AFTER, keep an out-of-band recovery path, and revert via `stop_doca_flow_ports()` + `doca_flow_destroy()` if any host-side counter regresses.
+- [`AGENTS.md ## The universal verification contract`](../../../AGENTS.md#the-universal-verification-contract) — the green signal for an `FWD_TARGET` inline filter is **sustained counter growth under controlled traffic**, not a single-packet match. A single matched packet can be coincidence on a live port; agents declaring "done" on a one-packet read are violating the contract.
+- [`TASKS.md ## test`](TASKS.md#test) — the staged-entry-on-a-single-port pattern still applies; widen to both ports only after the single-port smoke is green.
+
+**Anti-patterns the agent must refuse:**
+
+1. *"Just point `fwd_miss.type = DOCA_FLOW_FWD_DROP` to silently
+   discard the unmatched traffic — it's simpler."* → **NO.** On a live
+   management port, dropping unmatched traffic disconnects the host
+   (SSH dies, monitoring breaks, the user's terminal hangs). The
+   *miss* path on a live port MUST be `FWD_TARGET → KERNEL` so the
+   host's existing networking keeps working.
+2. *"Invent a different target kind because the user asked for
+   something like `DOCA_FLOW_TARGET_HOST_RAW`."* → **NO.** The
+   `enum doca_flow_target_type` is fixed by the installed
+   `doca_flow.h`; query the header on the user's install instead of
+   inventing values. If the kind the user needs is not in the
+   installed enum, the agent surfaces that fact and routes to the
+   [DOCA Flow Programming Guide](https://docs.nvidia.com/doca/sdk/doca-flow/index.html)
+   for the version-specific list.
 
 ## flow-ct
 

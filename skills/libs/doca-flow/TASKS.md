@@ -101,13 +101,35 @@ sample* pattern in [`doca-programming-guide ## modify`](../../doca-programming-g
 deriving a first app is a programming verb, not an env verb), with
 these Flow-specific overrides:
 
-- **Source sample.** For the simplest *match-and-forward-to-port*
-  shape: `/opt/mellanox/doca/samples/doca_flow/flow_port_fwd/`. For
-  *switch mode + representor*: `/opt/mellanox/doca/samples/doca_flow/flow_switch_single/`
-  (use the helpers in `flow_switch_common.{c,h}`). The agent must `ls`
-  the directory and read the actual sample contents on the user's
-  install before describing them; sample layouts can change between
-  releases.
+- **Source sample (choose by the first-app shape).** Pick the sample
+  whose forward action is closest to what the user actually wants;
+  *modify-from-sample is the contract — derive a custom first app, do
+  not scaffold one from prose*:
+    - **Match-and-forward-to-port (the simplest VNF case).**
+      `/opt/mellanox/doca/samples/doca_flow/flow_port_fwd/`. Use when
+      the agent just needs to send matched traffic out a specific
+      DOCA port.
+    - **Match-and-pass-traffic-back-to-the-kernel (the inline-filter
+      / DPU-traffic-gate case).**
+      `/opt/mellanox/doca/samples/doca_flow/flow_fwd_target/`. Use
+      when the user is building an *inline filter* on a live
+      management interface and wants matched traffic to **continue
+      to the host kernel** instead of being forwarded out a DOCA
+      port. This is the **safest starting point for any demo that
+      runs on a port carrying live host traffic**, because matched
+      traffic is observed (counters, drop, mirror, …) without being
+      diverted away from the host. The sample uses the
+      `DOCA_FLOW_FWD_TARGET` action with a kernel target obtained
+      from `doca_flow_get_target(DOCA_FLOW_TARGET_KERNEL, …)` — see
+      [`CAPABILITIES.md ## Forward-to-target actions (pass-to-kernel
+      and friends)`](CAPABILITIES.md#forward-to-target-actions-pass-to-kernel-and-friends)
+      for the pattern + safety rationale before picking it.
+    - **Switch mode + representor (multi-VF / multi-port
+      eswitch).** `/opt/mellanox/doca/samples/doca_flow/flow_switch_single/`
+      (use the helpers in `flow_switch_common.{c,h}`).
+  The agent must `ls` the directory and read the actual sample
+  contents on the user's install before describing them; sample
+  layouts can change between releases.
 - **Fields the user must swap (the explicit-placeholder list).**
   Destination MAC for the entry match (the `target_mac`-shaped
   constant in the sample's source); representor `port_id` for the
