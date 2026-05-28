@@ -33,14 +33,37 @@ One-flag swap for any other AgentSkills.io-aware agent:
 ## What this bundle is and is not
 
 **Is.** The product-side context an AI agent needs to give correct DOCA
-guidance to a developer who is building on DOCA but is not a member of the
-NVIDIA DOCA team — covers DOCA libraries, services, tools, samples, the
-public DOCA Programming Guide, and the public DOCA Developer Forum.
+**SDK** guidance to a developer who is building on DOCA but is not a
+member of the NVIDIA DOCA team — covers every public DOCA library,
+service, and tool shipped in the DOCA monorepo (`doca/libs/`,
+`doca/services/`, `doca/tools/`) at the currently-aligned release, plus
+the cross-cutting setup / version / debug / deployment / programming-guide
+overlays, the public DOCA Programming Guide, and the public DOCA
+Developer Forum.
 
-**Is not.** A development environment for NVIDIA DOCA SDK engineers
-(internal Gerrit, NVAuto, BFB lifecycle, release gating) — that audience is
-served by NVIDIA's internal `doca_ai_conf` repo, which is complementary,
-not competitive.
+**Is not.** Three classes of work are explicitly out of scope and the
+agent should *route, not invent*:
+
+1. **Externally-productized NVIDIA networking software that ships outside
+   the DOCA monorepo** — DOCA Platform Framework (DPF), the DOCA
+   Microservices family (HBN, BlueMan, SNAP, Virtio-net, Telemetry
+   Service as-deployed), NVIDIA Network Operator, the BlueField BSP /
+   BFB / RShim / TMFIFO / BMC lifecycle, MLNX_OFED-as-package, NVIDIA
+   UFM, MFT, Cumulus Linux, NetQ, NVOS, GPU Operator, Rivermax SDK,
+   and similar. Each is owned by a different team with its own docs and
+   (in some cases) its own skills bundle — Network Operator skills, for
+   example, already live at
+   <https://mellanox.github.io/network-operator-docs/ai-skills.html>.
+2. **The internal NVIDIA DOCA SDK engineer development environment** —
+   internal Gerrit, NVAuto, BFB lifecycle, release gating, internal
+   review process. That audience is served by NVIDIA's internal
+   `doca_ai_conf` repo, which is complementary, not competitive.
+3. **Cross-vendor comparisons and commercial / contractual content** —
+   the bundle is DOCA-specific by design.
+
+Full non-goal contract, with the agent's required *recognize → name
+boundary → route to specific docs URL + Developer Forum search hint*
+response shape, lives in `AGENTS.md` (Non-goals section).
 
 ## Where to learn more
 
