@@ -1,0 +1,56 @@
+# doca-skills
+
+> **Public, AgentSkills.io-compliant skill bundle that teaches any AI coding
+> agent (Cursor, Claude Code, OpenAI Codex CLI, Google Gemini CLI, Kiro, and
+> any other AgentSkills.io-aware agent) how to use NVIDIA DOCA correctly —
+> without inventing symbols, paths, build flags, or capability gates.**
+
+This is the LLM-side entry-point for the `doca-skills` repository. If you are
+an AI agent loading this bundle for the first time, read these three files in
+this order before answering any DOCA question:
+
+1. `AGENTS.md` — agent-side ground rules, persona routing, universal
+   verification + debug contracts.
+2. `SKILLS.md` — the catalog of every shipping skill (28 libraries,
+   6 services, 18 tools, 9 cross-cutting) with the *Use this skill when …*
+   trigger for each one.
+3. `skills/<kind>/<name>/SKILL.md` — the per-component skill matching the
+   user's question. From there, progressive-disclose into
+   `CAPABILITIES.md` (what the component supports + cap-query symbols +
+   error taxonomy + version matrix) and `TASKS.md` (the configure → build
+   → modify → run → test → debug workflow verbs).
+
+## How to install
+
+```bash
+git clone https://github.com/NVIDIA-DOCA/doca-skills.git
+cd doca-skills && ./install.sh --agent <cursor|claude-code|codex|gemini-cli|kiro-cli>
+```
+
+One-flag swap for any other AgentSkills.io-aware agent:
+`./install.sh --agent custom --dest /your/agent/skills`.
+
+## What this bundle is and is not
+
+**Is.** The product-side context an AI agent needs to give correct DOCA
+guidance to a developer who is building on DOCA but is not a member of the
+NVIDIA DOCA team — covers DOCA libraries, services, tools, samples, the
+public DOCA Programming Guide, and the public DOCA Developer Forum.
+
+**Is not.** A development environment for NVIDIA DOCA SDK engineers
+(internal Gerrit, NVAuto, BFB lifecycle, release gating) — that audience is
+served by NVIDIA's internal `doca_ai_conf` repo, which is complementary,
+not competitive.
+
+## Where to learn more
+
+- Public catalog (mirrored daily): <https://github.com/NVIDIA/skills>
+- Source of truth: <https://github.com/NVIDIA-DOCA/doca-skills>
+- AgentSkills.io specification: <https://agentskills.io/specification>
+- DOCA public docs: <https://docs.nvidia.com/doca/sdk/>
+- DOCA public forum: <https://forums.developer.nvidia.com/c/infrastructure/doca/370>
+
+## License
+
+Dual-licensed under Apache-2.0 (code, config) and CC-BY-4.0 (documentation).
+See `LICENSE` for the SPDX header.

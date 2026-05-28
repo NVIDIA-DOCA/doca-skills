@@ -64,6 +64,30 @@ matching skill files manually. Cross-link labels of the form
 `[<skill-name> ## <anchor>](...)` resolve by skill name regardless
 of where the skill lives in the tree.
 
+## Persona routing — who is asking?
+
+Before activating any skill, classify the user into one of the personas
+below. Persona routing is *advisory* (it does not override the per-skill
+*Use this skill when …* triggers in `SKILLS.md`), but it disambiguates the
+common case where a question fires triggers in two or three skills at
+once. The same DOCA question asked by a *first-time-user* and an *operator*
+needs different entry points and a different verbosity setting; routing
+to the right entry-skill **first** is what makes the answer feel correct
+instead of overwhelming.
+
+| Persona | Real-world signal in the prompt | Entry skill the agent loads first | What comes next |
+|---|---|---|---|
+| **First-time DOCA user** | *"I just installed DOCA, where do I start"*, *"I just got a BlueField, what now"*, *"how do I check that DOCA is installed"*, *"is my host ready to run a DOCA sample"*. | [`doca-setup`](skills/doca-setup/SKILL.md) | After `## recognize` resolves the deployment shape, route into `doca-version` for the four-source detection chain, then the matching per-library / service / tool skill for the user's component. |
+| **Application builder** | *"I want to use doca-flow / doca-rdma / doca-gpunetio / doca-aes-gcm in my app"*, *"how do I build a DOCA-X application"*, *"which sample should I start from"*, *"how do I link against doca-X"*. | The matching `skills/libs/<lib>/SKILL.md` | `CAPABILITIES.md` (what the lib supports + cap-query symbol) → `TASKS.md` (`## configure` → `## build` from a shipped sample → `## test` with a named green signal). Overlay `doca-programming-guide` for canonical pkg-config + meson shape. |
+| **Service operator** | *"how do I deploy doca-firefly / doca-dms / doca-flow-inspector / doca-argus"*, *"my container isn't reaching Ready 1/1"*, *"the service runs but the pipeline isn't seeing packets"*, *"how do I upgrade the X service without downtime"*. | The matching `skills/services/<svc>/SKILL.md` | `doca-container-deployment` overlay for the kubelet-standalone / static-pod manifest mechanics; `doca-version` overlay for the BFB ↔ container image compatibility table; per-service `TASKS.md ## debug` for service-specific log paths. |
+| **Tool / diagnostics user** | *"how do I run doca-bench / doca-flow-perf / doca-caps / doca-apsh-config / doca-pcc-counters"*, *"how do I measure X"*, *"how do I list capabilities"*, *"how do I trace flow steering"*. | The matching `skills/tools/<tool>/SKILL.md` | Per-tool `TASKS.md ## run` for the exact binary path + flag set; `doca-debug` overlay if the tool is used in a diagnostic loop; `doca-version` overlay for any *"is this tool present in my install"* check. |
+| **Debugger / firefighter** | *"my code segfaults / build fails / link error / `DOCA_ERROR_X`"*, *"counter didn't increment"*, *"does nothing on the wire"*, *"this used to work and now it doesn't"*, *"I followed the guide and it isn't green"*. | [`doca-debug`](skills/doca-debug/SKILL.md) | Layer identification (which of the 7 layers is the symptom on?), then the triple capture, then the matching per-artifact `TASKS.md ## debug` anchor. Stack `doca-version` (most regressions are version skew) and `doca-public-knowledge-map` (for the known-issues bulletin). |
+| **Documentation explorer** | *"where is the doc for X"*, *"is there a guide / sample / forum post / URL for X"*, *"what does DOCA Y do"*, *"compare DOCA Flow vs DOCA RDMA"*. | [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) | The map is the only source for NVIDIA URLs (ground rule 1). Route from the map into the per-library / service / tool SKILL.md `## Where to start` line for the actual workflow. |
+| **DOCA SDK engineer (internal)** | The prompt uses Gerrit topic names, NVAuto test IDs, BFB-build references, internal review terminology. | None — defer to NVIDIA's internal `doca_ai_conf` repo. | This bundle is intentionally scoped to the *external-developer* surface. Don't try to invent a Gerrit / NVAuto / release-gate answer; surface the scope boundary explicitly and point the user at the internal repo. |
+
+Persona routing is the *first* decision an agent makes; the cross-cutting
+overlays below stack on top of whatever entry skill the persona picks.
+
 ## Cross-cutting overlay activation triggers
 
 Cross-cutting overlays (`doca-hardware-safety`, `doca-version`,
