@@ -85,10 +85,34 @@ have hardware, the same skills activate the *device + capability
 discovery* + *modify-from-sample* + *run-and-verify* legs of the
 workflow.
 
-## Where this bundle fits
+## Where this bundle fits — what it covers, what it doesn't
 
-`doca-skills` is the **external-developer** skill set — meant for anyone
-building on DOCA from outside the NVIDIA DOCA SDK team. If you're
-*inside* the NVIDIA DOCA SDK team and need Gerrit-upload / NVAuto / BFB
-lifecycle / release-gate workflows, the internal `doca_ai_conf` repo is
-the better fit; the two are complementary, not competing.
+`doca-skills` is the **external-developer skill set for the NVIDIA DOCA
+SDK** — meant for anyone building an application against the public DOCA
+libraries, services, or tools from outside the NVIDIA DOCA SDK team.
+
+**Covers (in scope).** Every public DOCA **library** under `doca/libs/`,
+every public DOCA **service** under `doca/services/`, every public DOCA
+**tool** under `doca/tools/`, plus the cross-cutting setup / version /
+debug / deployment / programming-guide overlays.
+
+**Does not cover (out of scope on purpose; routed to the right owner).**
+
+- **DOCA Platform Framework (DPF)** — separately-productized; DPF
+  skills are being prepared as part of the DPF PoR. Ask DPF-specific
+  questions against the DPF docs / DPF skills, not this bundle.
+- **DOCA Microservices** (HBN, BlueMan, SNAP, Virtio-net, Telemetry
+  Service as-deployed) — productized externally to `doca/services/` and
+  not modelled here.
+- **NVIDIA Network Operator** — has its own AI skills at
+  <https://mellanox.github.io/network-operator-docs/ai-skills.html>;
+  use those.
+- **BlueField BSP / BFB / RShim / TMFIFO / BMC** lifecycle — out of
+  bundle; the agent will route to public BlueField BSP docs.
+
+If you're *inside* the NVIDIA DOCA SDK team and need Gerrit-upload /
+NVAuto / BFB-build / release-gate workflows, the internal `doca_ai_conf`
+repo is the better fit; the two bundles are complementary, not
+competing. When you ask this bundle an out-of-scope question, the agent
+should name the boundary explicitly and route you to the right docs URL
++ Developer Forum search — never invent an answer.

@@ -1,9 +1,24 @@
 # Agent guidance for doca-skills
 
 This repository ships a public, drop-in **skills bundle** for AI coding
-agents working with the NVIDIA DOCA SDK. Any agent working in this repo
-— Cursor, Codex, Gemini, Claude Code, custom in-house LLMs — should
-read this file first.
+agents working with the **NVIDIA DOCA SDK**. Any agent working in this
+repo — Cursor, Codex, Gemini, Claude Code, custom in-house LLMs —
+should read this file first.
+
+> **Scope reminder (read before activating any skill).** This bundle is
+> strictly the **DOCA SDK as shipped in the public DOCA monorepo**:
+> `doca/libs/`, `doca/services/`, `doca/tools/` plus the cross-cutting
+> overlays. Externally-productized NVIDIA networking software —
+> notably **DOCA Platform Framework (DPF)**, the **DOCA Microservices**
+> family (HBN, BlueMan, SNAP, Virtio-net, DTS as-deployed), **NVIDIA
+> Network Operator**, and the **BlueField BSP / BFB / RShim / BMC**
+> lifecycle — is *intentionally out of scope* and is owned by sibling
+> teams with their own docs and (in some cases) their own skill
+> bundles. For any out-of-scope question the agent MUST recognize the
+> boundary, name the product as out-of-bundle, and route to the right
+> authoritative URL via [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md)
+> — never synthesize from training knowledge. See § *Non-goals*
+> (item 7) below for the full contract and the worked SNAP example.
 
 **Where to start:** Read this file end-to-end (ground rules + entry
 points + non-goals), then open [SKILLS.md](SKILLS.md) to pick the

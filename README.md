@@ -15,6 +15,19 @@
 
 This repository ships **61 portable, [AgentSkills.io](https://agentskills.io/specification)-compliant skills** that teach AI agents — Cursor, Anthropic Claude Code, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, custom in-house LLMs — how to use NVIDIA DOCA correctly on host x86, BlueField Arm bare-metal, or inside containerized environments.
 
+> ### Scope at a glance — what this bundle covers, and what it does not
+>
+> **In scope.** This bundle is focused on the **NVIDIA DOCA SDK** as shipped in the public DOCA monorepo at the currently-aligned release (DOCA 3.3 / `doca-3.3.0109`): every public DOCA **library** under `doca/libs/`, every public DOCA **service** under `doca/services/`, every public DOCA **tool** under `doca/tools/`, plus the cross-cutting setup / version / debug / deployment / programming-guide overlays. If a developer building an application against the DOCA SDK headers can ask a question about it, that question is in scope for this bundle.
+>
+> **Out of scope (covered by sibling efforts, not by this bundle).** Externally-productized NVIDIA networking software that ships **outside** the DOCA monorepo is intentionally excluded so that this bundle stays focused and accurate. The major examples — each owned by a different team with its own skill / docs surface — are:
+>
+> - **DOCA Platform Framework (DPF)** — separately-productized; DPF-specific skills are being prepared as part of the DPF PoR.
+> - **DOCA Microservices** — DOCA HBN Service, DOCA BlueMan Service, DOCA SNAP Services, DOCA Virtio-net Service, DOCA Telemetry Service (DTS as-deployed). These are productized externally to `doca/services/` and are not modelled here.
+> - **NVIDIA Network Operator** — already has its own AI skills shipped at <https://mellanox.github.io/network-operator-docs/ai-skills.html>; use those for Network Operator questions.
+> - **BlueField BSP / BFB / `bfb-install` / RShim / TMFIFO / `bf.cfg` / BMC** lifecycle — the agent will recognize the boundary, route to public BlueField BSP docs, and refuse to invent BSP procedure.
+>
+> When the agent receives a question about an out-of-scope product it does **not** synthesize an answer from training knowledge. The required response shape is: (a) name the product as externally-productized and out-of-bundle, (b) name the boundary (strict 1:1 with the DOCA monorepo), and (c) route the user to the right authoritative `docs.nvidia.com/doca/sdk/` page and the DOCA Developer Forum search hint — via the per-product row in [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md). Full non-goal contract: [`AGENTS.md` § Non-goals item 7](AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely).
+
 The bundle is **strictly 1:1 with the `doca/{libs,services,tools}/` monorepo** at the currently-aligned DOCA release (DOCA 3.3 / `doca-3.3.0109`): every public DOCA library, every public DOCA service, every public DOCA tool — plus 9 cross-cutting skills for setup, debug, hardware safety, version-pinning, bare-metal vs containerized deployment, programming patterns, public-docs routing, structured-tools contract, and non-goal routing for externally-productized NVIDIA networking software (25 products covered).
 
 The whole bundle is **vendor-neutral by design**: the directory layout is `skills/<name>/SKILL.md` (the AgentSkills.io standard), not `.claude/skills/` or any other runtime-specific path, so the bundle reads naturally to any agent that follows the open standard.
