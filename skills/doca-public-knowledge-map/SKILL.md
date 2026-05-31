@@ -272,7 +272,7 @@ on the right one:
   <https://docs.nvidia.com/doca/sdk/DOCA-Programming-Guide/index.html>),
   the **DPU / BlueField Platform Software Manual** (PCIe topology,
   devlink, representor naming, `mlxconfig` device introspection:
-  <https://docs.nvidia.com/doca/sdk/bluefield-platform-software/index.html>), and
+  <https://docs.nvidia.com/networking/display/BlueFieldDPUOSLatest>), and
   the per-library guides listed below in this map.
 - The **front-door routing decision** between the two — *"which
   path applies to my workload?"* — is owned by

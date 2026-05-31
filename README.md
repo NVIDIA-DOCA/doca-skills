@@ -384,7 +384,7 @@ For the *human* "how do I install DOCA, build a sample, run a sample" walk-throu
 
 - [NVIDIA DOCA Developer Guide](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Developer+Guide)
 - [NVIDIA DOCA Installation Guide for Linux](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Installation+Guide+for+Linux) — install with the `doca-all` profile (superset of `doca-ofed` + `doca-networking`).
-- [NVIDIA DOCA Troubleshooting Guide](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Troubleshooting+Guide)
+- [NVIDIA BlueField DPU OS / Platform Software docs](https://docs.nvidia.com/networking/display/BlueFieldDPUOSLatest) — RShim, host↔DPU connectivity, and install troubleshooting (the standalone *DOCA Troubleshooting Guide* was folded into the BlueField Platform Software documentation set).
 - [Meson build configuration guide](https://mesonbuild.com/) — the build system every shipped sample uses.
 
 If you have a DOCA install and want to build a sample by hand: follow the Installation Guide above with the `doca-all` profile, then `meson /tmp/build && ninja -C /tmp/build` from `applications/`. The generated binaries land under `/tmp/build/<application_name>/doca_<application_name>`.
