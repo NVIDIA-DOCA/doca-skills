@@ -160,8 +160,11 @@ It is **not** for:
 - full-Kubernetes-cluster operators managing a fleet of
   BlueFields (the bundle covers
   [`doca-container-deployment`](../doca-container-deployment/SKILL.md)
-  for the kubelet-standalone shape; full clusters are explicitly
-  out of scope per the bundle's non-goals),
+  for the single-host kubelet-standalone shape; **fleet/production-scale
+  deployment is fleet-orchestration scope** — route to the orchestration
+  entry-point in
+  [`doca-public-knowledge-map ## Deploying DOCA services at scale`](../doca-public-knowledge-map/SKILL.md#deploying-doca-services-at-scale-orchestration-entry-point-personascale-routing)
+  (DPF / Network Operator / Launch Kit), not hand-rolled static-pod loops),
 - fresh-laptop-no-hardware users with no DOCA install yet — those
   belong on
   [`doca-setup ## no-install`](../doca-setup/TASKS.md#no-install).
