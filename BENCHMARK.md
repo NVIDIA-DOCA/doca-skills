@@ -41,7 +41,7 @@ repository must satisfy. The gate inventory:
 | 3 | Public-surface invariants (5/5) | OK |
 | 3 | Live-hardware harness shape (6/6 fixtures) | OK |
 | 3 | AgentSkills.io compliance (61 skills) | OK |
-| 3 | Non-goal routing (25 products) | OK |
+| 3 | Non-goal routing (27 products) | OK |
 | 4 | Reference hygiene (no internal path leaks; no audit history in runtime `SKILL.md`) | OK |
 | 4 | Frontmatter `kind` (libs→library, services→service, tools→tool — all 52) | OK |
 | 4 | NVIDIA-Skills publishing readiness (LICENSE + CoC + BENCHMARK + per-skill `evals/evals.json` + `SKILLCARD.yaml` + `components.d/doca.yml`) | OK |

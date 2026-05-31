@@ -288,6 +288,56 @@ If the user asks about a DOCA service that is not in this table, open the
 [**DOCA Services** umbrella page](https://docs.nvidia.com/doca/sdk/DOCA-Services/index.html)
 to discover it. Do not guess service URLs.
 
+### Deploying DOCA services at scale — orchestration entry-point (persona/scale routing)
+
+> **Pick the path by *persona and scale*, not by service.** The deployment
+> guidance for any DOCA service splits cleanly in two, and the agent
+> should name which one the user is in before giving deployment steps:
+>
+> - **Developer / PoC / test / small-dev (single host or a handful of
+>   DPUs).** For an **in-bundle** service (the six in the table above), use
+>   its per-service skill plus the two sibling deployment skills to
+>   deploy/configure it directly —
+>   [`doca-container-deployment`](../doca-container-deployment/SKILL.md)
+>   for the kubelet-standalone static-pod path, or
+>   [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)
+>   for a directly-launched DOCA binary. For an **externally-productized**
+>   service (HBN, BlueMan, SNAP, Virtio-net, DTS-as-deployed — *not* in
+>   this bundle), there is no in-tree skill: route to its guide via the
+>   routing table below and follow that guide's config keys / `mlxconfig`
+>   preconditions. Either way, **this bundle's in-tree service skills are
+>   scoped to the developer/PoC persona.**
+> - **Admin / production / fleet-scale (racks of DPUs, declarative
+>   lifecycle, repeatable rollouts).** Do **not** hand-roll per-host
+>   static pods or `bfb-install` loops at this scale. Route to the
+>   orchestration layer, which owns DPU provisioning, declarative
+>   `DPUService` deployment, and coordinated BFB/firmware rollouts:
+>   - **DOCA Platform Framework (DPF)** — the K8s-native DPU lifecycle +
+>     `DPUService` orchestrator (provisions BF-3, deploys services like
+>     HBN/BlueMan/SNAP declaratively across a fleet). Docs:
+>     <https://docs.nvidia.com/networking/display/dpf25101> · source:
+>     <https://github.com/NVIDIA/doca-platform>. See the **DOCA Platform
+>     Framework (DPF)** row in the routing table below for failure-mode
+>     gotchas.
+>   - **NVIDIA Network Operator** — manages host-side NIC software
+>     (OFED driver, SR-IOV / RDMA device plugins, CNI) on regular k8s
+>     nodes; pairs with DPF. See its row in the table below. Docs:
+>     <https://docs.nvidia.com/networking/display/kubernetes2611/index.html>.
+>   - **NVIDIA Kubernetes Launch Kit** — an emerging aggregation/
+>     integration layer that bundles orchestration (Network Operator
+>     today, DPF next) behind an agent-friendly discovery + deployment-
+>     generation interface: <https://github.com/NVIDIA/k8s-launch-kit>.
+>
+> **Agent contract for scale questions.** When the user's intent is
+> production/fleet-scale, the agent should *prefer routing them to invoke
+> the orchestration system* (DPF / Network Operator / Launch Kit) rather
+> than generating raw per-host deployment logic itself. The in-bundle
+> service skills remain the right answer for the developer/PoC persona and
+> for SDK-level integration; orchestration owns the production path. This
+> split is the bundle's deliberate **DOCA-SDK scope boundary** — the
+> orchestration systems above are externally owned and are *routed*, not
+> re-implemented, here.
+
 ## DOCA tools
 
 DOCA ships a set of *tools* — small CLIs installed under
@@ -383,6 +433,8 @@ bundle's contract. Use this table.
 
 | Product | Authoritative public docs | One-line WHAT it is | Common-gotcha classes worth surfacing | Forum search hint |
 | --- | --- | --- | --- | --- |
+| **DOCA DPL Service** (Pipeline Language; in the public DOCA Services catalog — routed here, no deep skill authored in this bundle version) | <https://docs.nvidia.com/doca/sdk/DOCA-Pipeline-Language-Services-Guide/index.html> | The DOCA Pipeline Language (DPL) — a P4-16-*derived* domain-specific language plus a services framework for programming the BlueField packet-processing pipeline. Shipped as **two separately-deployed containers**: the **DPL Development Container** (the `p4c`-based compiler + tools) and the **DPL Runtime Service** (the BlueField backend that programs the DPU datapath via a **P4Runtime-compliant server on TCP 9559**). **Beta** as of DOCA 3.3. | "My standard P4 program behaves differently on BlueField" → DPL's *syntax* is derived from P4-16 but its **pipeline semantics target NVIDIA's DPU architecture (dRMT-style), not the standard P4 RMT model** — do not assume upstream-P4 execution behavior. "Where is the DPL C API / library?" → there isn't one; DPL is a **language + services** model, not an SDK/driver — you compile a DPL program and load it through the Runtime Service, you do not link a `libdpl`. "Runtime can't load my program" → the Development Container (compile) and Runtime Service (load/run) are **deployed separately**; a program compiled in one must be delivered to the other, and the P4Runtime client must reach TCP 9559 on the BF. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "DPL" or "Pipeline Language" or "P4" |
+| **OVS-DOCA** (ASAP² Open vSwitch offload; part of the `doca-networking` DOCA-Host profile — routed here, no deep skill authored in this bundle version) | <https://docs.nvidia.com/doca/sdk/OVS-DOCA-Hardware-Acceleration/index.html> | The DOCA-Flow-backed datapath-offload interface (DPIF) for Open vSwitch — a third OVS data-path alongside **OVS-Kernel** and **OVS-DPDK**. It uses NVIDIA **ASAP²** to offload the OVS data-plane into the NIC/DPU **eSwitch** via the **DOCA Flow** library while keeping the OVS control-plane (OpenFlow / `ovs-vsctl`) unmodified; it delivers the richest offload feature set of the three modes. Ships in the **`doca-networking`** install profile of DOCA-Host (it is **not** a container service). | "I enabled hw-offload but nothing is offloaded" → OVS-DOCA must be turned on explicitly: `ovs-vsctl --no-wait set Open_vSwitch . other_config:doca-init=true` **and** `other_config:hw-offload=true`, then **restart `openvswitch`** for the change to take effect. "Bridge won't offload" → the bridge must be created with **`datapath_type=netdev`** and the NIC must be in **switchdev** mode. "Connection-tracking sizing / IPv6 CT" → tune `other_config:hw-offload-ct-size` and `other_config:hw-offload-ct-ipv6-enabled`. Do not confuse OVS-DOCA with OVS-Kernel/OVS-DPDK — they share CLI but differ in offload path. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "OVS-DOCA" or "ASAP2" or "hw-offload" |
 | **DOCA SNAP Services** (umbrella: SNAP-4, SNAP-3, SNAP Virtio-fs) | <https://docs.nvidia.com/doca/sdk/DOCA-SNAP-Services/index.html> | Hardware-accelerated storage virtualization on BlueField — emulates local PCIe block/file devices to the host while forwarding I/O over a fabric. SNAP-4 = NVMe + virtio-block on BF-3; SNAP-3 = same on BF-2; SNAP Virtio-fs = file-system emulation on BF-3. | "Host can't enumerate the NVMe device" or "device shows up but won't boot" almost always traces to: (a) NIC firmware not configured for SNAP / virtio (need the protocol-specific `mlxconfig` keys per the *Firmware Configuration* section of the SNAP-4 / Virtio-fs guides; common keys: `INTERNAL_CPU_MODEL=1`, `PCI_SWITCH_EMULATION_ENABLE`, plus PF/VF hotplug keys); (b) SNAP container not running on BF (`crictl ps -a \| grep snap`); (c) no fabric target reachable from BF management VRF; (d) BF BSP / SNAP version mismatched against host DOCA release. SNAP Virtio-fs is **beta** as of DOCA 3.3. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "SNAP" |
 | **DOCA HBN Service** (Host-Based Networking) | <https://docs.nvidia.com/doca/sdk/DOCA-HBN-Service-Guide/index.html> | A "bump-in-the-wire" service that turns the BlueField into a BGP/EVPN L3 router for the host side of the network. Linux routing/bridging is accelerated into hardware tables by the `nl2docad` (Netlink-to-DOCA) daemon inside the HBN container. | "HBN routing not working" or "HBN container won't start" almost always traces to: (a) **Service Function Chaining (SFC) not enabled at BFB-install time** — HBN is bump-in-the-wire and requires SFC; you generally must reflash the BFB with SFC enabled or pass the right `bf-cfg.cfg` (see *HBN Service Requirements* and *Deploying BlueField DOCA with SFC*); (b) `br-hbn` OVS bridge missing on BF (auto-created when BFB is installed with HBN enabled — its absence is a tell that step (a) didn't happen); (c) FRR / `nl2docad` not running inside the HBN container (`docker exec` to inspect, or `crictl logs`); (d) NGC YAML config not applied / image not pulled. | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "HBN" |
 | **DOCA BlueMan Service** (web dashboard for DPU health) | <https://docs.nvidia.com/doca/sdk/DOCA-BlueMan-Service-Guide/index.html> | A standalone web dashboard hosted on the BF that consolidates basic info, health, and telemetry counters. All data is pulled from the on-BF DOCA Telemetry Service (DTS). Default install path: `/opt/mellanox/doca/services/blueman/`. | "BlueMan UI shows red" or "BlueMan page is blank" almost always traces to: (a) **DTS not running on the BF** (BlueMan has no data source of its own; verify DTS pod with `crictl ps -a \| grep telemetry`); (b) the DOCA Privileged Executer (DPE) daemon not running (`systemctl status dpe`); (c) BFB image too old (BlueMan needs BFB ≥ 3.9.3.1); (d) accessing the UI from a host that isn't on the same network as the DPU OOB interface (BlueMan binds to the DPU OOB IP by default; for DPF deployments, you typically `iptables -t nat -A PREROUTING` to expose ports 443/10000). | <https://forums.developer.nvidia.com/c/infrastructure/doca/370> — search "BlueMan" |
