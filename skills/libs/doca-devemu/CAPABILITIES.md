@@ -44,7 +44,7 @@ Two cross-cutting rules that apply to *every* pattern above:
   Device Emulation"* is not actionable on its own — the API
   surface, the `pkg-config` module, the capability-query
   family, the sample tree under
-  `/opt/mellanox/doca/samples/doca_device_emulation/`, and
+  `/opt/mellanox/doca/samples/doca_devemu/`, and
   the firmware-level enablement axis ALL depend on whether
   the user is building a PCI Generic device, a virtio-net
   device, or a virtio-fs device. An agent that begins writing
@@ -147,7 +147,7 @@ emulating from.
 | --- | --- | --- |
 | PCI Generic | `doca_devemu_pci_cap_*` against the active `doca_devinfo` | Whether the BlueField + DOCA + firmware combo supports raw PCIe device emulation, and what bounds the framework places on the PCIe surface the user is allowed to expose |
 | virtio-net | `doca_devemu_virtio_cap_*` against the active `doca_devinfo` for the virtio side, narrowed to the virtio-net surface | Which virtio feature bits the framework supports on this combo, queue sizing bounds, and the supported virtio specification revisions |
-| virtio-fs | `doca_devemu_virtio_fs_cap_*` against the active `doca_devinfo` | Which virtio-fs feature bits the framework supports on this combo, and any sub-library-specific bounds on filesystem object sizes / queue sizing |
+| virtio-fs | `doca_devemu_vfs_cap_*` against the active `doca_devinfo` | Which virtio-fs feature bits the framework supports on this combo, and any sub-library-specific bounds on filesystem object sizes / queue sizing |
 
 Each family is *per-sub-library*. An agent that quotes
 capability values from one sub-library against a different

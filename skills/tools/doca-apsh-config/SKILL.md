@@ -152,7 +152,7 @@ are public open-source tools with their own upstream guides).
 
 `doca_apsh_config.py` ships as a **Python script** under
 `/opt/mellanox/doca/tools/` on the host side of a DOCA install.
-The skill uses the same `kind: library` three-file shape as the
+The skill uses the same `kind: tool` three-file shape as the
 rest of the bundle so the agent's task-verb contract is uniform
 across libraries, services, and tools — even when individual
 verbs collapse to a routing stub for a shipped Python tool.

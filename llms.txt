@@ -12,7 +12,7 @@ this order before answering any DOCA question:
 1. `AGENTS.md` — agent-side ground rules, persona routing, universal
    verification + debug contracts.
 2. `SKILLS.md` — the catalog of every shipping skill (28 libraries,
-   6 services, 18 tools, 9 cross-cutting) with the *Use this skill when …*
+   6 services, 17 tools, 9 cross-cutting) with the *Use this skill when …*
    trigger for each one.
 3. `skills/<kind>/<name>/SKILL.md` — the per-component skill matching the
    user's question. From there, progressive-disclose into

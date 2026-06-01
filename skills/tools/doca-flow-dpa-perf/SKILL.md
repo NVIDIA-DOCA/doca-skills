@@ -135,7 +135,7 @@ tool for the host / DPU-CPU Flow path (route to
 
 `doca_flow_dpa_perf` is shipped as a **single CLI binary** with
 DPA-side device code linked in. The skill uses the same
-`kind: library` three-file shape as the rest of the bundle so
+`kind: tool` three-file shape as the rest of the bundle so
 the agent's task-verb contract is uniform across the bundle.
 
 ## Language scope

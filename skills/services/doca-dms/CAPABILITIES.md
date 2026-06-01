@@ -66,9 +66,12 @@ DMS exposes two gRPC-based interfaces:
 
 Documented constraints:
 
-- DMS does **not** support telemetry streaming via gNMI `Subscribe`.
-  Streaming-telemetry questions go to the DOCA Telemetry Service (DTS),
-  not DMS.
+- DMS **supports** telemetry streaming via gNMI `Subscribe`: `STREAM`
+  (with `SAMPLE` interval bounds of 1s–60s) and `ONCE` modes are
+  implemented in `gnxi/gnmi/server.go`; only `POLL` and `Aggregation`
+  are Unimplemented. For a turnkey telemetry-aggregation surface
+  separate from DMS's own gNMI Subscribe, the DOCA Telemetry Service
+  (DTS) is the productized answer.
 - DMS does **not** seek full OpenConfig alignment; it uses OpenConfig
   as a framework. Path inventories quoted by the agent must come from
   the live public guide, not be inferred from generic OpenConfig.

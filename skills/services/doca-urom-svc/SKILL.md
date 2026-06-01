@@ -75,11 +75,11 @@ load-bearing piece; the worked example is one instance.
   [`doca-version`](../../doca-version/SKILL.md) as the canonical
   body.
 - **"What does the service configure — UCX components,
-  collectives, queue depths, host authorization?"** — worked
+  collectives, queue depths, how the host pairs over Comch?"** — worked
   example: *"my upstream stack wants to offload all-reduce
   collectives; how do I tell the service to expose that
-  collective family and accept enqueues from this specific
-  host?"*. Answered by the configuration-axes table in
+  collective family and how does the host pair to it over DOCA
+  Comch?"*. Answered by the configuration-axes table in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the config-authoring step in
   [`TASKS.md ## configure`](TASKS.md#configure).
@@ -173,16 +173,18 @@ installed. Concretely:
   communication path with raw `doca-rdma` or with no DPU
   offload at all).
 - Deploying the service container on BlueField Arm — pulling
-  the image per the public DOCA UROM Service Guide, mounting
-  the service config, starting / stopping the container under
-  the BlueField container runtime per the public Container
-  Deployment Guide.
+  the image per the public DOCA UROM Service Guide, setting the
+  daemon's CLI flags / env (`SERVICE_ARGS`, `UROM_PLUGIN_PATH`)
+  and mounting the `plugins/` directory, starting / stopping
+  the container under the BlueField container runtime per the
+  public Container Deployment Guide.
 - Choosing the service's configuration axes — which UCX
   components / collectives the service exposes (cap-bound to
   what the BlueField generation supports), enqueue queue
-  depths for the offload path, and authentication /
-  authorization for the host endpoints permitted to offload to
-  this service.
+  depths for the offload path, and how the host's `doca-urom`
+  library pairs to the service over DOCA Comch (access is
+  governed by that Comch pairing + the underlying RDMA
+  permissions — there is no service-side authorization list).
 - Confirming the host-library + DPU-service version pair is
   one the DOCA Compatibility Policy supports — a mismatch is
   the canonical subtle-failure mode for the paired contract.
@@ -213,13 +215,13 @@ companion files:
   paired hosts), the publisher / executor paired-contract
   model and its load-bearing version-coupling rule, the
   configuration axes (UCX-component / collective surface,
-  enqueue queue sizing, host authorization), the deployment
+  enqueue queue sizing, DOCA Comch endpoint pairing), the deployment
   shape (container on BlueField Arm per the public Container
   Deployment Guide), the pairing surface (host `doca-urom`
   library + underlying `doca-rdma` transport substrate), the
   observability surface (container state + service logs + RDMA
   counters), the error taxonomy (container-runtime vs
-  service-side-auth vs service-side-resource vs
+  service-side-resource vs
   transport-substrate vs paired-version-mismatch), and the
   safety policy (path-selection rule, version-contract rule,
   smoke-before-scale).
@@ -244,16 +246,16 @@ sample-config bundle. To keep the boundary clean, it
 deliberately does not contain — and pull requests should not
 add:
 
-- **Pre-baked DOCA UROM Service configuration files**
+- **Pre-baked DOCA UROM Service flag / env bundles**
   (full UCX-component / collective exposure manifests,
-  ready-to-run queue-depth bundles, host-authorization lists
-  with concrete identities) intended to be copy-pasted into
+  ready-to-run queue-depth `SERVICE_ARGS` strings) intended
+  to be copy-pasted into
   production. Service configuration is deployment-specific
-  (per the host fleet's identities, per the BlueField
+  (per the BlueField
   generation's capability cap, per the workload's collective
   pattern); the safe answer for an external operator is to
-  derive the config from the public DOCA UROM Service Guide
-  against their own deployment. The agent's job is to
+  derive the daemon's flags / env from the public DOCA UROM
+  Service Guide against their own deployment. The agent's job is to
   prescribe the *procedure* and the *configuration-axes
   decision*, not to ship a config the user might run
   unmodified.
@@ -351,15 +353,17 @@ add:
   debug ladder (install / version / build / link / runtime /
   program / driver). Service-specific debug (container not
   running, host-library / service version mismatch,
-  authorization mismatch, transport substrate down, offload
+  transport substrate down, offload
   not actually helping) overlays on top of that ladder.
 - [`doca-dms`](../doca-dms/SKILL.md) and
   [`doca-firefly`](../doca-firefly/SKILL.md) — sibling service
   skills. The agent reading these skills should see the same
   service-skill shape (container on BlueField Arm, public
   Container Deployment Guide as the canonical recipe, env
-  preconditions checked first, config mounted as a file,
-  smoke-before-scale) layered on top of a different
+  preconditions checked first, configured via the documented
+  per-service surface — for UROM that is the daemon's CLI flags
+  / env, not a mounted config file — smoke-before-scale)
+  layered on top of a different
   per-service problem domain (DMS = device management via
   gNMI / gNOI; Firefly = time synchronization via PTP;
   UROM Service = HPC remote memory operation execution via

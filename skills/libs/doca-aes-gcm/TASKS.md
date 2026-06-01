@@ -214,8 +214,10 @@ Iteration shape:
 
 1. **Capability re-check.** Re-run
    `doca_aes_gcm_cap_task_encrypt_is_supported`,
-   `_task_decrypt_is_supported`, `_is_key_size_supported(devinfo,
-   key_size)` for each key size in use, and
+   `_task_decrypt_is_supported`,
+   `_task_encrypt_is_key_type_supported(devinfo, key_type)` for
+   each key type in use (`DOCA_AES_GCM_KEY_128` /
+   `DOCA_AES_GCM_KEY_256`), and
    `_task_encrypt_get_max_buf_size` against the active
    `doca_devinfo`. If any return false / unexpected → that's the
    answer; the user's device or DOCA version does not support the
@@ -305,12 +307,13 @@ at layers 5 (runtime) and 6 (program):
 
 **Layer 6 (program) — AES-GCM overlay.**
 
-- Key-size discipline: a `_set_conf` or submit call that quotes a
-  key size the cap query returns false for returns
+- Key-type discipline: a `_set_conf` or submit call that quotes a
+  key type the cap query returns false for returns
   `DOCA_ERROR_NOT_SUPPORTED`. Re-run the cap query against the
   active `doca_devinfo`; do not assume from prior installs. The key
-  buffer length in bytes (16 / 24 / 32) MUST match the declared key
-  size (128 / 192 / 256-bit).
+  buffer length in bytes (16 / 32) MUST match the declared key
+  type (128-bit `DOCA_AES_GCM_KEY_128` or 256-bit
+  `DOCA_AES_GCM_KEY_256`; AES-192 is not in the enum).
 - Buffer-sizing matrix: the most common AES-GCM program-layer bug
   is a plaintext larger than
   `doca_aes_gcm_cap_task_encrypt_get_max_buf_size(devinfo)` —

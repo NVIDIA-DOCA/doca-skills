@@ -385,10 +385,13 @@ is unfalsifiable without it.
 2. **Tear down RDMI objects in reverse-create order.** (a)
    Destroy DPA attach handles (`_get_dpa_handle` outputs) so the
    DPA-side kernel cannot resurrect a stale CQ pointer; (b)
-   `doca_ctx_stop` on the RDMI context; (c) destroy connections
-   in reverse-create order (`doca_rdmi_connection_destroy` for
-   each); (d) destroy the RDMI context itself
-   (`doca_rdmi_destroy`).
+   `doca_ctx_stop` on each RDMI poster and connection context
+   (each `doca_rdmi_poster` / `doca_rdmi_connection` is its own
+   `doca_ctx` via `_as_ctx` — RDMI exposes no single top-level
+   context object); (c) destroy posters then connections in
+   reverse-create order (`doca_rdmi_poster_destroy`, then
+   `doca_rdmi_connection_destroy` for each). There is no
+   `doca_rdmi_destroy`.
 3. **Unregister MRs and underlying mmap regions.** Each
    `doca_mmap` registered for RDMA payloads / control buffers
    must be destroyed before the underlying host allocation is

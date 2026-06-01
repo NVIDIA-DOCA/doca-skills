@@ -1,6 +1,6 @@
 # DOCA Flow gRPC Server — Capabilities
 
-**Where to start:** `doca_flow_grpc_server` is a remote-control
+**Where to start:** `doca_flow_grpc` is a remote-control
 gRPC surface in front of `doca-flow`. The pattern overview below
 names the recurring server-side questions. Pick the pattern
 first, then drill into the H2 that owns the substance. For the
@@ -18,12 +18,12 @@ attack surface*.
 
 ## Pattern overview
 
-Every `doca_flow_grpc_server` question this skill teaches
+Every `doca_flow_grpc` question this skill teaches
 resolves into one of FIVE patterns. The patterns are CLASSES —
 they apply across every doca-flow control-plane deployment, not
 one specific application.
 
-| `doca_flow_grpc_server` pattern | Class shape | Where the substance lives |
+| `doca_flow_grpc` pattern | Class shape | Where the substance lives |
 | --- | --- | --- |
 | 1. Decide remote-vs-direct | Is a remote gRPC control plane the right answer, or should the client just link `libdoca_flow.so` directly? The agent must surface the trade-off (network boundary, language barrier, deployment topology) instead of defaulting to gRPC because it sounds modern. | [`## Capabilities and modes`](#capabilities-and-modes) remote-vs-direct decision + [TASKS.md ## configure](TASKS.md#configure) |
 | 2. Locate the `.proto` contract | The `.proto` files are the AUTHORITATIVE gRPC contract. **Monorepo layout:** the Flow gRPC `.proto` files live under `doca/libs/doca_flow/grpc/` (`common.proto`, `doca_flow.proto`, and `packet_buffering/packet_buffering.proto`) — NOT under `doca/tools/flow_grpc_server/`. **Binary install layout:** they are shipped via the doca-flow include / share path on the installed tree (`pkg-config doca-flow --variable=prefix` for the prefix; agent should confirm via `find <prefix> -name '*.proto'` on the user's install rather than assume a hard-coded path). Inventing RPC names or message field shapes from generic gRPC intuition is the canonical hallucination failure. | [`## Capabilities and modes`](#capabilities-and-modes) `.proto`-as-contract bullet + [TASKS.md ## configure](TASKS.md#configure) |
@@ -50,8 +50,10 @@ Two cross-cutting rules that apply to *every* pattern above:
 
 ## Capabilities and modes
 
-`doca_flow_grpc_server` is shipped as a **single CLI binary**
-in the DOCA install, plus the `.proto` files that define its
+`doca_flow_grpc` is a **single CLI binary built from the DOCA
+source tree** (`executable('doca_flow_grpc', ..., install: false)`,
+gated by `flag_enable_grpc_support`), plus the `.proto` files
+under `libs/doca_flow/grpc/` that define its
 gRPC contract and (per the shipped `packet_buffering/` and
 `dpa_device/` source subtrees) optional companion components
 for configurations that need packet buffering or DPA-side
@@ -67,7 +69,7 @@ this tool at all.
 | Surface | When to reach for it |
 | --- | --- |
 | Direct link to `libdoca_flow.so` in the controlling process (see [`doca-flow`](../../libs/doca-flow/SKILL.md)) | The controlling process is C / C++ and runs in the same address space (or the same host with shared libraries available); a network boundary is not required. |
-| **`doca_flow_grpc_server`** (this skill) | The controlling process is in a different language than C / C++ (and language bindings are not available), OR runs on a different host / network segment from the BlueField / DPU, OR the deployment topology requires a centralized control plane addressing multiple BlueFields. |
+| **`doca_flow_grpc`** (this skill) | The controlling process is in a different language than C / C++ (and language bindings are not available), OR runs on a different host / network segment from the BlueField / DPU, OR the deployment topology requires a centralized control plane addressing multiple BlueFields. |
 
 The downstream rule: do not default to gRPC because it sounds
 modern. A direct library link in the same process is simpler,
@@ -98,7 +100,7 @@ The agent's rule:
 
 ### Auth / TLS / network-segment decision axes
 
-> **CRITICAL (Run-12 + R13).** The shipped `doca_flow_grpc_server`
+> **CRITICAL (Run-12 + R13).** The shipped `doca_flow_grpc`
 > binary hard-codes `grpc::InsecureServerCredentials()` (gRPC
 > C++ **server-side** API); the C++ `doca_flow_grpc_client`
 > binary hard-codes `grpc::InsecureChannelCredentials()` (gRPC
@@ -171,7 +173,7 @@ match rule, NGC container semantics, and the headers-win-over-
 docs rule, see [`doca-version`](../../doca-version/SKILL.md).
 The body lives there; this skill does not duplicate it.
 
-**The `doca_flow_grpc_server`-specific overlay** is:
+**The `doca_flow_grpc`-specific overlay** is:
 
 - **The server rides the `doca-flow` library version it
   links against.** A `doca-flow` library `*.so` from one
@@ -203,7 +205,7 @@ The body lives there; this skill does not duplicate it.
 
 ## Error taxonomy
 
-`doca_flow_grpc_server`'s error surface is broader than a
+`doca_flow_grpc`'s error surface is broader than a
 local-only tool because the tool both serves remote clients and
 exposes Flow state. The error layers the agent should
 distinguish, in escalating order:
@@ -281,7 +283,7 @@ maps those into the layers above before quoting them.
 
 ## Observability
 
-`doca_flow_grpc_server` exposes three observability surfaces
+`doca_flow_grpc` exposes three observability surfaces
 the agent should consult, in order:
 
 - **Server logs.** The binary's own log output (per
@@ -313,7 +315,7 @@ state, PCIe, IB), reach for
 
 > **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
 
-Exposing `doca_flow_grpc_server` in production is a
+Exposing `doca_flow_grpc` in production is a
 **deliberately high-stakes posture** — it is an admin attack
 surface attached to the dataplane:
 
@@ -355,7 +357,7 @@ surface attached to the dataplane:
 
 ## Public-source pointer
 
-The single canonical public source for `doca_flow_grpc_server`
+The single canonical public source for `doca_flow_grpc`
 is the **DOCA Flow gRPC Server** page on `docs.nvidia.com`,
 reachable through
 [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools).

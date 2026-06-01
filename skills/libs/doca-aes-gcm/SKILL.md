@@ -202,9 +202,10 @@ material lives in two companion files:
 - `CAPABILITIES.md` — what DOCA AES-GCM can express on this version:
   the two task types (encrypt and decrypt), the AEAD output shape
   (ciphertext + auth tag on encrypt; verified plaintext on decrypt),
-  the AES-GCM key-size surface (128 / 192 / 256-bit, all
-  cap-queried), the capability-query surface (`doca_aes_gcm_cap_*`
-  for task presence, key-size support, and buffer sizing), the
+  the AES-GCM key-type surface (only 128-bit and 256-bit — AES-192
+  is not in the enum, both cap-queried), the capability-query
+  surface (`doca_aes_gcm_cap_*` for task presence, key-type
+  support, and buffer sizing), the
   AES-GCM error taxonomy (mapped onto the cross-library
   `DOCA_ERROR_*` set, with explicit treatment of the
   tag-verification-failure outcome as security-critical), the

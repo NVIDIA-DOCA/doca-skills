@@ -62,12 +62,18 @@ to observe.
    [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
    The lightest depth that still answers the question is the
    safe default.
-5. **Pick the output destination.** Inspector CLI for interactive
-   debug (the default for a live debug session); JSON export
-   when the user wants offline / scripted analysis; downstream
-   consumer (e.g. DTS) only when the user has a documented
-   reason to forward — never as a substitute for direct DTS
-   collection. Cross-link in
+5. **Stand up the single output destination — the downstream
+   telemetry consumer.** The inspector has ONE output: the shipped
+   binary links `doca-telemetry-exporter` and writes its records
+   ONLY to the DOCA Telemetry IPC socket under
+   `/opt/mellanox/doca/services/telemetry/ipc_sockets/`. There is
+   no Inspector CLI and no standalone JSON export to "pick". To
+   *see* the inspector's output, the user must run a paired
+   downstream consumer that reads that socket — typically a
+   `doca_telemetry_exporter` / DTS container on the same host (the
+   canonical pairing is the K8s manifest at
+   `doca/services/flow_inspector/internal/doca_telemetry_and_inspector.yaml`).
+   Cross-link the output-destination table in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
 6. **Plan the mirror action the user will add to their doca-flow
    pipeline.** This is the load-bearing step. The agent must
@@ -100,13 +106,15 @@ fully owned by the matching library skill.
 | --- | --- | --- |
 | The inspector container itself | NGC catalog, per [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services). No source build — pull the documented image | The agent quotes the image string from the live NGC page, NOT from memory; the agent surfaces that the container tag is paired with the BlueField's DOCA install per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
 | The user's doca-flow / doca-flow-ct program (the source of the mirror action) | [`doca-flow ## build`](../../libs/doca-flow/TASKS.md#build) for the base pipeline; `doca-flow-ct ## build` when CT wraps it; the canonical `pkg-config` + meson pattern in [`doca-programming-guide ## build`](../../doca-programming-guide/TASKS.md#build) | The agent does NOT author pipeline source code here; it cross-links the matching library skill and emphasizes that the mirror action is added via the universal modify-a-sample workflow there |
-| An inspector-specific consumer (e.g. parsing the JSON export in a downstream script) | Outside Flow Inspector scope — that consumer is the user's own program, against the documented JSON schema in the public guide | The agent does not write the consumer; describes the schema location and the agent rule "quote the live guide, don't infer the schema from prose" |
+| A downstream telemetry consumer (reading the inspector's records off the DOCA Telemetry IPC socket) | Outside Flow Inspector scope — that consumer is a `doca_telemetry_exporter` / DTS container (or the user's own program reading the IPC socket), per the DOCA Telemetry documentation in [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services) | The agent does not write the consumer; it points at the canonical pairing manifest (`internal/doca_telemetry_and_inspector.yaml`) and the live DTS docs, and the rule "quote the live guide, don't infer the telemetry schema from prose" |
 
-For non-C consumers asking about reading the inspector's JSON
-export in Rust / Go / Python / …, the same answer applies: the
-JSON shape is documented in the public Flow Inspector guide;
-the consumer is the user's own program; this skill does not
-ship a consumer in any language.
+For non-C consumers asking about reading the inspector's output
+in Rust / Go / Python / …, the same answer applies: the
+inspector emits ONLY to the DOCA Telemetry IPC socket, so the
+consumer reads that socket via the DOCA Telemetry path (typically
+the downstream `doca_telemetry_exporter` / DTS container); the
+consumer is the user's own program; this skill does not ship a
+consumer in any language.
 
 ## modify
 
@@ -170,12 +178,14 @@ mirror, and exercising the pair end-to-end.
    adapted per [`## modify`](#modify) step 1. Confirm with the
    user's container runtime that the inspector entry shows up as
    running.
-2. **Confirm the inspector is reachable on its documented ingest
-   target** before adding the mirror on the pipeline side. The
-   inspector's own CLI / health check is the documented surface;
-   read the public guide for the right command. A mirror added
-   against an unreachable ingest target produces a silent drop
-   that looks like a pipeline bug; eliminate it now.
+2. **Confirm the inspector is healthy and its telemetry output
+   path is wired** before adding the mirror on the pipeline side.
+   Read the inspector container's logs (it should report startup
+   and that it opened the DOCA Telemetry IPC socket) and confirm
+   the paired downstream `doca_telemetry_exporter` / DTS consumer
+   is up and reading that socket. A mirror added while the output
+   path is broken produces a silent drop that looks like a
+   pipeline bug; eliminate it now.
 3. **Add the mirror action to the user's doca-flow / doca-flow-ct
    pipeline.** This is a doca-flow modify; route to
    [`doca-flow ## modify`](../../libs/doca-flow/TASKS.md#modify).
@@ -190,7 +200,7 @@ mirror, and exercising the pair end-to-end.
    smoke discipline, generate a single controlled packet that
    matches the mirror action's match criteria and confirm:
    the doca-flow mirror-entry counter increments (proves the
-   mirror fired); the inspector CLI / JSON export shows ONE
+   mirror fired); the downstream telemetry consumer shows ONE
    record with the metadata fields the user expects (proves the
    inspector received it and is interpreting it at the chosen
    depth). If either fails, jump to [`## debug`](#debug) before
@@ -381,8 +391,8 @@ schemas the structured tools emit are defined in
 | --- | --- | --- | --- |
 | Container lifecycle | Container-runtime `ps` / `start` / `stop` / `logs` on the inspector entry (the agent does NOT prescribe a specific runtime command; quote what the user's runtime uses) | [`## run`](#run) step 1; [`## debug`](#debug) layer 1 | Inspector container shows as running, no recent restart loops, no auth / image-pull errors in the runtime logs. |
 | Container image source | Per the live NGC catalog entry routed via [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services) | [`## configure`](#configure) step 3; [`## build`](#build) inspector-container row | Image string matches the live catalog; container tag is paired with the BlueField's doca-flow version per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility). |
-| Inspector CLI live view | The inspector container's own CLI surface, per the public guide | [`## run`](#run) step 4; [`## test`](#test) step 1 | A single known-matching packet from the host produces ONE record at the chosen inspection depth, with the metadata fields the user expects. |
-| JSON export | The inspector's documented JSON export surface, per the public guide | [`## modify`](#modify) step 2 (when output destination is JSON) | Output parses against the documented schema; consumer reads it without schema drift. |
+| Inspector record output (telemetry) | Read the inspector's per-record output from the paired downstream `doca_telemetry_exporter` / DTS consumer that reads the DOCA Telemetry IPC socket under `/opt/mellanox/doca/services/telemetry/ipc_sockets/` (the inspector has NO CLI and NO JSON export) | [`## run`](#run) step 4; [`## test`](#test) step 1 | A single known-matching packet from the host produces ONE record at the chosen inspection depth, with the metadata fields the user expects, on the downstream consumer. |
+| Inspector container logs | Container-runtime `logs` on the inspector entry (startup, IPC-socket open, parse events) | [`## run`](#run) step 2; [`## debug`](#debug) layer 1 | Logs show the binary started, opened the DOCA Telemetry IPC socket, and report no parse/config errors against `flow_inspector_cfg.json`. |
 | Mirror-entry counter on the pipeline side | The doca-flow per-entry counter API per [`doca-flow ## debug`](../../libs/doca-flow/TASKS.md#debug) step 1 | [`## run`](#run) step 3; [`## debug`](#debug) layer 2 | Counter increments under expected traffic — proves the mirror is *firing*, independent of whether the inspector is interpreting it correctly. |
 | Version pair cross-check | `pkg-config --modversion doca-flow` (and `doca-flow-ct` when present) on the BlueField; the inspector container tag pulled | [`## test`](#test) step 3; [`## debug`](#debug) layer 5 | All anchors agree on the DOCA release; disagreement routes to [`doca-version ## debug`](../../doca-version/TASKS.md#debug) layer 2. |
 | Raise inspector / pipeline log verbosity | `DOCA_LOG_LEVEL=trace` on the program that drives the pipe-side modify; the inspector container's documented log-verbosity flag | [`## run`](#run) step 5; [`doca-debug ## configure`](../../doca-debug/TASKS.md#configure) step 2 | TRACE lines describe the mirror lifecycle and (on the inspector side) the per-record interpretation. |

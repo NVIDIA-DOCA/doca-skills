@@ -26,9 +26,9 @@ across every bridge release and every host / BlueField pair.
 | Pattern | When it applies (class shape) | Where the substance lives |
 | --- | --- | --- |
 | 1. Bridge or go native | Decide whether the user has an EXISTING DPDK app (use this bridge) or is starting fresh (use native `doca-eth` instead); the bridge is for interop, not for new projects | [`## Capabilities and modes`](#capabilities-and-modes) bridge-vs-native table + [TASKS.md ## configure](TASKS.md#configure) step 2 |
-| 2. Hand the DPDK port to DOCA | Wrap a DPDK port id in a `doca_dpdk_port` so DOCA Core / DOCA Flow can operate on it; the DPDK side keeps owning the EAL and the data-plane | [`## Capabilities and modes`](#capabilities-and-modes) bridge-objects table + [TASKS.md ## configure](TASKS.md#configure) steps 3-4 |
+| 2. Bind a DPDK port id to a DOCA device | Map a DPDK port id ↔ `doca_dev` (via `doca_dpdk_port_probe()` from a `doca_dev`, or `doca_dpdk_port_as_dev()` from a port id) so DOCA Core / DOCA Flow — which operate on the `doca_dev` — can drive the same physical port the DPDK app uses | [`## Capabilities and modes`](#capabilities-and-modes) bridge-objects table + [TASKS.md ## configure](TASKS.md#configure) steps 3-4 |
 | 3. Convert at the data-plane boundary | Translate `rte_mbuf` ↔ DOCA-buf only at the points where DOCA libraries actually need to operate on the payload; do not convert in the inner loop unnecessarily | [`## Capabilities and modes`](#capabilities-and-modes) mbuf-conversion subsection + [TASKS.md ## modify](TASKS.md#modify) |
-| 4. Discover capabilities | Query the `doca_dpdk_*_cap_*` family on the active `doca_devinfo` for which conversions, port roles, and offloads the bridge advertises on this device + this DOCA + this DPDK | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 5 |
+| 4. Discover capabilities | Query `doca_dpdk_cap_is_rep_port_supported()` on the active `doca_devinfo` to learn whether the device supports representors for `doca_dpdk_port_probe()` — the bridge's single public capability query on this device + this DOCA + this DPDK | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 5 |
 | 5. Diagnose a bridge error | Map symptom (`DOCA_ERROR_BAD_STATE`, `_NOT_FOUND`, `_INVALID_VALUE`, `_NOT_PERMITTED`, `_NOT_SUPPORTED`) to root cause without leaving the bridge layer prematurely; in particular, do not invent a code fix for a DPDK ↔ DOCA version mismatch | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 
 Two cross-cutting rules that apply to *every* pattern above:
@@ -73,20 +73,26 @@ already in their codebase before recommending a path**. The
 bridge is a good answer for *"yes, DPDK is in"* and almost
 never the right answer for *"no DPDK yet"*.
 
-**Bridge object surface.** The bridge introduces a small set of
-DOCA-side objects that wrap DPDK-side state.
+**Bridge object surface.** There is **no `doca_dpdk_port`
+handle/object**. The bridge instead establishes a 1:1
+association between a *DPDK port id* and a *`doca_dev`*, and a
+separate memory-pool object for mbuf conversion. DOCA Flow and
+the other DOCA libraries operate on the `doca_dev` (and the
+DPDK port id), not on any bridge-specific port handle.
 
-| Object | What it does | Owner of the underlying state | Sizing inputs |
+| Surface | What it does | Owner of the underlying state | Key inputs |
 | --- | --- | --- | --- |
-| `doca_dpdk_port` | DOCA-visible handle on a DPDK port; lets a DOCA library (Core / Flow / accelerators) operate on a port that DPDK still owns and drives | DPDK keeps owning the `rte_eth_dev` (start, stop, queue config); the bridge handle is a *view*, not a transfer of ownership | DPDK port id from `rte_eth_dev_*`; the bridge does not re-size queues |
-| Mbuf ↔ DOCA-buf conversion helpers | Translate an `rte_mbuf` (DPDK packet model) to a `doca_buf` over a `doca_mmap` (DOCA packet model), and back | DPDK owns the mempool the mbuf came from; DOCA owns the mmap the doca-buf points into | Per-packet, at the data-plane boundary where a DOCA library needs to operate on the payload — *not* in DPDK's inner loop |
+| DPDK port id ↔ `doca_dev` mapping | `doca_dpdk_port_probe(doca_dev, devargs)` attaches a DPDK port for an opened `doca_dev`; `doca_dpdk_port_as_dev(port_id, &dev)` returns the `doca_dev` for a DPDK port id; `doca_dpdk_get_first_port_id()` / `doca_dpdk_get_port_ids()` go the other way (`doca_dev` → port id(s)) | DPDK keeps owning the `rte_eth_dev` (start, stop, queue config); the `doca_dev` is the DOCA-side identity DOCA Flow / Core program against | An opened `doca_dev` (for probe) or a DPDK port id (for `as_dev`); the bridge does not re-size queues |
+| `doca_dpdk_mempool` (mbuf ↔ DOCA-buf conversion) | `doca_dpdk_mempool_create(rte_mempool, &mempool)` wraps a DPDK mempool; `doca_dpdk_mempool_mbuf_to_buf(mempool, inventory, mbuf, &buf)` acquires a `doca_buf` that references the same memory as an `rte_mbuf`, using a `doca_buf_inventory` | DPDK owns the originating `rte_mempool`; the `doca_dpdk_mempool` + `doca_buf_inventory` own the DOCA-side bookkeeping | Per-packet, at the data-plane boundary where a DOCA library needs to operate on the payload — *not* in DPDK's inner loop |
 
 The agent must NOT invent additional bridge objects beyond what
 the headers and the `pkg-config --exists doca-dpdk-bridge`
 install advertise. When the user asks about *"any other DPDK ↔
 DOCA helper"*, the right answer is to walk the headers under
-$(pkg-config --variable=includedir doca-common) and the samples
-under `/opt/mellanox/doca/samples/doca_dpdk_bridge/`.
+$(pkg-config --variable=includedir doca-common) (`doca_dpdk.h`)
+and the bridge usage inside the shipped DOCA Flow samples at
+`/opt/mellanox/doca/samples/doca_flow/` (e.g. `flow_common.c`,
+which calls `doca_dpdk_port_probe()` / `doca_dpdk_port_as_dev()`).
 
 **mbuf ↔ DOCA-buf conversion — the only rule.** Convert at the
 *boundary*, not in the inner loop:
@@ -106,27 +112,32 @@ under `/opt/mellanox/doca/samples/doca_dpdk_bridge/`.
   the data-plane). Surface this before recommending a hot-path
   conversion.
 
-**Capability discovery — the only rule.** Before assuming any
-bridge feature, conversion, or port role works on this device +
-this DOCA + this DPDK, call the matching `doca_dpdk_*_cap_*`
-query against the active `doca_devinfo`. The agent should:
+**Capability discovery — the only rule.** Unlike most DOCA
+libraries, the bridge ships **only one** device-capability
+query: `doca_dpdk_cap_is_rep_port_supported()`, which reports
+whether the device supports representors for
+`doca_dpdk_port_probe()`. There is no `doca_dpdk_*_cap_*`
+family; the agent must not invent per-conversion or per-offload
+cap symbols. The agent should:
 
-| Capability | Query family | Why the agent must ask |
+| Capability | Query | Why the agent must ask |
 | --- | --- | --- |
 | Bridge presence on this DOCA install | `pkg-config --exists doca-dpdk-bridge` | Some DOCA releases use a slightly different module name; the agent must confirm spelling against the user's install before quoting any bridge symbol |
-| Bridge presence on this device | `doca_dpdk_*_cap_*` family against the active `doca_devinfo` (per the bridge's public headers) | Not every device advertises bridge support; assuming yes returns `DOCA_ERROR_NOT_SUPPORTED` at start. The exact cap-query symbols MUST be verified against the installed headers — see [TASKS.md ## configure](TASKS.md#configure) step 5 |
+| Representor support for `port_probe` on this device | `doca_dpdk_cap_is_rep_port_supported()` against the active `doca_devinfo` (call with root privileges) | This is the bridge's only public device-capability query; call it before requesting representors in the `doca_dpdk_port_probe()` devargs — see [TASKS.md ## configure](TASKS.md#configure) step 5 |
 | DPDK version the bridge expects | `pkg-config --modversion libdpdk` (DPDK side) compared against the bridge's documented compatibility window | Mismatched DPDK ↔ DOCA = confusing failures at runtime; the agent must surface the coupling before any code change. Do not quote a DPDK version pin from agent memory; read the host |
-| Conversion / port-role support | The matching `doca_dpdk_*_cap_*` symbol family on the headers shipped with this DOCA | The bridge's exact set of supported conversions and port roles is per-release; the agent must walk the headers and not assume |
+| Any other conversion / port-role support | Walk `doca_dpdk.h` shipped with this DOCA | The bridge exposes no further cap-query symbols; the header function set itself is the authoritative statement of what the bridge supports per-release — read it, do not assume |
 
 **Configuration shape.** *Mandatory* preconditions before the
 bridge call sequence: DPDK is installed and matched-pair-
 compatible with this DOCA; DPDK EAL is initialized
 (`rte_eal_init`) by the user's DPDK app; the target port is
 bound under DPDK and started (`rte_eth_dev_start`); a
-`doca_dev` is opened against the same physical device. *Optional*
-configurations (per-port DOCA Flow attachments, per-conversion
-buffer placement) gate on the matching `doca_dpdk_*_cap_*`
-query and use the matching setter.
+`doca_dev` is opened against the same physical device, and the
+DPDK port id is bound to that `doca_dev` via
+`doca_dpdk_port_probe()` (or resolved with
+`doca_dpdk_port_as_dev()`). *Optional* configurations
+(representors in the probe devargs) gate on
+`doca_dpdk_cap_is_rep_port_supported()`.
 
 ## Version compatibility
 
@@ -179,9 +190,9 @@ library response.
 | --- | --- | --- |
 | `DOCA_ERROR_BAD_STATE` | Any bridge call before the underlying DPDK port is started, before `rte_eal_init` returned, or before `doca_ctx_start()` on the bridge-using DOCA context; also returned after teardown of either the DPDK port or the DOCA context | Lifecycle violation that crosses the DPDK ↔ DOCA seam. Walk the bridge's lifecycle order in [TASKS.md ## configure](TASKS.md#configure); the most common case is registering the DPDK port with the bridge before `rte_eth_dev_start` — DPDK has to be live first. |
 | `DOCA_ERROR_NOT_FOUND` | Port-registration / handle-acquire calls on a DPDK port id that the bridge does not see | The DPDK port id is wrong (typo, wrong port index), the port is not bound under DPDK on this host, or the port id is from a different EAL instance. Confirm the user's `rte_eth_dev_get_port_by_name` / DPDK port enumeration first; do not modify the bridge call. |
-| `DOCA_ERROR_INVALID_VALUE` | Mbuf ↔ DOCA-buf conversion calls | The mbuf points outside any registered `doca_mmap`, the mbuf is from a mempool the bridge does not recognize, or the conversion target buffer is too small. Walk the conversion's preconditions in [`## Capabilities and modes`](#capabilities-and-modes); the fix is at the buffer-management layer, not the inner-loop call. |
+| `DOCA_ERROR_INVALID_VALUE` (or `DOCA_ERROR_NO_MEMORY`) | `doca_dpdk_mempool_mbuf_to_buf()` conversion calls | The `rte_mbuf` does not represent memory from the originating `rte_mempool` that this `doca_dpdk_mempool` was created from (mbufs from external memory or a different pool are not convertible), or the supplied `doca_buf_inventory` has no free elements (`DOCA_ERROR_NO_MEMORY`). Walk the conversion's preconditions in [`## Capabilities and modes`](#capabilities-and-modes); the fix is at the mempool / inventory layer, not the inner-loop call. |
 | `DOCA_ERROR_NOT_PERMITTED` | Bridge create / open calls when the process lacks DPDK-side privileges (no hugepage access, no PCIe port access) OR DOCA-side privileges (cannot open `doca_dev`) | The bridge inherits both privilege sets. Confirm `id` for group membership AND that DPDK's standard preconditions (`dpdk-devbind.py`, hugepages mounted) are met; route to [`doca-setup`](../../doca-setup/SKILL.md) for the env-side fix. |
-| `DOCA_ERROR_NOT_SUPPORTED` | Bridge feature requested that the device does not advertise, OR DPDK ↔ DOCA version mismatch surfacing as a runtime cap miss | Re-run the matching `doca_dpdk_*_cap_*` query against the active `doca_devinfo`. If the cap query says false, that is the answer. If the cap query says true but the call still fails, suspect the DPDK ↔ DOCA matched-pair window per [`## Version compatibility`](#version-compatibility) before any code change. |
+| `DOCA_ERROR_NOT_SUPPORTED` | Representors requested in `doca_dpdk_port_probe()` on a device that does not support them, OR DPDK ↔ DOCA version mismatch surfacing as a runtime miss | Re-run `doca_dpdk_cap_is_rep_port_supported()` against the active `doca_devinfo`. If it says false, that is the answer. If it says true but the call still fails, suspect the DPDK ↔ DOCA matched-pair window per [`## Version compatibility`](#version-compatibility) before any code change. |
 | `DOCA_ERROR_DRIVER` | Any bridge call that crosses into the kernel mlx5 driver | The layer below DOCA + DPDK reported failure. Capture state (`dmesg | tail`, `mlxconfig -d <pcie> q`) and route to env-class debug ([`doca-setup ## debug`](../../doca-setup/TASKS.md#debug)) — the layer below DOCA is the suspect, not the bridge program. |
 
 The agent's rule: **never recommend a retry loop on a bridge
@@ -213,14 +224,15 @@ Three primary signals the agent should reach for:
    context.** The DOCA Core PE
    ([`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes))
    surfaces task completions for the DOCA libraries that
-   operate on `doca_dpdk_port` (DOCA Flow rule installs, DOCA
-   accelerator submissions, …). Absence of completions on a
+   operate on the `doca_dev` bound to the DPDK port (DOCA Flow
+   rule installs, DOCA accelerator submissions, …). Absence of completions on a
    started DOCA context is *always* either a missing
    `doca_pe_progress()` call or — for steering operations — a
-   port-attachment gap on the bridge handle.
+   port-attachment gap on the bound `doca_dev`.
 3. **Capability snapshot at configure time.** The output of
-   every `doca_dpdk_*_cap_*` query is a snapshot of *what the
-   bridge said was possible* before any task was submitted.
+   `doca_dpdk_cap_is_rep_port_supported()` is a snapshot of
+   *what the bridge said was possible* before any task was
+   submitted.
    Save it as the baseline; if a bridge call later returns
    `DOCA_ERROR_NOT_SUPPORTED` the diff against this snapshot
    is the bug — and the most common reason for that diff is a
@@ -258,12 +270,13 @@ straight:
 1. DPDK side: `rte_eal_init` → port configure → `rte_eth_dev_start`.
 2. DOCA side: open `doca_dev` against the same device; create the
    DOCA Core context that will use the bridge.
-3. Bridge: register the DPDK port with the bridge to obtain the
-   `doca_dpdk_port` handle; pass that handle to the DOCA library
-   that needs it (DOCA Flow, etc.).
+3. Bridge: bind the DPDK port id to the `doca_dev`
+   (`doca_dpdk_port_probe()` from the `doca_dev`, or
+   `doca_dpdk_port_as_dev()` from the port id); pass that
+   `doca_dev` to the DOCA library that needs it (DOCA Flow, etc.).
 4. `doca_ctx_start()` on the DOCA side, then run.
 5. Teardown in reverse: DOCA contexts stop / destroy first, then
-   release the bridge handle, then DPDK port stop / EAL cleanup.
+   release the bridge binding, then DPDK port stop / EAL cleanup.
 
 Out-of-order is caught as `DOCA_ERROR_BAD_STATE` (DOCA side) or
 DPDK-side error (DPDK side), but the user-visible symptom does
@@ -273,7 +286,7 @@ explicitly.
 **Smoke before scale-up.** Before exercising the full
 DPDK + DOCA Flow path at line rate, the agent must walk the
 user through a single trivial smoke (one DPDK port up; one
-trivial DOCA Flow rule installed via the bridge handle; verify
+trivial DOCA Flow rule installed on the bound `doca_dev`; verify
 the rule is programmed and that one packet steers as expected).
 A failure here narrows cleanly: DPDK-side, bridge-handover, or
 DOCA-side. A failure at scale-up *without* the smoke pass is a

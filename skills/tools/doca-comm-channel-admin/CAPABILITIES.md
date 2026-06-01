@@ -75,32 +75,41 @@ The DOCA Comm Channel Admin Tool ships as a CLI binary under
 `/opt/mellanox/doca/tools/` on every DOCA install that includes the
 tool. There is no daemon, no library to link against, and no
 programmatic API; the user's entire interaction model is *invoke
-the binary, read the printed output, optionally issue a
-state-changing subcommand*.
+the binary and read the two printed read-only tables*. The binary
+registers ZERO application-level arguments and takes no
+state-changing subcommand; drain / restart live on other paths per
+the body-interpretation banner at the top of this file.
 
-The tool exposes two functionally distinct families of operations,
-both documented in the public DOCA Comm Channel Admin Tool guide
+The tool exposes a single, read-only family of operations,
+documented in the public DOCA Comm Channel Admin Tool guide
 (reached via
 [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)):
 
-- **Read-only operations.** Enumerate the comch channels visible
-  to the tool from the side it runs on (host or BlueField Arm),
-  and inspect per-channel state (which side is server vs client,
-  which `doca_dev_rep` / PCIe address each side is bound to, the
-  channel's current connection state, and whatever per-queue
-  health counters the tool surfaces). These are the agent's
-  default reach when the user reports a Comch-side issue; they
-  cost nothing to run.
-- **State-changing operations.** Drain a channel (let outstanding
-  transfers complete and then quiesce) or restart it (tear down
-  and re-establish). These DO change channel state, can interrupt
-  in-flight traffic, and may surface to the program side as
-  `DOCA_ERROR_CONNECTION_RESET` or as a DISCONNECTED transition
-  on the connection callback per
-  [`doca-comch CAPABILITIES.md ## Error taxonomy`](../../libs/doca-comch/CAPABILITIES.md#error-taxonomy).
-  They are reserved for the diagnosis ladder in
-  [`TASKS.md ## debug`](TASKS.md#debug) after a clean inspection
-  has identified a stuck state with no plausible self-recovery.
+- **Read-only operations (the entire tool surface).** The binary
+  scans every DOCA device on the side it runs on (host or
+  BlueField Arm), shells out to `resourcedump` for the devices
+  that support a comch client / server, and prints two tables — a
+  CONNECTIONS table and a SERVERS table — naming each channel's
+  server name, owning PID, PCIe address, and interface (plus the
+  connected / max-connection counts for servers). These cost
+  nothing to run and are the agent's default reach when the user
+  reports a Comch-side issue.
+
+The operator's *state-changing* actions — drain a channel (let
+outstanding transfers complete and then quiesce) or restart it
+(tear down and re-establish) — are NOT operations this binary
+performs. As the body-interpretation banner at the top of this
+file spells out, they live on other paths: the program-side
+`doca_comch_*` reset (`doca_ctx_stop()` → `doca_ctx_start()`) per
+[`doca-comch`](../../libs/doca-comch/SKILL.md), or driver /
+BlueField reload per [`doca-setup`](../../doca-setup/SKILL.md) and
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md). Such
+a state change can surface to the program side as
+`DOCA_ERROR_CONNECTION_RESET` or a DISCONNECTED transition on the
+connection callback per
+[`doca-comch CAPABILITIES.md ## Error taxonomy`](../../libs/doca-comch/CAPABILITIES.md#error-taxonomy);
+the admin tool's read-only scan is what the operator runs BEFORE
+taking one of those other-path actions.
 
 The tool runs on **both sides of a host ↔ DPU pair** — the host
 sees host-side clients (each bound to a BlueField PCIe address),

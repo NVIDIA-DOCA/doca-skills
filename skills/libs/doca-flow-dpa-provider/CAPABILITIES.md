@@ -232,15 +232,16 @@ there; this skill does not duplicate it.
   and route any disagreement to
   [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug)
   before any provider-layer diagnosis.
-- **Use the current `doca_flow_dpa_queues_create` API and
-  treat `doca_flow_dpa_pipe_queues_create` /
-  `_pipe_queues_destroy` as deprecated.** The installed
-  header marks the latter two as `DOCA_DEPRECATED` and
-  directs the user at `doca_flow_dpa_queues_create`. New
-  consumer code authored against this skill should always
-  use the current API; the agent surfaces the deprecated
-  surface only when the user explicitly asks about an older
-  installed sample that still uses it.
+- **Use the current `doca_flow_dpa_queues_create` API.** The
+  installed v3.5 public header (`doca_flow_dpa_provider.h`)
+  only forward-declares `struct doca_flow_dpa_pipe_queues`;
+  it does not expose `doca_flow_dpa_pipe_queues_create` /
+  `_pipe_queues_destroy` and carries no `DOCA_DEPRECATED`
+  marker for them in this release. New consumer code authored
+  against this skill should always use the current
+  `doca_flow_dpa_queues_create` API; the agent surfaces the
+  older pipe-queues surface only when the user explicitly asks
+  about an older installed sample that still references it.
 - **The cross-cutting cap-query rule still applies.** Per
   [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability),
   the `doca_flow_*_cap_*` queries in `doca-flow` and the
@@ -275,8 +276,8 @@ installed headers `doca_flow_dpa_provider.h` and
 | `DOCA_ERROR_INVALID_VALUE` | `doca_flow_dpa_init`; `doca_flow_dpa_queues_create`; both `_pipe_export_prepare` and `_pipe_export`; both `_pipe_get_device_addr` and `_external_resource_*` variants | A NULL handle, a queue-config violation (e.g. queue_size not a power of 2), or a device-address-out parameter that is missing. The fix is at the call site; do not retry the same arguments |
 | `DOCA_ERROR_NOT_SUPPORTED` | `doca_flow_dpa_init` (device-side uses features the BlueField does not support); `_queues_create` (failed to match requested queue config to device capabilities); `_pipe_export_prepare` / `_pipe_export` (the pipe shape does not support an export — for example, a non-hash pipe being asked to expose hash-entry control to the DPA); `_external_resource_*` (the external resource type is not exportable) | The pipe spec OR the queue config OR the BlueField generation is asking for something the underlying capability set does not advertise. Re-run capability discovery in `doca-flow` (for the pipe shape) and `doca-dpa` (for the BlueField generation); do NOT retry the same export against the same device |
 | `DOCA_ERROR_NO_MEMORY` | `doca_flow_dpa_init`; `_queues_create`; `_pipe_export_prepare`; `_external_resource_export` | Allocation failure for the provider's internal bookkeeping (DPA context, queue arena, export context). Inspect host memory state; do not silently retry |
-| `DOCA_ERROR_BAD_STATE` | `_queues_create` (queues were already created for this port); `_pipe_export_prepare` (queues were not yet created); `_pipe_export` (preparation step failed or the pipe was already exported); `_external_resource_export` (queues not yet created or wrong queue-type set for this resource type); the deprecated `_pipe_queues_destroy` (queues not created / already destroyed) | Lifecycle violation. Walk the export lifecycle in [`## Safety policy`](#safety-policy); the most common shape is calling `_pipe_export_prepare` before `_queues_create`, or calling `_pipe_export` twice on the same pipe |
-| `DOCA_ERROR_DRIVER` | `doca_flow_dpa_init` (lower-level DPA-related layer failure); `_queues_create`; `_pipe_export` (error in DPA copy operations); the deprecated `_pipe_queues_create`; on the DPA side, `doca_flow_queue_poll_completion` and `doca_flow_queue_flush` use `_DRIVER` for lower-layer failures | The DPA driver layer (or the joint DOCA + DPACC version skew) reported failure. Most common cause is a DOCA-Flow + DOCA-DPA + DPACC version mismatch per the DOCA Compatibility Policy; route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) layer 5 (driver) AND to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) for the version-skew side |
+| `DOCA_ERROR_BAD_STATE` | `_queues_create` (queues were already created for this port); `_pipe_export_prepare` (queues were not yet created); `_pipe_export` (preparation step failed or the pipe was already exported); `_external_resource_export` (queues not yet created or wrong queue-type set for this resource type) | Lifecycle violation. Walk the export lifecycle in [`## Safety policy`](#safety-policy); the most common shape is calling `_pipe_export_prepare` before `_queues_create`, or calling `_pipe_export` twice on the same pipe |
+| `DOCA_ERROR_DRIVER` | `doca_flow_dpa_init` (lower-level DPA-related layer failure); `_queues_create`; `_pipe_export` (error in DPA copy operations); on the DPA side, `doca_flow_queue_poll_completion` and `doca_flow_queue_flush` use `_DRIVER` for lower-layer failures | The DPA driver layer (or the joint DOCA + DPACC version skew) reported failure. Most common cause is a DOCA-Flow + DOCA-DPA + DPACC version mismatch per the DOCA Compatibility Policy; route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) layer 5 (driver) AND to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) for the version-skew side |
 | `DOCA_ERROR_AGAIN` *(DPA-side)* | Every DPA-side post call (`doca_flow_pipe_hash_*`, `doca_flow_external_resource_*`) returns this when the matching work queue is full and the request could not be submitted | The DPA-side kernel is producing requests faster than the host (or the kernel itself) is polling the matching completion queue. Drain via `doca_flow_queue_poll_completion(queue_type)` on the right queue type, then retry. Same as the cross-library *"would-block, retry after progress"* pattern; this is NOT a queue-resize event |
 | `DOCA_ERROR_IO_FAILED` *(DPA-side)* | DPA-side `doca_flow_pipe_hash_*` and `doca_flow_external_resource_*` post paths | The submission itself was rejected by the lower DPA layer. This is rarer than `_AGAIN` and typically points at queue state corruption (e.g. queue destroyed while in-flight requests existed) rather than backpressure |
 | `DOCA_ERROR_NOT_SUPPORTED` *(DPA-side)* | `doca_flow_queue_poll_completion`, `doca_flow_queue_flush` (given queue type not supported); `doca_flow_pipe_hash_disable_index` (disable isn't supported for the given hash pipe); `doca_flow_external_resource_memory_read*` (read not supported in this configuration) | The DPA-side call asks for an operation the underlying pipe / resource / queue type does not expose. Re-read the pipe and resource construction in `doca-flow`; the fix is on the host side (build a pipe / resource that supports the operation), not on the DPA side |

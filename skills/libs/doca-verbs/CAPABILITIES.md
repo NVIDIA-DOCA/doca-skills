@@ -85,7 +85,7 @@ the experimental ABI tier on this release:
 | `doca_verbs_qp` (Queue Pair) | The QP. Created from a `doca_verbs_qp_init_attr` configured via the `doca_verbs_qp_init_attr_set_*` setters; transitioned via `doca_verbs_qp_modify` using a `doca_verbs_qp_attr` configured via the `doca_verbs_qp_attr_set_*` setters; queried via `doca_verbs_qp_query` / `_query_ece`; ECE attributes set via `doca_verbs_qp_set_ece` | `doca_verbs_qp_init_attr_create` → `_set_*` → `doca_verbs_qp_create(ctx, init_attr, &qp)` → `doca_verbs_qp_modify(qp, qp_attr)` to drive the QP state machine → use → `doca_verbs_qp_destroy(qp)` |
 | `doca_verbs_cq` (Completion Queue) | The CQ that holds completion entries for the QPs feeding into it | `doca_verbs_cq_attr_create` → `_set_*` (size, overrun, collapsed, entry size, completion channel) → `doca_verbs_cq_create(ctx, cq_attr, &cq)` → use → `doca_verbs_cq_destroy(cq)`. Direct WQ / DBR / CQN accessors via `doca_verbs_cq_get_wq` / `_get_dbr_addr` / `_get_cqn` |
 | `doca_verbs_srq` (Shared Receive Queue) | The shared receive queue that multiple QPs can pull receive WRs from | `doca_verbs_srq_init_attr_create` → `_set_*` → `doca_verbs_srq_create(ctx, init_attr, &srq)` → use (`doca_verbs_bridge_post_srq_recv`) → `doca_verbs_srq_destroy(srq)`. Query via `doca_verbs_srq_query`; SRQ number via `doca_verbs_srq_get_srqn` |
-| `doca_verbs_ah_attr` (Address-Handle attributes) | The Address-Handle attribute block for routing send WRs over UD or RoCE | `doca_verbs_ah_attr_create` → `_set_*` (DGID / DLID / SL / SGID-index / static-rate / hop-limit / traffic-class / UDP-source-port / address-type) → attached to a `doca_verbs_qp_attr` via `doca_verbs_qp_attr_set_ah_attr` → `doca_verbs_ah_attr_destroy` |
+| `doca_verbs_ah_attr` (Address-Handle attributes) | The Address-Handle attribute block for routing send WRs over IB or RoCE (address type is one of `DOCA_VERBS_ADDR_TYPE_IPv4` / `_IPv6` / `_IB_GRH` / `_IB_NO_GRH`) | `doca_verbs_ah_attr_create` → `_set_*` (DGID / DLID / SL / SGID-index / static-rate / hop-limit / traffic-class / UDP-source-port / address-type) → attached to a `doca_verbs_qp_attr` via `doca_verbs_qp_attr_set_ah_attr` → `doca_verbs_ah_attr_destroy` |
 | `doca_verbs_comp_channel` (Completion Channel) | An event-delivery channel that fires when a CQ has new completions. Alternative to PE-driven completions and to manual CQ poll | `doca_verbs_comp_channel_create(ctx, &chan)` → `doca_verbs_comp_channel_get_handle` → poll the OS handle → `doca_verbs_get_cq_event` to drain → `doca_verbs_comp_channel_destroy(chan)`. CQ ACK via `doca_verbs_ack_cq_events`; arming via `doca_verbs_req_notify_cq` |
 | `doca_verbs_cc_group` (Congestion-Control Group) | A congestion-control group that QPs can be attached to | `doca_verbs_cc_group_attr_create` → `_set_hint` → `doca_verbs_cc_group_create(ctx, group_attr, &cc_group)` → attach to a QP via `doca_verbs_qp_attr_set_cc_group` → modify / query / destroy. The matching cap-query is `doca_verbs_query_cc_group_caps` |
 | `doca_verbs_eth_sq` (Ethernet Send Queue) | An Ethernet-side SQ (the verbs-tier counterpart to the [`doca-eth`](../doca-eth/SKILL.md) TX queue) — only when the user has confirmed `doca-eth` does not expose the option they need (e.g., explicit TS-source-type, plane-index, multi-pkt-send-WQE) | `doca_verbs_eth_sq_init_attr_create` → `_set_*` (PD / CQ / WR-num / max-SGEs / max-inline-data / queue-id / user-index / external-datapath / DPA / TS-source-type / plane-index / flush-in-error / allow-multi-pkt-send-WQE / sig-all) → `doca_verbs_eth_sq_create(ctx, init_attr, &sq)` → use → `doca_verbs_eth_sq_destroy(sq)`. Query via `doca_verbs_eth_sq_query`; recover from error via `doca_verbs_eth_sq_recover_from_error` |
@@ -146,10 +146,11 @@ with its matching `doca_verbs_qp_init_attr`, plus the send and
 receive `doca_verbs_cq`s and the per-QP `doca_verbs_qp_attr`
 transitions via `doca_verbs_qp_modify` to drive the QP state
 machine (RESET → INIT → RTR → RTS for RC; analogous transitions
-for UD, XRC, DC); MRs covering any memory the QP will read or
+for UC); MRs covering any memory the QP will read or
 write — all configured through the `doca_verbs_*` setters
 appropriate for each object. *Optional but commonly needed*:
-explicit transport-type selection (IB / RoCE / UD), queue depths,
+explicit QP-type selection (RC / UC — the only two QP types this
+release defines: `DOCA_VERBS_QP_TYPE_RC` / `_UC`), queue depths,
 per-WR flag selection, ECE attribute tuning, CC-group attachment,
 SRQ attachment, completion-channel attachment to a CQ. Query the
 active value of any setter with the matching
@@ -306,10 +307,15 @@ Five primary signals the agent should reach for:
    changes, fatal errors). Wire the handle into the user's poll
    loop the same way as the comp-channel handle when those events
    are operationally relevant.
-5. **Commands in flight.** `doca_verbs_command_get_state`,
-   `_get_op_type`, `_get_user_data` give visibility into
-   command-in-flight state for the verbs surface. Use sparingly;
-   not every workflow needs it.
+5. **Commands in flight (RESTRICTED / trap-tier — NOT public).**
+   `doca_verbs_command_get_state`, `_get_op_type`,
+   `_get_user_data` give visibility into command-in-flight
+   state, but they are **not part of the public verbs surface**:
+   they are declared only in the restricted trap header
+   `include/restricted/multi_path/doca_verbs_trap.h`, not in
+   `include/public/doca_verbs.h`. Do not present them as
+   generally available observability for public verbs consumers;
+   they require the restricted multi-path/trap tier.
 
 For cross-cutting observability primitives (`--sdk-log-level`, the
 `doca-<lib>-trace` build flavor, the `DOCA_LOG_LEVEL` env var) see

@@ -22,7 +22,7 @@ GPUNetIO release and every host + GPU + NIC combination.
 | Pattern | When it applies (class shape) | Where the substance lives |
 | --- | --- | --- |
 | 1. Set up the underlying Ethernet queues first | doca-eth `doca_eth_rxq` / `doca_eth_txq` must be configured before any GPUNetIO call; GPUNetIO does not own the queue, it exposes it to the GPU | [`## Capabilities and modes`](#capabilities-and-modes) layering rule + [TASKS.md ## configure](TASKS.md#configure) step 2 |
-| 2. Create the per-GPU `doca_gpu` context | One context per CUDA device ordinal; multi-GPU host needs one `doca_gpu` per device | [`## Capabilities and modes`](#capabilities-and-modes) per-device-context rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
+| 2. Create the per-GPU `doca_gpu` context | One context per GPU (created from the GPU's PCIe bus-id string); a multi-GPU host needs one `doca_gpu` per device | [`## Capabilities and modes`](#capabilities-and-modes) per-device-context rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
 | 3. Build the GPU-visible queue handles on top of doca-eth | `doca_gpu_eth_rxq` / `doca_gpu_eth_txq` are passed into a CUDA kernel for device-side packet I/O | [`## Capabilities and modes`](#capabilities-and-modes) handle table + [TASKS.md ## configure](TASKS.md#configure) step 5 |
 | 4. Use the persistent-kernel pattern, not kernel-per-packet | One long-running CUDA kernel polls the GPU-visible RX queue, processes in place, optionally pushes results out via the GPU-visible TX queue | [`## Capabilities and modes`](#capabilities-and-modes) persistent-kernel section + [TASKS.md ## modify](TASKS.md#modify) |
 | 5. Honor env preconditions: CUDA toolkit matched to DOCA, `nvidia_peermem` loaded, CUDA buffers registered | Mismatched CUDA + DOCA combos fail at link or runtime in confusing ways; missing `nvidia_peermem` disables GPUDirect RDMA | [`## Safety policy`](#safety-policy) env-precondition matrix + [TASKS.md ## configure](TASKS.md#configure) step 1 |
@@ -50,11 +50,11 @@ doca-eth queue is being exposed to the GPU* (RX, TX, or both).
 Choose both before writing any CUDA kernel code, then drill into
 the relevant capability-query.
 
-**The per-GPU `doca_gpu` context — one per CUDA device ordinal.**
+**The per-GPU `doca_gpu` context — one per GPU (created from the GPU's PCIe bus-id string).**
 
 | Object | Lifetime | What it owns | Key calls |
 | --- | --- | --- | --- |
-| `doca_gpu` | Per CUDA device ordinal; created against a specific GPU on the host | The DOCA-side bookkeeping for that GPU, the registration of CUDA buffers into DOCA, the GPU-visible queue handles built on top of doca-eth queues for that GPU | `doca_gpu_create` (against a CUDA device ordinal), the destroy / re-create flow on rebind |
+| `doca_gpu` | One per GPU; created for a specific GPU on the host | The DOCA-side bookkeeping for that GPU, the registration of CUDA buffers into DOCA, the GPU-visible queue handles built on top of doca-eth queues for that GPU | `doca_gpu_create(const char *gpu_bus_id, ...)` — takes the GPU's PCIe bus-id string (e.g. from `cudaDeviceGetPCIBusId`), not an int ordinal; plus the destroy / re-create flow on rebind |
 
 A multi-GPU host needs one `doca_gpu` per device the user wants
 to drive — there is no *"global GPU context"*. The agent must
@@ -101,7 +101,7 @@ check. Either axis missing the support fails the feature.
 
 | Axis | What to call | Why the agent must ask |
 | --- | --- | --- |
-| DOCA side | `doca_gpu_eth_rxq_cap_is_supported(devinfo, ...)` against the active `doca_devinfo` (and the matching `_txq_cap_is_supported` family member) | DOCA-side compatibility of the underlying RX/TX queue type with GPU exposure is device-conditional; do not assume the feature is on every NIC + DOCA combo |
+| DOCA side | `doca_eth_rxq_cap_is_type_supported(devinfo, ...)` against the active `doca_devinfo` (the doca-eth cap function in `doca_eth_rxq.h`, plus the `doca_eth_rxq_cap_get_*` sizing family and the matching `doca_eth_txq_cap_is_type_supported` / `doca_eth_txq_cap_get_*` in `doca_eth_txq.h`) — GPUNetIO itself exposes no `cap_is_supported` symbol; the queue capability is a doca-eth query | DOCA-side compatibility of the underlying RX/TX queue type with GPU exposure is device-conditional; do not assume the feature is on every NIC + DOCA combo |
 | CUDA side | `cudaGetDeviceProperties(props, devOrdinal)` against the candidate CUDA device | GPU-initiated networking depends on per-device CUDA capabilities; older non-Ampere GPUs may not support the GPU-side primitives even if DOCA is happy |
 
 **Configuration shape.** *Mandatory* preconditions before any
@@ -138,8 +138,8 @@ response.
 
 | Error | GPUNetIO context where it shows up | GPUNetIO-specific cause |
 | --- | --- | --- |
-| `DOCA_ERROR_NOT_SUPPORTED` | `doca_gpu_create`; `doca_gpu_eth_rxq_*` / `_txq_*` creation; the cap-query family | The GPU does not support GPUNetIO (e.g. older non-Ampere GPU per `cudaGetDeviceProperties`), or `nvidia_peermem` is not loaded so GPUDirect RDMA is unavailable, or the underlying doca-eth queue type is not exposable to the GPU on this NIC + DOCA combo. Run BOTH `doca_gpu_eth_rxq_cap_is_supported(devinfo, ...)` AND `cudaGetDeviceProperties(devOrdinal)`; surface which axis is false. |
-| `DOCA_ERROR_INVALID_VALUE` | `doca_gpu_create` with a CUDA device ordinal; buffer registration via `doca_buf_arr_create_*` | The CUDA device ordinal is out of range for the host (mismatched between `nvidia-smi -L` and the value passed to DOCA), or the CUDA-allocated buffer has alignment / size that does not match the doca-eth queue expectations. Re-query `cudaGetDeviceCount` and the queue's required alignment; do not paper over with a retry. |
+| `DOCA_ERROR_NOT_SUPPORTED` | `doca_gpu_create`; `doca_gpu_eth_rxq_*` / `_txq_*` creation; the cap-query family | The GPU does not support GPUNetIO (e.g. older non-Ampere GPU per `cudaGetDeviceProperties`), or `nvidia_peermem` is not loaded so GPUDirect RDMA is unavailable, or the underlying doca-eth queue type is not exposable to the GPU on this NIC + DOCA combo. Run BOTH `doca_eth_rxq_cap_is_type_supported(devinfo, ...)` (the doca-eth query in `doca_eth_rxq.h`) AND `cudaGetDeviceProperties(devOrdinal)`; surface which axis is false. |
+| `DOCA_ERROR_INVALID_VALUE` | `doca_gpu_create` with a GPU PCIe bus-id string; buffer registration via `doca_buf_arr_create_*` | The PCIe bus-id string does not match a GPU present on the host (mismatched between `nvidia-smi -L` / `cudaDeviceGetPCIBusId` and the string passed to DOCA), or the CUDA-allocated buffer has alignment / size that does not match the doca-eth queue expectations. Re-resolve the bus-id and the queue's required alignment; do not paper over with a retry. |
 | `DOCA_ERROR_BAD_STATE` | Any GPUNetIO call against a doca-eth context that is at the wrong lifecycle stage; teardown ordering between the GPU-visible handle and the underlying doca-eth queue | Lifecycle violation. The most common case is calling `doca_gpu_eth_rxq_*` against a doca-eth context that has not been started, or destroying the underlying `doca_eth_rxq` before destroying the GPU-visible handle. Walk the layering rule in [`## Capabilities and modes`](#capabilities-and-modes). |
 | `DOCA_ERROR_AGAIN` | TX submit from inside the CUDA kernel (device-side); RX drain from the persistent kernel | The GPU-visible queue is full from the GPU side. This is *not* a hardware error; the persistent kernel must drain completions before re-submitting (the device-side equivalent of the host-side *"would-block, retry after progress"* pattern). |
 | `DOCA_ERROR_DRIVER` | `doca_gpu_create`; any GPUNetIO call when CUDA + DOCA versions are skewed | The CUDA driver layer reported failure to DOCA. Most common cause is a CUDA + DOCA version mismatch per the DOCA Compatibility Policy. Route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) layer 5 (driver) AND to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) for the version-skew side. |
@@ -170,7 +170,8 @@ Three primary signals the agent should reach for:
    the persistent kernel needs an explicit drain step in its
    loop.
 2. **Capability snapshot at configure time.** The output of
-   `doca_gpu_eth_rxq_cap_is_supported(devinfo, ...)` AND
+   `doca_eth_rxq_cap_is_type_supported(devinfo, ...)` (the
+   doca-eth query in `doca_eth_rxq.h`) AND
    `cudaGetDeviceProperties(devOrdinal)` together is the baseline
    of *"what the library + the GPU said was possible"* before
    any kernel was launched. Save both; if a runtime call later

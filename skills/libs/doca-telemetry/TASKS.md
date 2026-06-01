@@ -1,54 +1,36 @@
 # DOCA Telemetry per-domain hardware-counter-reader workflows
 
-> **CRITICAL framing correction (Run-12 / verified Run-13).**
-> The DOCA Telemetry library is a **per-domain hardware-counter
-> READER** surface, NOT a NetFlow / IPFIX / local-socket
-> *collector* framework. The public header exposes six per-domain
-> sub-libraries — `doca_telemetry_pcc` / `_dpa` / `_diag` /
-> `_adp_retx` / `_phy` / `_pci` — each with its own
-> `_cap_is_supported(devinfo)` capability query, context create
-> on a `doca_dev`, `doca_ctx_start()`, and per-domain read /
-> sample call. The rest of this file uses legacy "collector /
-> schema-query / publisher" language; treat that language as
-> follows when reasoning about the workflow:
-> - "collector context" → per-domain `doca_telemetry_<domain>`
->   context opened on a `doca_dev`.
-> - "schema query" → per-domain `doca_telemetry_<domain>_cap_is_supported`
->   + the per-domain counter-set discovery returned by that
->   library's own `_get_*_supported` getters.
-> - "publisher" → the firmware / hardware itself (the device
->   exposes the counter); there is no separate publisher
->   application to stage before this reader runs.
-> - "incoming transport" → the per-domain register / DPA mailbox /
->   FW-mediated read path the per-domain library uses internally;
->   there is no socket / port to bind.
-> - "NetFlow / IPFIX / schema-collector" question → refuse +
->   route to a non-DOCA collector (or to
->   [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
->   if the user actually wants to PUBLISH counters, or to the
->   externally-productized DTS — out of scope — for turnkey
->   aggregation).
+This library is the **per-domain hardware-counter READER** half
+of DOCA telemetry. It exposes six independent per-domain reader
+sub-libraries — `doca_telemetry_pcc` / `_dpa` / `_diag` /
+`_adp_retx` / `_phy` / `_pci` — each with its own header, its own
+opaque context type, and its own `doca_telemetry_<domain>_*` C
+API. There is **no** NetFlow / IPFIX / local-socket collector
+surface, **no** schema-registration, and **no** socket / port /
+publisher to configure. Each domain is read directly off an
+already-open `doca_dev` via cap-query → `_create` → per-domain
+setters → `_start` → per-domain read → `_stop` → `_destroy`. The
+publishing / export side is the sibling
+[`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
+library — a separate skill.
 
 **Where to start:** The verbs run `configure → build → modify →
 run → test → debug`. Skip ahead only when the user is already
 past a verb. The `## test` verb is an iterative loop (cap-query
-sanity → single per-domain read smoke → multi-domain read
-ordering → under-load read cadence → loop back if the device or
+sanity → single per-domain read smoke → multi-read cadence →
+under-load sample-window behavior → loop back if the device or
 domain set changes), not a one-shot pass — see the eval-loop
-overlay in `## test` below. (The legacy text below frames this
-loop in publisher / collector terms — treat publisher = the
-firmware / hardware itself per the banner above.)
+overlay in `## test` below.
 
 Read this file when the loader sent you here from
 [SKILL.md](SKILL.md). For the per-domain sub-libraries, the
-reader-vs-exporter role split, the per-domain DOCA Core
-lifecycle on a `doca_dev`, the per-domain capability-query
-rule, the error taxonomy (including the
-`NOT_SUPPORTED`-means-domain-not-exposed-on-this-device rule
-and the `AGAIN`-means-snapshot-not-ready rule), observability,
-and safety policy, see [CAPABILITIES.md](CAPABILITIES.md). For
-where to find docs, the installed DOCA layout, or release
-notes, route through
+reader-vs-exporter role split, the per-domain lifecycle on a
+`doca_dev`, the per-domain capability-query rule, the error
+taxonomy (including the `NOT_SUPPORTED`-means-domain-not-exposed
+rule and the `AGAIN`-means-snapshot-not-ready rule),
+observability, and safety policy, see
+[CAPABILITIES.md](CAPABILITIES.md). For where to find docs, the
+installed DOCA layout, or release notes, route through
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 
 Each verb below describes the **shape of the workflow**, not a
@@ -58,160 +40,151 @@ the next call.
 
 ## configure
 
-Goal: stand up a `doca_telemetry` collector context inside the
-user's application, with at least one incoming transport
-configured and the schema-must-match contract with the
-publisher made explicit, before any event is consumed.
+Goal: pick the right per-domain reader sub-library, confirm the
+device exposes it, and stand up the per-domain context on an
+already-open `doca_dev` — before any counter read.
 
 Steps the agent should walk the user through:
 
-1. **Confirm the role: this is the COLLECTOR (consume) side.**
-   Before any code change, surface the collector-vs-exporter
-   distinction per the role-split table in
+1. **Confirm the role: this is the READER (consume-from-device)
+   side.** Before any code change, surface the
+   reader-vs-exporter distinction per the role-split table in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
    `doca-telemetry` is what the user's application links to
-   **receive / aggregate** telemetry events; the publishing
-   side is
+   **read** hardware counters off a `doca_dev`; the publishing /
+   export side is
    [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md),
    a separate sibling library. An agent that walks the user
-   toward the exporter skill when they wanted to consume is
-   wrong; an agent that recommends linking this collector when
-   the user actually wanted to publish is wrong. State the
-   role first, before any `pkg-config` mention or any code
-   sketch.
-2. **Verify the transport endpoint is bindable.** Walk the
-   permission + staging matrix in
-   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy):
-   (a) the collector runs as a user that can bind / listen on
-   whichever incoming transport the collector is configured
-   for (local socket permissions, TCP / UDP port range,
-   on-host telemetry agent socket ownership); (b) sudo is NOT
-   required across the board — it is only required for sub-
-   1024 port binding or for specific endpoint-ownership cases;
-   (c) the user knows independently how to confirm the
-   endpoint is reachable from the publisher side. If the
-   endpoint is locked down, route to
-   [`doca-setup TASKS.md ## configure`](../../doca-setup/TASKS.md#configure)
-   or to re-pointing the collector at an endpoint its user
-   CAN bind.
-3. **Confirm the installed DOCA version and run capability
-   discovery.** Use the procedure in
+   toward the exporter skill when they wanted to read counters
+   is wrong; an agent that recommends linking this reader when
+   the user actually wanted to publish is wrong. State the role
+   first, before any `pkg-config` mention or any code sketch.
+2. **Pick the per-domain sub-library.** Per the sub-library
+   table in
+   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes),
+   map the counters the user cares about to exactly one domain:
+   PCC (`doca_telemetry_pcc.h`), DPA (`_dpa.h`), device
+   diagnostics (`_diag.h`), adaptive-retransmit histogram
+   (`_adp_retx.h`), physical layer (`_phy.h`), or PCI / PCIe
+   (`_pci.h`). Each is a separate header and a separate context
+   type — there is no single "telemetry" context that reads all
+   of them. If the user needs counters from more than one
+   domain, that is more than one per-domain context in the same
+   application.
+3. **Confirm the installed DOCA version and cap-query the
+   domain.** Use the procedure in
    [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure).
    Quote the version observed (`pkg-config --modversion
-   doca-telemetry`, then `doca_caps --version`); do not
-   assume "latest". Then run the matching
-   `doca_telemetry_*_cap_*` queries (which incoming transports
-   are supported, max in-flight events, sampling policy,
-   supported schema versions) — per the capability-query rule
-   in
+   doca-telemetry`, then `doca_caps --version`); do not assume
+   "latest". Then call the matching per-domain capability query
+   against the active `doca_devinfo`:
+   `doca_telemetry_<domain>_cap_is_supported(devinfo)` for
+   `pcc` / `dpa` / `diag` / `adp_retx` / `phy`. **For `phy`,
+   also query the per-sub-area caps** (e.g.
+   `doca_telemetry_phy_cap_counter_and_ber_info_is_supported`)
+   for the specific sub-area you intend to read. **For `pci`
+   there is NO single domain-level cap** — query the per-feature
+   caps (`doca_telemetry_pci_cap_management_info_is_supported`,
+   `_cap_perf_counters_1_is_supported`,
+   `_cap_latency_histogram_is_supported`) for the PCI counter
+   family you intend to read. Per the capability-query rule in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes),
-   the queried value is the runtime authority, not the
-   agent's memory. Quote the values back to the user.
-4. **Make the schema-must-match contract with the publisher
-   explicit.** Per the schema-contract table in
-   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes),
-   the collector consumes against the schema the publisher
-   registered. Establish with the user: which publisher
-   application(s) will feed this collector; what schema
-   name(s), schema version, and per-field type set the
-   publisher registers; how the collector will discover those
-   via the schema-query family AFTER the publisher starts
-   emitting. A collector configured against an assumed schema
-   that the publisher does not actually register is the
-   silent-failure case the agent must prevent here, not at
-   debug time.
-5. **Configure the collector's incoming transport.** Pick the
-   transport from the install's cap-queried set (per step 3),
-   set the transport endpoint the publisher will write to,
-   and size the consumer queue against the install's max in-
-   flight cap. The agent should NOT default to one transport
-   without asking — the right transport is workload-bound
-   (local socket for same-host publisher / collector; NetFlow
-   or IPFIX listener for network-shipped telemetry; attach to
-   DTS as the canonical aggregator on BlueField).
-6. **Confirm the collector is the right tool.** Walk the
-   path-selection rule in
-   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes):
-   if the user really wanted to PUBLISH telemetry from their
-   app, route to
-   [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
-   instead; if the user wanted plain stdout / structured-log
-   shipping from their own program, use
-   `doca-log`; if the source is a
-   non-DOCA program, use a Prometheus client library or
-   OpenTelemetry collector directly. Picking the collector
-   *for* the user when the path-selection rule rules it out
-   is a wrong answer regardless of how cleanly the rest of
-   the configure step goes.
-7. **Start the collector context.** `doca_ctx_start()` on
-   the collector; per the universal lifecycle in
-   [`doca-programming-guide TASKS.md ## configure`](../../doca-programming-guide/TASKS.md#configure),
-   nothing consumes cleanly until the context is in
-   `RUNNING`. If start fails, route through the error
-   taxonomy in
+   the queried value is the runtime authority, not the agent's
+   memory. A `DOCA_ERROR_NOT_SUPPORTED` here is the answer (the
+   device does not expose this domain), not a bug. Quote the
+   values back to the user.
+4. **Create the per-domain context on the `doca_dev`.** Call
+   `doca_telemetry_<domain>_create(dev, &ctx)` against the
+   already-open `doca_dev` (for the PCC representor path, use
+   `doca_telemetry_pcc_rep_create(dev_rep, &ctx)`). The
+   `doca_dev` must already be open — opening it is the
+   `doca-common` / device-discovery concern, not this skill's.
+5. **Apply the per-domain configuration knobs (domain-specific,
+   optional for some domains).** Set only what the domain
+   exposes — there is no transport / socket / schema to
+   configure:
+   - `diag`: set the sample mode
+     (`doca_telemetry_diag_set_sample_mode`), sample period
+     (`_set_sample_period`), and max num samples
+     (`_set_log_max_num_samples`); then
+     `doca_telemetry_diag_apply_config` and select the counter
+     IDs with `doca_telemetry_diag_apply_counters_list_by_id`
+     BEFORE start.
+   - `adp_retx`: set the histogram shape (`_set_hist_num_bins`,
+     `_set_hist_bin0_width`, `_set_hist_time_unit`,
+     `_set_hist_clear_on_read`, optionally `_set_hist_vhca_id`),
+     bounded by the `_cap_get_hist_max_bins` /
+     `_cap_get_hist_time_units` caps from step 3.
+   - `dpa`: optionally `_set_max_perf_event_samples` before
+     reading perf-event lists.
+   - `pcc` / `phy` / `pci`: typically no pre-start setters — read
+     directly after start.
+6. **Start the per-domain context.** Call
+   `doca_telemetry_<domain>_start(ctx)`. Reads before start
+   return `DOCA_ERROR_BAD_STATE`. For `diag`, start is only
+   valid after `_apply_config`. If start fails, route through
+   the error taxonomy in
    [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
    before retrying.
 
-If any step fails with a `DOCA_ERROR_*`, route through the
-error taxonomy in
+If any step fails with a `DOCA_ERROR_*`, route through the error
+taxonomy in
 [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
-before retrying. In particular, `DOCA_ERROR_NOT_FOUND` on a
-schema query is *not* a configure-time bug — it is the
-canonical *"no publisher has registered this schema yet"*
-signal and routes to the publisher-up staging in
-[`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
+before retrying. In particular, `DOCA_ERROR_NOT_SUPPORTED` on
+the cap-query or first read is *not* a configure-time bug — it is
+the canonical *"this device does not expose this counter
+domain"* signal, and the correct response is to surface it, not
+to retry.
 
 ## build
 
-Goal: produce a collector binary that links DOCA Telemetry
-against the user's installed DOCA, using the canonical cross-
-library build pattern.
+Goal: produce a reader binary that links DOCA Telemetry against
+the user's installed DOCA, using the canonical cross-library
+build pattern.
 
 The build pattern for any DOCA C/C++ consumer is **identical**
 across libraries — `pkg-config` for include + link flags, meson
 or CMake as the build system — and is fully documented in
 [`doca-programming-guide TASKS.md ## build`](../../doca-programming-guide/TASKS.md#build).
-This skill carries only the collector-specific overlay:
+This skill carries only the reader-specific overlay:
 
-| Slot | Value for the collector | Why it matters |
+| Slot | Value for the reader | Why it matters |
 | --- | --- | --- |
-| `pkg-config` module name | `doca-telemetry` | The collector's `.pc` file installed by the DOCA host packages. **Wrong module name = wrong direction** — `doca-telemetry-exporter` is the SIBLING publisher library, with its own `.pc` and its own skill at [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md). Picking `doca-telemetry-exporter` when the user wanted to consume (or `doca-telemetry` when the user wanted to publish) is the load-bearing first-app failure, NOT a typo — re-check the role per [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) |
-| Include flags | `pkg-config --cflags doca-telemetry` | Resolves to collector headers under $(pkg-config --variable=includedir doca-common) for the collector subset |
-| Link flags | `pkg-config --libs doca-telemetry` | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) plus the transitive set the resolver computes against this install |
-| Header check | A collector header (per the install's layout) resolvable under $(pkg-config --variable=includedir doca-common) on the host | If `pkg-config --cflags doca-telemetry` resolves but the include is missing, the install is partial — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 |
-| Minimum required DOCA version | Query with `pkg-config --modversion doca-telemetry`; never hardcode in build files | Cross-version build / runtime mixing breaks per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility); the schema-must-match contract with the publisher across versions is the extra trap to surface |
+| `pkg-config` module name | `doca-telemetry` | The reader's `.pc` file installed by the DOCA host packages. **Wrong module name = wrong direction** — `doca-telemetry-exporter` is the SIBLING publisher library, with its own `.pc` and its own skill at [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md). Picking `doca-telemetry-exporter` when the user wanted to read counters (or `doca-telemetry` when the user wanted to publish) is the load-bearing first-app failure, NOT a typo — re-check the role per [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) |
+| Header to `#include` | The per-domain header for the chosen domain: `doca_telemetry_pcc.h` / `_dpa.h` / `_diag.h` / `_adp_retx.h` / `_phy.h` / `_pci.h` | Each domain is a separate header. Including the wrong domain's header gets the wrong symbol family. Resolve under `$(pkg-config --variable=includedir doca-common)` |
+| Include flags | `pkg-config --cflags doca-telemetry` | Resolves to the telemetry headers on this install |
+| Link flags | `pkg-config --libs doca-telemetry` | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) plus the transitive set the resolver computes |
+| Minimum required DOCA version | Query with `pkg-config --modversion doca-telemetry`; never hardcode in build files | The per-domain counter set grows across releases; cross-version build / runtime mixing breaks per [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility) |
 
-For non-C consumers (Rust, Go, Python), the link surface is
-the same `*.so` files; the FFI wrapper layer is the language-
-specific binding and is out of scope for this skill — but the
-slots above are still the load-bearing inputs the wrapper
-needs.
+For non-C consumers (Rust, Go, Python), the link surface is the
+same `*.so` files; the FFI wrapper layer is the language-specific
+binding and is out of scope for this skill — but the slots above
+are still the load-bearing inputs the wrapper needs.
 
 ## modify
 
-Goal: take a shipped DOCA Telemetry collector sample as the
+Goal: take a shipped DOCA Telemetry reader sample as the
 verified starting point and apply a **minimum-diff
 modification** to express the user's intent.
 
 The universal modify-a-shipped-sample workflow lives in
 [`doca-programming-guide TASKS.md ## modify`](../../doca-programming-guide/TASKS.md#modify).
-Use it as-is. The collector-specific overlay is the *modify-
-from-sample contract fill* — the slots the agent must elicit
-from the user before recommending any code-level edit:
+Use it as-is. The reader-specific overlay is the *modify-from-
+sample contract fill* — the slots the agent must elicit from the
+user before recommending any code-level edit:
 
-| Slot | What the agent asks the user | Collector-specific consideration |
+| Slot | What the agent asks the user | Reader-specific consideration |
 | --- | --- | --- |
-| 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_telemetry/`? | Pick the closest in *transport* (local socket / NetFlow / IPFIX / DTS attachment) and *consumption pattern* (single-schema drain vs multi-schema dispatch) to the user's intent. A smaller diff is always safer than a re-architecture |
-| 2. Publisher identity | Which application(s) are the publishers feeding this collector? Are they linking [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md) directly, or is the source the DOCA Telemetry Service (DTS)? | The schema-must-match contract per [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) depends on knowing the publisher; a collector modified against a publisher the user did not actually name is the canonical *"silent schema mismatch"* trap |
-| 3. Schema set the publisher registers | What schema name(s), schema version, and per-field type set does the publisher register? | Re-validate against `doca_telemetry_*_cap_*` per [`## configure`](#configure) step 3; a schema set that works against one install may exceed `max in-flight events` or use a `schema version` the collector's install does not understand |
-| 4. Drain-loop behavior on `AGAIN` | What does the modified collector do when a consume returns `DOCA_ERROR_AGAIN`? | Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) consumer-queue rule, the policy is the collector's to make: drain faster (widen the loop, dispatch to a worker pool), increase the queue cap if the install allows, or accept bounded loss. Asking the publisher to slow down is a non-default cross-process choice; if the sample's existing drain loop silently absorbs `AGAIN` without surfacing the loss count, that is a sample gap that needs to be edited out before the modify lands |
-| 5. Publisher staging assumption | Does the modified collector assume the publisher is up first, or does it tolerate the publisher starting later? | Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) staging row, either is fine in steady state — but a collector that treats the first `DOCA_ERROR_NOT_FOUND` on schema query as a fatal error will fail in the "publisher starts later" case. Decide explicitly which behavior the modified collector wants |
+| 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_telemetry/`? | Pick the sample for the SAME domain the user picked in [`## configure`](#configure) step 2 (e.g. the PHY sample for PHY counters). A smaller diff is always safer than a re-architecture across domains |
+| 2. Domain + counters | Which per-domain sub-library, and which specific counters / sub-areas within it? | Re-validate against the per-domain cap-query per [`## configure`](#configure) step 3; a counter family present on one install / device may return `NOT_SUPPORTED` on another |
+| 3. Sample shape (sampled domains) | For `diag` / `adp_retx`: what sample mode, sample period, and num-samples / histogram-bin shape? | Bound every setter by the `_cap_*` sizing caps from [`## configure`](#configure) step 3; a value past the cap returns `DOCA_ERROR_INVALID_VALUE`. For `diag`, the `_apply_config` + `_apply_counters_list_by_id` calls MUST stay before `_start` |
+| 4. Read cadence + `AGAIN` behavior | How often does the modified reader read, and what does it do when a read returns `DOCA_ERROR_AGAIN`? | Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) sample-window rule, the retry must respect the sample window (for diag, wait for the previous sampling cycle); a tight `AGAIN` spin is a sample gap that needs editing out before the modify lands |
+| 5. Clear-on-read intent | Does the modified reader enable clear-on-read (`adp_retx` `_set_hist_clear_on_read`, `diag` data-clear)? | Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy), clear-on-read resets the underlying counters — a second reader sees post-clear state. Decide explicitly; default to NOT clearing unless the user wants destructive reads |
 | 6. Build manifest | Keep the sample's existing `meson.build` (which already wires `pkg-config doca-telemetry`)? | Yes. Do not switch to a hand-rolled Makefile for *"simplicity"* — it removes the version-check rail. And do not silently swap the `pkg-config` module to `doca-telemetry-exporter` — that flips the role and is the load-bearing first-app failure |
 
-The agent emits an *intent description + the filled slots*;
-the *actual* unified diff against the sample source is
-produced by the modify-from-sample renderer (deferred to a
-future round, per
+The agent emits an *intent description + the filled slots*; the
+*actual* unified diff against the sample source is produced by
+the modify-from-sample renderer (deferred to a future round, per
 [`doca-programming-guide TASKS.md ## modify`](../../doca-programming-guide/TASKS.md#modify)).
 Until the renderer ships, the agent must walk the user through
 the diff line-by-line against the sample source they read on
@@ -219,272 +192,244 @@ disk, and have the user paste back the result for validation.
 
 ## run
 
-Goal: actually execute the built collector against the user's
-installed DOCA, with the transport endpoint bindable, the
-schema-must-match contract with the publisher honored, and a
-publisher available for the end-to-end smoke.
+Goal: actually execute the built reader against the user's
+installed DOCA, against an open `doca_dev`, reading the chosen
+domain's counters.
 
 Steps the agent should walk the user through:
 
-1. **Bind the transport endpoint cleanly.** The collector's
-   first start either succeeds in binding the configured
-   transport endpoint or returns `DOCA_ERROR_NOT_PERMITTED`.
-   Per the permission row in
+1. **Open the `doca_dev` and cap-query the domain on it.** The
+   reader's first job is to open the target device and confirm
+   `doca_telemetry_<domain>_cap_is_supported(devinfo)` (or the
+   `pci` per-feature caps) returns `DOCA_SUCCESS`. A
+   `DOCA_ERROR_NOT_SUPPORTED` here means the device does not
+   expose this domain — fix the device selection or the domain
+   choice, not the read call.
+2. **Run as a user with privilege for the counter domain
+   (typically NOT blanket sudo).** Per
    [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy),
-   `NOT_PERMITTED` is almost always the specific endpoint
-   (socket owner, port range, agent socket) — fix on the
-   env / endpoint side, not by adding `sudo` globally.
-2. **Run the collector as a user that can bind the endpoint
-   (typically NOT sudo as a universal rule).** Per
-   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy),
-   sudo is required only for sub-1024 port binding or
-   specific endpoint-ownership cases. Resist the reflex to
-   add `sudo` to the collector process; re-point the
-   collector at an endpoint its user CAN bind instead.
-3. **Start a publisher and confirm one event arrives.**
-   Before any bulk-traffic run, start ONE publisher (a
-   [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)-using
-   application, or DTS as the canonical aggregator on
-   BlueField) and have it emit ONE event with the schema the
-   collector is expecting. Confirm the collector's consume
-   loop yields exactly that one event with the field values
-   the publisher emitted intact. Skipping this step is the
-   most common reason *"the collector runs without errors
-   but never sees anything"* (the silent schema-mismatch
-   trap from [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)).
+   some diagnostic / PHY / PCI counters require elevated device
+   access. A `DOCA_ERROR_NOT_PERMITTED` on create / start / read
+   means the running user lacks the specific privilege — grant
+   it on the env side rather than reflexively running the whole
+   app as root.
+3. **Create → (configure) → start → read once.** Walk the
+   per-domain lifecycle from [`## configure`](#configure):
+   create on the `doca_dev`, apply any domain setters, start,
+   then issue ONE read (e.g. `doca_telemetry_phy_get_counter_and_ber_info`,
+   `doca_telemetry_pcc_get_counters`,
+   `doca_telemetry_diag_query_counters`,
+   `doca_telemetry_pci_read_perf_counters_1`,
+   `doca_telemetry_dpa_read_cumul_info_list`). Confirm the read
+   returns `DOCA_SUCCESS` and the output struct is populated
+   before any loop.
 4. **Capture the structured log.** Set `DOCA_LOG_LEVEL=trace`
    for the first run (see
    [`doca-debug CAPABILITIES.md ## Observability`](../../doca-debug/CAPABILITIES.md#observability)).
-   This is the cheapest way to make the collector lifecycle
-   transitions, the schema discovery, and the per-consume
-   calls visible on first failure.
-5. **Watch for `DOCA_ERROR_AGAIN` only when bulk traffic
-   starts.** `AGAIN` shows up under transport load on the
-   consume call, not at the first consume. When it appears,
-   the collector application's correct response is per the
-   policy decided in
-   [`## modify`](#modify) slot 4 (drain faster / widen queue
-   / accept bounded loss) — not a blind retry. See
-   [`## debug`](#debug) layer 6 for the per-consume pattern.
+   This is the cheapest way to make the per-domain lifecycle
+   transitions and the first failing read visible.
+5. **Handle `DOCA_ERROR_AGAIN` with sample-window-aware
+   retries, not a spin.** `AGAIN` on a read means the snapshot /
+   sample cycle is not ready yet. Retry after the documented
+   sample window (for `diag`, after the previous sampling cycle
+   completes — see the note on `doca_telemetry_diag_query_counters`),
+   per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
+6. **Stop and destroy on teardown.** Call
+   `doca_telemetry_<domain>_stop` then
+   `doca_telemetry_<domain>_destroy` in reverse-create order.
 
 ## test
 
-Goal: prove the configured collector context can actually
-receive structured telemetry from a publisher, end-to-end,
-before claiming the *"build a first telemetry-collecting
-app"* journey is done.
+Goal: prove the per-domain reader can actually read the chosen
+counters off the device, end-to-end, before claiming the
+*"build a first counter-reading app"* journey is done.
 
-This is **a loop, not a one-shot pass.** Each iteration
-narrows either the transport endpoint, the schema contract
-with the publisher, the consumer-queue back-pressure
-behavior, or the publisher's staging. The loop terminates
-when either (a) the user's intended ingest rate runs end-to-
-end with the expected events arriving at the collector, the
-schema decoded correctly, and the under-load behavior matches
-the policy decided in [`## modify`](#modify) slot 4, or (b)
-the agent has narrowed the failure cause to a layer outside
-the collector itself (publisher / transport / driver) and
-escalated to the matching skill.
+This is **a loop, not a one-shot pass.** Each iteration narrows
+either the domain / sub-area selection, the cap-query result,
+the sample-window behavior, or the per-read return. The loop
+terminates when either (a) the reader reads the intended
+counters off the device with the expected values and the
+sample-window behavior matches the policy decided in
+[`## modify`](#modify) slot 4, or (b) the agent has narrowed the
+failure to a layer outside the reader itself (device / driver /
+privilege) and escalated to the matching skill.
 
 Iteration shape:
 
-1. **Collector-alone smoke.** Start the collector with no
-   publisher attached; confirm `doca_ctx_start()` succeeds
-   and that the schema-query family returns
-   `DOCA_ERROR_NOT_FOUND` (the expected *"no publisher
-   yet"* signal per
-   [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)),
-   not `BAD_STATE` or `NOT_PERMITTED`. Validates the
-   collector's lifecycle and the transport-endpoint
-   permission BEFORE pulling the publisher into the picture.
-2. **Capability re-check.** Re-run the
-   `doca_telemetry_*_cap_*` queries. If the proposed
-   transport / max in-flight / schema version exceeds a
-   queried cap, that *is* the answer for this install;
-   update the configuration (or update the install) before
-   adding publishers.
-3. **Single-event publisher + collector smoke.** Start ONE
-   publisher (a [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)-using
-   application, or DTS) registering the exact schema the
-   collector is expecting; have it emit ONE event; confirm
-   the collector receives exactly that event with the field
-   values intact. If the smoke says the publisher emitted
-   but the collector saw nothing, the schema-must-match
-   contract per
-   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-   is the prime suspect, not the collector call.
-4. **Schema-contract pass.** Confirm explicitly that the
-   schema name, schema version, and per-field type set the
-   publisher registered match what the collector discovers
-   via the schema-query family. A mismatch is the silent-
-   loss trap; the canonical *"events appear to flow on the
-   publisher side but the collector sees nonsense or
-   nothing"* failure.
-5. **Multi-event smoke.** Loop a small N (say, 100) emits
-   on the publisher with the collector draining
-   concurrently; confirm the collector's count matches the
-   publisher's count and every event decodes correctly.
-   Catches lost events that the per-consume return alone
-   would not surface.
-6. **Under-load `AGAIN` behavior.** Push the publisher's
-   emit rate up until the collector's consume queue
-   saturates and the consume call starts returning
-   `DOCA_ERROR_AGAIN`. The collector MUST behave per the
-   policy decided in [`## modify`](#modify) slot 4 (drain
-   faster / widen queue / accept bounded loss) — confirm
-   the policy's behavior matches expectations. Remember the
-   publisher may simply drop on its own `AGAIN` per
-   [`doca-telemetry-exporter CAPABILITIES.md ## Safety policy`](../doca-telemetry-exporter/CAPABILITIES.md#safety-policy);
-   the under-load loss is a two-sided concern.
+1. **Lifecycle smoke.** Create the per-domain context on the
+   `doca_dev`, `_start`, and confirm both succeed before any
+   read. A `DOCA_ERROR_BAD_STATE` here means a lifecycle
+   ordering bug (read before start, or — for diag — start before
+   `_apply_config`); a `DOCA_ERROR_NOT_PERMITTED` means a
+   privilege gap. Validates the lifecycle BEFORE chasing counter
+   values.
+2. **Capability re-check.** Re-run the per-domain
+   `doca_telemetry_<domain>_cap_is_supported(devinfo)` (and, for
+   `phy` / `pci`, the per-sub-area / per-feature caps). If the
+   sub-area / counter family the user wants returns
+   `NOT_SUPPORTED`, that *is* the answer for this device + install;
+   update the domain / sub-area selection (or the device) before
+   continuing.
+3. **Single-read smoke.** Issue ONE per-domain read and confirm
+   it returns `DOCA_SUCCESS` with a populated output struct. If
+   the read returns `DOCA_ERROR_AGAIN`, the snapshot is not ready
+   — retry after the sample window, not in a tight loop. If it
+   returns `NOT_SUPPORTED`, the sub-area is not exposed (back to
+   step 2).
+4. **Value-sanity pass.** Confirm the values read are plausible
+   for the device's state (e.g. PHY BER non-negative, PCC
+   per-algo counters consistent with the active algo slots,
+   diag samples within the configured num-samples). Implausible
+   values point at the wrong sub-area / wrong output-format
+   interpretation, not a library bug.
+5. **Multi-read cadence.** Loop a small N reads at the intended
+   cadence with the sample-window discipline; confirm each read
+   returns `DOCA_SUCCESS` (or a sample-window `AGAIN` that
+   resolves on the next windowed retry) and the values evolve as
+   expected. For clear-on-read configs, confirm the post-clear
+   semantics match intent (per [`## modify`](#modify) slot 5).
+6. **Under-load behavior.** If the user reads under device load,
+   confirm the read cadence still converges and that `AGAIN`
+   frequency tracks the sample window rather than a stuck cycle.
 
 Eval-loop overlay — why this is a loop, not a one-shot pass:
 
 | Iteration trigger | What it looks like | What changes next iteration |
 | --- | --- | --- |
-| `DOCA_ERROR_NOT_PERMITTED` on collector start | Transport endpoint permission wrong (socket owner, port range, agent socket), OR user is trying to run with sudo unnecessarily | Re-walk the permission row in [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy); fix on the env / endpoint side or re-point the collector at a bindable endpoint, not by adding global sudo |
-| `DOCA_ERROR_NOT_FOUND` on schema query AFTER a publisher is up | Schema name / version the collector queried does not match what the publisher actually registered | Walk the schema-must-match contract in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes); align the publisher's registered schema with what the collector queries before re-running |
-| Publisher emits return success but collector sees nothing | Transport mismatch (publisher writing to one endpoint, collector listening on another), OR schema mismatch (collector expecting a different schema name / version) | Re-walk the transport configuration in [`## configure`](#configure) step 5 AND the schema contract in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes); confirm both sides independently before suspecting the collector |
-| `DOCA_ERROR_AGAIN` appears under bulk load | Consumer queue saturated — events arrive faster than the collector drains | This is by design — the collector applies its decided drain-faster / widen-queue / accept-loss policy. If the loss rate is unacceptable, decide whether to widen the collector (drain workers) or ask the publisher to slow down (cross-process policy, not a default) |
-| Same code receives on host A, drops on host B | Different DOCA version (schema version drift across upgrades), different transport endpoint permission, or different publisher running | Re-narrow to the per-host state; the collector's behavior is the same on both, the variance is at the version / endpoint / publisher layer |
+| `DOCA_ERROR_NOT_SUPPORTED` on cap-query or read | The device does not expose this domain / sub-area on this install | Re-pick the domain / sub-area per [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes), or confirm the right device is selected; this is the cap answer, not a retry case |
+| `DOCA_ERROR_BAD_STATE` on read | Read before `_start`, or (diag) start before `_apply_config` | Fix the per-domain lifecycle ordering per [`## configure`](#configure); re-run the lifecycle smoke |
+| `DOCA_ERROR_AGAIN` on read | Snapshot / sample cycle not ready yet | Retry after the sample window (diag: after the previous cycle); widen the read interval if a tight loop keeps hitting `AGAIN` |
+| `DOCA_ERROR_INVALID_VALUE` on a setter or read | A sample / histogram value past the install's cap, or an undersized output buffer | Re-read the `_cap_get_*` sizing query and size the value / buffer to it |
+| Same code reads on device A, returns NOT_SUPPORTED on device B | Different device family / firmware feature bits, or different DOCA version | Re-narrow to per-device cap-query; the reader behavior is the same, the variance is at the device / version layer |
 
-Loop termination: stop iterating once two consecutive
-iterations of the same kind don't change anything — that means
-the cause is below the collector (transport, publisher,
-driver). Escalate to
+Loop termination: stop iterating once two consecutive iterations
+of the same kind don't change anything — that means the cause is
+below the reader (device / driver / firmware feature gating).
+Escalate to
 [`doca-debug TASKS.md ## debug`](../../doca-debug/TASKS.md#debug)
-with the captured layer-1-through-5 evidence and both the
-publisher-side and collector-side log state.
+with the captured cap-query + per-read evidence and the device /
+version state.
 
 ## debug
 
-Goal: when a DOCA Telemetry collector call returns a
-`DOCA_ERROR_*` (or events do not show up at the collector),
-narrow the cause to a specific layer and act on it.
+Goal: when a DOCA Telemetry per-domain read returns a
+`DOCA_ERROR_*` (or returns implausible values), narrow the cause
+to a specific layer and act on it.
 
 The cross-library debug ladder lives in
 [`doca-debug TASKS.md ## debug`](../../doca-debug/TASKS.md#debug).
 Walk through it in order — install → version → build → link →
-runtime → program → driver — *before* recommending collector-
-specific fixes. This skill's overlay names the collector-
-specific manifestation at layers 5 (runtime) and 6 (program):
+runtime → program → driver — *before* recommending reader-
+specific fixes. This skill's overlay names the reader-specific
+manifestation at layers 5 (runtime) and 6 (program):
 
-**Layer 5 (runtime) — collector overlay.**
+**Layer 5 (runtime) — reader overlay.**
 
-- Walk the role rule: did the user actually want the
-  collector (consumer) and not the publisher? If the user is
-  reading guides about emitting events, the answer is to
-  route them to
+- Walk the role rule: did the user actually want the reader and
+  not the exporter? If the user is reading guides about emitting
+  / publishing values, route them to
   [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
   via the role-split table in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes),
-  not to debug the collector further.
-- Walk the publisher-up question: is a publisher actually
-  registering the schema the collector is querying? A
-  `DOCA_ERROR_NOT_FOUND` on schema query against a collector
-  with no publisher attached is the expected staging signal;
-  with a publisher attached, it is a schema-mismatch signal.
-  Both routes are in
-  [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
-  + [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
-- Walk the transport-endpoint permission state: the
-  collector does NOT need sudo as a universal rule. A
-  `DOCA_ERROR_NOT_PERMITTED` on start means the specific
-  transport endpoint (socket owner, port range, agent
-  socket) is wrong for the running user — fix the endpoint
-  or re-point the collector; resist adding global `sudo`.
+  not to debug the reader further.
+- Walk the cap-query rule: a `DOCA_ERROR_NOT_SUPPORTED` on
+  cap-query or read means the device does not expose this domain
+  / sub-area on this install. This is the answer, not a bug —
+  confirm the device + domain selection per
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
+- Walk the privilege state: a `DOCA_ERROR_NOT_PERMITTED` on
+  create / start / read means the running user lacks privilege
+  for this specific counter domain — grant it on the env side,
+  resist reflexive global `sudo`.
 
-**Layer 6 (program) — collector overlay.**
+**Layer 6 (program) — reader overlay.**
 
-- The schema-must-match trap: a consume that yields zero
-  events while the publisher reports successful emits is the
-  silent schema-mismatch failure — different schema name,
-  different schema version, or different field-type set.
-  Walk the schema-contract table in
-  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  with both sides on the table; the publisher's registered
-  schema must match what the collector is querying.
-- Lifecycle order: configure (set transport, schema-query
-  surface ready) → start → consume → stop → destroy. Out-of-
-  order returns `DOCA_ERROR_BAD_STATE`. The most common case
-  is calling consume before the collector context reached
-  `RUNNING`.
-- Consumer-queue back-pressure policy: a drain loop that
-  silently absorbs `DOCA_ERROR_AGAIN` and never accounts for
-  the dropped events is a sample gap, not a library bug. The
-  fix is at the drain loop in the collector application:
-  surface the loss count, decide drain-faster vs widen-queue
-  vs accept-loss, and remember the publisher may simply drop
-  on its own `AGAIN` per
-  [`doca-telemetry-exporter CAPABILITIES.md ## Safety policy`](../doca-telemetry-exporter/CAPABILITIES.md#safety-policy).
-- Value-vs-schema mismatch: a `DOCA_ERROR_INVALID_VALUE` on
-  consume is a type mismatch against the discovered schema,
-  a buffer smaller than the install's max-event-size cap, or
-  an oversized event from a misbehaving publisher. Re-read
-  the schema-query result against the matching
-  `doca_telemetry_*_cap_*` caps; the fix is at the consume
-  call (or at the publisher, if the event itself is
-  oversized) — not by widening the cap (it is install-bound).
+- Lifecycle order: cap-query → create → (configure / for diag
+  `apply_config` + `apply_counters_list_by_id`) → start → read →
+  stop → destroy. Out-of-order returns `DOCA_ERROR_BAD_STATE`.
+  The most common case is reading before `_start`, or reading
+  diag before `_apply_config`.
+- Sample-window discipline: a `DOCA_ERROR_AGAIN` on read is the
+  snapshot / sample cycle not being ready — the fix is a
+  sample-window-aware retry, NOT a tight spin. For diag, the
+  next `_query_counters` must wait for the previous sampling
+  cycle to finish.
+- Output-format interpretation: implausible counter values are
+  usually the wrong sub-area read or the wrong output-format
+  struct interpreted (e.g. diag format_0 vs format_1 vs
+  format_2). Re-read the per-domain header's output-struct
+  definition; the values are the device's, the interpretation is
+  the program's.
+- Buffer / range sizing: a `DOCA_ERROR_INVALID_VALUE` on a
+  setter or read is a value past the install's cap or an
+  undersized output buffer. Re-read the matching `_cap_get_*`
+  sizing query; the fix is at the call site, not by widening a
+  cap (it is device-bound).
 
-Once the layer is identified, route to the matching debug
-verb on the matching skill: install / build / link / driver
-to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug);
+Once the layer is identified, route to the matching debug verb
+on the matching skill: install / build / link / driver to
+[`doca-setup ## debug`](../../doca-setup/TASKS.md#debug);
 version to [`doca-version ## debug`](../../doca-version/TASKS.md#debug);
 cross-cutting runtime to
 [`doca-debug ## debug`](../../doca-debug/TASKS.md#debug);
-program-layer Core-context patterns to
+program-layer Core patterns to
 [`doca-programming-guide TASKS.md ## debug`](../../doca-programming-guide/TASKS.md#debug);
-publisher-side concerns to
+publishing-side concerns to
 [`doca-telemetry-exporter ## debug`](../doca-telemetry-exporter/TASKS.md#debug).
 
 ## Deferred task verbs
 
 The following verbs are out of scope for this skill but are
-commonly asked in the same conversations. Route them as
-follows so the agent does not invent guidance:
+commonly asked in the same conversations. Route them as follows
+so the agent does not invent guidance:
 
-- **install.** Installing DOCA, choosing packages, post-
-  install verification, `pkg-config` wiring — defer to
+- **install.** Installing DOCA, choosing packages, post-install
+  verification, `pkg-config` wiring — defer to
   [`doca-setup`](../../doca-setup/SKILL.md) and to the
   install-tree layout in
   [doca-public-knowledge-map ## Layout of an installed DOCA package](../../doca-public-knowledge-map/SKILL.md#layout-of-an-installed-doca-package).
-  This skill assumes DOCA is already installed.
-- **publish telemetry.** Wiring up the application-side
-  publishing of telemetry events — out of scope for this
-  skill. Route to
+  This skill assumes DOCA is already installed and a `doca_dev`
+  is open.
+- **publish / export telemetry.** Wiring up the application-side
+  publishing of labeled metrics / OTLP logs — out of scope for
+  this skill. Route to
   [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
-  for the sibling publisher library. This skill is consumer-
-  side only.
-- **operate the DOCA Telemetry Service (DTS) itself.** DTS
-  is a separate DOCA service with its own public guide;
-  reach it via
-  [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
-  This skill **uses** DTS as one of the aggregators a
-  collector can attach to, but does not re-document
-  operating the service.
-- **deploy.** Deploying telemetry-collecting applications at
-  scale across many hosts, Kubernetes operator workflows
-  with collector sidecars — out of scope for Phase 1 and
-  reserved for a future platform skill.
-- **firmware burn / reset.** The collector does not depend
-  on firmware-layer state directly; if the debug ladder
-  lands on a driver-layer issue (`DOCA_ERROR_IO_FAILED`
-  from a collector call), the fix is via the env-side
-  skill: [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug)
-  layer 5, then upstream documentation reachable through
+  for the sibling publisher library. This skill is reader-side
+  only.
+- **operate the DOCA Telemetry Service (DTS) itself.** DTS is a
+  separate, externally-productized DOCA service with its own
+  public guide and is out of scope for this bundle; reach it via
+  [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
+  non-goals.
+- **stand up a NetFlow / IPFIX / socket collector.** The
+  per-domain reader libraries do not expose a collector /
+  schema-transport surface. Route to a generic collector outside
+  the DOCA family, to
+  [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md)
+  for publishing, or to DTS (out of scope) for productized
+  aggregation.
+- **deploy.** Deploying counter-reading applications at scale
+  across many hosts, Kubernetes operator workflows — out of
+  scope for Phase 1 and reserved for a future platform skill.
+- **firmware burn / reset.** The reader does not depend on a
+  firmware-burn step directly; if the debug ladder lands on a
+  driver / firmware-feature-gating issue
+  (`DOCA_ERROR_IO_FAILED` or persistent `NOT_SUPPORTED`), the
+  fix is via the env-side skill:
+  [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) layer
+  5, then upstream documentation reachable through
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 
 ## Command appendix
 
 Every command below is **cross-cutting on DOCA Telemetry
-(collection)** — it answers a recurring class of question that
-comes up in the verbs above. The agent should treat the
+(per-domain reader)** — it answers a recurring class of question
+that comes up in the verbs above. The agent should treat the
 *class* as load-bearing; the worked example is a single
-instance. Run-as user is the collector application's normal
-unprivileged user unless noted; sudo is called out per row
-(and is rarely needed for the collector itself as a universal
-rule, per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
-— it is required only for sub-1024 port binding or specific
-endpoint-ownership cases).
+instance. Run-as user is the reader application's normal user
+unless noted; sudo is called out per row (and is needed only for
+counter domains that require elevated device access, per
+[`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)).
 
 **Infra-aware preamble (every row below).** Per the bundle's
 detect → prefer → fall back → report contract documented in
@@ -496,12 +441,12 @@ the agent should:
    drivers + hugepages in one shot; `doca-capability-snapshot`
    for per-device capability flags; `version-matrix.json` for
    *"available since"* lookups).
-2. If the probe succeeds, the structured tool's output is
-   the authoritative answer and the agent SHOULD NOT also
-   run the manual command in the row below. Report *"using
-   structured `<tool>`"*.
-3. If the probe fails, fall back to the manual command in
-   the row. Report *"falling back to manual chain"*.
+2. If the probe succeeds, the structured tool's output is the
+   authoritative answer and the agent SHOULD NOT also run the
+   manual command in the row below. Report *"using structured
+   `<tool>`"*.
+3. If the probe fails, fall back to the manual command in the
+   row. Report *"falling back to manual chain"*.
 4. The schemas the structured tools emit are defined in
    [`doca-structured-tools-contract ## Schemas`](../../doca-structured-tools-contract/SKILL.md#schemas);
    the version-handling semantics (four-way match, NGC,
@@ -510,17 +455,17 @@ the agent should:
 
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
-| `pkg-config --modversion doca-telemetry` | `## configure` step 3; `## build` slot 1 | What is the build-time DOCA Telemetry (collector) version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2). If the command returns *"Package 'doca-telemetry' was not found"* and the user actually wanted the publisher, route to [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md) — wrong direction is the load-bearing first-app failure, not a typo |
-| `pkg-config --cflags --libs doca-telemetry` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
-| `ls /opt/mellanox/doca/samples/doca_telemetry/` | `## modify` slot 1 | Which collector samples ship in this install, and which is the closest starting point? | A list of sample directories named after the transport / consumption pattern they demonstrate |
+| `pkg-config --modversion doca-telemetry` | `## configure` step 3; `## build` slot | What is the build-time DOCA Telemetry (reader) version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2). If the command returns *"Package 'doca-telemetry' was not found"* and the user actually wanted the publisher, route to [`doca-telemetry-exporter`](../doca-telemetry-exporter/SKILL.md) — wrong direction is the load-bearing first-app failure, not a typo |
+| `pkg-config --cflags --libs doca-telemetry` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly |
+| `ls /opt/mellanox/doca/samples/doca_telemetry/` | `## modify` slot 1 | Which reader samples ship in this install, and which is the closest starting point? | A list of sample directories named after the per-domain reader they demonstrate |
 | `doca_caps --version` | `## configure` step 3; `## test` step 2 | What is the *runtime* DOCA version? | A semver string matching `pkg-config --modversion doca-telemetry` |
-| `id` | `## configure` step 2; `## run` step 2 | Is the collector user the one the configured transport endpoint expects to allow? | The user's id matches what owns / can write the transport endpoint (socket owner; permitted port range; agent-socket owner). Mismatch = `DOCA_ERROR_NOT_PERMITTED` on first start — fix on the env / endpoint side, not by adding global sudo |
+| `id` | `## run` step 2 | Does the running user have the privilege the counter domain requires? | The user's id has the device-access privilege the domain needs. Mismatch = `DOCA_ERROR_NOT_PERMITTED` on create / start / read — grant the specific privilege on the env side, not blanket sudo |
 | `cat /opt/mellanox/doca/applications/VERSION` | `## configure` step 3; `## debug` layer 1 | What does the install tree itself claim its version is? | A semver string matching the other two version sources |
-| `dmesg \| tail -n 40` (sudo) | `## debug` layer 7 | What did the kernel / driver log around the last collector call? | Empty or recent benign messages. Repeated mlx5 / network / socket errors → driver / env-layer bug; route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) |
-| `DOCA_LOG_LEVEL=trace ./<binary>` | `## run` step 4 | What did the structured DOCA logger emit for the first failing consume? | A trace-level line on every lifecycle transition, every schema-query call, and every consume. Per-consume `AGAIN` traces under load = consumer queue full — apply the policy decided in [`## modify`](#modify) slot 4, not a blind retry |
+| `dmesg \| tail -n 40` (sudo) | `## debug` layer 7 | What did the kernel / driver log around the last reader call? | Empty or recent benign messages. Repeated mlx5 / firmware / device errors → driver / env-layer bug; route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) |
+| `DOCA_LOG_LEVEL=trace ./<binary>` | `## run` step 4 | What did the structured DOCA logger emit for the first failing read? | A trace-level line on every per-domain lifecycle transition and every read. Per-read `AGAIN` traces = snapshot not ready — apply a sample-window-aware retry, not a blind spin |
 
 For commands shared across libraries (`pkg-config
 --modversion`, `doca_caps`, `cat /opt/mellanox/doca/applications/VERSION`,
 `DOCA_LOG_LEVEL`) the cross-library overlay is in
 [`doca-debug TASKS.md ## Command appendix`](../../doca-debug/TASKS.md#command-appendix);
-this table adds the collector-specific rows on top.
+this table adds the per-domain reader rows on top.

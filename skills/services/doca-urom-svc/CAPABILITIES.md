@@ -28,7 +28,7 @@ BlueField generation or one MPI / UCX consumer.
 | 2. Decide whether to deploy this service at all | Deploy when host nodes use `doca-urom` and want CPU freed for compute; do NOT deploy when hosts don't use the library, when the stack isn't MPI / UCX, or when the BlueField generation is too constrained for the intended offload | [`## Safety policy`](#safety-policy) path-selection rule + [`## Capabilities and modes`](#capabilities-and-modes) deployment shape |
 | 3. Pick the service's configuration axes | UCX-component / collective surface (cap-bound to the BlueField generation) + enqueue queue depth + DOCA Comch endpoint pairing with the host `doca-urom` library — three axes the operator commits to BEFORE starting the container. Note: there is NO standalone service-side "host-endpoint authorization list" in the shipped binary (`allowed_host` / `allowed_users` / `auth_token` / `whitelist` / `access_list` / `NOT_PERMITTED` — zero matches in `doca/services/urom/`); access is governed by Comch pairing and the underlying RDMA permissions, not a UROM-service authz surface | [`## Capabilities and modes`](#capabilities-and-modes) configuration-axes table |
 | 4. Honor the underlying RDMA transport substrate | The service uses `doca-rdma` (the underlying RDMA / RoCE / IB substrate) to actually move bytes; the service does NOT replace RDMA; substrate failures surface inside the service as stalled operations and at the host as `DOCA_ERROR_IO_FAILED` | [`## Capabilities and modes`](#capabilities-and-modes) substrate row + [`## Error taxonomy`](#error-taxonomy) transport layer |
-| 5. Map a service symptom back to its layer | Container-runtime vs service-side authorization vs service-side resource (queue / handler stuck) vs underlying RDMA substrate vs paired-version mismatch — five independent layers, each with its own owner | [`## Error taxonomy`](#error-taxonomy) layered split |
+| 5. Map a service symptom back to its layer | Container-runtime vs service-side resource (queue / handler stuck) vs underlying RDMA substrate vs paired-version mismatch — four independent layers, each with its own owner | [`## Error taxonomy`](#error-taxonomy) layered split |
 | 6. Read the service's observability before changing config | Container state + service-side logs + DPU-side RDMA counters answer *"is the service actually executing what the host enqueues"* before any config knob is turned | [`## Observability`](#observability) |
 
 Two cross-cutting rules that apply to *every* pattern above:
@@ -44,10 +44,10 @@ Two cross-cutting rules that apply to *every* pattern above:
   any host's `doca-urom` version is operationally indistinguishable
   from a misconfigured one.
 - **Operate the documented path; do not invent one.** The
-  service's config schema, container image source, supported
-  UCX components / collectives, queue-sizing knobs, and
-  authorization model are all documented in the public DOCA
-  UROM Service Guide. Quoting config keys, image tags, UCX
+  service's CLI-flag / env surface, container image source,
+  supported UCX components / collectives, and queue-sizing
+  knobs are all documented in the public DOCA
+  UROM Service Guide. Quoting daemon flags, image tags, UCX
   component names, or container-runtime flags not in the
   public guide is the most common hallucination failure mode
   for this skill.
@@ -84,12 +84,17 @@ throughout:
   — see the sibling [`doca-dms`](../doca-dms/SKILL.md) and
   [`doca-firefly`](../doca-firefly/SKILL.md) for the same
   shape on different per-service domains).
-- **Service behavior is configured by file, not by CLI
-  flag.** The container's UCX-component / collective surface,
-  enqueue queue depths, and host-authorization list are set
-  in the documented service config file the operator mounts
-  into the container. The agent should NOT invent CLI flag
-  names; the config file is the contract.
+- **Service behavior is configured by CLI flags and env, not
+  by a mounted config file.** The daemon binary
+  (`doca_urom_daemon`) parses its options through DOCA's
+  `doca_argp` (e.g. `--max-msg-size` / `-m`, and the log level
+  `-l` / `--sdk-log-level`, passed via the container's
+  `SERVICE_ARGS`), and reads the plugin search path from the
+  `UROM_PLUGIN_PATH` environment variable. `doca_urom.yaml`
+  mounts only the `plugins/` directory and the log directory —
+  there is no mounted service config file. The agent should
+  quote the daemon's actual flags from the public guide /
+  `--help`, NOT invent config-file keys.
 
 ### Publisher / executor paired-contract model
 
@@ -112,15 +117,16 @@ question and the right artifact is
 [`doca-urom`](../../libs/doca-urom/SKILL.md). When the user
 asks *"how do I deploy / start / stop / scale the service on
 the BlueField / how do I configure which UCX components it
-exposes / how do I authorize a host endpoint"*, that is this
+exposes / how does the host pair over DOCA Comch"*, that is this
 skill's scope. Two distinct artifacts; two distinct surfaces.
 
 ## Deployment shape
 
 The public DOCA UROM Service Guide documents the container
 deployment on BlueField Arm. The shape lines up with every
-other DOCA service container — pull from NGC, mount the
-service config, start under the documented runtime (the
+other DOCA service container — pull from NGC, set the daemon's
+CLI flags / env (`SERVICE_ARGS`, `UROM_PLUGIN_PATH`) and mount
+the `plugins/` directory, start under the documented runtime (the
 BlueField OS's container manager per the public Container
 Deployment Guide). For the canonical container-deployment
 recipe shared with the other DOCA service containers, route
@@ -133,12 +139,14 @@ Two deployment-shape rules:
   BlueField-side service; it does not run on the host. The
   host's relationship to the service is via the DOCA contract
   carried over `doca-urom` and the underlying RDMA fabric.
-- **One service per BlueField, on the right ports.** The
+- **One service per BlueField.** The
   service drives the BlueField's UROM execution state for the
-  BlueField as a whole; the user picks which RDMA-bearing
-  port the underlying `doca-rdma` substrate uses to move
-  bytes (typically a wire-side port that the host fleet can
-  reach through the inter-node fabric). Running two service
+  BlueField as a whole. The daemon reaches the host over DOCA
+  Comch and moves bytes over the underlying `doca-rdma`
+  substrate; there is no service listen-port the operator
+  chooses — the control transport is the Comch endpoint pair,
+  and the daemon allocates its internal worker ports
+  automatically. Running two service
   containers competing for the same execution state on the
   same BlueField is a configuration error, not a redundancy
   strategy.
@@ -157,14 +165,14 @@ exact valid values from there rather than from memory.
 | --- | --- | --- | --- |
 | **UCX-component / collective surface** | Which UCX components and collective primitives this service instance exposes for host offload — cap-bound to what the underlying BlueField generation supports, NOT freely selectable | Host's `doca_urom_cap_*` claims the collective is supported (host library + device say yes), but runtime enqueue returns `DOCA_ERROR_NOT_SUPPORTED` because the service was not configured to expose that collective on this deployment | Public DOCA UROM Service Guide's component / collective configuration section |
 | **Enqueue queue depth** | The depth of the service-side queue that receives host enqueues; sized to the cluster's intended in-flight depth per host | Host enqueues start succeeding, then return `DOCA_ERROR_AGAIN` after N submits; OR, on the service side, the queue backs up and the host's progress engine sees a stall | Public DOCA UROM Service Guide's queue / sizing section |
-| **Host-endpoint authorization** | Which host processes / identities are permitted to offload to this service instance — orthogonal to the host OS's `doca_dev` access; a host that passes `doca_dev` ACLs can still be rejected by the service's own authorization | Host's `doca-urom` `doca_ctx_start` succeeds; first enqueue returns `DOCA_ERROR_NOT_PERMITTED` even though the host user is in the standard DOCA group | Public DOCA UROM Service Guide's authentication / authorization section |
+| **DOCA Comch endpoint pairing** | How the host's `doca-urom` library reaches this service — over a DOCA Comch endpoint pair (the daemon defaults to the BlueField's Comch device/representor). Access is governed by that Comch pairing plus the underlying RDMA permissions; there is NO service-side authorization list to author | Host's `doca_ctx_start` cannot establish, or the daemon never logs the connection — a Comch-pairing / device-mapping problem, surfaced as a connection failure, NOT a service authz rejection | Public DOCA UROM Service Guide's connection / Comch section; [`doca-rdma`](../../libs/doca-rdma/SKILL.md) for the permission substrate |
 | Underlying RDMA substrate (fourth, configured outside this service) | The service does NOT stand up the RDMA fabric; it consumes it. The BlueField's `doca-rdma` substrate must be healthy on the ports this service will use | Operations enqueued, never complete; or completions surface as `DOCA_ERROR_IO_FAILED` at the host API | Route to [`doca-rdma`](../../libs/doca-rdma/SKILL.md) for the substrate-layer configure / debug |
 
 The agent's rule: **the configuration-axes decision precedes
 container start**. A deployment that starts the container
 before the operator can name which UCX components / collectives
 the service exposes, what queue depth supports the intended
-in-flight load, and which host endpoints are authorized is going
+in-flight load, and how the host pairs over DOCA Comch is going
 to debug the wrong axis first. Force the decision up front.
 
 ### Pairing surface — host library plus RDMA substrate
@@ -243,7 +251,7 @@ version-coupling rule:
 
 ## Error taxonomy
 
-DOCA UROM Service errors fall into five layers, each with its
+DOCA UROM Service errors fall into four layers, each with its
 own owner. The agent's rule: walk the layers in order; do NOT
 skip down without clearing the layer above. Notably, the
 host-visible `DOCA_ERROR_*` for a service-side cause is
@@ -254,21 +262,21 @@ service-side layer the operator must touch.
 
 | Layer | Symptom (host-visible) | Root cause class | Where to fix |
 | --- | --- | --- | --- |
-| 1. Container runtime | Container fails to start, restart-loops, exits immediately, image pull fails. Host symptom: `doca_urom` create or `doca_ctx_start` fails because there is no reachable service | Image tag wrong, registry credentials missing, BlueField container runtime not configured for this container, config file mount path wrong | BlueField container runtime + the public Container Deployment Guide via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) |
-| 2. Service-side authentication / authorization | Container green; host's `doca_ctx_start` succeeds; first enqueue returns `DOCA_ERROR_NOT_PERMITTED` even though the host user is in the standard DOCA group | Service's host-authorization list does not include this host endpoint, OR the auth-credential material the host presents does not match what the service is configured to accept | Service config — the authorization-axis row in [`## Capabilities and modes`](#capabilities-and-modes); the public DOCA UROM Service Guide's authentication / authorization section |
-| 3. Service-side resource exhaustion | Host enqueues succeed; completions never fire; OR after N successful enqueues every further enqueue returns `DOCA_ERROR_AGAIN` indefinitely | Service-side queue is undersized for the in-flight depth the host workload generates, OR the service is processing operations one at a time when it could batch, OR a service-side handler is stuck on a single in-flight operation | Service config — the queue-depth row in [`## Capabilities and modes`](#capabilities-and-modes); service logs (this skill's [`## Observability`](#observability)) to identify a stuck handler |
-| 4. Underlying RDMA substrate | Host sees `DOCA_ERROR_IO_FAILED` from enqueue or completion; or enqueue succeeds but completions never fire and the substrate counters show errors | The underlying RDMA fabric has reported failure (link down, RoCE / IB config skew between BlueFields, routing issue inter-node). The service is NOT the source of truth for the substrate; it is the surface that exposes the failure | Route to [`doca-rdma TASKS.md ## debug`](../../libs/doca-rdma/TASKS.md#debug) for the substrate-layer diagnosis; do NOT mask substrate failures inside the service config |
-| 5. Paired-version mismatch | Host's `doca_urom_cap_*` claims an operation family / collective is supported, but runtime enqueue returns `DOCA_ERROR_NOT_SUPPORTED` (despite a healthy container and clean authorization) | Host library and service container are at versions the DOCA Compatibility Policy does not support pairing — the cap query answered for the host's library + device axis, but the running service is at a different version that does not actually execute that variant | Cross-check both versions against the [DOCA Compatibility Policy](https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html) and the four-way-match rule in [`doca-version`](../../doca-version/SKILL.md). The fix is either upgrading the service container or downgrading the host library; do NOT paper over with a retry |
+| 1. Container runtime | Container fails to start, restart-loops, exits immediately, image pull fails. Host symptom: `doca_urom` create or `doca_ctx_start` fails because there is no reachable service | Image tag wrong, registry credentials missing, BlueField container runtime not configured for this container, `plugins/` mount path wrong or `UROM_PLUGIN_PATH` unset | BlueField container runtime + the public Container Deployment Guide via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) |
+| 2. Service-side resource exhaustion | Host enqueues succeed; completions never fire; OR after N successful enqueues every further enqueue returns `DOCA_ERROR_AGAIN` indefinitely | Service-side queue is undersized for the in-flight depth the host workload generates, OR the service is processing operations one at a time when it could batch, OR a service-side handler is stuck on a single in-flight operation | Service config — the queue-depth row in [`## Capabilities and modes`](#capabilities-and-modes); service logs (this skill's [`## Observability`](#observability)) to identify a stuck handler |
+| 3. Underlying RDMA substrate | Host sees `DOCA_ERROR_IO_FAILED` from enqueue or completion; or enqueue succeeds but completions never fire and the substrate counters show errors | The underlying RDMA fabric has reported failure (link down, RoCE / IB config skew between BlueFields, routing issue inter-node). The service is NOT the source of truth for the substrate; it is the surface that exposes the failure | Route to [`doca-rdma TASKS.md ## debug`](../../libs/doca-rdma/TASKS.md#debug) for the substrate-layer diagnosis; do NOT mask substrate failures inside the service config |
+| 4. Paired-version mismatch | Host's `doca_urom_cap_*` claims an operation family / collective is supported, but runtime enqueue returns `DOCA_ERROR_NOT_SUPPORTED` (despite a healthy container) | Host library and service container are at versions the DOCA Compatibility Policy does not support pairing — the cap query answered for the host's library + device axis, but the running service is at a different version that does not actually execute that variant | Cross-check both versions against the [DOCA Compatibility Policy](https://docs.nvidia.com/doca/sdk/doca-compatibility-policy/index.html) and the four-way-match rule in [`doca-version`](../../doca-version/SKILL.md). The fix is either upgrading the service container or downgrading the host library; do NOT paper over with a retry |
 
 The agent's rule: **never recommend a service config change
-without first identifying which of the five layers is the
-cause**. The two most common debug failures for this skill
-are misreading a layer-2 symptom (host endpoint not authorized
-by the service) as a layer-1 problem (container not running)
-and rewriting the container start sequence, AND misreading a
-layer-5 symptom (host-library / service version mismatch) as
-a layer-2 or layer-3 problem and chasing config knobs that
-cannot fix it.
+without first identifying which of the four layers is the
+cause**. The most common debug failure for this skill is
+misreading a layer-4 symptom (host-library / service version
+mismatch) as a layer-2 (queue / handler) problem and chasing
+config knobs that cannot fix it. A second trap: a host-visible
+`DOCA_ERROR_NOT_PERMITTED` is a DOCA Comch-pairing / RDMA-permission
+signal (or a host-side `doca_dev` access problem), NOT a
+service-side authorization rejection — there is no such authz
+layer in the shipped binary.
 
 ## Observability
 
@@ -287,11 +295,10 @@ actually executing what the host enqueued"* question:
 2. **Service-side logs.** The container's stdout (and any
    documented log destination the public DOCA UROM Service
    Guide specifies) is the primary service observability
-   surface. Look for: (a) authorization-rejection lines (layer
-   2); (b) queue-saturation or handler-stuck lines (layer 3);
-   (c) underlying-substrate-error lines (layer 4); (d)
-   paired-version-mismatch lines if the service detects an
-   incompatible host (layer 5). The agent should NOT invent
+   surface. Look for: (a) queue-saturation or handler-stuck
+   lines (layer 2); (b) underlying-substrate-error lines
+   (layer 3); (c) paired-version-mismatch lines if the service
+   detects an incompatible host (layer 4). The agent should NOT invent
    log line formats; quote what the live container is
    emitting.
 3. **Host-side completion surface.** The host's `doca-urom`
@@ -319,7 +326,7 @@ actually executing what the host enqueued"* question:
    host(s), and the BlueField's `doca_caps --version` are the
    baseline of *"which paired-version pair the operator
    deployed"*. Save them; if a runtime failure later looks
-   like a layer-5 paired-version mismatch, the diff against
+   like a layer-4 paired-version mismatch, the diff against
    this baseline (one side upgraded, the other didn't) is the
    bug.
 
@@ -389,9 +396,9 @@ around the container itself.
   observed at the service (in logs) AND ONE completion fires
   on the host's progress engine. Only then layer the
   collective patterns on top. A workload that comes up
-  before the smoke passes does not isolate which of the five
+  before the smoke passes does not isolate which of the four
   layers in [`## Error taxonomy`](#error-taxonomy) is wrong,
-  and bisection across container / authorization / queue /
+  and bisection across container / queue /
   substrate / version becomes much harder.
 - **One service per BlueField.** Two service containers on
   the same BlueField competing for the same UROM execution
@@ -410,13 +417,15 @@ around the container itself.
   by, e.g., shortening timeouts to make the host see the
   failure faster — is a user-visible regression dressed up as
   helpfulness.
-- **Authentication is per-host-endpoint, not per-stream.** The
-  service's authorization model is documented as a
-  per-host-endpoint decision: a given host process is either
-  permitted to offload to this service or not. The agent must
-  NOT propose per-operation authentication schemes that the
-  service does not implement; refuse to invent an
-  authorization model the public guide doesn't document.
+- **There is no service-side authorization model to invent.**
+  Access to the service is governed by the DOCA Comch endpoint
+  pairing and the underlying RDMA permissions, not by any
+  service-side authorization list, credential, or per-host
+  allow-list in the shipped binary. The agent must NOT propose
+  authentication / authorization schemes the service does not
+  implement; a host-visible `DOCA_ERROR_NOT_PERMITTED` is a
+  Comch / RDMA / `doca_dev` signal, not a UROM-service authz
+  decision.
 
 ## Public-source pointer
 

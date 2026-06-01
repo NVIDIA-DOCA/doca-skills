@@ -18,7 +18,7 @@ they apply to every GPU-NIC pair the benchmark can target.
 
 | `gpunetio_ib_write_bw` pattern | Class shape | Where the substance lives |
 | --- | --- | --- |
-| 1. Pick the runtime surface | Decide *before* building whether the workload's WR-init path should be GPUNetIO (this tool), GPI ([`../doca-gpi-ib-write-lat/`](../doca-gpi-ib-write-lat/SKILL.md), the latency tool only), or classic CPU-initiated `perftest` `ib_write_bw`. The three measure the same physical operation but answer different runtime questions. | [`## Capabilities and modes`](#capabilities-and-modes) surface-selection table |
+| 1. Pick the runtime surface | Decide *before* building whether the workload's WR-init path should be GPUNetIO (this tool), GPI (the [`doca-gpi`](../../libs/doca-gpi/SKILL.md) library programming surface — `doca/tools/` ships no GPI benchmark binary), or classic CPU-initiated `perftest` `ib_write_bw`. The three measure the same physical operation but answer different runtime questions. | [`## Capabilities and modes`](#capabilities-and-modes) surface-selection table |
 | 2. Confirm the GPU-NIC pairing | The GPUNetIO path requires the GPU and the IB device to be reachable through the same PCIe / NVLink fabric for the WR-submission path to be efficient. A wrong pairing produces a number, but not the property the operator was asking about. | [`## Capabilities and modes`](#capabilities-and-modes) GPU-NIC pairing rule + [TASKS.md ## configure](TASKS.md#configure) |
 | 3. Build against the install | The tool ships under `doca/tools/gpunetio_ib_write_bw/` as a client/ + server/ pair with a `meson.build` that wraps `doca-gpunetio`, `doca-rdma`, `doca-common` and the CUDA Toolkit. Mismatched DOCA + CUDA surfaces at build time. | [`## Version compatibility`](#version-compatibility) + [TASKS.md ## build](TASKS.md#build) |
 | 4. Decompose the throughput | A reported BW is meaningful only when the operator can name which constraint binds it: GPU compute occupancy (the CUDA kernel can't issue WRs fast enough), NIC issue rate (the device hits its WR-submission ceiling), or link saturation (the physical IB link is full). Quoting a number without naming the binding constraint is the canonical apples-to-oranges failure. | [`## Capabilities and modes`](#capabilities-and-modes) throughput-decomposition table + [`## Observability`](#observability) |
@@ -52,22 +52,23 @@ installed DOCA via `meson`.
 
 ### What the benchmark actually measures
 
-The server brings up a doca-gpu context, a doca-rdma queue
+The client brings up a doca-gpu context, a doca-rdma queue
 backed by a GPU-resident buffer registered with DOCA, and a
 GPU-visible RDMA handle through the doca-gpunetio device-
-side surface. The CUDA kernel on the server (`client/kernel.cu`
-in the source tree, despite the name; per the verified
-`common.h` the kernel posts WRITEs against `server_remote_buf_arr`)
-posts a stream of RDMA WRITE work requests at the configured
-message size for the configured iteration count. The client
-side hosts the remote buffer and a doca-rdma queue but does
-not post WRs of its own. The OOB TCP socket exchanges
-connection details between the two halves before the
-benchmark begins.
+side surface (only the client registers the `--gpu` PCIe
+param). The CUDA kernel on the client (`client/kernel.cu`,
+`rdma_write_bw`) posts a stream of RDMA WRITE work requests
+against the server's remote buffer (`server_remote_buf_arr`)
+at the configured message size for the configured iteration
+count. The server side hosts the remote buffer and a
+doca-rdma queue but does not post WRs of its own — its
+`main.c` registers only `--device` / `--gid-index` and no
+GPU. The OOB TCP socket exchanges connection details
+between the two halves before the benchmark begins.
 
 The measured quantity is **sustained throughput of GPU-driven
-RDMA WRITE work** between the server's local memory and the
-client's remote memory.
+RDMA WRITE work** between the client's GPU-resident local
+memory and the server's remote memory.
 
 ### Surface selection: GPUNetIO vs GPI vs CPU-initiated
 
@@ -78,7 +79,7 @@ to the operator before quoting any number:
 | Surface | Tool | When this surface is the right answer |
 | --- | --- | --- |
 | GPUNetIO (this skill) | `doca-gpunetio-ib-write-bw` | The CUDA kernel drives RDMA WRITE through the higher-level `doca-gpunetio` framework (the Send / Receive-style and direct-RDMA paths exposed by [`../../libs/doca-gpunetio/CAPABILITIES.md`](../../libs/doca-gpunetio/CAPABILITIES.md)). Right when the application sits on doca-gpunetio and wants the BW it will see in practice. |
-| GPI | [`../doca-gpi-ib-write-lat/`](../doca-gpi-ib-write-lat/SKILL.md) (note: the GPI bundle ships a *latency* tool, not a BW tool; the GPI vs GPUNetIO BW comparison is implicit, via the GPUNetIO BW tool plus the GPI latency tool). | Right when the user has *already committed* to GPI as their programming surface. |
+| GPI | [`doca-gpi`](../../libs/doca-gpi/SKILL.md) (library programming surface; `doca/tools/` ships no GPI `ib_write_bw` or `ib_write_lat` benchmark binary, so the GPI vs GPUNetIO BW comparison is against the library surface, not a sibling tool). | Right when the user has *already committed* to GPI as their programming surface. |
 | CPU-initiated `perftest` | Upstream `perftest` `ib_write_bw` (out of scope here; not in `doca/tools/`) | Right when the comparison the operator needs is *"how much overhead does the GPU-initiated path add (or remove) versus the classic CPU-initiated path?"*. |
 
 **Decision rule for the agent.** Surface the choice; ask which
@@ -95,10 +96,11 @@ purpose. A misplaced pair (GPU on one NUMA node, NIC on the
 other, no NVLink bridge) still completes the benchmark but
 the reported BW reflects PCIe-crossover overhead, not the
 property the operator was trying to measure. The pre-flight
-check is the same as for the GPI sister tool — see
-[`../doca-gpi-ib-write-lat/CAPABILITIES.md#capabilities-and-modes`](../doca-gpi-ib-write-lat/CAPABILITIES.md#capabilities-and-modes)
-for the verification steps; the rule is identical, only the
-runtime surface differs. The agent quotes the pairing
+check is the GPU-NIC pairing verification in
+[`TASKS.md ## configure`](TASKS.md#configure) and the
+[`doca-gpunetio`](../../libs/doca-gpunetio/SKILL.md) library;
+the rule is independent of the WR-init runtime surface. The
+agent quotes the pairing
 alongside any reported number.
 
 In addition, GPUNetIO carries the *"`nvidia_peermem` loaded

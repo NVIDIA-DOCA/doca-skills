@@ -113,7 +113,7 @@ For a side-effect-free smoke-test entry point (when the agent wants to confirm D
 
 **Capability snapshots.** `doca_caps` (the CLI tool, see [`doca-caps`](../tools/doca-caps/SKILL.md)) is a side-effect-free snapshot of "what DOCA sees on this host right now." Capture it at the start of any debug session — capabilities can change between runs (firmware reflash, eswitch mode change, kernel-module reload), and a stale capability picture is a leading cause of *"it worked yesterday."*
 
-**Library-specific surfaces.** Pipe counters (Flow), queue-pair statistics (RDMA), channel send/recv counters (Comch), tracing dumps (per library), and inspector tools (`doca-flow-inspector`, `doca-flow-tune`) are owned by the matching library skill. The library skill names the call (e.g. `doca_flow_pipe_query`) and the right cadence to query it.
+**Library-specific surfaces.** Pipe counters (Flow), queue-pair statistics (RDMA), channel send/recv counters (Comch), tracing dumps (per library), and inspector tools (`doca-flow-inspector`, `doca-flow-tune`) are owned by the matching library skill. The library skill names the call (e.g. `doca_flow_resource_query_entry`) and the right cadence to query it.
 
 **Standard Linux observability the agent can reach for alongside DOCA.** Read-only and always available on a healthy install:
 

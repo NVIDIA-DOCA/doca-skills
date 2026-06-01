@@ -16,43 +16,48 @@ not duplicate URLs or install paths in this file.
 ## Pattern overview
 
 Every GPI-class question this skill teaches resolves into one of
-SIX patterns. The patterns are CLASSES — they apply across every
+FIVE patterns. The patterns are CLASSES — they apply across every
 GPU-initiated RDMA use case, not just the worked example shown.
 
 | GPI pattern | Class shape | Where the substance lives |
 | --- | --- | --- |
-| 1. Pick `doca-gpi` vs `doca-gpunetio` | Decide *before* writing any code whether the CUDA kernel drives an RDMA queue directly (channel/queue level — GPI) or sends / receives at the Ethernet-shaped Send/Receive layer (GPU NetIO) | [`## Capabilities and modes`](#capabilities-and-modes) surface-selection table |
-| 2. Stand up the GPI context | DOCA Core lifecycle: create on a `doca_dev` → configure sizing via `doca_gpi_set_*` and bind memory regions → start on the GPU datapath → retrieve channel + GPU handles → use → stop → destroy | [TASKS.md ## configure](TASKS.md#configure) |
-| 3. Bind an RDMA queue from `doca-rdma` | The GPI channel owns the *GPU-side wiring*; the underlying RDMA queue is created and connected via `doca-rdma`. The bridge is `doca_gpi_channel_get_rdma_queue_descriptor` / `doca_gpi_channel_connect_rdma_queue` | [`## Capabilities and modes`](#capabilities-and-modes) RDMA-queue-binding bullet + [TASKS.md ## configure](TASKS.md#configure) |
-| 4. Hand off to the CUDA kernel | `doca_gpi_channel_get_gpu_handle` returns a `doca_gpu_gpi_channel*` the CUDA kernel uses directly; the host releases ownership and the device-side path is then GPU-driven | [`## Capabilities and modes`](#capabilities-and-modes) GPU-handoff bullet + [TASKS.md ## run](TASKS.md#run) |
-| 5. Discover sizing limits before committing | `doca_gpi_cap_get_max_channel_num`, `doca_gpi_cap_get_max_rdma_queue_per_channel_num`, `doca_gpi_cap_get_max_rdma_queue_size` are the runtime authority for what the device allows | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) |
-| 6. Interpret a `DOCA_ERROR_*` from a GPI call | Map the error to a layer (configuration / lifecycle / GPU datapath assignment / CUDA-version / verbs below / driver) and route | [`## Error taxonomy`](#error-taxonomy) GPI overlay + [TASKS.md ## debug](TASKS.md#debug) |
+| 1. Pick `doca-gpi` vs `doca-gpunetio` | Decide *before* writing any code whether the CUDA kernel drives an RDMA channel directly (channel level — GPI) or sends / receives at the Ethernet-shaped Send/Receive layer (GPU NetIO) | [`## Capabilities and modes`](#capabilities-and-modes) surface-selection table |
+| 2. Stand up the GPI instance | Lifecycle: `doca_gpi_create` on a `doca_dev` → configure via `doca_gpi_set_*` → `doca_gpi_start` → create domain(s) and channel(s) from their attribute objects → retrieve GPU handles → use → `doca_gpi_stop` → `doca_gpi_destroy` | [TASKS.md ## configure](TASKS.md#configure) |
+| 3. Connect a channel endpoint to a remote peer | The channel owns the *GPU-side wiring*; an endpoint is connected by exchanging connection info out of band via `doca_gpi_channel_ep_conn_info_create` + `doca_gpi_channel_ep_connect`, and memory is shared via `doca_gpi_domain_attach_local_mmap` / `doca_gpi_domain_attach_remote_mmap` | [`## Capabilities and modes`](#capabilities-and-modes) endpoint-connection bullet + [TASKS.md ## configure](TASKS.md#configure) |
+| 4. Hand off to the CUDA kernel | `doca_gpi_gpu_channel_get` returns a `doca_gpu_gpi_channel*` the CUDA kernel uses directly; the host releases ownership and the device-side path is then GPU-driven | [`## Capabilities and modes`](#capabilities-and-modes) GPU-handoff bullet + [TASKS.md ## run](TASKS.md#run) |
+| 5. Interpret a `DOCA_ERROR_*` from a GPI call | Map the error to a layer (configuration / lifecycle / GPU datapath / CUDA-version / verbs below / driver) and route | [`## Error taxonomy`](#error-taxonomy) GPI overlay + [TASKS.md ## debug](TASKS.md#debug) |
 
 Two cross-cutting rules that apply to *every* pattern above:
 
-- **Sizing flows through the cap query, not from agent memory.**
-  Every `doca_gpi_set_*` (channel count, RDMA queue count, RDMA
-  queue size, GPU queue size) is gated by the matching
-  `doca_gpi_cap_get_*` against the active device. Quoting a
-  number without checking is the most common hallucination
-  failure mode.
-- **The GPU datapath must be assigned before `doca_ctx_start()`.**
-  The public headers' `DOCA_ERROR_BAD_STATE` documentation on
-  the channel / set / get-handle calls names the failure mode
-  explicitly: *"if called before calling ctx_start(), or if not
-  assigned to gpu datapath"*. The agent walks the user through
-  the GPU datapath assignment (owned by
-  [`doca-gpunetio`](../doca-gpunetio/SKILL.md)) *before* start,
-  not after.
+- **Sizing is set on attribute objects, not on the `doca_gpi`
+  handle, and GPI exposes no runtime capability query.** Channel
+  count and endpoint / bind counts are set on a
+  `doca_gpi_domain_attr` (`doca_gpi_domain_attr_set_num_channels`,
+  `_set_num_ep`, `_set_num_binds`, `_set_bind_size`); per-channel
+  work-queue sizing is set on a `doca_gpi_channel_attr`
+  (`doca_gpi_channel_attr_set_sq_wqe_num`, `_set_srq_wqe_num`,
+  `_set_gpu_wqe_num`). `doca_gpi.h` ships **no** `doca_gpi_cap_*`
+  devinfo query, so the agent must not invent a runtime maximum;
+  an out-of-range value surfaces as a `DOCA_ERROR_*` from the
+  create / start call, and supported ranges come from the device
+  and release notes, not from agent memory.
+- **All `doca_gpi_set_*` attributes must be set before
+  `doca_gpi_start()`.** The header states `doca_gpi_start` *"Must
+  be called after setting all the GPI attributes"*, and
+  `doca_gpi_get_dpa` *"can be called only if gpi not started"*.
+  The agent walks the user through configuration (and, where the
+  application drives the GPU datapath, the
+  [`doca-gpunetio`](../doca-gpunetio/SKILL.md) setup) *before*
+  `doca_gpi_start()`, not after.
 
 ## Capabilities and modes
 
 DOCA GPI is the **GPU-Packet-Initiator** surface: a CUDA kernel
 running on an NVIDIA GPU drives RDMA work directly against the
 BlueField / ConnectX device's queues, with no host CPU on the
-data path. The host-side library configures a GPI context, a set
-of channels, and per-channel RDMA queues; the GPU-side handle
-then lets the CUDA kernel issue work.
+data path. The host-side library configures a `doca_gpi`
+instance, one or more domains, and a set of channels; the
+GPU-side handle then lets the CUDA kernel issue work.
 
 ### `doca-gpi` vs `doca-gpunetio`
 
@@ -62,7 +67,7 @@ pick one before writing any code:
 | Library | Surface shape | When to pick |
 | --- | --- | --- |
 | [`doca-gpunetio`](../doca-gpunetio/SKILL.md) | Higher-level Send/Receive-shaped Ethernet I/O for CUDA kernels; richer per-packet API; the canonical surface for GPU-side packet processing | The CUDA kernel sends or receives Ethernet packets through a queue and the application is happy with the Send/Receive abstraction |
-| `doca-gpi` (this skill) | Lower-level channel + queue surface; the CUDA kernel drives RDMA queues *directly* via the GPU-side channel handle; binds an underlying `doca-rdma` queue via `doca_gpi_channel_connect_rdma_queue` | The CUDA kernel needs to initiate RDMA operations and the application wants direct control over the per-queue work request submission rather than the Send/Receive abstraction |
+| `doca-gpi` (this skill) | Lower-level channel surface; the CUDA kernel drives RDMA work *directly* via the GPU-side channel handle; channel endpoints are connected to remote peers via `doca_gpi_channel_ep_connect` | The CUDA kernel needs to initiate RDMA operations and the application wants direct control over the per-channel work submission rather than the Send/Receive abstraction |
 
 **Decision rule for the agent.** If the user's intent is *"my
 CUDA kernel needs to drive an RDMA queue directly from GPU
@@ -72,73 +77,77 @@ sends or receives Ethernet packets"*, GPU NetIO is the right
 surface. Both can coexist in one application; the agent does not
 force one when the other fits better.
 
-### The GPI context
+### The GPI instance
 
-`doca_gpi` is the top-level GPI object. Verified surface
-(`doca_gpi.h`):
+`doca_gpi` is the top-level GPI object. Every symbol below is
+`DOCA_EXPERIMENTAL`. Verified surface (`doca_gpi.h`):
 
 | Lifecycle phase | Calls | Note |
 | --- | --- | --- |
-| Create | `doca_gpi_create(dev, &gpi)` (DOCA_STABLE) | Created on a `doca_dev`; the GPI binds to that device for its lifetime |
-| Configure (sizing) | `doca_gpi_set_channel_num(gpi, N)`, `doca_gpi_set_rdma_queue_num(gpi, N)`, `doca_gpi_set_rdma_queue_size(gpi, N)`, `doca_gpi_set_gpu_queue_size(gpi, N)` (all DOCA_EXPERIMENTAL) | Each must respect the matching `doca_gpi_cap_get_max_*` on this device; out-of-bounds returns `DOCA_ERROR_INVALID_VALUE` |
-| Configure (transport) | `doca_gpi_set_gid_index(gpi, gid)` (DOCA_EXPERIMENTAL) | Selects the GID for the RDMA queues GPI will manage |
-| Configure (memory) | `doca_gpi_bind_memory(gpi, addr, size)` + `doca_gpi_bind_memory_get_descriptor(gpi, &desc)` (both DOCA_EXPERIMENTAL) | Binds GPU-reachable memory regions to the GPI context; the descriptor is what the application exports to the remote peer |
-| Convert to Core context | `doca_gpi_as_ctx(gpi)` (DOCA_STABLE) | Returns the generalized `doca_ctx*`; the application sets the GPU datapath on this context per [`doca-gpunetio`](../doca-gpunetio/SKILL.md) before `doca_ctx_start()` |
-| Start | `doca_ctx_start(doca_gpi_as_ctx(gpi))` | All `set_*` calls and `bind_memory` calls must precede start; the headers' `DOCA_ERROR_BAD_STATE` doc strings name this |
-| Destroy | `doca_gpi_destroy(gpi)` (DOCA_STABLE) | After `doca_ctx_stop()`; returns `DOCA_ERROR_IN_USE` if work queues are still attached — those must be detached first |
+| Create | `doca_gpi_create(dev, &gpi)` | Created on a `doca_dev`; the GPI binds to that device for its lifetime |
+| Configure | `doca_gpi_set_num_domains(gpi, N)`, `doca_gpi_set_enable_err_monitor(gpi, on)`, `doca_gpi_set_gid_index(gpi, gid)`, `doca_gpi_set_port_num(gpi, port)` | Must all run *before* `doca_gpi_start`; the GID index and port select the IB / RoCE path the channels will use |
+| DPA access | `doca_gpi_get_dpa(gpi, &dpa)` | Returns the DPA object GPI initialized internally (for setting DPA attributes / affinity); the header notes it "can be called only if gpi not started" |
+| Start | `doca_gpi_start(gpi)` | The header states it "must be called after setting all the GPI attributes" |
+| Stop | `doca_gpi_stop(gpi)` | Stops the started GPI instance |
+| Destroy | `doca_gpi_destroy(gpi)` | Releases all resources associated with the GPI object created by `doca_gpi_create` |
 
-### The channel and RDMA-queue surface
-
-A GPI context exposes `N` channels (sized via
-`doca_gpi_set_channel_num`); each channel exposes `M` RDMA
-queues (sized via `doca_gpi_set_rdma_queue_num`). Verified
-channel surface:
+Channels and memory binds are owned by **domains**, created from
+a `doca_gpi_domain_attr`:
 
 | Call | Purpose | Note |
 | --- | --- | --- |
-| `doca_gpi_channel_get_handle(gpi, channel_num, &channel)` (DOCA_STABLE) | Retrieve the per-channel host-side handle on a started context | Returns `DOCA_ERROR_BAD_STATE` if called before `doca_ctx_start()` or if the context is not assigned to the GPU datapath |
-| `doca_gpi_channel_get_gpu_handle(channel, &gpu_channel)` (DOCA_EXPERIMENTAL) | Retrieve the GPU-side handle the CUDA kernel uses; type is `struct doca_gpu_gpi_channel*` | Returns `DOCA_ERROR_BAD_STATE` under the same conditions as the host-side handle call |
-| `doca_gpi_channel_get_rdma_queue_descriptor(channel, queue_num, &qdescr, &qdescr_size)` (DOCA_EXPERIMENTAL) | Read the local RDMA queue descriptor for exchange with the remote peer | The descriptor is the wire-format payload the application transports out-of-band to the peer |
-| `doca_gpi_channel_connect_rdma_queue(channel, queue_num, qdescr_remote)` (DOCA_EXPERIMENTAL) | Connect the local RDMA queue to the remote peer's descriptor | After this call the GPU side can issue work on this queue |
+| `doca_gpi_domain_attr_create(&attr)` / `doca_gpi_domain_attr_destroy(attr)` | Allocate / free the domain attribute object | Sizing is set on this object before `doca_gpi_domain_create` |
+| `doca_gpi_domain_attr_set_num_ep`, `_set_num_binds`, `_set_bind_size`, `_set_enable_ro`, `_set_num_channels` | Size endpoints, memory binds, bind size, relaxed ordering, and channel count for the domain | `doca_gpi.h` exposes no `doca_gpi_cap_*` query; an out-of-range value surfaces as a `DOCA_ERROR_*` at create time |
+| `doca_gpi_domain_create(gpi, attr, &domain)` / `doca_gpi_domain_destroy(domain)` | Create / destroy a domain on the GPI instance | |
+| `doca_gpi_domain_attach_local_mmap(domain, mmap, &bind_id)` | Attach a local `doca_mmap` to the domain, returning a `doca_gpi_mmap_handle_t` | The application is responsible for creating the `doca_mmap` for the memory area |
+| `doca_gpi_domain_attach_remote_mmap(domain, ep, mmap, bind_id)` | Attach a remote peer's `doca_mmap` against an endpoint and bind id | The application creates the remote `doca_mmap` and exchanges it with the peer out of band |
+| `doca_gpi_domain_detach_mmap(domain, bind_id)` | Detach a previously attached mmap | |
+
+### The channel and endpoint surface
+
+A GPI domain exposes channels sized via
+`doca_gpi_domain_attr_set_num_channels`; each channel is created
+from a `doca_gpi_channel_attr` on a GPU device. Every symbol
+below is `DOCA_EXPERIMENTAL`. Verified channel surface:
+
+| Call | Purpose | Note |
+| --- | --- | --- |
+| `doca_gpi_channel_attr_create(&attr)` / `doca_gpi_channel_attr_destroy(attr)` | Allocate / free the channel attribute object | |
+| `doca_gpi_channel_attr_set_sq_wqe_num`, `_set_srq_wqe_num`, `_set_gpu_wqe_num`, `_set_num_counters`, `_set_num_signals`, `_set_low_latency`, `_set_pending_credits_writeback_shift`, `_set_srq_repost_mask` | Size the send / shared-receive / GPU work-queue depth, counters, signals, and behavior flags | All `uint16_t` WQE counts; set on the attr before `doca_gpi_channel_create` |
+| `doca_gpi_channel_create(gpu_dev, domain, attr, &channel)` | Create the channel on a `doca_gpu` device and the supplied domain | Takes the GPU device as its first argument |
+| `doca_gpi_channel_destroy(channel)` | Release a channel created with `doca_gpi_channel_create` | |
+| `doca_gpi_gpu_channel_get(channel, &gpu_channel)` | Retrieve the GPU-side handle the CUDA kernel uses; type is `struct doca_gpu_gpi_channel*` | This is the only host→device handoff; the type is defined by [`doca-gpunetio`](../doca-gpunetio/SKILL.md) |
+| `doca_gpi_channel_ep_conn_info_create(channel, ep_idx, &conn_info_size, &conn_info)` | Build the connection-info blob for an endpoint, to exchange out of band | Pair with `doca_gpi_channel_ep_conn_info_destroy(conn_info)` once the peer's blob has been consumed |
+| `doca_gpi_channel_ep_connect(channel, ep_idx, conn_info, conn_info_size)` | Connect the endpoint using the peer's connection-info blob | After this call the GPU side can issue work on the endpoint |
+| `doca_gpi_channel_get_error_state(channel)` | Check the channel error state | Returns `DOCA_SUCCESS` if no error, `DOCA_ERROR_DRIVER` on error |
 
 ### The CUDA-side surface
 
 The GPU-side handle returned by
-`doca_gpi_channel_get_gpu_handle` — type
+`doca_gpi_gpu_channel_get` — type
 `struct doca_gpu_gpi_channel*` — is consumed by a CUDA kernel
 compiled with `nvcc` against the DOCA GPU NetIO device-side
 header set. The CUDA-side programming model (kernel launch, GPU
 memory mapping, the device-side API surface that *uses* the
 GPI channel) is owned by
-[`doca-gpunetio`](../doca-gpunetio/SKILL.md); this skill does
-not duplicate it. Two rules that DO belong here because they are
-GPI-specific:
+[`doca-gpunetio`](../doca-gpunetio/SKILL.md) — the
+`doca_gpu_gpi_channel` type and its device-side `.cuh` API are
+defined there; this skill does not duplicate it. Two rules that
+DO belong here because they are GPI-specific:
 
 - The GPU handle returned by
-  `doca_gpi_channel_get_gpu_handle` is **the only legal bridge**
+  `doca_gpi_gpu_channel_get` is **the only legal bridge**
   between host-side configuration and CUDA-side execution. The
   agent does not invent a different handoff (e.g. casting a host
-  pointer to a CUDA-managed pointer) — the doc string names this
+  pointer to a CUDA-managed pointer) — the header names this
   entry point.
-- The GPU handle is valid only after the context is started
-  *and* assigned to the GPU datapath. Retrieving it before
-  start returns `DOCA_ERROR_BAD_STATE` per the shipped header
-  doc strings.
-
-### Capability discovery
-
-Three capability-query calls gate the configure-time sizing:
-
-- `doca_gpi_cap_get_max_channel_num(gpi, &max)` — maximum
-  channels per GPI context.
-- `doca_gpi_cap_get_max_rdma_queue_per_channel_num(gpi, &max)` —
-  maximum RDMA queues per channel.
-- `doca_gpi_cap_get_max_rdma_queue_size(gpi, &max)` — maximum
-  RDMA queue size.
-
-Run the cap query for each sizing knob before calling the
-matching `doca_gpi_set_*`. Quoting a literal from the public
-docs is not a substitute; the cap query is the runtime authority.
+- The GPU handle is valid only once the channel has been created
+  on a configured, started GPI instance. The agent does not
+  invent an ordering the header does not state; if
+  `doca_gpi_gpu_channel_get` returns a `DOCA_ERROR_*`, walk the
+  lifecycle in [`## Capabilities and modes`](#capabilities-and-modes)
+  and confirm the channel was created before the handle was
+  requested.
 
 ## Version compatibility
 
@@ -149,15 +158,14 @@ lives there; this skill does not duplicate it.
 
 **The GPI-specific overlay** is:
 
-- **The GPI surface is a stability mix.** The public version
-  map exposes `doca_gpi_create`, `doca_gpi_destroy`,
-  `doca_gpi_as_ctx`, and `doca_gpi_channel_get_handle` as
-  `DOCA_STABLE`; the rest of the surface (sizing, GPU-handle
-  retrieval, RDMA-queue descriptor exchange, memory binding) is
-  `DOCA_EXPERIMENTAL`. The agent must surface this whenever the
-  user wants to "ship to production" — the stable core is
-  small, the experimental periphery is wide, and a future DOCA
-  release may rename or change shape of any experimental call.
+- **The entire GPI surface is `DOCA_EXPERIMENTAL`.** Every
+  `doca_gpi_*` function in `doca_gpi.h` carries the
+  `DOCA_EXPERIMENTAL` annotation — there is no `DOCA_STABLE`
+  subset. The agent must surface this whenever the user wants to
+  "ship to production": a future DOCA release may rename or
+  change the shape of any GPI call, so a version pin and a
+  re-test gate are mandatory, and no part of the API should be
+  treated as a frozen, long-term-stable contract.
 - **CUDA Toolkit is a second compatibility axis.** GPI's GPU-
   side handle is consumed by `nvcc`-compiled code, against the
   DOCA GPU-NetIO device-side header set. The DOCA-side `.pc`
@@ -168,14 +176,15 @@ lives there; this skill does not duplicate it.
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
   for the release-notes URL pattern rather than quoting a CUDA
   version pin from agent memory.
-- **`doca-gpi.pc` plus `doca-common.pc` plus `doca-rdma.pc`
-  must all match `doca_caps --version`** at the four-way-match
-  check (per
+- **`doca-gpi.pc` plus `doca-gpunetio.pc` plus `doca-dpa.pc`
+  plus `doca-verbs.pc` must all match `doca_caps --version`** at
+  the four-way-match check (per
   [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)).
-  GPI sits on top of the doca-rdma queue surface; a partial
-  install where one of these `.pc` files reports a different
-  version is the most common partial-install pattern for GPI
-  users.
+  `dependencies/meson.build` lists `doca-dpa`, `doca-gpunetio`,
+  and `doca-verbs` (plus the `libmlx5` / `libibverbs` externals)
+  as GPI's DOCA dependencies; a partial install where one of
+  these `.pc` files reports a different version is the most
+  common partial-install pattern for GPI users.
 - **The closest public docs surface for the GPU-side handoff is
   the DOCA GPU NetIO programming guide.** Until a dedicated
   *DOCA GPI* page is published, the agent uses the sister DOCA
@@ -202,11 +211,11 @@ indicate:
 
 | Family | Most common GPI cause | First action |
 | --- | --- | --- |
-| `DOCA_ERROR_BAD_STATE` | A configuration call (`set_channel_num`, `set_rdma_queue_*`, `set_gpu_queue_size`, `bind_memory`, `channel_get_handle`, `channel_get_gpu_handle`) ran *after* `doca_ctx_start()`; OR the context was not assigned to the GPU datapath before start | Walk the lifecycle in [`## Capabilities and modes`](#capabilities-and-modes); confirm every `set_*` and `bind_memory` call landed before `doca_ctx_start()` and that the GPU datapath was assigned before start |
-| `DOCA_ERROR_INVALID_VALUE` | A `set_*` value exceeded the matching `doca_gpi_cap_get_max_*` for this device, or a pointer argument is NULL | Re-run capability discovery; clamp every `set_*` value to the device-reported maximum |
+| `DOCA_ERROR_BAD_STATE` | A `doca_gpi_set_*` attribute call ran *after* `doca_gpi_start()`, or `doca_gpi_get_dpa` was called on an already-started instance (the header notes it "can be called only if gpi not started") | Walk the lifecycle in [`## Capabilities and modes`](#capabilities-and-modes); confirm every `doca_gpi_set_*` call and `doca_gpi_get_dpa` landed before `doca_gpi_start()` |
+| `DOCA_ERROR_INVALID_VALUE` | An attribute setter (`doca_gpi_domain_attr_set_*`, `doca_gpi_channel_attr_set_*`) was given an unsupported value, or a pointer argument is NULL | GPI exposes no `doca_gpi_cap_*` query, so re-derive the supported range from the device and release notes rather than agent memory; do not invent a runtime maximum |
 | `DOCA_ERROR_NO_MEMORY` | `doca_gpi_create` failed to allocate internal state | Inspect the system's available memory; this is rarely an application bug, usually a host-side resource issue |
-| `DOCA_ERROR_INITIALIZATION` | `doca_gpi_create` failed to initialize an internal mutex | Same as above — inspect host resources |
-| `DOCA_ERROR_IN_USE` | `doca_gpi_destroy` ran while work queues are still attached | Detach every attached queue before destroying the GPI context; the destroy lifecycle does not auto-detach |
+| `DOCA_ERROR_INITIALIZATION` | `doca_gpi_create` failed to initialize internal state | Same as above — inspect host resources |
+| `DOCA_ERROR_IN_USE` | `doca_gpi_destroy` ran while domains or channels are still alive | Destroy every channel (`doca_gpi_channel_destroy`) and domain (`doca_gpi_domain_destroy`), and detach mmaps (`doca_gpi_domain_detach_mmap`), before destroying the GPI instance |
 | `DOCA_ERROR_NOT_SUPPORTED` | The installed DOCA version does not export the requested `doca_gpi_*` symbol, or the device does not support the GPU datapath this code requires | Confirm the symbol exists in the installed headers per [`## Version compatibility`](#version-compatibility); confirm GPU-datapath support on the device via `doca_caps` ([`doca-caps`](../../tools/doca-caps/SKILL.md)) |
 | `DOCA_ERROR_DRIVER` | The layer below DOCA (mlx5 driver, firmware, the verbs / RDMA stack GPI depends on) reported a failure | Stop. This is not a GPI-spec problem. Capture `dmesg | tail` and `mlxconfig -d <pcie> q`; route to [`doca-debug TASKS.md ## debug`](../../doca-debug/TASKS.md#debug) layer 7 |
 
@@ -222,36 +231,40 @@ GPI's observability surface is **split between host and CUDA
 kernel**, and the agent must keep both visible when walking a
 problem.
 
-1. **Host-side: the DOCA Core progress engine (PE).** The host
-   side of GPI uses the universal Core-context PE for lifecycle
-   events on the GPI context. The host side does NOT observe
+1. **Host-side: error monitoring and channel error state.** The
+   host side enables the GPI error path with
+   `doca_gpi_set_enable_err_monitor` at configure time and reads
+   per-channel health with `doca_gpi_channel_get_error_state`,
+   which returns `DOCA_SUCCESS` if no error and `DOCA_ERROR_DRIVER`
+   on a driver-level failure. The host side does NOT observe
    per-work-request completions — those happen on the GPU side.
-   The host side only sees lifecycle transitions, context-start
-   completion, and any host-initiated calls that fail.
+   It only sees lifecycle transitions, channel error state, and
+   any host-initiated call that fails.
 2. **GPU-side: the CUDA kernel reads the channel directly.**
    The CUDA kernel that holds the `doca_gpu_gpi_channel*`
-   handle reads completions, posts work, and observes per-queue
+   handle reads completions, posts work, and observes per-channel
    state through the device-side API surface owned by
    [`doca-gpunetio`](../doca-gpunetio/SKILL.md). The host side
    is blind to those completions; the only signal the host gets
    that work happened is application-level (counters the CUDA
    kernel updates in shared memory, host-side timing, observable
    network traffic on the wire).
-3. **Capability snapshot at configure time.** The output of
-   every `doca_gpi_cap_get_*` query is a snapshot of *what the
-   library said was possible* before any queue was sized. Save
-   it as the baseline; if a later sizing returns
-   `DOCA_ERROR_INVALID_VALUE` the diff against this snapshot is
-   the bug.
-4. **Memory-bind descriptor exchange.** The descriptor returned
-   by `doca_gpi_bind_memory_get_descriptor` is the
-   wire-format payload the application transports to the
-   remote peer; the descriptor returned by
-   `doca_gpi_channel_get_rdma_queue_descriptor` is the queue-
-   side payload. Both are observable artifacts that the agent
-   inspects when *"the peer says it can't reach my memory"* —
-   diff the descriptor the local side built against what the
-   peer received over its out-of-band channel.
+3. **Attribute snapshot at configure time.** The channel and
+   domain attribute values the application set on its
+   `doca_gpi_domain_attr` / `doca_gpi_channel_attr` objects are
+   the record of *what was requested*. Save them as the baseline;
+   GPI exposes no `doca_gpi_cap_*` query, so if
+   `doca_gpi_domain_create` / `doca_gpi_channel_create` returns a
+   `DOCA_ERROR_*`, the diff against this snapshot — not a
+   fabricated runtime maximum — is where the bug lives.
+4. **Out-of-band exchanges.** Two artifacts cross the wire out of
+   band and are observable when *"the peer says it can't reach my
+   memory"*: the remote `doca_mmap` the peer attaches via
+   `doca_gpi_domain_attach_remote_mmap`, and the endpoint
+   connection-info blob produced by
+   `doca_gpi_channel_ep_conn_info_create` and consumed by
+   `doca_gpi_channel_ep_connect`. Diff what the local side built
+   against what the peer received over its out-of-band channel.
 
 For cross-cutting observability primitives (`--sdk-log-level`,
 the `doca-<lib>-trace` build flavor, the `DOCA_LOG_LEVEL` env
@@ -274,28 +287,30 @@ follow from that:
 
 1. **The GPU handle is a credential, not a pointer.** Treat
    `doca_gpu_gpi_channel*` like any other capability handle: it
-   is valid only for the lifetime of the GPI context that
-   produced it, and only after that context is started on the
-   GPU datapath. Reusing a handle across context restarts,
-   sharing a handle between unrelated CUDA kernels, or
-   persisting it across GPU driver reloads is undefined
-   behavior. The agent enforces the *"one handle, one context,
-   one consuming kernel"* discipline.
-2. **Cap-gate every sizing knob.** Posting against a queue that
-   was sized above the device's reported maximum is a silent
-   failure mode in production — the configure call returned an
-   error the application may have logged-and-ignored. The agent
-   walks the cap query in front of every `doca_gpi_set_*` and
-   refuses to recommend a number the device's cap query did not
-   produce.
-3. **Memory-bind descriptors are wire-format secrets.** The
-   descriptor returned by
-   `doca_gpi_bind_memory_get_descriptor` lets a remote peer
-   address into bound GPU memory. Treat its out-of-band
-   transport like any other RDMA descriptor: over a secure
-   channel, only to authenticated peers, and with the
-   *"production environments need a secure channel"* discipline
-   the public DOCA RDMA guide names (see
+   is valid only for the lifetime of the channel and GPI instance
+   that produced it. Reusing a handle across a
+   `doca_gpi_stop` / `doca_gpi_start` restart, sharing a handle
+   between unrelated CUDA kernels, or persisting it across GPU
+   driver reloads is undefined behavior. The agent enforces the
+   *"one handle, one channel, one consuming kernel"* discipline.
+2. **Do not invent a sizing limit.** GPI exposes no
+   `doca_gpi_cap_*` devinfo query, so there is no runtime maximum
+   to quote. Sizing is set on `doca_gpi_domain_attr` /
+   `doca_gpi_channel_attr` objects, and an out-of-range value
+   surfaces as a `DOCA_ERROR_*` from `doca_gpi_domain_create` /
+   `doca_gpi_channel_create` — an error the application may have
+   logged-and-ignored. The agent refuses to recommend a number it
+   cannot source from the device or the release notes, and never
+   fabricates a cap.
+3. **Out-of-band exchange artifacts are wire-format secrets.**
+   The remote `doca_mmap` attached via
+   `doca_gpi_domain_attach_remote_mmap` and the endpoint
+   connection-info blob from `doca_gpi_channel_ep_conn_info_create`
+   let a remote peer address into bound GPU memory and connect to
+   the channel. Treat their out-of-band transport like any other
+   RDMA descriptor: over a secure channel, only to authenticated
+   peers, with the *"production environments need a secure
+   channel"* discipline the public DOCA RDMA guide names (see
    [`doca-rdma CAPABILITIES.md ## Safety policy`](../doca-rdma/CAPABILITIES.md#safety-policy)).
    The GPI overlay does not relax that rule.
 
@@ -326,8 +341,10 @@ topics the agent will get asked but should route elsewhere:
   of [`## Capabilities and modes`](#capabilities-and-modes)
   routes the agent there.
 - **The doca-rdma queue lifecycle and permission matrix** —
-  owned by [`doca-rdma`](../doca-rdma/SKILL.md). GPI binds an
-  RDMA queue; the RDMA queue itself, its transport type, and
+  owned by [`doca-rdma`](../doca-rdma/SKILL.md). GPI does not
+  create or bind a `doca-rdma` queue — its transport layer is
+  `doca-verbs` ([`doca-verbs`](../doca-verbs/SKILL.md)). The
+  host-CPU-initiated RDMA queue object, its transport type, and
   its permission matrix are not GPI's concern.
 - **DPA-resident accelerator initiation** — owned by
   [`doca-rdmi`](../doca-rdmi/SKILL.md). GPI is the GPU case;

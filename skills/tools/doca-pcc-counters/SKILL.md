@@ -1,192 +1,161 @@
 ---
 name: doca-pcc-counters
 description: >
-  Use this skill when the user is invoking the DOCA PCC Counter
-  Tool — a read-only diagnostic CLI under
-  /opt/mellanox/doca/tools/ — to inspect Programmable Congestion
-  Control counters on a BlueField port where a host-side
-  doca-pcc flow has loaded and started a custom PCC kernel.
-  Covers listing per-port / per-flow / per-kernel counters,
-  snapshotting one named counter, watching across an interval,
-  and diffing a before / after pair around a tuning attempt.
-  Trigger even when the user does not explicitly mention "DOCA
-  PCC Counter Tool" or "PCC counters" — typical implicit
-  phrasings include "my custom PCC algorithm loaded but the
-  flows look unchanged", "is the algorithm doing anything on
-  this port?", "RoCE rate-curve unchanged after kernel load",
-  "PCC counter stuck at zero", or "list returned empty after
-  attaching a PCC kernel". Refuse and route elsewhere for
-  writing a custom PCC algorithm body, the factory firmware PCC
-  algorithm, DOCA install, or fleet-wide CC tuning — those
+  Use this skill when the user is invoking the DOCA PCC
+  Counters tool — the `pcc_counters.sh` bash script under the
+  DOCA tools directory — to arm and read the fixed set of
+  firmware / hardware PCC (Programmable Congestion Control)
+  diagnostic counters (CNP, RTT, WRED-drop, RTT-gen, etc.) on
+  a ConnectX / BlueField device via mst + the mlx5 debugfs
+  `diag_cnt` interface. The script takes exactly two positional
+  arguments — `set | query` and an mst device path (e.g.
+  `sudo ./pcc_counters.sh set /dev/mst/mt41692_pciconf0`) — and
+  has no `--help`, no `--version`, and no other subcommands.
+  Trigger even when the user does not explicitly mention
+  "pcc_counters.sh" or "PCC counters" — typical implicit
+  phrasings include "how do I read the CNP / RTT / WRED-drop
+  counters on this NIC", "PCC counter stuck at zero", "the
+  script says Bad Device", or "is congestion control dropping
+  packets on this port?". Refuse and route elsewhere for
+  writing a custom PCC algorithm body (that is the host-side
+  `doca-pcc` library), the factory firmware PCC algorithm
+  configuration, DOCA install, or fleet-wide CC tuning — those
   belong to other skills.
 metadata:
   kind: tool
 compatibility: >
-  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
-  (Ubuntu 22.04/24.04 or RHEL/SLES) with the PCC counter tooling
-  subpackage and a BlueField DPU exposing its DPA. Runs host-side
-  or on the BlueField Arm; counters are only meaningful once a
-  host-side doca-pcc flow has loaded and started a custom PCC
-  kernel against the target port. Read-only on the wire, but any
-  CC tuning decision derived from a counter reading is
-  fleet-impacting.
+  Requires a DOCA / MFT environment on Linux (Ubuntu
+  22.04/24.04 or RHEL/SLES) with a ConnectX-6+ / BlueField
+  device, the mst tools (`mst status -v` must resolve the
+  device), debugfs mounted, and root / sudo (the script writes
+  to and reads from `/sys/kernel/debug/mlx5/<pci>/diag_cnt/`).
+  `pcc_counters.sh` is a plain bash script installed under the
+  DOCA tools directory (`install_data` in
+  `tools/pcc_counters/meson.build`); it reads firmware / HW
+  diagnostic counters and is INDEPENDENT of any custom DPA /
+  `doca-pcc` kernel. Reading is diagnostic, but the `set`
+  operation reconfigures which diagnostic counters the device
+  collects (a privileged debugfs write), and any CC tuning
+  decision derived from a reading is fleet-impacting.
 ---
 
-# DOCA PCC Counter Tool
+# DOCA PCC Counters (`pcc_counters.sh`)
 
-**Where to start:** This is a tool skill for invoking the
-documented DOCA PCC Counter Tool — the operator-side, read-only
-diagnostic CLI counterpart to the
-[`doca-pcc`](../../libs/doca-pcc/SKILL.md) library that loads
-custom congestion-control (CC) kernels onto the BlueField DPA.
-Open [`TASKS.md`](TASKS.md) and start at
-[`## run`](TASKS.md#run) for the
-list-then-snapshot-then-watch-then-diff entry point, or
-[`## debug`](TASKS.md#debug) when the user reports *"my custom
-PCC algorithm loaded but the flows look unchanged"*. Open
-[`CAPABILITIES.md`](CAPABILITIES.md) when the question is *what
-counters can this tool report and at what granularity*. If the
-user has not installed DOCA yet, route to
-[`doca-setup`](../../doca-setup/SKILL.md) first. If the user
-has not yet brought up a custom PCC kernel via the host-side
-library, route to [`doca-pcc`](../../libs/doca-pcc/SKILL.md)
-first — the counter tool inspects what the running kernel
-emits; it does not load or run a kernel.
+**Where to start:** This is a tool skill for invoking
+`pcc_counters.sh` — a small bash script that arms and reads the
+device's fixed set of firmware / hardware **PCC diagnostic
+counters** (CNP count, RTT-perf, WRED-drop, RTT-gen, handled
+events) through the mlx5 debugfs `diag_cnt` interface. Open
+[`TASKS.md`](TASKS.md) and start at [`## run`](TASKS.md#run) for
+the canonical `set`-then-`query` sequence, or
+[`## debug`](TASKS.md#debug) when the user reports
+*"`ERROR: Bad Device`"*, *"counter stuck at zero"*, or *"the
+dump is empty"*. Open [`CAPABILITIES.md`](CAPABILITIES.md) when
+the question is *which counters the script reports and how it
+reaches them*. If the user has not installed DOCA / MFT yet,
+route to [`doca-setup`](../../doca-setup/SKILL.md) first.
 
-This skill is the **runtime / inspect side** of custom
-Programmable Congestion Control. It is NOT the host-side
-control library that loads kernels (that is
+This skill is the **firmware / HW PCC counter readout** surface.
+It is NOT the host-side control library that loads custom
+congestion-control kernels onto the DPA (that is
 [`doca-pcc`](../../libs/doca-pcc/SKILL.md)) and it is NOT the
-default factory PCC algorithm shipped in ConnectX firmware
-(that path is firmware-only configuration, no host-side code,
-routed via
+firmware PCC *algorithm* configuration (that path is firmware
+configuration, routed via
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)).
-Three separate surfaces; conflating them is the most common
-PCC first-touch error.
+The counters this script reads are device / firmware
+diagnostic counters that exist **regardless of whether a custom
+`doca-pcc` DPA kernel is running** — do not condition them on a
+custom kernel being loaded.
 
 ## Example questions this skill answers well
 
-The CLASSES of PCC counter-tool questions this skill is built
+The CLASSES of `pcc_counters.sh` questions this skill is built
 to answer, each with one worked example. The class is the
 load-bearing piece; the worked example is one instance.
 
-- **"Which PCC counters can I read on this BlueField right
-  now?"** — worked example: *"my custom PCC kernel just
-  attached to a BlueField port — enumerate every counter the
-  tool can list for that port"*. Answered by the
-  counter-enumeration family in
+- **"How do I read the PCC diagnostic counters on this
+  device?"** — worked example: *"arm and dump the CNP / RTT /
+  WRED-drop counters for `/dev/mst/mt41692_pciconf0`"*.
+  Answered by the fixed counter set in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  + the list-first invocation in
+  + the `set`-then-`query` invocation in
   [`TASKS.md ## run`](TASKS.md#run).
-- **"What is this single PCC counter doing right now?"** —
-  worked example: *"snapshot one named counter for the port
-  carrying the user's RoCE traffic and confirm the value is
-  finite and changing"*. Answered by the snapshot pattern in
-  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  + the smoke step in
-  [`TASKS.md ## test`](TASKS.md#test).
-- **"My custom PCC algorithm loaded but the flows look
-  unchanged — is the algorithm doing anything?"** — worked
-  example: *"the host-side `doca-pcc` reports the algorithm
-  started cleanly; the RDMA / RoCE rate-curve is unchanged"*.
-  Answered by the diff-before-decide pattern in
-  [`TASKS.md ## debug`](TASKS.md#debug) +
-  [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
-  high-stakes-tuning gate.
-- **"How do I sweep a counter over time without aliasing or
-  saturating it?"** — worked example: *"watch a per-flow
-  counter for a minute and tell whether the change is real"*.
-  Answered by the watch / interval-sample family in
-  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  + the eval-loop overlay in
-  [`TASKS.md ## test`](TASKS.md#test).
-- **"Is this counter tool on my installed DOCA version, and
-  does it match the `doca-pcc` library version on this
-  host?"** — worked example: *"is the tool available on my
-  install and does it agree with the library the kernel was
-  loaded against"*. Answered by the overlay in
-  [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility),
-  which redirects to the canonical
-  [`doca-version`](../../doca-version/SKILL.md) rules and
-  adds the counter-tool ↔ `doca-pcc` library matching
-  overlay.
-- **"The tool prints nothing — is the install broken, the
-  kernel not loaded, or genuinely no traffic?"** — worked
-  example: *"`list` returned an empty result on a host where
-  I just attached a custom PCC kernel"*. Answered by the
-  layered diagnosis in
+- **"What is the smallest legal invocation?"** — worked
+  example: *"what exactly do I type?"*. Answered by the
+  two-positional-argument contract
+  (`set | query` + an mst device path) in
+  [`TASKS.md ## run`](TASKS.md#run).
+- **"The script printed `ERROR: Bad Device` — what's wrong?"**
+  — worked example: *"my device path is not matching"*.
+  Answered by the device-resolution layer in
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  + [`TASKS.md ## debug`](TASKS.md#debug).
+- **"A counter is stuck at zero — is the device idle, the
+  counters not armed, or genuinely no events?"** — worked
+  example: *"`PCC_CNP_COUNT` reads 0 after `query`"*. Answered
+  by the arm-before-read rule and the layered diagnosis in
   [`TASKS.md ## debug`](TASKS.md#debug) +
   [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy).
+- **"Is this script on my install, and where?"** — worked
+  example: *"is `pcc_counters.sh` present and where does the
+  install put it"*. Answered by the install overlay in
+  [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility),
+  which redirects to the canonical
+  [`doca-version`](../../doca-version/SKILL.md) rules.
 
 ## Audience
 
-This skill serves **external operators, developers, and AI
-agents who have already loaded a custom Programmable
-Congestion Control kernel via the host-side `doca-pcc`
-library** (or who are operating against a BlueField with a
-DPA-resident PCC algorithm) and now need to inspect what the
-running kernel is reporting at the counter level.
-Concretely:
+This skill serves **operators, developers, and AI agents who
+need to read a ConnectX / BlueField device's firmware PCC
+diagnostic counters** to reason about congestion-control
+behaviour (CNP generation, RTT requests/responses, WRED
+drops) on a port. Concretely:
 
-- A developer of a custom CC algorithm who finished the
-  `doca-pcc` lifecycle (load → start → observe) and needs the
-  external counter view to confirm the algorithm is actually
-  modulating the BlueField port's RDMA / RoCE traffic.
-- A platform operator who runs a DOCA-PCC-using service and
-  needs a documented, read-only way to ask *"what are this
-  port's PCC counters doing?"* without touching the host-side
-  program.
+- A network operator confirming whether congestion-control
+  events (CNPs, RTT, WRED drops) are occurring on a device.
+- A developer correlating a custom `doca-pcc` algorithm's
+  effect with the device-level PCC diagnostic counters
+  (the script reads the firmware counters; the custom
+  algorithm itself is a separate surface owned by
+  [`doca-pcc`](../../libs/doca-pcc/SKILL.md)).
 - An AI agent producing a *PCC counter snapshot* as evidence
-  for the host-side debug ladder in
-  [`doca-pcc TASKS.md ## debug`](../../libs/doca-pcc/TASKS.md#debug)
-  layer 5 (runtime) when the host-side log is silent.
+  for a congestion-control investigation.
 
-It is **not** for users debugging the counter tool itself,
-**not** a substitute for the live public DOCA PCC Counter
-Tool guide, **not** the right place for users learning how
-to write a custom PCC algorithm — that audience belongs in
+It is **not** for users debugging the script's bash itself,
+**not** the place to learn how to write a custom PCC
+algorithm — that audience belongs in
 [`doca-pcc`](../../libs/doca-pcc/SKILL.md) — and **not** the
-right place for users who only want the default factory PCC
-algorithm shipped in ConnectX firmware (no host-side library
-or counter tool needed; route via
+place for users who want to configure the factory firmware PCC
+algorithm (route via
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)).
 
-The tool is shipped as a **CLI binary** under
-`/opt/mellanox/doca/tools/`, not a library you link against.
-The skill uses the same `kind: library` three-file shape as
-the rest of the bundle so the agent's task-verb contract
+`pcc_counters.sh` is shipped as a **plain bash script**
+installed under the DOCA tools directory (per `install_data` in
+`tools/pcc_counters/meson.build`), not a compiled binary and
+not a library you link against. The skill uses the bundle's
+`kind: tool` three-file shape (`SKILL.md` + `CAPABILITIES.md`
++ `TASKS.md`) so the agent's task-verb contract
 (`configure / build / modify / run / test / debug`) is uniform
-across libraries, services, and tools.
+across the bundle.
 
 ## When to load this skill
 
 Load this skill when the user is — or the agent needs to —
-invoke the documented DOCA PCC Counter Tool on a real host or
-BlueField Arm with DOCA installed (or inside the public NGC
-DOCA container with the right device passthrough), against a
-BlueField port whose PCC behaviour the user wants to inspect.
-Concretely:
+arm and read the device PCC diagnostic counters on a host or
+BlueField Arm with the mst tools available and debugfs
+mounted. Concretely:
 
-- Listing the PCC counters available for a BlueField port
-  whose RDMA / RoCE traffic the user is reasoning about.
-- Snapshotting a single counter to confirm the running custom
-  PCC algorithm is actually modulating the flows attached to
-  that port.
-- Watching a counter (or a small set of counters) over an
-  interval to localize whether a tuning change had the
-  expected on-wire effect.
-- Diffing a *before / after* snapshot pair to localize where
-  a bottleneck is and to gate any congestion-control tuning
-  decision on real evidence rather than inference.
-- Capturing a side-effect-free counter snapshot as
-  prerequisite evidence for a host-side `doca-pcc` debug
-  session per
-  [`doca-pcc TASKS.md ## debug`](../../libs/doca-pcc/TASKS.md#debug).
+- Arming the diagnostic counters with `set` on a target mst
+  device.
+- Reading the armed counters with `query` and quoting the
+  named counter lines verbatim.
+- Capturing a counter readout as evidence for a
+  congestion-control investigation.
 
 Do **not** load this skill for general DOCA orientation,
 custom-PCC algorithm design, the host-side `doca-pcc` library
-API, the default factory PCC algorithm in firmware, or DOCA
-install. For those, route to
+API, the factory firmware PCC algorithm, or DOCA / MFT install.
+For those, route to
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md),
 [`doca-pcc`](../../libs/doca-pcc/SKILL.md), or
 [`doca-setup`](../../doca-setup/SKILL.md).
@@ -196,44 +165,37 @@ install. For those, route to
 This is a **thin loader**. Substantive material lives in two
 companion files:
 
-- `CAPABILITIES.md` — what the PCC Counter Tool reports: the
-  documented counter-granularity surface (per-port,
-  per-kernel, per-flow as the public guide on the user's
-  installed DOCA version describes them), the read-only-only
-  posture (the tool has no documented state-changing
-  operations on the PCC algorithm itself), the
-  version-availability overlay that redirects to
-  [`doca-version`](../../doca-version/SKILL.md) and adds the
-  counter-tool ↔ `doca-pcc` library matching rule, the
-  layered error taxonomy (tool-not-installed /
-  no-PCC-kernel-loaded / wrong-version-with-PCC-library /
-  counter-not-exposed-by-kernel / permission /
-  sampling-aliasing-or-saturation / version / cross-cutting),
-  the tool's role as the observability primitive for
-  [`doca-pcc`](../../libs/doca-pcc/SKILL.md) debug sessions,
-  and the safety policy that makes any *"tune the
-  congestion-control algorithm based on this counter"*
-  decision high-stakes (a misread can destabilize a fleet).
+- `CAPABILITIES.md` — what `pcc_counters.sh` does: the exact
+  two-operation surface (`set` arms the device's diagnostic
+  counters by writing counter IDs + params to debugfs;
+  `query` reads the `diag_cnt/dump` and prints the named
+  counters), the FIXED firmware / HW counter set it knows
+  (`PCC_CNP_COUNT`, the `MAD_RTT_PERF_CONT_*`, the
+  `*_EVENT_WRED_DROP` family, `HANDLED_*_EVENTS`, the
+  `DROP_RTT_PORT*`/`RTT_GEN_PORT*` families), how it resolves
+  an mst device to a PCI address (`mst status -v` + `lspci`)
+  and reaches `/sys/kernel/debug/mlx5/<pci>/diag_cnt/`, the
+  install-availability overlay that redirects to
+  [`doca-version`](../../doca-version/SKILL.md), the layered
+  error taxonomy (script-not-present / bad-device /
+  not-armed-before-query / debugfs-or-permission /
+  counter-stuck-at-zero / cross-cutting), and the safety
+  policy that flags `set` as a privileged debugfs write and
+  any CC tuning decision derived from a reading as
+  high-stakes.
 - `TASKS.md` — step-by-step workflows for the in-scope task
-  verbs: `configure` (route to install + confirm a PCC
-  kernel is loaded), `build` (route to install), `modify`
-  (refuse — shipped binary), `run`
-  (list → snapshot → watch → diff), `test`
-  (smoke-before-bulk on a single counter), `debug` (the
-  layered diagnosis ladder), plus a `Deferred task verbs`
-  block and a `Command appendix` that honors the bundle's
-  [`doca-structured-tools-contract`](../../doca-structured-tools-contract/SKILL.md)
-  preamble.
+  verbs: `configure` (route to install + confirm mst /
+  debugfs / sudo), `build` (route to install; nothing to
+  compile — it is a script), `modify` (refuse — do not patch
+  the shipped script), `run` (the `set`-then-`query`
+  sequence), `test` (confirm the dump contains the named
+  counters with finite values), `debug` (the layered
+  diagnosis ladder), plus a `Deferred task verbs` block and a
+  `Command appendix`.
 
-The skill assumes a host or BlueField where DOCA is already
-installed (or the public NGC DOCA container is running with
-the right device passthrough), the host-side
-[`doca-pcc`](../../libs/doca-pcc/SKILL.md) flow has reached
-the *started* lifecycle stage at least once for the BlueField
-port the user wants to inspect (otherwise the counters of
-interest will not yet exist or will be silent for an
-expected reason), and the operator has whatever privileges
-the public DOCA PCC Counter Tool guide requires.
+The skill assumes a host or BlueField where DOCA / MFT is
+already installed (mst tools present, debugfs mounted, sudo
+available) and the target device is visible to `mst status -v`.
 
 ## What this skill deliberately does not ship
 
@@ -241,90 +203,66 @@ This skill is **agent guidance**, not a samples or scripts
 bundle. To keep the boundary clean, it deliberately does not
 contain — and pull requests should not add:
 
-- **Verbatim flag inventories, subcommand names, binary
-  names, or counter column names.** The public DOCA PCC
-  Counter Tool guide on `docs.nvidia.com` and the installed
-  `--help` on the user's version are the joint source of
-  truth; copying them here pins the skill to one release and
-  silently rots when the tool evolves. The skill routes the
-  agent at those sources instead.
-- **Pre-baked example output.** Output is install-, version-,
-  device-, kernel-, and traffic-state-specific. A captured
-  example will mislead an operator on a different platform.
-- **Wrappers, parsers, or scripts** in any language that
-  consume the counter tool's output. The output format is
-  documented; users who want to script against it should read
-  the live guide and write the parser against their installed
-  version.
+- **Invented flags or subcommands.** `pcc_counters.sh` has
+  exactly two operations (`set`, `query`), takes exactly two
+  positional arguments, and has NO `--help`, `--version`,
+  `list`, `snapshot`, `watch`, or `diff`. Do not invent any.
+- **Pre-baked example counter values.** Counter values are
+  device-, firmware-, and traffic-state-specific; a captured
+  value will mislead an operator on a different device.
+- **Wrappers, parsers, or rewritten copies of the script.**
+  The script is the contract; modifying or re-implementing it
+  is out of scope.
 - **A specific congestion-control tuning recommendation
-  derived from a counter reading.** That is a domain question
-  (research / workload tuning) and a high-stakes one — the
-  skill prescribes how to *capture and diff* counters; it
-  refuses to translate a counter delta into a CC parameter
-  change without the user's own domain analysis.
+  derived from a counter reading.** That is a high-stakes
+  domain question — the skill prescribes how to *capture* the
+  counters; it refuses to translate a delta into a CC
+  parameter change without the user's own domain analysis.
 - **A `samples/` or `reference/` subtree.** This is a thin
-  loader for a documented CLI; substantive material lives on
-  the public page and in `--help`.
+  loader for a documented script; substantive material lives
+  in the script and the public PCC documentation.
 
 ## Loading order
 
 1. Read this `SKILL.md` first to confirm the user's question
-   is in scope (inspecting PCC counters from outside the
-   custom algorithm; not designing the algorithm and not
-   loading it).
-2. **For what the tool reports, the read-only posture, the
-   counter-granularity surface, the version-availability
-   overlay, the layered error surface, observability, and
-   safety posture, see [CAPABILITIES.md](CAPABILITIES.md).**
-3. **For the documented invocations and the
-   smoke-before-bulk workflow — `configure`, `build`,
+   is in scope (reading the device's firmware PCC diagnostic
+   counters; not designing or loading a custom algorithm).
+2. **For what the script does, the fixed counter set, the
+   debugfs mechanism, the install-availability overlay, the
+   layered error surface, and the safety posture, see
+   [CAPABILITIES.md](CAPABILITIES.md).**
+3. **For the documented invocations — `configure`, `build`,
    `modify`, `run`, `test`, `debug`, plus the `Command
    appendix` — see [TASKS.md](TASKS.md).**
 
 ## Related skills
 
 - [`doca-pcc`](../../libs/doca-pcc/SKILL.md) — the host-side
-  library whose loaded congestion-control kernel emits the
-  counters this tool inspects. Pair them in every triage
-  session: the host-side `doca-pcc` reports and the counter
-  tool's per-port / per-flow / per-kernel snapshots are the
-  two halves of the same picture. Conflating the library and
-  the tool is the most common PCC first-touch error.
-- [`doca-comm-channel-admin`](../doca-comm-channel-admin/SKILL.md) —
-  sibling tool skill that pairs an admin / inspect CLI with
-  the library that owns the state it inspects (Comch). Same
-  paired-with-library shape; same list-then-inspect rhythm
-  on the read-only side. Use as a generalization target when
-  reasoning about *"how do I drive any DOCA admin / inspect
-  tool that pairs with a DOCA library"*.
+  library for writing and loading custom congestion-control
+  kernels onto the DPA. It is a SEPARATE surface: the
+  firmware PCC diagnostic counters `pcc_counters.sh` reads
+  exist independently of any custom `doca-pcc` kernel, but an
+  operator tuning a custom algorithm may read these counters
+  to observe device-level CC behaviour. Conflating the script
+  (firmware counter readout) with the library (custom
+  algorithm load/control) is the most common PCC first-touch
+  error.
 - [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
-  — routing to the public DOCA PCC Counter Tool guide and
-  the rest of the public DOCA documentation set.
+  — routing to the public DOCA / PCC documentation set,
+  including the firmware PCC algorithm configuration.
 - [`doca-version`](../../doca-version/SKILL.md) — canonical
   DOCA version-handling rules. The `## Version compatibility`
-  section in [`CAPABILITIES.md`](CAPABILITIES.md) is a
-  concise overlay that redirects here for the body and adds
-  the counter-tool ↔ `doca-pcc` library matching rule.
-- [`doca-structured-tools-contract`](../../doca-structured-tools-contract/SKILL.md)
-  — the bundle's detect → prefer → fall back → report
-  contract for structured helper tools. The Command appendix
-  in [`TASKS.md`](TASKS.md) honors this contract.
-- [`doca-setup`](../../doca-setup/SKILL.md) — env
-  preparation, install verification, BlueField mode (the
-  BlueField must expose its DPA processor before any
-  custom-PCC kernel can run, which in turn is the
-  precondition for any counter the tool reports), and the
+  section in [`CAPABILITIES.md`](CAPABILITIES.md) is a concise
+  overlay that redirects here.
+- [`doca-setup`](../../doca-setup/SKILL.md) — env preparation,
+  install verification, mst tools, debugfs, and the
   *I have no install yet* path with the public NGC DOCA
   container. This skill assumes its preconditions are
   satisfied.
 - [`doca-debug`](../../doca-debug/SKILL.md) — the
-  cross-cutting debug ladder. The PCC Counter Tool slots in
-  at the *runtime* layer as the read-only inspection surface
-  before any custom-PCC tuning recommendation is made, and
-  the captured snapshot pair (before / after) is the
-  load-bearing artifact the cross-cutting ladder consumes.
+  cross-cutting debug ladder. The PCC counter readout slots
+  in as a read-only device-state evidence source before any
+  congestion-control tuning recommendation is made.
 - [`doca-programming-guide`](../../doca-programming-guide/SKILL.md)
-  — general DOCA programming patterns shared by every
-  library / tool surface, including the cross-library
-  `DOCA_ERROR_*` taxonomy this tool's error layer overlays
-  on top of when host-side `doca-pcc` calls fail in tandem.
+  — general DOCA programming patterns shared across the
+  bundle.

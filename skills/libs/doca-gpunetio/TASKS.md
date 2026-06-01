@@ -61,9 +61,12 @@ Steps the agent should walk the user through:
 3. **Run dual capability discovery against the target device.**
    Per the dual-axis rule in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes):
-   on the DOCA side, run `doca_gpu_eth_rxq_cap_is_supported(devinfo, ...)`
-   (and the matching `_txq_cap_is_supported` family member)
-   against the active `doca_devinfo` for the NIC; on the CUDA
+   on the DOCA side, run the doca-eth query
+   `doca_eth_rxq_cap_is_type_supported(devinfo, ...)` from
+   `doca_eth_rxq.h` (and the matching
+   `doca_eth_txq_cap_is_type_supported` / `doca_eth_*_cap_get_*`
+   sizing family) against the active `doca_devinfo` for the NIC —
+   GPUNetIO exposes no `cap_is_supported` symbol of its own; on the CUDA
    side, run `cudaGetDeviceProperties(devOrdinal)` against the
    candidate CUDA device. Quote BOTH results back to the user.
    If either says *not supported*, that axis is the answer — do
@@ -79,8 +82,10 @@ Steps the agent should walk the user through:
    `DOCA_ERROR_BAD_STATE` from the first device-side submit, not
    at create time.
 5. **Create the `doca_gpu` context and the GPU-visible queue
-   handles.** Create one `doca_gpu` against the target CUDA
-   device ordinal; then create the GPU-visible RX handle
+   handles.** Create one `doca_gpu` for the target GPU —
+   `doca_gpu_create(const char *gpu_bus_id, ...)` takes the GPU's
+   PCIe bus-id STRING (e.g. from `nvidia-smi -L` / `cudaDeviceGetPCIBusId`),
+   not an integer device ordinal; then create the GPU-visible RX handle
    (`doca_gpu_eth_rxq`) on top of the existing `doca_eth_rxq`
    (and, if TX is in scope, the matching `doca_gpu_eth_txq`).
    Start the doca-eth context if it has not been started already.

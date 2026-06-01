@@ -2,17 +2,17 @@
 #
 # install.sh — one-line installer for the NVIDIA DOCA Skills bundle.
 #
-# Copies (or symlinks) the bundle's 61 AgentSkills.io-compliant skill
+# Copies (or symlinks) the bundle's 60 AgentSkills.io-compliant skill
 # folders into the local agent's skill-discovery directory so the agent
 # can route to them on the next reload.
 #
 # Quickstart:
 #
-#   ./install.sh --agent cursor                     # install all 61 skills into Cursor          (~/.cursor/skills/)
-#   ./install.sh --agent claude-code                # install all 61 skills into Anthropic Claude (~/.claude/skills/)
-#   ./install.sh --agent codex                      # install all 61 skills into OpenAI Codex CLI (~/.agents/skills/)
-#   ./install.sh --agent gemini-cli                 # install all 61 skills into Google Gemini CLI(~/.gemini/skills/)
-#   ./install.sh --agent kiro-cli                   # install all 61 skills into Kiro CLI         (~/.kiro/skills/)
+#   ./install.sh --agent cursor                     # install all 60 skills into Cursor          (~/.cursor/skills/)
+#   ./install.sh --agent claude-code                # install all 60 skills into Anthropic Claude (~/.claude/skills/)
+#   ./install.sh --agent codex                      # install all 60 skills into OpenAI Codex CLI (~/.agents/skills/)
+#   ./install.sh --agent gemini-cli                 # install all 60 skills into Google Gemini CLI(~/.gemini/skills/)
+#   ./install.sh --agent kiro-cli                   # install all 60 skills into Kiro CLI         (~/.kiro/skills/)
 #   ./install.sh --agent agents                     # install into the cross-platform target      (~/.agents/skills/)
 #   ./install.sh --agent custom --dest /some/path/  # install to any AgentSkills.io-compliant dir
 #

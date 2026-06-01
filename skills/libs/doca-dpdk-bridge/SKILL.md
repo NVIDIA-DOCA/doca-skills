@@ -4,9 +4,10 @@ description: >
   Use this skill when the user has an existing DPDK application
   and is adding DOCA capabilities in-place — most commonly DOCA
   Flow hardware steering — without rewriting the data-plane in
-  DOCA-native form: surfacing a DPDK port via `doca_dpdk_port`,
+  DOCA-native form: binding a DPDK port id to a `doca_dev`
+  (`doca_dpdk_port_probe` / `doca_dpdk_port_as_dev`),
   converting `rte_mbuf` ↔ `doca_buf` at the data-plane boundary,
-  querying the `doca_dpdk_*_cap_*` family, or debugging
+  querying `doca_dpdk_cap_is_rep_port_supported`, or debugging
   `DOCA_ERROR_*` from a bridge call. Trigger even when the user
   does not explicitly mention "DOCA DPDK Bridge" — typical
   implicit phrasings include "how do I add DOCA Flow to my DPDK
@@ -66,9 +67,10 @@ single instance.
   [`TASKS.md ## configure`](TASKS.md#configure) step 3.
 - **"How do I make a DPDK port visible to DOCA?"** — worked
   example: *"I have a DPDK port id from `rte_eth_dev_*`; how does
-  DOCA see it"*. Answered by the `doca_dpdk_port` handle in
+  DOCA see it"*. Answered by the DPDK-port-id ↔ `doca_dev`
+  mapping (`doca_dpdk_port_probe` / `doca_dpdk_port_as_dev`) in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  bridge-objects table + the registration workflow in
+  bridge-objects table + the binding workflow in
   [`TASKS.md ## configure`](TASKS.md#configure) step 4.
 - **"How do I move packets between DPDK mbufs and DOCA bufs?"** —
   worked example: *"DPDK delivers an `rte_mbuf` to my fastpath; I
@@ -138,9 +140,9 @@ work, in any language. Concretely:
   and they want to layer DOCA on top — adding DOCA Flow rules,
   feeding packets into a DOCA accelerator (Compress, AES-GCM, …),
   or wiring a DOCA service into the same process.
-- The user needs to surface a DPDK port to DOCA via a
-  `doca_dpdk_port` handle so DOCA Core / DOCA Flow can operate on
-  it.
+- The user needs to bind a DPDK port id to a `doca_dev` (via
+  `doca_dpdk_port_probe` / `doca_dpdk_port_as_dev`) so DOCA Core
+  / DOCA Flow can operate on the same physical port.
 - The user needs to convert between DPDK mbufs and DOCA-bufs at
   the data-plane boundary, and is asking about the conversion
   helpers and their cost.
@@ -171,9 +173,10 @@ specific material lives in two companion files:
 - `CAPABILITIES.md` — what the DOCA DPDK Bridge can express on
   this version: the bridge-vs-native selection rule (when to
   use `doca-dpdk-bridge` vs native `doca-eth`), the
-  bridge-object surface (`doca_dpdk_port` handle, mbuf ↔
-  DOCA-buf conversion helpers), the capability-query surface
-  (`doca_dpdk_*_cap_*` family), the bridge error taxonomy
+  bridge-object surface (DPDK-port-id ↔ `doca_dev` mapping, the
+  `doca_dpdk_mempool` mbuf ↔ DOCA-buf conversion), the
+  capability-query surface (the single
+  `doca_dpdk_cap_is_rep_port_supported`), the bridge error taxonomy
   (mapped onto the cross-library `DOCA_ERROR_*` set), the
   observability surface (DPDK-side counters + DOCA-side PE
   events), and the safety policy that gates the matched-pair
@@ -204,8 +207,10 @@ bundle. To keep the boundary clean, it deliberately does not
 contain — and pull requests should not add:
 
 - **Pre-written DOCA DPDK Bridge application source code, in any
-  language.** The verified bridge source code is the shipped C
-  samples at `/opt/mellanox/doca/samples/doca_dpdk_bridge/`,
+  language.** The verified bridge source code is the bridge
+  usage inside the shipped C DOCA Flow samples at
+  `/opt/mellanox/doca/samples/doca_flow/` (e.g. `flow_common.c`,
+  which calls `doca_dpdk_port_probe()` / `doca_dpdk_port_as_dev()`),
   plus the canonical reference applications that pair DPDK +
   DOCA Flow (see
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
@@ -290,8 +295,8 @@ guidance".
   with no DPDK lock-in, `doca-eth` is the right choice.
 - [`doca-flow`](../doca-flow/SKILL.md) — the steering library
   that is the most common reason a DPDK app reaches for this
-  bridge. The bridge surfaces a DPDK port as a `doca_dpdk_port`;
-  DOCA Flow programs steering rules onto that port. The two
+  bridge. The bridge binds a DPDK port id to a `doca_dev`;
+  DOCA Flow programs steering rules onto that `doca_dev`. The two
   libraries are designed to compose.
 - [`doca-debug`](../../doca-debug/SKILL.md) — the cross-cutting
   debug ladder (install / version / build / link / runtime /

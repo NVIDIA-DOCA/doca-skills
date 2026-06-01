@@ -106,7 +106,7 @@ It is **not** for users debugging `doca_caps` itself, and **not** a
 substitute for the live public Capabilities Print Tool guide.
 
 `doca_caps` is shipped as a **tool** (a single CLI binary), not a
-library you link against. The skill uses the same `kind: library`
+library you link against. The skill uses the same `kind: tool`
 three-file shape as the rest of the bundle so the agent's task-verb
 contract (`configure / build / modify / run / test / debug`) is uniform
 across libraries, services, and tools — even when individual verbs

@@ -363,9 +363,9 @@ should be routed out:
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 - **GPU-initiated WRITE latency** ⇒
   [`../doca-gpunetio-ib-write-lat/SKILL.md`](../doca-gpunetio-ib-write-lat/SKILL.md)
-  for the GPUNetIO latency analog;
-  [`../doca-gpi-ib-write-lat/SKILL.md`](../doca-gpi-ib-write-lat/SKILL.md)
-  for the GPI variant.
+  for the GPUNetIO latency analog; for the GPI programming
+  surface (no shipped GPI benchmark binary) ⇒
+  [`doca-gpi`](../../libs/doca-gpi/SKILL.md).
 - **hardware-touching changes the benchmark surfaced a
   need for** (NIC firmware burn, BFB reflash, kernel
   command-line changes for IOMMU mode, hugepage

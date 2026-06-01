@@ -177,10 +177,10 @@ host's PCIe topology. Concretely:
   bandwidth between two hosts (or a host and a BlueField
   DPU) with the GPUNetIO surface.
 - Deciding whether the GPUNetIO path is the right runtime
-  surface for a class of workload vs the GPI path
-  ([`../doca-gpi-ib-write-lat/SKILL.md`](../doca-gpi-ib-write-lat/SKILL.md)
-  for the latency analog) or the classic CPU-initiated
-  `perftest` path.
+  surface for a class of workload vs the GPI programming
+  surface (the [`doca-gpi`](../../libs/doca-gpi/SKILL.md)
+  library — `doca/tools/` ships no GPI benchmark binary) or
+  the classic CPU-initiated `perftest` path.
 - Capturing a documented baseline (build + invocation +
   DOCA version + GPU + NIC + as-deployed environment +
   numbers) for later regression hunts.
@@ -321,10 +321,13 @@ not contain — and pull requests should not add:
   operation; same runtime framework; different metric
   class (BW vs latency). The two together carry the
   full GPUNetIO-side throughput / latency picture.
-- [`../doca-gpi-ib-write-lat/SKILL.md`](../doca-gpi-ib-write-lat/SKILL.md) —
-  sister tool on the GPI runtime surface. Same physical
-  operation; different runtime framework. The selection
-  rule in
+- [`doca-gpi`](../../libs/doca-gpi/SKILL.md) — the GPI
+  programming surface (CUDA-kernel-initiated RDMA), the
+  alternative runtime framework for the same physical
+  operation. `doca/tools/` ships no GPI `ib_write_lat` /
+  `ib_write_bw` benchmark binary, so the GPI comparison is
+  against the library surface, not a sibling tool. The
+  selection rule in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   is the decision aid.
 - [`doca-version`](../../doca-version/SKILL.md) — the

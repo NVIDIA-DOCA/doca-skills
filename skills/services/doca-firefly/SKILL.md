@@ -193,9 +193,11 @@ work** on a BlueField where DOCA is already installed. Concretely:
   slave / boundary clock / transparent clock), profile (the
   `PROFILE` env var accepts EXACTLY `default` / `media` /
   `telco-l2` / `custom` per `services/firefly/doca_firefly.yaml`;
-  these map onto industry PTP profile names IEEE 1588 / SMPTE
-  2059-2 / G.8275.1 / G.8275.2 respectively — do NOT put the
-  industry names directly into the env var), domain number,
+  these map onto industry PTP profile names: `default` → IEEE 1588,
+  `media` → SMPTE 2059-2, `telco-l2` → G.8275.1 only (G.8275.2
+  corresponds to the separate `telco-l3` config, reached via
+  `custom`) — do NOT put the industry names directly into the env
+  var), domain number,
   network interface — for the user's deployment.
 - Wiring the host-side follower so the host clock tracks the
   BlueField PHC (chrony with the PHC source, or `ptp4l` /

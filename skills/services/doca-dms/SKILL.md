@@ -112,7 +112,9 @@ on the management endpoint (host, DPU, or pod). Concretely:
 - Deciding *where* DMS should run (host non-DPU / BlueField Arm /
   Kubernetes pod) for a given target topology.
 - Bringing up the `dmsd` daemon — choosing SystemD vs manual launch,
-  selecting an authentication mode, wiring `dmsgroup` user authorization.
+  selecting an authentication mode, wiring `-allowed_users` (the gRPC
+  client authorization boundary) and, if needed, `dmsgroup` (the
+  `dmspe` backend-helper Unix group).
 - Issuing `gNMI` `Get` / `Set` requests against modeled paths
   (e.g. `/interfaces/interface/config/mtu`).
 - Issuing `gNOI` operations: OS install, reboot, file transfer,
