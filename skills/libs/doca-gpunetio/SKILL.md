@@ -177,9 +177,11 @@ GPUNetIO-specific material lives in two companion files:
   + this GPU: the `doca_gpu` per-device context, the GPU-visible
   RX / TX queue handles layered on doca-eth, the persistent
   CUDA-kernel pattern as the default usage shape, the
-  capability-query surface (`doca_gpu_eth_rxq_cap_is_supported`
-  on the DOCA side plus `cudaGetDeviceProperties` on the CUDA
-  side), the GPUNetIO error taxonomy mapped onto the cross-library
+  capability-query surface (the doca-eth
+  `doca_eth_rxq_cap_is_type_supported` / `doca_eth_rxq_cap_get_*`
+  family in `doca_eth_rxq.h`, plus the matching
+  `doca_eth_txq_cap_*` family, on the DOCA side, plus
+  `cudaGetDeviceProperties` on the CUDA side), the GPUNetIO error taxonomy mapped onto the cross-library
   `DOCA_ERROR_*` set, the observability surface (CUDA-side
   counters + DOCA-side per-task completion), and the safety
   policy that gates env preconditions (CUDA + DOCA version

@@ -100,8 +100,10 @@ Steps the agent should walk the user through:
    from the user's DPA-side algorithm source into the
    `doca_pcc`; then set whatever host-side parameters the
    algorithm exposes. Start the `doca_pcc` via
-   `doca_ctx_start()` — this is the moment the algorithm
-   becomes live on the port. Per the lifecycle ordering in
+   `doca_pcc_start()` (the `doca_pcc` has its own lifecycle
+   calls — `doca_pcc_create` / `_start` / `_stop` / `_destroy` —
+   and is NOT a `doca_ctx`; there is no `doca_pcc_as_ctx`) — this
+   is the moment the algorithm becomes live on the port. Per the lifecycle ordering in
    [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy),
    record the order so teardown happens in reverse: stop the
    `doca_pcc` → release the loaded `doca_pcc_app` → destroy
@@ -217,10 +219,10 @@ Steps the agent should walk the user through:
    host-side configure step assumes entry points `dpacc` did
    not compile in, that is a build-side bug, not a runtime
    bug; route back to [`## build`](#build).
-2. **Start the `doca_pcc` via `doca_ctx_start()`.** Per the
+2. **Start the `doca_pcc` via `doca_pcc_start()`.** Per the
    attach-to-port section in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes),
-   `doca_ctx_start()` on the `doca_pcc` is the moment the
+   `doca_pcc_start()` is the moment the
    loaded algorithm becomes live on the port; before this
    point the algorithm is loaded but inert. A successful
    start does NOT yet imply the algorithm is having a
@@ -243,7 +245,7 @@ Steps the agent should walk the user through:
    `DOCA_LOG_LEVEL=trace` for the first run (see
    [`doca-debug CAPABILITIES.md ## Observability`](../../doca-debug/CAPABILITIES.md#observability));
    if the host-side log is silent but the algorithm seems
-   inactive, reach for the `doca_pcc_counter` CLI named in
+   inactive, reach for the `pcc_counters` CLI named in
    [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability)
    and routed via
    [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)
@@ -287,7 +289,7 @@ Iteration shape:
    the algorithm is loaded but not running, or the
    observability hook-up is wrong; route to
    [`## debug`](#debug) layer 5 and consult the
-   `doca_pcc_counter` tool. Per the safety-policy rule in
+   `pcc_counters` tool. Per the safety-policy rule in
    [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy),
    DO NOT scale a broken smoke into a complex algorithm
    design.
@@ -295,7 +297,7 @@ Iteration shape:
    with active RDMA / RoCE traffic on the attached port and
    confirm the algorithm's intended effect (even if trivial
    — e.g. a fixed rate cap) is visible in the PCC counters
-   exposed by the `doca_pcc_counter` CLI. Catches the *"the
+   exposed by the `pcc_counters` CLI. Catches the *"the
    algorithm loaded but is not actually modulating
    traffic"* case; if it fails, the algorithm body has no
    effect path, or it is not actually attached to the
@@ -339,7 +341,7 @@ means the cause is below PCC (BlueField firmware slot,
 algorithm design bug, DPACC bug, NIC firmware). Escalate to
 [`doca-debug TASKS.md ## debug`](../../doca-debug/TASKS.md#debug)
 with the captured layer-1-through-5 evidence including BOTH
-the host-side DOCA log and the `doca_pcc_counter` output.
+the host-side DOCA log and the `pcc_counters` output.
 
 ## debug
 
@@ -372,7 +374,7 @@ and 7 (driver):
   *"no traffic on the attached port"* (route to
   [`doca-rdma`](../doca-rdma/SKILL.md)) OR the algorithm
   body computes correctly but takes no rate-update action.
-  Use the `doca_pcc_counter` CLI (route via
+  Use the `pcc_counters` CLI (route via
   [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools))
   to inspect the port-level counters and confirm which case
   applies.
@@ -479,7 +481,7 @@ follows so the agent does not invent guidance:
   *DOCA DPA* guides plus the *DPA Tools* umbrella. This
   skill prescribes how to *use* the DPACC-produced image
   from the host; it does not redefine how to produce it.
-- **`doca_pcc_counter` diagnostic CLI** — a separate
+- **`pcc_counters` diagnostic CLI** — a separate
   artifact for read-only PCC counter inspection; route via
   [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools).
   This skill is for *custom algorithm load + control*, not
@@ -527,8 +529,8 @@ the agent should:
 | `doca_caps --list-devs` | `## configure` step 1; `## configure` step 3 | Which DOCA devices does the host see, and which expose a DPA processor (the hardware substrate the custom PCC algorithm runs on)? | One entry per `doca_dev` with the BlueField identity and the per-library capability flags including the DPA support axis. No DPA-capable entry = the BlueField is not present, not in the right mode, or not on a generation that exposes the DPA; route to [`doca-setup`](../../doca-setup/SKILL.md) |
 | `ls /opt/mellanox/doca/samples/doca_pcc/` | `## modify` slot 1 | Which PCC samples ship in this install (both host-side AND DPA-side translation units), and which is the closest starting point? | A list of sample directories that each contain BOTH host-side and DPA-side source plus a `meson.build` that wires `dpacc` and `pkg-config doca-pcc` together |
 | `dmesg \| tail -n 40` (sudo) | `## debug` layer 7 | What did the kernel / driver log around the last PCC call? | Empty or recent benign messages. Repeated mlx5 / PCC-driver / firmware errors → driver-layer bug; route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug). Repeated *"custom PCC slot not enabled"* or similar → firmware-side fix |
-| `DOCA_LOG_LEVEL=trace ./<binary>` | `## run` step 5 | What did the structured DOCA logger emit for the first failing host-side PCC call? | A trace-level line on every host-side lifecycle transition and every algorithm-load / parameter-set call. Silence after a `doca_ctx_start()` = either host PE not progressed OR algorithm body running but emitting nothing — reach for the counter tool next |
-| (route via [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)) `doca_pcc_counter` CLI — read-only PCC counter inspection at the port | `## test` step 2; `## debug` layer 5 | What are the actual PCC-related counters at the BlueField port doing right now, independent of the host-side `doca-pcc` program? | The public *DOCA Tools* umbrella documents the per-tool output; the agent's job is to NAME the existence of this tool and route the user there, not to redefine its surface. This is the load-bearing diagnostic for the *"the algorithm loaded but I see no on-wire change"* case |
+| `DOCA_LOG_LEVEL=trace ./<binary>` | `## run` step 5 | What did the structured DOCA logger emit for the first failing host-side PCC call? | A trace-level line on every host-side lifecycle transition and every algorithm-load / parameter-set call. Silence after a `doca_pcc_start()` = either host PE not progressed OR algorithm body running but emitting nothing — reach for the counter tool next |
+| (route via [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)) `pcc_counters` CLI — read-only PCC counter inspection at the port | `## test` step 2; `## debug` layer 5 | What are the actual PCC-related counters at the BlueField port doing right now, independent of the host-side `doca-pcc` program? | The public *DOCA Tools* umbrella documents the per-tool output; the agent's job is to NAME the existence of this tool and route the user there, not to redefine its surface. This is the load-bearing diagnostic for the *"the algorithm loaded but I see no on-wire change"* case |
 | (route via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)) DPA-side developer tools — DPA debugger, DPA process-state inspector, DPA statistics tool | `## debug` layer 5; `## debug` layer 6 | What is the DPA processor itself doing right now, from the DPA side (for cases where the algorithm body is suspected to be stuck)? | The public *DPA Tools* umbrella documents the per-tool output; the agent's job is to NAME the existence of these tools and route the user there. These overlay the same surface [`doca-dpa CAPABILITIES.md ## Observability`](../doca-dpa/CAPABILITIES.md#observability) documents |
 
 For commands shared across libraries (`pkg-config --modversion`,

@@ -25,7 +25,7 @@ examples shown.
 | 1. Place the code on the DPU side | All `doca_apsh_*` calls run on the BlueField Arm side; the host runs no agent; introspection is one-way over PCIe | [`## Capabilities and modes`](#capabilities-and-modes) side-split table |
 | 2. Decide App Shield is the right library | The workload is read-mostly observation of host kernel state for security monitoring; it is NOT bulk data movement, packet I/O, or a real-time event stream | [`## Capabilities and modes`](#capabilities-and-modes) path-selection bullet |
 | 3. Load the host kernel symbol map | Without a host-OS-version-matching kernel symbol map on the DPU side, App Shield cannot walk the host's data structures; this is a hard prerequisite, not an optimisation | [`## Safety policy`](#safety-policy) symbol-map row + [TASKS.md ## configure](TASKS.md#configure) step 2 |
-| 4. Stand up the system + object lifecycle | DOCA Core lifecycle: create `doca_apsh_system` → configure (symbol map, host PCIe path, OS type) → start → enumerate `_proc` / `_module` / `_lib` / `_thread` → stop → destroy | [`## Capabilities and modes`](#capabilities-and-modes) object table + [TASKS.md ## configure](TASKS.md#configure) |
+| 4. Stand up the system + object lifecycle | DOCA Core lifecycle: create `doca_apsh_system` → configure (symbol map, host PCIe path, OS type) → start → enumerate `_process` / `_module` / `_lib` / `_thread` / … (one `doca_apsh_*_get` per object type — see the object table for the full set) → stop → destroy | [`## Capabilities and modes`](#capabilities-and-modes) object table + [TASKS.md ## configure](TASKS.md#configure) |
 | 5. Treat `DOCA_ERROR_NOT_SUPPORTED` from enumerators as the cap signal | The public App Shield API does NOT ship a separate `doca_apsh_cap_*` query family; the negative-cap signal is `DOCA_ERROR_NOT_SUPPORTED` returned by the matching `doca_apsh_*_get()` enumerator (or by `doca_apsh_system_start()` before any enumerator runs) on a (host OS, kernel version, DPU install) tuple that does not carry that introspection target | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
 | 6. Diagnose an App Shield error | Map symptom (`BAD_STATE`, `NOT_PERMITTED`, `NOT_FOUND`, `NOT_SUPPORTED`, `INVALID_VALUE`) to root cause without leaving the App Shield layer prematurely; in particular, recognise `NOT_FOUND` as a *normal answer*, not a bug | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 
@@ -52,7 +52,8 @@ object (`doca_apsh_system`) that other enumerators hang off. Every
 cfg-set-* → init → start → use → stop → destroy` lifecycle (see
 [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes)).
 On top of that lifecycle, App Shield layers an asymmetric side
-split, a small object family, and a capability-query family.
+split, a broad, version-extensible object family, and an
+implicit capability surface.
 
 **Side split — DPU vs host.** App Shield is asymmetric and the
 asymmetry is the #1 first-app confusion.
@@ -62,17 +63,43 @@ asymmetry is the #1 first-app confusion.
 | DPU (BlueField Arm) | The entire App Shield program: `doca_apsh_*` calls, the loaded kernel symbol map, the `doca_apsh_system` + enumerator objects, the PCIe-side memory access | n/a | The DPU has direct memory-side access to the host over PCIe; the security stance is "observer is below the host's threat surface" |
 | Host (x86 / Arm) | An unmodified kernel; the host's normal workload | App Shield code, App Shield agents, App Shield kernel modules, any DOCA library at all for the App Shield path | The appeal of App Shield is exactly that the host runs nothing — a compromised host cannot disable an observer it doesn't host |
 
-**Object family.** App Shield exposes ONE root object and FOUR
-enumerator object types. The agent must not invent additional ones;
-the public surface is closed.
+**Object family.** App Shield exposes ONE root object
+(`doca_apsh_system`) and a broad, version-extensible set of
+observation object types — 19 of them in DOCA 3.5.0030's public
+header. The surface is **not** closed at four objects; the agent
+must walk the installed `doca_apsh.h` rather than assume a fixed
+list, because the set grows release over release. The most common
+objects, with their scope:
 
 | Object | What it represents | Per-instance scope | Notes |
 | --- | --- | --- | --- |
 | `doca_apsh_system` | One host being introspected (one PCIe path from the DPU) | The root context every other enumerator hangs off | Configured with the host's PCIe path, host OS type, and the loaded kernel symbol map before `doca_ctx_start()` |
-| `doca_apsh_proc` | A process enumerated from the host | Per host process snapshot | Enumerated against a started `doca_apsh_system`; `NOT_FOUND` is a normal answer for a process that exists in the user's mental model but not on the host right now |
+| `doca_apsh_process` | A process enumerated from the host (via `doca_apsh_processes_get`) | Per host process snapshot | Enumerated against a started `doca_apsh_system`; `NOT_FOUND` is a normal answer for a process that exists in the user's mental model but not on the host right now |
 | `doca_apsh_module` | A kernel module loaded on the host | Per host kernel module | Used for rootkit detection and integrity verification of the host's kernel-module set |
-| `doca_apsh_lib` | A loaded library on a given host process | Per (host process, loaded library) | Hangs off a `doca_apsh_proc`, not directly off the system; the per-process library list snapshots at enumeration time |
-| `doca_apsh_thread` | A thread on a given host process | Per (host process, thread) | Hangs off a `doca_apsh_proc`; useful when the integrity check is at thread granularity rather than process granularity |
+| `doca_apsh_lib` | A loaded library on a given host process | Per (host process, loaded library) | Hangs off a `doca_apsh_process`, not directly off the system; the per-process library list snapshots at enumeration time |
+| `doca_apsh_thread` | A thread on a given host process | Per (host process, thread) | Hangs off a `doca_apsh_process`; useful when the integrity check is at thread granularity rather than process granularity |
+
+The full object set declared in the DOCA 3.5.0030 public header,
+beyond the root `doca_apsh_system`, is: `doca_apsh_module`,
+`doca_apsh_process`, `doca_apsh_thread`, `doca_apsh_lib`,
+`doca_apsh_vad`, `doca_apsh_attestation`, `doca_apsh_privilege`,
+`doca_apsh_envar`, `doca_apsh_ldrmodule`, `doca_apsh_handle`,
+`doca_apsh_process_parameters`, `doca_apsh_sid`,
+`doca_apsh_netscan`, `doca_apsh_interface`,
+`doca_apsh_bash_history`, `doca_apsh_yara`,
+`doca_apsh_injection_detect`, `doca_apsh_container`, and
+`doca_apsh_proc_file_details`. Some hang off the system
+(`doca_apsh_modules_get`, `doca_apsh_processes_get`,
+`doca_apsh_netscan_get`, `doca_apsh_interfaces_get`,
+`doca_apsh_containers_get`); the rest hang off a started
+`doca_apsh_process` (e.g. `doca_apsh_vads_get`,
+`doca_apsh_envars_get`, `doca_apsh_privileges_get`,
+`doca_apsh_yara_get`, `doca_apsh_injection_detect_get`,
+`doca_apsh_proc_files_details_get`), and
+`doca_apsh_container_processes_get` enumerates processes inside a
+`doca_apsh_container`. The agent must confirm the exact object set
+and enumerator names against the installed header before quoting
+them.
 
 **Capability discovery — the only rule.** Unlike most DOCA
 libraries, App Shield's public API does NOT ship a separate

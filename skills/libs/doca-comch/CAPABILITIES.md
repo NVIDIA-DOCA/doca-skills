@@ -29,9 +29,11 @@ release and every host / DPU pair.
 Two cross-cutting rules that apply to *every* pattern above:
 
 - **Server is always on the DPU side; client is always on the host
-  side.** The Comch transport is over PCIe in one direction; there
-  is no symmetric peer-to-peer mode. An agent recommending the
-  opposite is wrong for *every* version of Comch.
+  side.** The Comch channel runs over the RoCE/IB protocol (it is
+  not part of the TCP/IP stack) between the host and the DPU, in an
+  asymmetric server/client model; there is no symmetric
+  peer-to-peer mode. An agent recommending the opposite is wrong
+  for *every* version of Comch.
 - **Slow-path and fast-path are independent objects.** A user can
   run slow-path only, fast-path only, or both — but each adds its
   own lifecycle to the channel. Conflating them is the most
@@ -48,8 +50,8 @@ relevant capability-query.
 
 | Role | Side | What it does | Object | Key calls |
 | --- | --- | --- | --- | --- |
-| Server | DPU (BlueField Arm) | Listens on a host representor; accepts up to the device's per-server connection cap (query with `doca_comch_cap_get_max_clients(devinfo)` before start); owns the connection-accept callback | `doca_comch_server` | `doca_comch_server_create`, `_set_connection_event_cb` |
-| Client | Host (x86 / Arm) | Initiates a single connection to a server, identified by its `doca_dev_rep` (representor on the DPU side surfaced to the host) | `doca_comch_client` | `doca_comch_client_create`, `_set_connection_event_cb` |
+| Server | DPU (BlueField Arm) | Listens on a host representor; accepts up to the device's per-server connection cap (query with `doca_comch_cap_get_max_clients(devinfo)` before start); owns the connection-accept callback | `doca_comch_server` | `doca_comch_server_create`, `doca_comch_server_event_connection_status_changed_register` |
+| Client | Host (x86 / Arm) | Initiates a single connection to a server, identified by its `doca_dev_rep` (representor on the DPU side surfaced to the host) | `doca_comch_client` | `doca_comch_client_create` (no client connection-event register exists — the client tracks connection state via its context state and task callbacks) |
 
 **Path selection — slow-path vs fast-path.** Both paths can coexist
 on the same channel; choose at least one before `doca_ctx_start()`.
@@ -106,10 +108,10 @@ disambiguate before falling back to the cross-library response.
 | --- | --- | --- |
 | `DOCA_ERROR_NOT_PERMITTED` | `doca_comch_server_create`, `_client_create` | The representor (DPU side) or PCIe address (host side) is not visible to this process / user. Route to [`doca-setup CAPABILITIES.md ## Observability`](../../doca-setup/CAPABILITIES.md#observability) for representor enumeration. |
 | `DOCA_ERROR_NOT_SUPPORTED` | `doca_ctx_start()` on the server, fast-path `_create` | The implied clients count exceeds the device cap reported by `doca_comch_cap_get_max_clients(devinfo)`, or the device does not advertise consumer / producer support. The public Comch API does not ship a setter for max-clients — the device cap is the hard ceiling; agent must surface the cap value and reshape the program, not invent a setter. |
-| `DOCA_ERROR_BAD_STATE` | Any call after `doca_ctx_stop()` or before `doca_ctx_start()`; calling `_send_task_submit` before the connection callback reports CONNECTED | Lifecycle violation. Walk the call sequence against the lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the most common case is sending before the server-side accept callback has fired. |
-| `DOCA_ERROR_AGAIN` | `_send_task_submit` slow-path; producer submit fast-path | The send queue is full. This is *not* a hardware error; the program must drain completions via `doca_pe_progress()` before re-submitting. Same as the cross-library *"would-block, retry after progress"* pattern. |
+| `DOCA_ERROR_BAD_STATE` | Any call after `doca_ctx_stop()` or before `doca_ctx_start()`; submitting a `doca_comch_task_send` (via `doca_task_submit`) before the connection callback reports CONNECTED | Lifecycle violation. Walk the call sequence against the lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the most common case is sending before the server-side accept callback has fired. |
+| `DOCA_ERROR_AGAIN` | slow-path `doca_comch_task_send` submit (`doca_task_submit`); producer submit fast-path | The send queue is full. This is *not* a hardware error; the program must drain completions via `doca_pe_progress()` before re-submitting. Same as the cross-library *"would-block, retry after progress"* pattern. |
 | `DOCA_ERROR_CONNECTION_RESET` | Slow-path send-task completion, recv callback | The peer disconnected. The connection state callback will have fired with the matching DISCONNECTED transition; agent must not invent a reconnection policy — defer to the user's higher-level protocol. |
-| `DOCA_ERROR_INVALID_VALUE` | `_send_task_alloc_init` with oversized message | The message exceeds `doca_comch_cap_get_max_msg_size(devinfo)`. The fix is to fragment at the application layer or to switch to the fast-path producer / consumer for bulk data. |
+| `DOCA_ERROR_INVALID_VALUE` | `_task_send_alloc_init` with oversized message | The message exceeds `doca_comch_cap_get_max_msg_size(devinfo)`. The fix is to fragment at the application layer or to switch to the fast-path producer / consumer for bulk data. |
 | `DOCA_ERROR_TIME_OUT` | Connection callback never fires after `doca_ctx_start()` | Most often a representor visibility issue on the DPU side, or a wrong PCIe address on the host side. Route to [`## Safety policy`](#safety-policy) permission matrix before any code change. |
 | `DOCA_ERROR_DRIVER` | Any submit / completion call | The layer below DOCA reported failure. Capture state and route to env-class debug ([`doca-setup ## debug`](../../doca-setup/TASKS.md#debug)) — the layer below DOCA is the suspect, not the program. |
 
@@ -127,16 +129,20 @@ events.
 
 Three primary signals the agent should reach for:
 
-1. **Connection state callbacks.** Registered before `_create`
-   via `doca_comch_set_connection_event_cb` (or the role-specific
-   server / client variant). Fire on CONNECTED, DISCONNECTED, and
-   ERROR transitions. The single most informative signal for *"is
-   the channel up"*.
-2. **Task completion callbacks (slow-path).** Registered for
-   `_send_task_send` via the per-task allocator's success / error
-   callback. Fire on every submitted send; absence of a
-   completion is *always* a missing `doca_pe_progress()` call in
-   the user's main loop.
+1. **Connection state callbacks.** On the server side, registered
+   via `doca_comch_server_event_connection_status_changed_register`
+   (which takes the connect and disconnect callbacks). There is NO
+   client-side connection-event register — the client observes
+   connection state through its context state and task callbacks.
+   These fire on CONNECTED / DISCONNECTED transitions and are the
+   single most informative signal for *"is the channel up"*.
+2. **Task completion callbacks (slow-path).** Configured via
+   `doca_comch_{server,client}_task_send_set_conf` and allocated
+   with `_task_send_alloc_init`; the send is submitted with the
+   generic `doca_task_submit(doca_comch_task_send_as_task(task))`.
+   The per-task success / error callback fires on every submitted
+   send; absence of a completion is *always* a missing
+   `doca_pe_progress()` call in the user's main loop.
 3. **Producer / consumer completion callbacks (fast-path).** Same
    shape as the slow-path task callbacks, on the producer and
    consumer context objects. Per-transfer status flows through
@@ -169,10 +175,13 @@ setup:
 | Host (client) | The PCIe address of the BlueField is enumerable from the host (`lspci | grep Mellanox`) and the corresponding `doca_dev_rep` is opened against it | `lspci | grep Mellanox`; programmatic via `doca_dev_rep_list_create` + the per-device filter | [`doca-setup`](../../doca-setup/SKILL.md) for the env-side; do not modify the program |
 | Both | The DPU is in the correct mode for the host ↔ DPU pair the user expects (SmartNIC vs DPU vs switch) | `mlxconfig -d <pcie> q INTERNAL_CPU_MODEL` (sudo) | [`doca-setup CAPABILITIES.md ## Capabilities and modes`](../../doca-setup/CAPABILITIES.md#capabilities-and-modes) runtime-modes table |
 
-**Do not invent a "fallback transport" for Comch.** Comch is
-PCIe-only; there is no Ethernet fallback. When the representor or
-PCIe address is unavailable, the right answer is to fix the env,
-not to point the user at a different DOCA library.
+**Do not invent a "fallback transport" for Comch.** The Comch
+channel runs over the RoCE/IB protocol (not the TCP/IP stack) and
+is reached only through the host ↔ DPU representor / device pair —
+there is no separate Ethernet/TCP fallback path the agent can
+substitute. When the representor or PCIe address is unavailable,
+the right answer is to fix the env, not to point the user at a
+different DOCA library.
 
 **Slow-path vs fast-path queues are non-overlapping.** Submitting
 a slow-path send-task on the producer context (or vice versa) is

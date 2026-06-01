@@ -30,16 +30,22 @@ Preparing the management endpoint and choosing a deployment shape.
    before any further step.
 3. **Identify the management protocol scope.** Confirm whether the
    user needs gNMI (data configuration), gNOI (system operations), or
-   both. If they want streaming telemetry via gNMI Subscribe, stop —
-   DMS does not support it; route them to the DOCA Telemetry Service
-   (DTS) instead.
+   both. gNMI Subscribe streaming IS supported (`STREAM` with `SAMPLE`
+   1s–60s and `ONCE`; only `POLL` / `Aggregation` are Unimplemented per
+   `gnxi/gnmi/server.go`). For a turnkey, productized
+   telemetry-aggregation surface separate from DMS's own gNMI
+   Subscribe, route to the DOCA Telemetry Service (DTS) instead.
 4. **Plan the authentication mode.** Choose one of the four
    documented modes (localhost-only / PAM / credentials / mTLS) and
    read the *Security Best Practices* subsection before committing.
    Localhost-only is for development only and must not be exposed.
 5. **Plan user authorization.** Identify the human/service users who
-   will issue DMS commands and ensure they will be added to the
-   `dmsgroup` Unix group at the endpoint.
+   will issue DMS commands over gRPC and ensure they are in the
+   `-allowed_users` list (default `root`; enforced by `isUserAllowed`
+   in `gnxi/utils/credentials/credentials.go`). The `dmsgroup` Unix
+   group is a separate, `dmspe`-only gate — add a user to it only if
+   they also need to invoke the `dmspe` privileged helper directly on
+   the endpoint.
 
 ## build
 
@@ -103,10 +109,10 @@ Bringing up `dmsd` and exercising it.
    against a known-supported State path as a connectivity probe.
    "Documented" matters: a `Get` against an unsupported path returns
    an error from `dmsd` regardless of whether the daemon is healthy.
-4. **Verify authorization works as expected.** Confirm a
-   `dmsgroup`-member user can issue commands and a non-member cannot.
-   If the test fails, the failure is at the authorization layer, not
-   the protocol layer — see `## debug` step 2.
+4. **Verify authorization works as expected.** Confirm a user in the
+   `-allowed_users` list can issue gRPC commands and a user outside it
+   cannot. If the test fails, the failure is at the authorization
+   layer, not the protocol layer — see `## debug` step 2.
 5. **Issue the user's first real `Set` against a documented path.**
    Then `Get` the corresponding State path to confirm the change
    landed. The `Set` / `Get` pattern across Configuration vs State
@@ -123,8 +129,8 @@ why.
 DMS has no "compile and unit-test" workflow — testing is operational.
 
 **`## test` is an iterative loop, not a one-shot pass.** Every
-configuration mutation (auth mode, listener, dmsgroup membership,
-persistency setting) re-opens the smoke sweep. Skipping the re-run
+configuration mutation (auth mode, listener, `-allowed_users`
+membership, persistency setting) re-opens the smoke sweep. Skipping the re-run
 after a mutation is the failure mode this loop replaces.
 
 The eval-loop overlay (rows apply to every DMS deployment, not just one
@@ -157,9 +163,9 @@ the failure mode the iterative loop is here to prevent.
    any library).
 4. **Capability snapshot.** Save the *as-deployed* answer to: which
    gNMI paths your environment supports, which gNOI operations your
-   environment supports, which auth mode is active, who is in
-   `dmsgroup`. This snapshot is the artifact that lets future debug
-   sessions skip rediscovery.
+   environment supports, which auth mode is active, who is in the
+   `-allowed_users` list. This snapshot is the artifact that lets
+   future debug sessions skip rediscovery.
 
 ## debug
 
@@ -175,14 +181,17 @@ without clearing the layer above.
    in use.
 2. **Authentication / authorization layer.** Symptoms:
    `UNAUTHENTICATED`, `PERMISSION_DENIED`, "user not authorized".
-   Causes: wrong credentials, user not in `dmsgroup`, `allowed_users`
-   list misconfigured for PAM mode, certificate issuer not trusted by
-   `dmsd`. Resolution: walk the documented authentication-mode
-   troubleshooting in the public guide for the specific mode in use.
+   Causes: wrong credentials, user not in the `-allowed_users` list
+   (applies to ALL auth modes, enforced by `isUserAllowed`),
+   certificate issuer not trusted by `dmsd`. Resolution: walk the
+   documented authentication-mode troubleshooting in the public guide
+   for the specific mode in use.
 3. **Path / operation layer.** Symptoms: `INVALID_ARGUMENT`, "path
    not found", "operation not supported". Causes: the path is not in
    the DMS-supported set, the operation is not in the documented
-   gNOI list, gNMI Subscribe attempted (unsupported in DMS).
+   gNOI list, or an unsupported gNMI Subscribe MODE was attempted
+   (`POLL` / `Aggregation` are Unimplemented; `STREAM` / `SAMPLE`
+   1s–60s and `ONCE` ARE supported).
    Resolution: re-read the supported-paths reference and the gNOI
    operation list in `CAPABILITIES.md`. If the path or operation is
    genuinely not in the public set, the answer is "not supported" —
@@ -257,8 +266,11 @@ Three cross-cutting rules for this appendix:
   to [`doca-programming-guide ## build`](../../doca-programming-guide/TASKS.md#build)
   for the canonical build pattern, plus the matching `libs/<library>`
   skill for the API surface.
-- **Continuous telemetry streaming** — not supported by DMS. Route
-  to the DOCA Telemetry Service (DTS), discoverable through
+- **Turnkey telemetry aggregation** — out of scope for DMS. DMS's own
+  gNMI Subscribe DOES stream (`STREAM` / `SAMPLE` 1s–60s and `ONCE`;
+  only `POLL` / `Aggregation` are Unimplemented); for a productized
+  telemetry-aggregation surface, route to the DOCA Telemetry Service
+  (DTS), discoverable through
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 - **Library-internal API questions** (Flow pipe construction, RDMA
   queue setup, …) — outside DMS. Route to the matching

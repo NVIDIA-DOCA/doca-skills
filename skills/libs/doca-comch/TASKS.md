@@ -55,11 +55,16 @@ Steps the agent should walk the user through:
    the agent's rule: bulk data → fast-path; control plane →
    slow-path; first-app → start with slow-path, add fast-path
    only after slow-path is green end-to-end.
-5. **Register the connection callbacks BEFORE `_create`.** Both
-   the role-specific connection callback (`_set_connection_event_cb`)
-   and, if using slow-path, the recv callback. Callbacks
-   registered after `_create` are silently ignored by the
-   library; the agent must surface this.
+5. **Register the connection callbacks at the right point in the
+   lifecycle.** On the server, the connection callbacks are
+   registered with
+   `doca_comch_server_event_connection_status_changed_register`
+   (server-only — the client has no connection-event register and
+   tracks state via its context state / task callbacks), plus, if
+   using slow-path, the recv callback. The register requires the
+   context to be idle (after `_create`, before `doca_ctx_start()`);
+   callbacks registered after start are silently ignored by the
+   library, and the agent must surface this.
 6. **Start the context** via `doca_ctx_start()` and progress the
    PE (`doca_pe_progress`) until the connection callback reports
    CONNECTED on both sides. If the callback does not fire within

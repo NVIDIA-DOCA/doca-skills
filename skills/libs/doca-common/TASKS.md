@@ -108,8 +108,8 @@ Steps the agent should walk the user through:
    the two-tier model with the user BEFORE any code change — see
    [`## log`](#log) for the verb-side workflow.
 8. **Hand off to the per-library skill.** Open the user's primary
-   library context (`doca_flow_create`, `doca_rdma_create`,
-   `doca_eth_txq_create`, …) per the matching library's
+   library context (`doca_rdma_create`, `doca_eth_txq_create`,
+   `doca_comch_client_create`, …) per the matching library's
    `## configure` verb; `doca_pe_connect_ctx(pe, ctx)` BEFORE
    `doca_ctx_start(ctx)` so completions surface.
 

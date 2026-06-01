@@ -82,8 +82,9 @@ load-bearing piece; the worked example is one instance.
 - **"My doca-flow pipeline mirrors to the inspector but the
   inspector still shows nothing — what's wrong?"** — worked
   example: *"container is up, pipeline has a mirror action wired
-  to the inspector target, no traffic appears in the inspector
-  CLI."* Answered by the layered debug ladder in
+  to the inspector target, no traffic appears in the inspector's
+  container logs or in the downstream telemetry consumer."*
+  Answered by the layered debug ladder in
   [`TASKS.md ## debug`](TASKS.md#debug) (mirror-not-wired vs
   inspection-depth-wrong vs sampling-drop) +
   [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy).
@@ -189,9 +190,12 @@ companion files:
   traffic from a separately-programmed doca-flow pipeline), the
   mirror-action contract between the inspector and the user's
   pipeline, the inspection-depth surface (per-packet vs per-flow
-  aggregate vs raw sampling), the output destinations (CLI, JSON
-  export, downstream consumer), the deployment shape (container
-  on BlueField Arm, Container Deployment Guide pattern), the
+  aggregate vs raw sampling), the single output destination (the
+  shipped binary links `doca-telemetry-exporter` and writes ONLY
+  through the DOCA Telemetry IPC socket, consumed downstream by a
+  `doca_telemetry_exporter` / DTS container), the deployment shape
+  (container on BlueField Arm, Container Deployment Guide pattern),
+  the
   version-compatibility overlay that pairs the inspector with the
   doca-flow / doca-flow-ct version that programmed the mirror,
   the error taxonomy ("container up but no traffic", "wrong
@@ -203,7 +207,8 @@ companion files:
   pipeline-side mirror wiring), `build`, `modify` (adapt the
   documented deploy recipe; switch inspection depth; disable the
   mirror for production), `run` (start the inspector, send a
-  known matching packet, observe it in the CLI), `test` (the
+  known matching packet, observe it in the container logs /
+  downstream telemetry consumer), `test` (the
   smoke-before-bulk loop), `debug` (layered ladder: container →
   mirror wired → inspection depth → sampling drop), plus a
   `Deferred task verbs` block that routes out-of-scope questions.

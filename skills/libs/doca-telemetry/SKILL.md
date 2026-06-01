@@ -9,8 +9,8 @@ description: >
   framework here; the bundle previously framed it that way and
   that framing is wrong. Each domain ships its own
   `doca_telemetry_<domain>_*` API: cap-query
-  `_cap_is_supported(devinfo)`, context create on a `doca_dev`,
-  `doca_ctx_start()`, then per-domain read / sample. Trigger
+  `_cap_is_supported(devinfo)`, `_create()` on a `doca_dev`,
+  `_start()`, then per-domain read / sample. Trigger
   even when the user does not say "DOCA Telemetry" — typical
   implicit phrasings: "read PCC counters from my BlueField
   app", "sample DPA counter exports", "expose PHY / PCI / DIAG
@@ -187,12 +187,18 @@ Load this skill when the user is doing hands-on DOCA Telemetry
   retransmit counters, `_phy.h` for physical-layer counters,
   `_pci.h` for PCI / PCIe counters) and confirming the device
   supports it via the per-domain `_cap_is_supported(devinfo)`
-  query.
+  query — **except `_pci`, which has no single `_cap_is_supported`
+  and instead exposes per-feature caps like
+  `doca_telemetry_pci_cap_management_info_is_supported` /
+  `_cap_perf_counters_1_is_supported`.**
 - Opening a per-domain `doca_telemetry_<domain>` context on a
-  `doca_dev`, walking the DOCA Core lifecycle (cfg-create →
-  cfg-set per-domain knobs → init → start), configuring the
-  per-domain sample window, and reading the hardware-counter
-  snapshot for that domain.
+  `doca_dev`, walking the per-domain lifecycle
+  (`doca_telemetry_<domain>_create(dev)` → per-domain setters →
+  `doca_telemetry_<domain>_start`), configuring the per-domain
+  sample window, and reading the hardware-counter snapshot for
+  that domain. Note this is a per-domain `_create`/`_start`
+  surface, not the generic `doca_ctx_*` progress-engine
+  lifecycle.
 - Reading the device + library capability surface for the
   per-domain reader via the
   `doca_telemetry_<domain>_cap_is_supported` query before

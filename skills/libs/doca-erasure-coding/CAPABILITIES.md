@@ -144,7 +144,7 @@ task on the context:
 
 | Parameter | What it is | Constraint | How the agent verifies |
 | --- | --- | --- | --- |
-| Matrix type / coding scheme | The Reed-Solomon variant the device uses to derive parity (Vandermonde / Cauchy / raw). Different matrix types trade off encode vs recover cost and have different numerical properties under specific N + K choices | Must be one the device's accelerator advertises | Attempt `doca_ec_matrix_create()` (or `_from_raw()`) against the active `doca_dev` for the variant the user wants; constructor failure = "not supported on this device." The public header does NOT ship a `doca_ec_cap_get_matrix_*` family. |
+| Matrix type / coding scheme | The Reed-Solomon variant the device uses to derive parity. `enum doca_ec_matrix_type` defines exactly two: `DOCA_EC_MATRIX_TYPE_CAUCHY` and `DOCA_EC_MATRIX_TYPE_VANDERMONDE`. (`doca_ec_matrix_create_from_raw()` is an *alternative constructor* that builds a matrix from a caller-supplied raw buffer — it is NOT a third matrix type.) Different matrix types trade off encode vs recover cost and have different numerical properties under specific N + K choices | Must be one the device's accelerator advertises | Attempt `doca_ec_matrix_create()` (or `_from_raw()`) against the active `doca_dev` for the variant the user wants; constructor failure = "not supported on this device." The public header does NOT ship a `doca_ec_cap_get_matrix_*` family. |
 | N (data blocks) | The number of original data blocks fed into create / referenced by recover and update | `N + K ≤ doca_ec_cap_get_max_buf_list_len(devinfo, &max)`; N ≥ 1 | Compute against `doca_ec_cap_get_max_buf_list_len(devinfo, &max)` |
 | K (redundancy blocks) | The number of parity blocks produced by create / required surviving for recover / refreshed by update. The layout tolerates any K simultaneous block losses | `N + K ≤ doca_ec_cap_get_max_buf_list_len(devinfo, &max)`; K ≥ 1 | Same query as N |
 | Block size | The size of every block (data and redundancy). ALL blocks in a single task — source and destination — must share this size | `block_size ≤ doca_ec_cap_get_max_block_size(devinfo)`; mismatched block sizes inside one task fail with `DOCA_ERROR_INVALID_VALUE` at submit | Run `doca_ec_cap_get_max_block_size(devinfo)` and confirm every source / destination `doca_buf` length equals the configured block size |
@@ -197,7 +197,8 @@ there; this skill does not duplicate it.
   the three task types as available from agent memory.
 - **Matrix-type support is device-bound, not version-bound.** The
   device advertises which Reed-Solomon matrix variants its
-  accelerator implements (Vandermonde, Cauchy, …) via the
+  accelerator implements (Cauchy or Vandermonde — the two values
+  of `enum doca_ec_matrix_type`) via the
   `doca_ec_matrix_create()` constructor success per variant
   (the public header does NOT ship a `doca_ec_cap_get_matrix_*`
   family). Asserting a matrix type from

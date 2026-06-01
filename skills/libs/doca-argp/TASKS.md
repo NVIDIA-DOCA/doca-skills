@@ -230,7 +230,7 @@ Iteration shape:
 4. **JSON-config smoke.** Drive the same configuration from
    `--json ./my-config.json`; confirm argv-equivalent
    behavior. An unknown JSON key surfaces as
-   `DOCA_ERROR_NOT_FOUND` per
+   `DOCA_ERROR_NOT_SUPPORTED` (pedantic parsing) per
    [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
    — that's a JSON-file typo or a stale config, not a
    library bug.
@@ -245,7 +245,7 @@ Eval-loop overlay — why this is a loop, not a one-shot pass:
 | --- | --- | --- |
 | `--help` does not show the new flag | The new flag's `doca_argp_register_param` either never ran or ran AFTER `doca_argp_start` | Re-walk the lifecycle table in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes) and move the register call before `_start` |
 | `--help` shows the new flag but argv smoke returns `DOCA_ERROR_INVALID_VALUE` | The registered parameter type does not match the value the user passed | Re-check the parameter-type table in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes); fix on the registration side OR the operator side, not both |
-| Argv smoke passes; JSON-config smoke returns `NOT_FOUND` | The JSON key is not the long name of any registered param (typo, or a renamed flag the JSON file did not catch up with) | Diff the registered long names against the JSON keys; rename whichever side is wrong |
+| Argv smoke passes; JSON-config smoke returns `NOT_SUPPORTED` | The JSON key is not the long name of any registered param (typo, or a renamed flag the JSON file did not catch up with) | Diff the registered long names against the JSON keys; rename whichever side is wrong |
 | JSON-config smoke returns `IO_FAILED` | The path is wrong, the file is unreadable, or the JSON is malformed | Resolve at the OS layer (`ls -l <path>`; `cat <path> \| jq .`) before any code change |
 | Standard surface broke after the modification | The user's diff overrode a default `doca_argp_init` registration (e.g. re-registered `--device` with a different callback) | Remove the redundant registration; the standard surface is owned by `doca_argp_init` and should not be re-registered |
 | Same code passes on host A, fails on host B | Different DOCA version or different install profile (doca-argp not installed on host B) | Re-run [`## configure`](#configure) step 1 (presence + version) + [`doca-version TASKS.md ## test`](../../doca-version/TASKS.md#test) four-way match on host B |
@@ -289,9 +289,9 @@ hardware accelerator behind it.
   and the value the operator wrote. The fix is on the
   declaration side OR the operator side, not a retry.
 - **Unknown JSON key is the third hypothesis.**
-  `DOCA_ERROR_NOT_FOUND` from `doca_argp_start` when
-  `--json <path>` is in play means the JSON file
-  references a long name no registered param uses. Diff the
+  `DOCA_ERROR_NOT_SUPPORTED` from `doca_argp_start` when
+  `--json <path>` is in play (pedantic parsing) means the JSON
+  file references a long name no registered param uses. Diff the
   registered long names against the JSON keys; one side is
   stale.
 - **Unreadable JSON file is the fourth hypothesis.**

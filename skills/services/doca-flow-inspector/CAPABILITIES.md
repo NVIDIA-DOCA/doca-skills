@@ -75,7 +75,7 @@ it before anything else.
 | Side | What it does | Where the substance lives |
 | --- | --- | --- |
 | User's doca-flow / doca-flow-ct pipeline | Programs a **mirror action** on the pipe(s) the user wants to inspect. The mirror action duplicates matching packets and forwards the copy to the Flow Inspector's documented ingest target. Without this step, the inspector sees nothing — regardless of how healthy the inspector container is | The mirror action is a doca-flow action kind documented in [`doca-flow CAPABILITIES.md ## Capabilities and modes`](../../libs/doca-flow/CAPABILITIES.md#capabilities-and-modes); the pipe-spec workflow lives in [`doca-flow TASKS.md ## modify`](../../libs/doca-flow/TASKS.md#modify) |
-| Flow Inspector container | Consumes the mirrored copy and exposes it at the configured inspection depth on the configured output destination. Does NOT pull traffic the pipeline did not push to it | This skill's [`## Capabilities and modes`](#capabilities-and-modes) sections below and [`TASKS.md ## configure`](TASKS.md#configure) |
+| Flow Inspector container | Consumes the mirrored copy and emits it at the configured inspection depth through its single output: the DOCA Telemetry IPC socket (read downstream by a `doca_telemetry_exporter` / DTS container). Does NOT pull traffic the pipeline did not push to it | This skill's [`## Capabilities and modes`](#capabilities-and-modes) sections below and [`TASKS.md ## configure`](TASKS.md#configure) |
 
 The agent's rule: when the user asks *"how do I set up Flow
 Inspector?"*, the FIRST conceptual move is to surface the two-
@@ -201,7 +201,9 @@ The body lives there; this skill does not duplicate it.
 ## Error taxonomy
 
 Flow Inspector's outward surface is the container's behavior plus
-the inspector CLI / JSON export — it does not return
+the records it emits on the DOCA Telemetry IPC socket (observed
+through the container logs and the downstream telemetry consumer)
+— it does not return
 `DOCA_ERROR_*` to a user-program caller (the user is not a
 caller; the user is an operator). The agent should treat
 inspector errors as a four-layer taxonomy when deciding what to
@@ -220,8 +222,9 @@ ask the user next:
    Container Deployment Guide are in place.
 2. **Mirror-not-wired layer (the most common first-app failure).**
    The container is healthy but the inspector reports no traffic.
-   Symptoms: inspector CLI is silent / JSON export is empty even
-   under traffic the user is actively generating. Resolution: ask
+   Symptoms: no records reach the downstream telemetry consumer
+   (and the container logs show no events) even under traffic the
+   user is actively generating. Resolution: ask
    the user to *show the mirror action* in their doca-flow /
    doca-flow-ct pipeline spec. If there is no mirror action wired
    to the inspector target, the symptom is in the pipeline, not
@@ -261,14 +264,17 @@ Documented observability surfaces for Flow Inspector itself
 (separate from the observability of the user's pipeline, which
 lives in the matching library skill):
 
-- **Inspector CLI live view.** The interactive view of mirrored
-  traffic at the configured inspection depth. This is the
-  *primary* observability surface during a debug session; reach
-  for it before any export or downstream consumer.
-- **JSON export.** Per the public guide, the inspector can emit
-  its observation in a documented JSON shape for offline /
-  scripted analysis. The exact schema is documented per release;
-  quote from the live page rather than paraphrasing.
+- **Downstream DOCA Telemetry (DTS) consumer.** The mirrored
+  traffic the inspector parses is emitted ONLY through the DOCA
+  Telemetry IPC socket under
+  `/opt/mellanox/doca/services/telemetry/ipc_sockets/` (the
+  shipped binary links `doca-telemetry-exporter`). The records
+  the inspector produces are observed by reading them from the
+  paired downstream `doca_telemetry_exporter` / DTS container
+  that consumes that socket — this is the *primary* surface for
+  seeing the inspector's per-record output. There is NO Inspector
+  CLI and NO standalone JSON export; `flow_inspector_cfg.json` is
+  INPUT config, not output.
 - **Container runtime logs.** The inspector container's own
   logs (via `docker logs <name>`, `journalctl`, or the BlueField
   host's container-runtime equivalent) tell the agent whether
@@ -336,7 +342,8 @@ and **payload-sensitive**. The documented posture:
   any change to a doca-flow pipe's action set must be validated
   before commit. Adding a mirror action is such a change. Stage
   the mirror on a controlled match (one known 5-tuple, one
-  representor) and confirm via the inspector CLI that the
+  representor) and confirm via the downstream telemetry consumer
+  (and the container logs) that the
   expected packet appears in the expected shape *before*
   widening the mirror to bulk debug. Skipping this step
   produces *"the mirror is wired but I'm not sure if the

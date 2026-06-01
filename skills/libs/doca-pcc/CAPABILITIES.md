@@ -30,7 +30,7 @@ combination.
 | 2. Create the per-PCC-instance `doca_pcc` context | One `doca_pcc` Core context per BlueField port whose RDMA / RoCE traffic the custom algorithm is meant to control | [`## Capabilities and modes`](#capabilities-and-modes) per-instance-context rule + [TASKS.md ## configure](TASKS.md#configure) step 4 |
 | 3. Load the PCC algorithm image and attach it to the port | `doca_pcc_app` is the loaded image of the user's DPACC-compiled DPA-side algorithm; loading it into the `doca_pcc` and starting the context attaches it to the port the `doca_dev` represents | [`## Capabilities and modes`](#capabilities-and-modes) app + attach tables + [TASKS.md ## configure](TASKS.md#configure) step 5 |
 | 4. Honor triple-axis preconditions: BlueField generation, firmware custom-PCC slot, DOCA + DPACC version | An older BlueField may not expose the DPA at all; a newer one may expose the DPA but have the firmware-level custom-PCC slot disabled; a matched BlueField + firmware combo may still fail at load if DOCA + DPACC are skewed | [`## Safety policy`](#safety-policy) env-precondition matrix + [TASKS.md ## configure](TASKS.md#configure) step 1 |
-| 5. Choose `doca-pcc` only when a CUSTOM algorithm is needed | The default factory PCC in ConnectX firmware does not need this library; the `doca_pcc_counter` CLI does not either; the library is for *custom* algorithms only | [`## Capabilities and modes`](#capabilities-and-modes) path-selection rule + [`## Deferred topic boundaries`](#deferred-topic-boundaries) |
+| 5. Choose `doca-pcc` only when a CUSTOM algorithm is needed | The default factory PCC in ConnectX firmware does not need this library; the `pcc_counters` CLI does not either; the library is for *custom* algorithms only | [`## Capabilities and modes`](#capabilities-and-modes) path-selection rule + [`## Deferred topic boundaries`](#deferred-topic-boundaries) |
 | 6. Diagnose a PCC error | Map `DOCA_ERROR_NOT_SUPPORTED` / `_NOT_PERMITTED` / `_INVALID_VALUE` / `_BAD_STATE` / `_DRIVER` to a root cause without leaving the PCC layer prematurely | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 
 Two cross-cutting rules that apply to *every* pattern above:
@@ -92,7 +92,7 @@ confirm `doca-pcc` is even the right artifact:
 | User intent | Right artifact | Why this skill is / isn't it |
 | --- | --- | --- |
 | Default firmware PCC works; just want it on | None of this skill — firmware-side knobs only; route via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) | `doca-pcc` only loads *custom* algorithms; firmware-shipped algorithms run without it |
-| Want to inspect PCC counters at runtime, no algorithm change | `doca_pcc_counter` CLI — a separate diagnostic tool; route via [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools) | The counter tool is read-only inspection; `doca-pcc` is a control / load library. They share a name prefix but are different artifacts |
+| Want to inspect PCC counters at runtime, no algorithm change | `pcc_counters` CLI — a separate diagnostic tool; route via [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools) | The counter tool is read-only inspection; `doca-pcc` is a control / load library. They share a name prefix but are different artifacts |
 | Need a CUSTOM congestion control algorithm; researching a new algorithm; tuning to a specific workload | `doca-pcc` library (this skill) — load a DPACC-compiled custom algorithm onto a BlueField port | This is the only path `doca-pcc` is designed for; if none of the rows above match, stay here |
 
 **The per-PCC-instance `doca_pcc` context — one per BlueField
@@ -132,7 +132,7 @@ BlueField port carrying RDMA / RoCE.**
 | Surface | What it does | Why the agent must surface it explicitly |
 | --- | --- | --- |
 | `doca_dev` selection at `doca_pcc` create | The `doca_dev` the `doca_pcc` is created against is the BlueField port whose RDMA / RoCE traffic the custom algorithm will affect | A custom PCC algorithm with no RDMA / RoCE traffic on its attached port has nothing to do. If the user has not stood up RDMA / RoCE on this port, route to [`doca-rdma`](../doca-rdma/SKILL.md) FIRST; PCC only modulates existing traffic |
-| Starting the `doca_pcc` context | `doca_ctx_start()` on the `doca_pcc` is the moment the loaded algorithm becomes live on the port; before this point the algorithm is loaded but inert | Stopping the `doca_pcc` reverts the port to whatever the firmware's default PCC behavior is (or no PCC, depending on the firmware). The agent must surface this transition explicitly — *"I started the program but my flows look unchanged"* is almost always a *"the start hasn't been called"* or *"there's no RDMA / RoCE traffic on this port to affect"* bug |
+| Starting the `doca_pcc` context | `doca_pcc_start()` is the moment the loaded algorithm becomes live on the port; before this point the algorithm is loaded but inert. (The `doca_pcc` is NOT a `doca_ctx` — it has its own `doca_pcc_create` / `_start` / `_stop` / `_destroy` lifecycle and no `doca_pcc_as_ctx`.) | Stopping the `doca_pcc` (`doca_pcc_stop`) reverts the port to whatever the firmware's default PCC behavior is (or no PCC, depending on the firmware). The agent must surface this transition explicitly — *"I started the program but my flows look unchanged"* is almost always a *"the start hasn't been called"* or *"there's no RDMA / RoCE traffic on this port to affect"* bug |
 
 **Triple-axis capability discovery — the only rule.** Before
 deploying any custom PCC algorithm, run ALL THREE of: a DOCA
@@ -149,8 +149,8 @@ fails the deployment.
 | Firmware-level custom-PCC slot | The BlueField firmware's custom-PCC slot must be enabled before any host-side load call. This is a firmware configuration knob set via the env-side firmware tools, not via `doca-pcc` itself — route to [`doca-setup`](../../doca-setup/SKILL.md) | A BlueField whose firmware does not enable the custom-PCC slot will reject load calls with `DOCA_ERROR_NOT_PERMITTED` even if DOCA and DPA capability queries are happy; this is a firmware-side fix, not a code change |
 
 **Configuration shape.** *Mandatory* preconditions before any
-`doca_ctx_start()` on the `doca_pcc`: the `doca_pcc` Core
-context must be created against a `doca_dev` that maps to a
+`doca_pcc_start()`: the `doca_pcc`
+context must be created (via `doca_pcc_create`) against a `doca_dev` that maps to a
 DPA-capable BlueField port whose firmware has the custom-PCC
 slot enabled; the PCC algorithm image (`doca_pcc_app`)
 compiled by `dpacc` must be loaded into the `doca_pcc`; the
@@ -186,7 +186,7 @@ response.
 | `DOCA_ERROR_NOT_SUPPORTED` | `doca_pcc` create / start; `doca_pcc_cap_*` family; first algorithm-load call | The BlueField in this host does not support custom PCC algorithms at all — typically because the BlueField generation is too old or the BlueField does not have a DPA processor exposed to the host (which custom PCC requires, since the algorithm runs on the DPA). Run the matching `doca_pcc_cap_*` against the active `doca_devinfo`; surface BOTH which DOCA version is installed AND which BlueField generation the host sees. Do not paper over with a retry. |
 | `DOCA_ERROR_NOT_PERMITTED` | `doca_pcc` create / start; algorithm-load call | Either the standard `doca_dev` access is missing (the user / process cannot open the target `doca_dev` — same baseline as every other DOCA library), OR — and this is the PCC-specific case the agent MUST surface — the BlueField firmware does not have the custom-PCC slot enabled. The two look identical at the `doca-pcc` API surface and the fix is different: `doca_dev` access is a host-OS / group-membership fix per [`doca-setup ## Safety policy`](../../doca-setup/CAPABILITIES.md#safety-policy); the firmware-level custom-PCC slot is a firmware-side enable per [`doca-setup`](../../doca-setup/SKILL.md). The agent must check the firmware-side enable BEFORE concluding "this is a permission problem". |
 | `DOCA_ERROR_INVALID_VALUE` | Algorithm-load call; algorithm-parameter set calls | Either the loaded algorithm image is incompatible with the target device (the image was built for a different BlueField generation, or against a different DOCA install), or a host-side algorithm parameter is out of the range the algorithm advertises. Re-check the build provenance of the `doca_pcc_app` against this host's DOCA + DPACC versions; re-read the DPA-side algorithm's parameter shape. Do not adjust the parameter value blindly without confirming the parameter range. |
-| `DOCA_ERROR_BAD_STATE` | Any `doca_pcc_*` call before the `doca_pcc` is started or after it is stopped; teardown ordering between the loaded `doca_pcc_app` and the parent `doca_pcc` | Lifecycle violation. The most common case is calling host-side parameter or observability helpers before `doca_ctx_start()` on the `doca_pcc`, or destroying the `doca_pcc` while the loaded `doca_pcc_app` is still being referenced. Walk the universal Core lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); reverse the configure order on teardown. |
+| `DOCA_ERROR_BAD_STATE` | Any `doca_pcc_*` call before the `doca_pcc` is started or after it is stopped; teardown ordering between the loaded `doca_pcc_app` and the parent `doca_pcc` | Lifecycle violation. The most common case is calling host-side parameter or observability helpers before `doca_pcc_start()`, or destroying the `doca_pcc` while the loaded `doca_pcc_app` is still being referenced. Walk the universal Core lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); reverse the configure order on teardown. |
 | `DOCA_ERROR_DRIVER` | `doca_pcc` create; algorithm-load call when DOCA + DPACC versions are skewed; first start when the firmware-side custom-PCC slot is in a transitional state | The PCC driver layer reported failure to DOCA. Most common cause is a DOCA + DPACC version mismatch per the DOCA Compatibility Policy; second most common is the algorithm image was built against a different DOCA install than the host runtime; third is a firmware-side custom-PCC slot that is enabled but in a transitional state (e.g. firmware was reconfigured but the BlueField has not been reset since). Route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) layer 5 (driver) AND to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) for the version-skew side. |
 
 The agent's rule: **never recommend a retry loop on
@@ -203,7 +203,7 @@ host-side observability surface (what the running algorithm
 reports back to the host through the host-side `doca-pcc`
 API, the DOCA logger, cap-query snapshots) AND an
 infrastructure-side observability surface (the
-`doca_pcc_counter` diagnostic CLI documented in the public
+`pcc_counters` diagnostic CLI documented in the public
 DOCA Tools umbrella reachable via
 [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)
 plus the DPA-side developer tools inherited from
@@ -241,7 +241,7 @@ Three primary signals the agent should reach for:
    When the host-side surface shows the algorithm is loaded
    and reports look fine but the user's RDMA / RoCE traffic
    shows no change in congestion behavior, the
-   `doca_pcc_counter` CLI is the diagnostic the agent should
+   `pcc_counters` CLI is the diagnostic the agent should
    route to for read-only inspection of PCC counters at the
    port. For DPA-side hangs (the algorithm body is running
    but stuck), the DPA-side developer tools named in
@@ -327,7 +327,8 @@ agent will get asked but should route elsewhere:
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md);
   this skill assumes the user has the DPA-side algorithm and
   is asking *how to load and attach it from the host*.
-- **`doca_pcc_counter` diagnostic CLI** — a separate
+- **`pcc_counters` diagnostic CLI** (the real artifact is the
+  `pcc_counters.sh` script under `tools/pcc_counters/`) — a separate
   artifact with its own public page; route via
   [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools).
   It is read-only inspection; this skill is control + load.

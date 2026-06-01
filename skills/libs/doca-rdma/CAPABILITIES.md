@@ -64,20 +64,21 @@ is a real bug):
   `mlxconfig` `LINK_TYPE_P*`) and is **not** chosen via a DOCA
   RDMA API; the agent inherits whatever the device exposes.
 - **Transport-type (RDMA QP service type):** the per-QP service
-  type — **RC** (Reliable Connection), **DC** (Dynamically
-  Connected; *alpha-level* per the public guide), and **UD**
-  (Unreliable Datagram, where supported by the device + the
-  task type the user wants). This IS the axis that
-  `doca_rdma_set_transport_type()` controls. RC is the
-  baseline; DC must be flagged as alpha when the user asks
-  about it; UD support is per-device-and-task — gate on
-  `doca_rdma_cap_*_is_supported(devinfo)`.
+  type. The `enum doca_rdma_transport_type` defines exactly two
+  values — **RC** (Reliable Connection) and **DC** (Dynamically
+  Connected; supported only in the export/connect flow on the
+  CPU datapath). There is NO UD (Unreliable Datagram) transport
+  in DOCA RDMA. This IS the axis that
+  `doca_rdma_set_transport_type()` controls. RC is the baseline;
+  DC is restricted to the export/connect + CPU-datapath flow —
+  gate task availability on
+  `doca_rdma_cap_task_*_is_supported(devinfo)`.
 
 The two axes are independent: RC over IB, RC over RoCE, DC
 over IB, DC over RoCE are all valid combinations subject to
 device + version caps. Treating "IB / RoCE" as the value the
 agent passes to `doca_rdma_set_transport_type()` is a bug —
-that setter takes a transport-type (RC / DC / UD), not a
+that setter takes a transport-type (RC or DC), not a
 link-layer.
 
 **Device support.** BlueField-2 and higher devices are supported.
@@ -114,7 +115,7 @@ instances; pick one *before* writing any connection-side code:
 
 | Method | Shape | When to pick |
 | --- | --- | --- |
-| RDMA CM (`doca_rdma_cm_*` + `doca_rdma_set_connection_state_callbacks()`) | Server/client; non-blocking; event-driven via the progress engine | When the application can run the PE and wants the library to manage handshake retries / timeouts |
+| RDMA CM (`doca_rdma_connect_to_addr()` on the client; `doca_rdma_start_listen_to_port()` + `doca_rdma_connection_accept()` / `_reject()` / `_disconnect()` on the server; plus `doca_rdma_set_connection_state_callbacks()`) | Server/client; non-blocking; event-driven via the progress engine | When the application can run the PE and wants the library to manage handshake retries / timeouts |
 | Bridge / OOB (`doca_rdma_bridge_*`) | The user app does the TCP/etc. listen + accept itself, then hands the RDMA CM id to the library | When the application already has its own out-of-band control plane and wants RDMA to *consume* a connection it produced |
 | gRPC / arbitrary OOB | The user app exchanges the output of `doca_rdma_export()` over any out-of-band channel and feeds it to `doca_rdma_connect()` | When the application has no RDMA CM presence at all; the channel can be anything (gRPC, file, MPI, …) |
 

@@ -144,7 +144,7 @@ Steps the agent should walk the user through:
    `doca_verbs_bridge_poll_cq` vs comp-channel event delivery —
    pick one explicitly per
    [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability))?
-   Which `doca_verbs_srq`(s)? Which `doca_verbs_ah_attr` for UD
+   Which `doca_verbs_srq`(s)? Which `doca_verbs_ah_attr` for IB
    or RoCE routing? Which MR(s) covering which memory? If any of
    those are unclear, stop and ask — do not invent.
 7. **Configure the verbs context.** Walk the universal Core
@@ -215,11 +215,11 @@ elicit from the user before recommending any code-level edit:**
 
 | Slot | What the agent asks the user | Verbs-specific consideration |
 | --- | --- | --- |
-| 1. Starting sample | Which sample under the installed DOCA samples tree? Run `ls /opt/mellanox/doca/samples/` and pick the one whose QP shape (reliable vs unreliable; connected vs unconnected; RDMA-side vs Ethernet-side) most closely matches the user's intent | Pick the closest in *QP shape* (RC / UC / UD / XRC / DC) and *completion-handling path* (DOCA PE vs manual CQ poll vs comp-channel event, per [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability)). Do NOT bridge across both axes in a single modify pass — a smaller diff is always safer than a re-architecture |
+| 1. Starting sample | Which sample under the installed DOCA samples tree? Run `ls /opt/mellanox/doca/samples/` and pick the one whose QP shape (reliable vs unreliable; connected vs unconnected; RDMA-side vs Ethernet-side) most closely matches the user's intent | Pick the closest in *QP shape* (RC / UC — the only QP types this release defines) and *completion-handling path* (DOCA PE vs manual CQ poll vs comp-channel event, per [CAPABILITIES.md ## Observability](CAPABILITIES.md#observability)). Do NOT bridge across both axes in a single modify pass — a smaller diff is always safer than a re-architecture |
 | 2. Verbs / opcodes added or removed | Which WR opcodes? Which QP features (ECE, CC-group, CQE-inline, ordering-semantic, send-DBR-mode)? Which SRQ options? Which AH attributes? Which Ethernet-queue options (TS-source-type, plane-index, multi-pkt-send-WQE, flush-in-error)? | Each added opcode / WR flag / QP attribute / SRQ option / AH attribute / CC-group hint / Ethernet-queue option needs its own `doca_verbs_device_attr_get_*` query from `## configure` step 5 against the active `doca_devinfo` before any code-level change |
 | 3. MR / PD changes | Which MR(s) / PD(s) change? | Refer to the no-mixing rule in [CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy) — if the user is tempted to reuse an `ibv_pd` / `ibv_mr` from existing code, the porting block below is the right path |
 | 4. Completion-handling change | Switch PE → manual CQ poll → comp-channel, or vice versa? | This is a re-architecture, not a tweak. If yes, recommend the user start from the sample that already uses the target path instead of patching one over |
-| 5. Transport / queue sizing | Change transport type or queue depths? | Same option set as [`doca-rdma`](../doca-rdma/SKILL.md) when relevant; re-run `## configure` step 5 — transport-type support is device-conditional even at the verbs level (`doca_verbs_device_attr_get_is_qp_type_supported`) |
+| 5. QP type / queue sizing | Change QP type (RC / UC) or queue depths? | Same option set as [`doca-rdma`](../doca-rdma/SKILL.md) when relevant; re-run `## configure` step 5 — QP-type support is device-conditional even at the verbs level (`doca_verbs_device_attr_get_is_qp_type_supported`) |
 
 **Libibverbs porting block — what the agent walks the user through
 when they arrive with existing `ibv_*` code.** This is NOT a
@@ -256,7 +256,7 @@ model:
    `doca_verbs_qp_attr` built via the
    `doca_verbs_qp_attr_*` setters; build the AH attributes via
    `doca_verbs_ah_attr_*` setters and attach to the QP via
-   `doca_verbs_qp_attr_set_ah_attr` for UD or RoCE QPs.
+   `doca_verbs_qp_attr_set_ah_attr` for RoCE or IB QPs.
 4. **Integrate with the DOCA Core lifecycle.** Wrap the verbs
    object set in a `doca_ctx_*` lifecycle per
    [`doca-common TASKS.md ## configure`](../doca-common/TASKS.md#configure).
@@ -301,7 +301,7 @@ Steps the agent should walk the user through:
 1. **Confirm the peer / traffic source is reachable.** For
    QP-class workloads, raw verbs needs a peer; the peer's RDMA
    stack and transport must match what this side asked for
-   (IB / RoCE / UD; QP feature set per `## configure` step 5). A
+   (IB / RoCE; QP type RC / UC and feature set per `## configure` step 5). A
    solo run produces a misleading hang. For Ethernet-queue-class
    workloads, the traffic generator (host-side `pktgen`, a remote
    sender, the DPU-side `doca-flow` rules feeding the queue) must

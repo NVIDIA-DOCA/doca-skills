@@ -1,7 +1,7 @@
 # DOCA Rivermax capabilities, version overlay, errors, observability, safety
 
 **Where to start:** Pick the H2 anchor that matches your question
-(stream objects / input vs output / capabilities / Rivermax SDK
+(input stream object / capabilities / Rivermax SDK
 + license / errors / safety) and read that section end-to-end.
 The tables in each section are the load-bearing content; the
 prose around them is interpretation.
@@ -30,8 +30,8 @@ every supported Rivermax SDK version.
 | Pattern | When it applies (class shape) | Where the substance lives |
 | --- | --- | --- |
 | 1. Confirm the Rivermax precondition | Before any other concern, verify that the NVIDIA Rivermax SDK is installed AND a valid Rivermax license is readable on the host; without both, `doca-rmax` cannot function and there is no in-library fallback | [`## Safety policy`](#safety-policy) precondition matrix + [TASKS.md ## configure](TASKS.md#configure) step 1 |
-| 2. Pick the stream direction | Decide whether the user needs an input (receive) Rivermax stream, an output (transmit) Rivermax stream, or both; instantiate each as its own per-stream session object with its own DOCA Core lifecycle | [`## Capabilities and modes`](#capabilities-and-modes) input vs output table + [TASKS.md ## configure](TASKS.md#configure) step 2 |
-| 3. Discover capabilities | Query the `doca_rivermax_*_cap_*` family against the active `doca_devinfo` for stream type / frame size / packet rate support before assuming any timing-precise configuration is feasible on this device + this Rivermax SDK | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
+| 2. Stand up the receive stream | Initialize the global DOCA Rivermax engine (`doca_rmax_init()` / `doca_rmax_release()`), then create the receive-only `doca_rmax_in_stream` session object via `doca_rmax_in_stream_create()` and drive it through its own DOCA Core lifecycle. The public API is receive-only — there is no transmit/output stream | [`## Capabilities and modes`](#capabilities-and-modes) input stream table + [TASKS.md ## configure](TASKS.md#configure) step 2 |
+| 3. Discover capabilities | Query the `doca_rmax_get_*_supported` family against the active `doca_devinfo` for PTP-clock and packet-placement-order support before assuming any timing-precise configuration is feasible on this device + this Rivermax SDK | [`## Capabilities and modes`](#capabilities-and-modes) capability-query rule + [TASKS.md ## configure](TASKS.md#configure) step 3 |
 | 4. Honor preconditions | Verify the device opens under the user's access (DOCA-side: sudo or `mlnx` group; Rivermax-side: license file readable, real-time scheduling on streaming threads), the underlying port is up, and traffic is steered to the queue the Rivermax stream is attached to (via DOCA Flow) | [`## Safety policy`](#safety-policy) precondition matrix + [TASKS.md ## configure](TASKS.md#configure) step 1 |
 | 5. Diagnose a Rivermax error | Map symptom (`DOCA_ERROR_BAD_STATE`, `_NOT_PERMITTED`, `_NOT_SUPPORTED`, `_INVALID_VALUE`, `_DRIVER`) to root cause WITHOUT collapsing the DOCA-side / Rivermax-side / license-side / driver-below layers into one | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 
@@ -55,28 +55,31 @@ Two cross-cutting rules that apply to *every* pattern above:
 
 ## Capabilities and modes
 
-The two orthogonal selection axes for any DOCA Rivermax design
-are *stream direction* (input vs output) and *stream type /
-frame size / packet rate* (device- and Rivermax-conditional).
-Choose direction before writing any code; choose stream
-parameters only after the matching capability-query confirms
-they are supported.
+The DOCA Rivermax public API is **receive-only**: the one
+selection axis for any design is *timestamp format / packet-
+placement order / scatter type* (device- and
+Rivermax-conditional). The engine itself is a process-global
+singleton; choose stream parameters only after the matching
+capability-query confirms they are supported.
 
-**Per-stream object split — input vs output.** Each is its own
-DOCA Core context, instantiated through the per-Rivermax-
-integration context. Exact symbol names are install-bound;
-read them from the headers at
+**Object model — a global engine plus a receive-only input
+stream.** There is no per-integration context object: the
+library is initialized process-wide with `doca_rmax_init()` and
+torn down with `doca_rmax_release()`. The only stream object is
+the receive-side `doca_rmax_in_stream`; a `doca_rmax_flow`
+attaches match criteria to it. Read exact symbol names from the
+headers at
 $(pkg-config --variable=includedir doca-common) rather than from
 agent memory beyond the family pattern below.
 
 | Object | What it does | Family of calls | Sizing inputs |
 | --- | --- | --- | --- |
-| `doca_rivermax` (per-integration context) | The per-Rivermax-integration DOCA Core context; opened on a `doca_dev` against the device the stream will run on. Holds the integration with the underlying Rivermax SDK and gates the per-stream objects' creation | `doca_rivermax_*` create / set / start / stop / destroy, per the standard DOCA Core lifecycle | A `doca_dev` opened against the target port / representor / SF |
-| Per-stream input session (receive) | One Rivermax receive session — for SMPTE ST 2110 inbound video / audio, real-time market data feeds, instrument streams. Surfaces inbound stream data to user code via DOCA tasks or library-managed buffers, with Rivermax doing the timing-precise reassembly | Per-stream create / set / start / stop / destroy + recv-event callback | `doca_rivermax_*_cap_*` queries against the active `doca_devinfo` for the desired stream type and packet rate |
-| Per-stream output session (transmit) | One Rivermax transmit session — for SMPTE ST 2110 outbound video / audio or market-data egress. User submits frame payloads; Rivermax handles the timing-precise emission to the wire | Per-stream create / set / start / stop / destroy + send-task allocator + submit | `doca_rivermax_*_cap_*` queries against the active `doca_devinfo` for the desired stream type and packet rate |
+| Global Rivermax engine (process singleton) | Process-wide initialization of the underlying Rivermax SDK integration; must be initialized before any stream is created and released after all streams are destroyed. Holds no per-device state itself | `doca_rmax_init()` / `doca_rmax_release()` / `doca_rmax_interrupt()`, plus `doca_rmax_set_cpu_affinity_mask()` and `doca_rmax_set_clock()` | None — it is a singleton; the device is selected per input stream |
+| `doca_rmax_in_stream` (receive) | The one Rivermax session object — a receive stream for SMPTE ST 2110 inbound video / audio, real-time market data feeds, instrument streams. Created on a `doca_dev`, converted to a DOCA Core context via `doca_rmax_in_stream_as_ctx()`, and surfaces inbound data via the Rx-data PE event with Rivermax doing the timing-precise reassembly | `doca_rmax_in_stream_create()` / `_destroy()` / `_as_ctx()`, `doca_rmax_in_stream_set_*` setters, `doca_rmax_in_stream_event_rx_data_register()` | A `doca_dev` opened against the target port / representor / SF (must have a valid IPv4 address); `doca_rmax_get_*_supported` queries against the active `doca_devinfo` |
+| `doca_rmax_flow` (steering filter) | A match filter (src/dst IPv4, src/dst port, tag) attached to an input stream so only the intended media flow lands on it | `doca_rmax_flow_create()` / `_destroy()` / `_attach()` / `_detach()` + `doca_rmax_flow_set_{src,dst}_{ip,port}` / `_set_tag` | The IP/port 5-tuple of the inbound media flow |
 
-The per-stream objects sit on top of the underlying packet
-queue (`doca_eth_rxq` / `doca_eth_txq`); the queue itself is
+The input stream sits on top of the underlying packet queue
+(`doca_eth_rxq`); the queue itself is
 programmed through [`doca-eth`](../doca-eth/SKILL.md), and
 the steering that gets matching packets to it is programmed
 through [`doca-flow`](../doca-flow/SKILL.md). Treating the
@@ -84,16 +87,17 @@ Rivermax stream as a stand-in for the queue / steering surfaces
 is wrong: it conflates three independent libraries that each
 own their own lifecycle.
 
-**Capability discovery — the only rule.** Before naming any
-stream type, picking any frame size, or assuming any packet
-rate is feasible, call the matching `doca_rivermax_*_cap_*`
-query against the active `doca_devinfo`:
+**Capability discovery — the only rule.** Before assuming a
+PTP-synced timestamp format or hardware-accelerated packet
+placement order is feasible, call the matching
+`doca_rmax_get_*_supported` query against the active
+`doca_devinfo`:
 
-| Capability | Query family | Why the agent must ask |
+| Capability | Query function | Why the agent must ask |
 | --- | --- | --- |
-| Stream type supported on this device + Rivermax version | `doca_rivermax_*_cap_*` for the matching stream-type capability flag | Stream type support is the joint property of the device, the DOCA version, AND the Rivermax SDK version. Assuming SMPTE ST 2110 video is on every device is the canonical hallucination failure mode for this library. |
-| Frame size and packet-rate ranges | `doca_rivermax_*_cap_*` for the matching dimension | Frame size + packet rate combinations are jointly constrained by device, Rivermax version, and the underlying queue sizing. Quoting a rate from memory is the second-canonical hallucination mode. |
-| Per-stream input / output session presence | `doca_rivermax_*_cap_*` family | Not every device + Rivermax version advertises every session shape. The agent must not silently assume an output session is supported when the user has only seen input session samples. |
+| PTP clock supported on this device + Rivermax version | `doca_rmax_get_ptp_clock_supported` | PTP-synced timestamps require device + Rivermax support; assuming PTP is on every device is a canonical hallucination failure mode. Required before `doca_rmax_set_clock()` and the PTP-synced timestamp format. |
+| Hardware-accelerated RTP sequence-number packet placement | `doca_rmax_get_packet_placement_order_rtp_seqn_supported` | RTP-seqn placement ordering is device- and Rivermax-version-conditional; query before enabling it via `doca_rmax_in_stream_set_packet_placement_order_rtp_seqn`. |
+| Hardware-accelerated SMPTE ST 2110-20 sequence-number placement | `doca_rmax_get_packet_placement_order_st2110_20_seqn_supported` | ST 2110-20 placement ordering is device- and Rivermax-version-conditional; query before enabling it via `doca_rmax_in_stream_set_packet_placement_order_st2110_20_seqn`. |
 
 The capability-query rule is **the runtime authority**: when
 the cap query says false, that is the answer for this host,
@@ -102,14 +106,17 @@ general. Quote the queried value back to the user; do not
 substitute a value the user remembered from another install.
 
 **Configuration shape.** *Mandatory* configurations before
-`doca_ctx_start()` on each per-stream object: the stream type
-set per the user's intent (gated on the cap query), the
-underlying queue context wired in (allocated and started via
-[`doca-eth`](../doca-eth/SKILL.md)), and the recv-event or
-send-task allocator per direction. *Optional* configurations
-(advanced timing-precision knobs, multi-path receive, sender
-pacing parameters) gate on the matching `doca_rivermax_*_cap_*`
-query and the corresponding setter; the agent should consult
+`doca_ctx_start()` on the input stream: the scatter type,
+timestamp format, and memory-block / element-count layout set
+per the user's intent (timestamp format and packet-placement
+order gated on the matching `doca_rmax_get_*_supported` query),
+the underlying queue context wired in (allocated and started via
+[`doca-eth`](../doca-eth/SKILL.md)), and the Rx-data event
+registered via `doca_rmax_in_stream_event_rx_data_register()`.
+*Optional* configurations (hardware-accelerated packet-placement
+order, PTP-synced timestamps, receive timeout / min-max packet
+batching) gate on the matching `doca_rmax_get_*_supported`
+query and the corresponding `doca_rmax_in_stream_set_*` setter; the agent should consult
 the public DOCA Rivermax guide (slug `DOCA-Rivermax` via
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md))
 for the canonical setter names on the installed version rather
@@ -137,15 +144,15 @@ there; this skill does not duplicate it.
   query, documented in the public Rivermax SDK guide via
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md))
   before promising a feature.
-- **`doca_rivermax_*_cap_*` is the runtime authority, not the
+- **`doca_rmax_get_*_supported` is the runtime authority, not the
   public docs.** Per the cross-cutting cap-query rule in
   [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability),
   the agent must call the matching capability query against
   the active `doca_devinfo` before promising the user that a
-  stream type, frame size, or packet rate is on this device +
-  DOCA version + Rivermax SDK version. Quoting a feature from
-  memory is the canonical hallucination failure mode for this
-  library.
+  PTP clock or hardware-accelerated packet-placement order is on
+  this device + DOCA version + Rivermax SDK version. Quoting a
+  feature from memory is the canonical hallucination failure mode
+  for this library.
 - **`doca-rmax.pc` and `doca-common.pc` must both match
   `doca_caps --version`** at the four-way-match check (per
   [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)).
@@ -169,10 +176,10 @@ cross-library response.
 
 | Error | DOCA Rivermax context where it shows up | Rivermax-specific cause |
 | --- | --- | --- |
-| `DOCA_ERROR_BAD_STATE` | Any call after `doca_ctx_stop()` or before `doca_ctx_start()`; submitting on a per-stream object that is not STARTED; using a per-stream object whose underlying `doca_eth_*` queue has not been started | Lifecycle violation. Walk the per-stream object's state against the universal lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the most common case is treating the per-stream object lifecycle as covered by the per-integration `doca_rivermax` context's start. |
-| `DOCA_ERROR_NOT_PERMITTED` | Per-integration `doca_rivermax` context create, per-stream create | TWO independent causes the agent must distinguish: (a) DOCA-side device access denied (no sudo / not in `mlnx` group), same as every DOCA library — confirm via the precondition matrix in [`## Safety policy`](#safety-policy); (b) **Rivermax license missing, expired, or not readable in the location Rivermax expects** — this is unique to `doca-rmax` and the FIRST hypothesis when a Rivermax call returns `_NOT_PERMITTED`, because the DOCA-side device access has usually already been validated. |
-| `DOCA_ERROR_NOT_SUPPORTED` | Stream-type setter, frame-size setter, packet-rate setter, advanced timing knobs | The chosen stream parameter is not supported on this device + this Rivermax SDK version. Re-run the matching `doca_rivermax_*_cap_*` query against the active `doca_devinfo`; if the cap query says false, that is the answer — the device or the Rivermax version does not support the request. The fix is to change the request or upgrade the Rivermax SDK, not to retry. |
-| `DOCA_ERROR_INVALID_VALUE` | Stream parameter setters with out-of-range frame size, packet rate, or stream identifier | The user passed a value past the cap-query range or outside the Rivermax-defined valid set for the chosen stream type. The fix is at the configure step, not in the program's runtime loop. |
+| `DOCA_ERROR_BAD_STATE` | Any call after `doca_ctx_stop()` or before `doca_ctx_start()`; using an input stream whose underlying `doca_eth_rxq` queue has not been started; calling a `doca_rmax_in_stream_set_*` setter after the context has left idle | Lifecycle violation. Walk the input stream's state against the universal lifecycle in [`doca-programming-guide CAPABILITIES.md ## Capabilities and modes`](../../doca-programming-guide/CAPABILITIES.md#capabilities-and-modes); the most common case is treating the input stream lifecycle as covered by the process-global `doca_rmax_init()` call. |
+| `DOCA_ERROR_NOT_PERMITTED` | Device open behind `doca_rmax_in_stream_create()` | DOCA-side device access denied (no sudo / not in `mlnx` group), same as every DOCA library — confirm via the precondition matrix in [`## Safety policy`](#safety-policy). Note that a **missing / expired / unreadable Rivermax license** surfaces instead as `DOCA_ERROR_NOT_SUPPORTED` from `doca_rmax_init()` (per the header), so check the init return code separately. |
+| `DOCA_ERROR_NOT_SUPPORTED` | `doca_rmax_init()` (invalid / missing Rivermax license); timestamp-format / packet-placement-order setters | Either the Rivermax license is invalid or missing (from `doca_rmax_init()`), or the chosen stream parameter is not supported on this device + this Rivermax SDK version. Re-run the matching `doca_rmax_get_*_supported` query against the active `doca_devinfo`; if it says not-supported, that is the answer — the device or the Rivermax version does not support the request. The fix is to change the request, supply a valid license, or upgrade the Rivermax SDK, not to retry. |
+| `DOCA_ERROR_INVALID_VALUE` | `doca_rmax_in_stream_set_*` setters with an out-of-range element count, memory-block size, or packet batch bound | The user passed a value outside the valid set for the chosen stream configuration. The fix is at the configure step, not in the program's runtime loop. |
 | `DOCA_ERROR_DRIVER` | Any submit / completion call | The layer below DOCA reported failure — which for Rivermax may be either the DOCA driver layer (mlx5 / ConnectX firmware) OR the underlying Rivermax driver / stack. Capture state from both sides (`dmesg | tail`, `mlxconfig -d <pcie> q`, and the Rivermax SDK's own log if its docs describe one) and route to env-class debug ([`doca-setup ## debug`](../../doca-setup/TASKS.md#debug)) — the layer below DOCA is the suspect, not the program. |
 
 The agent's rule: **never recommend a retry loop on
@@ -189,9 +196,9 @@ underlying `doca_eth_rxq` (route to
 ## Observability
 
 The DOCA Core progress engine (PE) is the single source of
-observability for each Rivermax per-stream object: every
-recv-event or send-task completion (success or failure)
-arrives as an event on the PE that the per-stream context is
+observability for the Rivermax input stream: every
+Rx-data event (success or failure)
+arrives as an event on the PE that the input stream context is
 registered against. DOCA Rivermax does **not** maintain
 per-stream counters of its own; its observability surface is
 event-driven, not poll-driven, with three add-on signals
@@ -199,17 +206,16 @@ event-driven, not poll-driven, with three add-on signals
 
 Four primary signals the agent should reach for:
 
-1. **Per-stream task / event completions on the PE.** Each
-   input session produces a completion event on every received
-   frame / chunk per the chosen stream type; each output
-   session produces a completion event on every send-task that
-   finishes (success or error). Absence of completions on a
-   started stream is *always* either a missing
-   `doca_pe_progress()` call or — for input streams — a
+1. **Rx-data event completions on the PE.** The input stream
+   produces an Rx-data event (via
+   `doca_rmax_in_stream_event_rx_data_register()`) on every
+   received batch of packets per the chosen stream type. Absence
+   of completions on a started stream is *always* either a
+   missing `doca_pe_progress()` call or a
    missing-license / steering / underlying-queue precondition
    gap. Route to [`## Safety policy`](#safety-policy) first.
 2. **Capability snapshot at configure time.** The output of
-   every `doca_rivermax_*_cap_*` query is a snapshot of *what
+   every `doca_rmax_get_*_supported` query is a snapshot of *what
    the library + the Rivermax SDK said was possible* before
    any task was submitted. Save it as the baseline; if a task
    later returns `DOCA_ERROR_NOT_SUPPORTED` the diff against

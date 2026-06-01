@@ -130,7 +130,7 @@ Telemetry-Service-as-deployed) are intentionally out of scope — see
 | `doca-argus` | [skills/services/doca-argus/SKILL.md](skills/services/doca-argus/SKILL.md) | DOCA Argus Service — runtime-security / monitoring on BlueField. |
 | `doca-os-inspector` | [skills/services/doca-os-inspector/SKILL.md](skills/services/doca-os-inspector/SKILL.md) | DOCA OS Inspector Service — DPU-side out-of-band host-OS introspection container. Service wrapper for apsh-class capabilities; pairs with `doca-apsh` (library), `doca-apsh-config` (profile generation), and `doca-container-deployment`. |
 
-**Tools (18) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
+**Tools (17) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
@@ -142,11 +142,10 @@ Telemetry-Service-as-deployed) are intentionally out of scope — see
 | `doca-flow-perf` | [skills/tools/doca-flow-perf/SKILL.md](skills/tools/doca-flow-perf/SKILL.md) | DOCA Flow Perf — host / DPU-CPU control-plane rule-rate measurement (install / delete / query rate). Distinct from `doca-flow-dpa-perf` (DPA-offloaded path) and `doca-flow-tune` (optimizes a deployed pipeline). |
 | `doca-flow-dpa-perf` | [skills/tools/doca-flow-dpa-perf/SKILL.md](skills/tools/doca-flow-dpa-perf/SKILL.md) | DOCA Flow DPA Perf — flow performance for the DPA-offloaded execution path. |
 | `doca-flow-grpc-server` | [skills/tools/doca-flow-grpc-server/SKILL.md](skills/tools/doca-flow-grpc-server/SKILL.md) | DOCA Flow gRPC Server — gRPC remote-control server for `doca-flow` rule programming. |
-| `doca-pcc-counters` | [skills/tools/doca-pcc-counters/SKILL.md](skills/tools/doca-pcc-counters/SKILL.md) | DOCA PCC Counter Tool — PCC counter inspection (paired with `libs/doca-pcc`). |
+| `doca-pcc-counters` | [skills/tools/doca-pcc-counters/SKILL.md](skills/tools/doca-pcc-counters/SKILL.md) | DOCA PCC Counters — the `pcc_counters.sh` script arms (`set`) and reads (`query`) the device's firmware/HW PCC diagnostic counters via mst + the mlx5 debugfs `diag_cnt` interface. |
 | `doca-socket-relay` | [skills/tools/doca-socket-relay/SKILL.md](skills/tools/doca-socket-relay/SKILL.md) | DOCA Socket Relay — socket relay between host and DPU. |
 | `doca-apsh-config` | [skills/tools/doca-apsh-config/SKILL.md](skills/tools/doca-apsh-config/SKILL.md) | DOCA App Shield Config — generates the host-OS profile / symbol files that `doca-apsh` and `doca-os-inspector` need to interpret host kernel state. Without a current profile, apsh-class introspection returns garbage. |
 | `doca-dpa-hl-tracer` | [skills/tools/doca-dpa-hl-tracer/SKILL.md](skills/tools/doca-dpa-hl-tracer/SKILL.md) | DOCA DPA High-Level Tracer — captures DPA-side execution traces with higher-level events than raw cycle counts. |
-| `doca-gpi-ib-write-lat` | [skills/tools/doca-gpi-ib-write-lat/SKILL.md](skills/tools/doca-gpi-ib-write-lat/SKILL.md) | DOCA GPI ib_write_lat — RDMA-write latency benchmark from the GPI (CUDA-kernel-initiated RDMA) path. |
 | `doca-gpunetio-ib-write-bw` | [skills/tools/doca-gpunetio-ib-write-bw/SKILL.md](skills/tools/doca-gpunetio-ib-write-bw/SKILL.md) | DOCA GPUNetIO ib_write_bw — RDMA-write bandwidth benchmark from the GPUNetIO framework. |
 | `doca-gpunetio-ib-write-lat` | [skills/tools/doca-gpunetio-ib-write-lat/SKILL.md](skills/tools/doca-gpunetio-ib-write-lat/SKILL.md) | DOCA GPUNetIO ib_write_lat — RDMA-write latency benchmark from the GPUNetIO framework. |
 | `doca-sha-offload-engine` | [skills/tools/doca-sha-offload-engine/SKILL.md](skills/tools/doca-sha-offload-engine/SKILL.md) | DOCA SHA Offload Engine — OpenSSL ENGINE wrapping the DOCA SHA library; lets unmodified OpenSSL-based applications offload SHA without code changes. |

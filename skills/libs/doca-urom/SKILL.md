@@ -5,8 +5,10 @@ description: >
   work from the host side — wiring doca-urom under an HPC / UCX /
   MPI stack to OFFLOAD remote memory operations (puts, gets, atomics,
   active messages, collective primitives) onto a BlueField DPU,
-  creating a per-BlueField doca_urom Core context, running
-  doca_urom_cap_* capability queries, progressing completions on the
+  creating a UROM Service context (doca_urom_service_*) and the
+  Worker contexts (doca_urom_worker_*) that run plugins on the
+  DPU, discovering supported plugins via
+  doca_urom_service_get_plugins_list, progressing completions on the
   DOCA progress engine, or debugging DOCA_ERROR_* from a doca_urom_*
   call. Trigger even when the user does not explicitly mention
   "DOCA UROM" — typical implicit phrasings include "MPI all-reduce
@@ -82,8 +84,10 @@ instance.
   on my device + this DOCA install + this UROM Service
   version?"** — worked example: *"does my BlueField support
   remote atomic Fetch-and-Add for an MPI window?"*. Answered by
-  the capability-query rule (`doca_urom_cap_*` against the active
-  `doca_devinfo`) in
+  the plugin-discovery rule (`doca_urom_service_get_plugins_list`
+  on a started Service — UROM operations are plugin-defined
+  Command tasks, so the supported-plugins list is the
+  capability surface) in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the discovery step in
   [`TASKS.md ## configure`](TASKS.md#configure).
@@ -99,8 +103,8 @@ instance.
   overhead — small / simple point-to-point cases stay on
   `doca-rdma`).
 - **"Is this UROM API on my installed DOCA version?"** — worked
-  example: *"is `doca_urom_cap_*` for collective ops on DOCA
-  3.x"*. Answered by the version-compatibility overlay in
+  example: *"is the collective-ops plugin discoverable via
+  `doca_urom_service_get_plugins_list` on DOCA 3.x"*. Answered by the version-compatibility overlay in
   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility),
   which cross-links the canonical detection chain in
   [`doca-version`](../../doca-version/SKILL.md) and adds the
@@ -150,8 +154,10 @@ wrapper will eventually call.
 Load this skill when the user is doing hands-on DOCA UROM work
 **from the host side**, in any language. Concretely:
 
-- Initializing a `doca_urom` context on a `doca_dev` that maps
-  to the BlueField the user wants to offload to, and confirming
+- Initializing a UROM Service context (`doca_urom_service_*`) on
+  a `doca_dev` that maps to the BlueField the user wants to
+  offload to, then creating Worker contexts
+  (`doca_urom_worker_*`) attached to that Service, and confirming
   the matching DPU-side UROM Service is reachable before the
   first enqueue.
 - Enqueueing remote memory operations (puts, gets, atomics,
@@ -159,9 +165,11 @@ Load this skill when the user is doing hands-on DOCA UROM work
   `doca_urom_*` API and progressing the DOCA progress engine
   for completions.
 - Reading or setting library properties via the host-side UROM
-  API and the `doca_urom_cap_*` family to check which operation
-  types / atomics / collectives this device + this DOCA install
-  + this DPU-side UROM Service version actually supports.
+  API and calling `doca_urom_service_get_plugins_list` on a
+  started Service to discover which plugins (and therefore which
+  operation types / atomics / collectives, since these are
+  plugin-defined) this device + this DOCA install + this DPU-side
+  UROM Service version actually supports.
 - Wiring the host-side `doca-urom` library underneath a
   UCX-based HPC stack (OpenMPI, MPICH, custom UCX consumer) so
   the stack's remote memory traffic offloads to the BlueField
@@ -193,12 +201,15 @@ UROM-specific material lives in two companion files:
 - `CAPABILITIES.md` — what the host-side UROM API can express on
   this version + this BlueField + this UROM Service version: the
   paired-contract model (host library enqueues; DPU service
-  executes); the per-`doca_urom`-instance Core context; the
-  enqueue-side operation surface (puts, gets, atomics, active
-  messages, collective primitives) named generically because
-  exact symbol shapes are install-bound; the
-  capability-query surface (`doca_urom_cap_*`); the UROM error
-  taxonomy mapped onto the cross-library `DOCA_ERROR_*` set;
+  executes); the two host-side context types — the
+  `doca_urom_service` (one per BlueField, bound to its
+  `doca_dev`) and the `doca_urom_worker` contexts attached to it;
+  the enqueue-side operation surface (puts, gets, atomics, active
+  messages, collective primitives) delivered as plugin-defined
+  Worker Command tasks and named generically because exact
+  symbol shapes are plugin- and install-bound; the
+  plugin-discovery surface (`doca_urom_service_get_plugins_list`);
+  the UROM error taxonomy mapped onto the cross-library `DOCA_ERROR_*` set;
   the observability surface (completion events on the DOCA
   progress engine, capability snapshots, infrastructure-side
   RDMA counters); and the safety policy that gates env
@@ -270,9 +281,9 @@ contain — and pull requests should not add:
    in scope (host-side library work; not DPU-side service
    deployment, and not MPI / UCX algorithm design).
 2. **For the UROM capability matrix, the paired-contract model
-   (host library + DPU service), the per-`doca_urom`-instance
-   context, the enqueue-side operation surface, the
-   capability-query rule, the env-precondition policy, the
+   (host library + DPU service), the Service + Worker context
+   model, the enqueue-side operation surface, the
+   plugin-discovery rule, the env-precondition policy, the
    error taxonomy, the observability surface, and the safety
    policy, see [CAPABILITIES.md](CAPABILITIES.md).**
 3. **For step-by-step workflows — configure, build, modify,

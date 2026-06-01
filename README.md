@@ -1,6 +1,6 @@
 # NVIDIA DOCA Skills
 
-**Production-grade agent skill bundle for NVIDIA DOCA — 61 skills covering every public DOCA library, service, and tool.**
+**Production-grade agent skill bundle for NVIDIA DOCA — 60 skills covering every public DOCA library, service, and tool.**
 
 [![NVIDIA](https://img.shields.io/badge/NVIDIA-DOCA-76B900?style=flat&logo=nvidia&logoColor=white)](https://docs.nvidia.com/doca/sdk/index.html)
 [![Agent Skills Spec](https://img.shields.io/badge/Agent%20Skills-Specification-blue)](https://agentskills.io/specification)
@@ -13,7 +13,7 @@
 
 ---
 
-This repository ships **61 portable, [AgentSkills.io](https://agentskills.io/specification)-compliant skills** that teach AI agents — Cursor, Anthropic Claude Code, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, custom in-house LLMs — how to use NVIDIA DOCA correctly on host x86, BlueField Arm bare-metal, or inside containerized environments.
+This repository ships **60 portable, [AgentSkills.io](https://agentskills.io/specification)-compliant skills** that teach AI agents — Cursor, Anthropic Claude Code, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, custom in-house LLMs — how to use NVIDIA DOCA correctly on host x86, BlueField Arm bare-metal, or inside containerized environments.
 
 > ### Scope at a glance — what this bundle covers, and what it does not
 >
@@ -147,7 +147,7 @@ Use `--agent` more than once to install the same skill bundle into multiple agen
 ./install.sh --agent cursor --skill doca-flow --yes
 ```
 
-Replace `doca-flow` with any skill name from the [Skill Catalog](#skill-catalog). Without `--skill`, the installer installs all 61 skills (this is the default and is what an external reviewer should use).
+Replace `doca-flow` with any skill name from the [Skill Catalog](#skill-catalog). Without `--skill`, the installer installs all 60 skills (this is the default and is what an external reviewer should use).
 
 ### Browse the catalog without installing
 
@@ -204,7 +204,7 @@ If you are new to DOCA, the answer to *"how do I get to my first DOCA app?"* is 
 
 ## Skill Catalog
 
-61 skills, grouped by slot. Every skill conforms to AgentSkills.io and ships `SKILL.md` (frontmatter + body) + `CAPABILITIES.md` (what the skill can/cannot do) + `TASKS.md` (the worked tasks).
+60 skills, grouped by slot. Every skill conforms to AgentSkills.io and ships `SKILL.md` (frontmatter + body) + `CAPABILITIES.md` (what the skill can/cannot do) + `TASKS.md` (the worked tasks).
 
 ### Cross-cutting (9 skills)
 
@@ -268,7 +268,7 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-os-inspector`](skills/services/doca-os-inspector/SKILL.md) | DOCA OS Inspector | DPU-side out-of-band introspection of the **HOST** OS via DOCA App Shield (read-only via PCIe DMA). Pairs with `doca-apsh` (library) and `doca-apsh-config` (profile generation). |
 | [`doca-urom-svc`](skills/services/doca-urom-svc/SKILL.md) | DOCA UROM Service | The deployed service half of UROM — manages offloaded RDMA flow state. |
 
-### DOCA Tools (18 skills)
+### DOCA Tools (17 skills)
 
 | Skill | DOCA tool | What it does |
 |---|---|---|
@@ -279,13 +279,12 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-comm-channel-admin`](skills/tools/doca-comm-channel-admin/SKILL.md) | `doca_comm_channel_admin` | Admin / diagnostics for the comm-channel transport under Comch. |
 | [`doca-dpa-hl-tracer`](skills/tools/doca-dpa-hl-tracer/SKILL.md) | `doca_dpa_hl_tracer` | DPA high-level tracer — visibility into DPA execution. |
 | [`doca-flow-dpa-perf`](skills/tools/doca-flow-dpa-perf/SKILL.md) | `doca_flow_dpa_perf` | Performance harness for Flow's DPA path. |
-| [`doca-flow-grpc-server`](skills/tools/doca-flow-grpc-server/SKILL.md) | `doca_flow_grpc_server` | Remote programmable steering — pushes Flow pipes / entries via gRPC. |
+| [`doca-flow-grpc-server`](skills/tools/doca-flow-grpc-server/SKILL.md) | `doca_flow_grpc` | Remote programmable steering — pushes Flow pipes / entries via gRPC. |
 | [`doca-flow-perf`](skills/tools/doca-flow-perf/SKILL.md) | `doca_flow_perf` | Throughput / steering-rate benchmark for Flow. |
 | [`doca-flow-tune`](skills/tools/doca-flow-tune/SKILL.md) | `doca_flow_tune` | Unified visibility / analysis / recommendation tool for a live `doca-flow` pipeline — five subcommands (MONITOR / ANALYZE / VISUALIZE / DUMP / WEB). The binary is a CLIENT to the server-side library linked into the running doca-flow application. |
-| [`doca-gpi-ib-write-lat`](skills/tools/doca-gpi-ib-write-lat/SKILL.md) | `doca_gpi_ib_write_lat` | Latency micro-benchmark for GPI IB-write. |
 | [`doca-gpunetio-ib-write-bw`](skills/tools/doca-gpunetio-ib-write-bw/SKILL.md) | `doca_gpunetio_ib_write_bw` | Bandwidth micro-benchmark for GPUNetIO IB-write. |
 | [`doca-gpunetio-ib-write-lat`](skills/tools/doca-gpunetio-ib-write-lat/SKILL.md) | `doca_gpunetio_ib_write_lat` | Latency micro-benchmark for GPUNetIO IB-write. |
-| [`doca-pcc-counters`](skills/tools/doca-pcc-counters/SKILL.md) | `doca_pcc_counters` | Read-only inspection of PCC counters during congestion-control development. |
+| [`doca-pcc-counters`](skills/tools/doca-pcc-counters/SKILL.md) | `pcc_counters.sh` | Bash script that arms (`set`) and reads (`query`) the device's firmware/HW PCC diagnostic counters via mst + the mlx5 debugfs `diag_cnt` interface. |
 | [`doca-sha-offload-engine`](skills/tools/doca-sha-offload-engine/SKILL.md) | `doca_sha_offload_engine` | OpenSSL ENGINE that routes SHA digests through the DOCA SHA hardware path. |
 | [`doca-socket-relay`](skills/tools/doca-socket-relay/SKILL.md) | `doca_socket_relay` | Bridges a host AF_UNIX socket into a BlueField service over Comch. |
 | [`doca-spcx-cc`](skills/tools/doca-spcx-cc/SKILL.md) | `doca_spcx_cc` | Programmable Congestion-Control extension (next-gen) reference sample. Pairs with `doca-pcc` and `doca-pcc-ztr-rttcc-algo`. Live-fabric safety implications — heavy use of `doca-hardware-safety`. |
@@ -300,7 +299,7 @@ Each library skill teaches the agent the library's API surface, build / link, li
 Every `SKILL.md` in this bundle conforms to the [AgentSkills.io](https://agentskills.io/specification) open standard for agent skills. Any AgentSkills.io-aware client — Anthropic Claude Code, Cursor, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, custom in-house LLMs — can discover, route to, and load these skills without any DOCA-specific glue:
 
 - Each skill ships YAML frontmatter with the spec-mandated fields: `name` (matches the directory name), `description` (imperative *"Use this skill when..."* phrasing per [optimizing-descriptions](https://agentskills.io/skill-creation/optimizing-descriptions), ≤ 1024 chars), `metadata` (for our `kind` routing contract: `library` / `service` / `tool` / `cross-cutting`), and `compatibility` (environment requirements: DOCA install path, Linux distro, BlueField / ConnectX gens).
-- Every release runs the official reference validator ([`skills-ref validate`](https://github.com/agentskills/agentskills/tree/main/skills-ref)) against all 61 skills as an internal CI gate before tagging. A green validator is a merge precondition.
+- Every release runs the official reference validator ([`skills-ref validate`](https://github.com/agentskills/agentskills/tree/main/skills-ref)) against all 60 skills as an internal CI gate before tagging. A green validator is a merge precondition.
 - The directory layout (`skills/<name>/SKILL.md` + `CAPABILITIES.md` + `TASKS.md`) is exactly the AgentSkills.io recommended progressive-disclosure shape: agents read the frontmatter first to decide whether to load, then drill into the body and companions only when activated.
 
 Re-validate locally:
@@ -355,7 +354,7 @@ doca-skills/
     │   ├── doca-argus/
     │   ├── doca-dms/
     │   └── …
-    └── tools/                                # 18 tool skills
+    └── tools/                                # 17 tool skills
         ├── doca-caps/
         ├── doca-bench/
         └── …
@@ -372,7 +371,7 @@ doca-skills/
 - **C / C++ consumers** are the canonical case. The "first app" workflow is *modify a shipped C sample on your DOCA-installed Linux host*; the build manifest is meson + `pkg-config doca-<library>`.
 - **Other-language consumers** (Rust, Go, Python, …) consume DOCA via FFI / language-specific bindings against the same `*.so` libraries the C samples link against. The skills route you to the public C API surface (which is what your bindings will call) and keep the install / runtime / safety guidance language-agnostic. Your build system (cargo, go build, setup.py, …) is your concern; DOCA appears to it as a system C library.
 
-**What is in scope:** The strict-1:1 set with the `doca/{libs,services,tools}/` monorepo at DOCA 3.3 — 28 libraries + 6 services + 18 tools.
+**What is in scope:** The strict-1:1 set with the `doca/{libs,services,tools}/` monorepo at DOCA 3.3 — 28 libraries + 6 services + 17 tools.
 
 **What is intentionally out of scope (non-goal #7):** 27 externally-productized NVIDIA networking products that NVIDIA ships *outside* the DOCA monorepo — BlueField BSP / `bfb-install` / RShim, DOCA Platform Framework (DPF), NVIDIA Network Operator, MLNX_OFED-as-separate-install, NVIDIA UFM, NVIDIA Cumulus Linux, NVIDIA Firmware Tools (MFT), NVIDIA Rivermax SDK (the license layer), BlueField BMC, DOCA Telemetry Service (as-deployed), DOCA HBN, DOCA BlueMan, DOCA SNAP Services, DOCA Virtio-net Service, DOCA DPL Service (Pipeline Language), OVS-DOCA (ASAP² Open vSwitch offload), DOCA DPACC Compiler, DPA Tools, DOCA DPU CLI, DOCA Ngauge, `doca-hugepages` helper, DOCA Privileged Executor (DPE), NIC Configuration Operator, NVIDIA NetQ, NVIDIA NVOS, NVIDIA Spectrum-X Validated Solution Stack, NVIDIA GPU Operator. Each has a per-product row in [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) with authoritative docs URL + common-gotcha class + Developer Forum entry. The bundle's contract requires agents to give the **three-part response** (recognize + name boundary + route with substance) for these — not a bare-URL handoff.
 

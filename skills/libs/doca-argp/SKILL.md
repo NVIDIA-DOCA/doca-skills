@@ -11,7 +11,7 @@ description: >
   preserving the standard `--device` / `--representor` /
   `--json` (`-j`; real flag is `--json`, NOT `--json-config`) /
   `--sdk-log-level` surface; or debugging
-  `DOCA_ERROR_BAD_STATE` / `INVALID_VALUE` / `NOT_FOUND` /
+  `DOCA_ERROR_BAD_STATE` / `INVALID_VALUE` / `NOT_SUPPORTED` / `NOT_FOUND` /
   `IO_FAILED` from `doca_argp_*`. Trigger on implicit
   phrasings: "add a custom flag to a DOCA sample", "should I
   use getopt here", "BAD_STATE registering a new param", "my

@@ -15,7 +15,7 @@ description: >
   "DOCA_ERROR_DRIVER when I attach my custom algorithm", "my
   custom rate-update isn't affecting RoCE traffic", or "load
   succeeds but no on-wire change". Refuse and route elsewhere
-  for DPA-side algorithm-body design, the `doca_pcc_counter`
+  for DPA-side algorithm-body design, the `pcc_counters`
   CLI, default factory PCC in ConnectX firmware, or setting up
   the RDMA / RoCE traffic — those belong to other skills.
 metadata:
@@ -55,7 +55,7 @@ to the public DOCA PCC programming guide and to
 [`doca-dpa`](../doca-dpa/SKILL.md) for the host-side DPA
 lifecycle this skill builds on. If the user only wants to
 *inspect* PCC counters at runtime without writing a custom
-algorithm, that is the `doca_pcc_counter` CLI tool — route via
+algorithm, that is the `pcc_counters` CLI tool — route via
 [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools);
 this skill is for *custom* algorithms only.
 
@@ -95,7 +95,7 @@ instance.
   [`TASKS.md ## configure`](TASKS.md#configure) step 1.
 - **"Is this `doca-pcc` library the right tool for what I want,
   or do I want the default firmware PCC or the
-  `doca_pcc_counter` CLI?"** — worked example: *"I just want to
+  `pcc_counters` CLI?"** — worked example: *"I just want to
   read PCC counters without touching the algorithm"*. Answered
   by the path-selection rule in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
@@ -194,7 +194,7 @@ itself (how to write the congestion-control algorithm body that
 runs on the DPA), questions about the default factory PCC
 algorithm shipped in ConnectX firmware (no host-side `doca-pcc`
 code needed — that path is firmware-only configuration), or
-questions about the `doca_pcc_counter` diagnostic CLI (route via
+questions about the `pcc_counters` diagnostic CLI (route via
 [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools)).
 For all of those, route through
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
@@ -269,8 +269,9 @@ contain — and pull requests should not add:
   kind. A mock or incomplete artifact in this skill's tree,
   even one labeled "reference", is misleading: users will read
   it as buildable.
-- **`doca_pcc_counter` tool surface.** That CLI is a *separate
-  artifact* with its own public page; routing for it lives in
+- **`pcc_counters` tool surface.** That CLI is a *separate
+  artifact* (the real tool is the `pcc_counters.sh` script under
+  `tools/pcc_counters/`) with its own public page; routing for it lives in
   [`doca-public-knowledge-map ## DOCA tools`](../../doca-public-knowledge-map/SKILL.md#doca-tools).
   Conflating it with the `doca-pcc` library is the single most
   common PCC first-app design error.
@@ -296,7 +297,7 @@ must match the DPACC compiler), and
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
 whenever the right answer is "look it up in the public DOCA
 PCC programming guide, the public DPA / DPACC guides, the
-`doca_pcc_counter` tool guide, or in the on-disk install
+`pcc_counters` tool guide, or in the on-disk install
 layout" rather than "PCC host-side-specific guidance".
 
 ## Related skills
@@ -306,7 +307,7 @@ layout" rather than "PCC host-side-specific guidance".
   source and the on-disk layout of an installed DOCA package.
   The PCC public guide is at
   <https://docs.nvidia.com/doca/sdk/DOCA-PCC/index.html>; the
-  `doca_pcc_counter` diagnostic CLI lives under the DOCA Tools
+  `pcc_counters` diagnostic CLI lives under the DOCA Tools
   umbrella as a *companion surface* rather than a redefined
   artifact here.
 - [`doca-dpa`](../doca-dpa/SKILL.md) — the host-side DPA
@@ -361,7 +362,7 @@ The default factory PCC algorithms shipped inside ConnectX
 firmware are **not in scope** for this skill — those work
 without `doca-pcc` and are configured through firmware-level
 knobs, not through any host-side library API. The
-`doca_pcc_counter` diagnostic CLI is **also not in scope** —
+`pcc_counters` diagnostic CLI is **also not in scope** —
 it is a separate artifact for *inspecting* runtime PCC
 counters and lives under the public DOCA Tools umbrella.
 Conflating either of those with the `doca-pcc` library is the

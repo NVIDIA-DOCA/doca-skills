@@ -2,7 +2,7 @@
 name: doca-flow-grpc-server
 description: >
   Use this skill when the user is bringing up, configuring,
-  hardening, or debugging `doca_flow_grpc_server` — the
+  hardening, or debugging `doca_flow_grpc` — the
   DOCA-shipped gRPC remote-control surface in front of
   `doca-flow` that lets non-C++ clients (Python, Go, Rust,
   Java) program Flow pipes and entries over RPC instead of
@@ -22,24 +22,31 @@ description: >
 metadata:
   kind: tool
 compatibility: >
-  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
-  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
-  ConnectX NIC attached. The `doca_flow_grpc_server` binary
-  and its shipped `.proto` contract live under
-  /opt/mellanox/doca; reads the user's local install via
-  `pkg-config doca-flow` and the tool's source tree.
+  Requires DOCA on Linux (Ubuntu 22.04/24.04 or RHEL/SLES)
+  with a BlueField DPU or ConnectX NIC attached. The
+  `doca_flow_grpc` binary is a build artifact (`install: false`
+  in `tools/flow_grpc_server/meson.build`, gated by
+  `flag_enable_grpc_support` + `flag_enable_grpc_flow_library`)
+  — it is NOT installed under a default DOCA package path, so
+  it must be built from the DOCA source tree with gRPC support
+  enabled. Its `.proto` contract lives under
+  `libs/doca_flow/grpc/`. Confirm the Flow library via
+  `pkg-config doca-flow`.
 ---
 
-# DOCA Flow gRPC Server (`doca_flow_grpc_server`)
+# DOCA Flow gRPC Server (`doca_flow_grpc`)
 
 > **CRITICAL transport-security correction (Run-12 + R13).** The
-> shipped `doca_flow_grpc_server` / `doca_flow_grpc_client`
+> shipped `doca_flow_grpc` / `doca_flow_grpc_client`
 > binaries hard-code the gRPC plaintext credentials surface:
 > the **server** uses **`grpc::InsecureServerCredentials()`** (the
 > C++ gRPC server-side API in `tools/flow_grpc_server/server/`);
 > the **C++ client** uses
 > **`grpc::InsecureChannelCredentials()`** (the C++ gRPC
-> client-side API in `tools/flow_grpc_client/`); the **Python
+> client-side API; the client lives in
+> `libs/doca_flow/grpc/client/`, compiled into the
+> `doca_flow` library, NOT under `tools/flow_grpc_client/`);
+> the **Python
 > client** uses `grpc.aio.insecure_channel(...)`. Do NOT cite the
 > server-side string as `grpc::InsecureChannelCredentials()` —
 > that is the **client-side** API name and a Grep-against-source
@@ -61,7 +68,7 @@ compatibility: >
 > a future-state design, not to a shipped-today knob.
 
 **Where to start:** This is a tool skill for standing up and
-operating `doca_flow_grpc_server`, the DOCA-shipped gRPC remote-
+operating `doca_flow_grpc`, the DOCA-shipped gRPC remote-
 control surface for `doca-flow`. Open [`TASKS.md`](TASKS.md) and
 start at [`## configure`](TASKS.md#configure) to decide whether a
 remote control plane is the right answer at all (vs talking to
@@ -84,7 +91,7 @@ a replacement for it.
 
 ## Example questions this skill answers well
 
-The CLASSES of `doca_flow_grpc_server` questions this skill is
+The CLASSES of `doca_flow_grpc` questions this skill is
 built to answer, each with one worked example. The class is the
 load-bearing piece; the worked example is one instance.
 
@@ -160,8 +167,11 @@ guide on `docs.nvidia.com`, and **not** the place to learn the
 `doca-flow` API — that audience belongs in
 [`doca-flow`](../../libs/doca-flow/SKILL.md).
 
-`doca_flow_grpc_server` is shipped as a **single CLI binary**
-plus its companion `.proto` contract files; per the shipped
+`doca_flow_grpc` is a **single CLI binary built from the DOCA
+source tree** (`executable('doca_flow_grpc', ..., install: false)`
+in `tools/flow_grpc_server/meson.build`, gated by
+`flag_enable_grpc_support`), plus its companion `.proto`
+contract files under `libs/doca_flow/grpc/`; per the tool's
 source tree (`server/`, `dpa_device/`, `packet_buffering/`) the
 tool can also be paired with a packet-buffering / DPA-side
 helper on configurations that need them. The skill uses the
@@ -184,7 +194,7 @@ C-language.
 ## When to load this skill
 
 Load this skill when the user is — or the agent needs to — bring
-up `doca_flow_grpc_server` against a running `doca-flow`
+up `doca_flow_grpc` against a running `doca-flow`
 application (or its preconditions) and connect a non-C++ client
 to it. Concretely:
 
@@ -212,7 +222,7 @@ Do **not** load this skill for general DOCA orientation,
 This is a **thin loader**. Substantive material lives in two
 companion files:
 
-- `CAPABILITIES.md` — what `doca_flow_grpc_server` exposes:
+- `CAPABILITIES.md` — what `doca_flow_grpc` exposes:
   the gRPC remote-control surface in front of `doca-flow`,
   the `.proto`-files-as-authoritative-contract rule (the
   shipped `.proto` files under the tool's source on the
@@ -231,7 +241,8 @@ companion files:
   the RPC client's status codes), and the safety policy
   that treats the endpoint as an admin attack surface.
 - `TASKS.md` — step-by-step workflows for the in-scope task
-  verbs: `install` (route to setup; binary is shipped),
+  verbs: `install` (route to setup; binary is built from
+  source with gRPC support enabled),
   `configure` (decide remote-vs-direct, pick auth / TLS,
   pick the network segment), `build` (route to install),
   `modify` (refuse — modify the deployment, not the binary),

@@ -138,7 +138,7 @@ shape, it can be invoked as a CLI on the host or BlueField Arm, or
 deployed as a service container on the BlueField via the
 documented kubelet-standalone runtime in
 [`doca-container-deployment`](../../doca-container-deployment/SKILL.md).
-The skill uses the same `kind: library` three-file shape as the
+The skill uses the same `kind: tool` three-file shape as the
 rest of the bundle so the agent's task-verb contract
 (`configure / build / modify / run / test / debug`) is uniform
 across libraries, services, and tools.

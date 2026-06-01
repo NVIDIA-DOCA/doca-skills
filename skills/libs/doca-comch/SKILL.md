@@ -13,7 +13,7 @@ description: >
   phrasings include "send a control message from host to
   BlueField over PCIe", "DPU can't see the host representor",
   "DOCA_ERROR_NOT_PERMITTED on server_create", "DOCA_ERROR_AGAIN
-  on send_task_submit", "connect callback never fires", or
+  on task_send submit", "connect callback never fires", or
   "stream bulk data from a host driver to a DPU agent". Refuse
   and route elsewhere for installing DOCA itself, BFB / firmware
   bring-up, non-Comch DOCA libraries, or deploying Comch apps at
@@ -23,7 +23,8 @@ metadata:
 compatibility: >
   Requires DOCA SDK installed at /opt/mellanox/doca on Linux
   (Ubuntu 22.04/24.04 or RHEL/SLES) on a host + BlueField pair
-  (Comch is PCIe-only, no Ethernet fallback). Reads the user's
+  (the Comch channel runs over the RoCE/IB protocol, not the
+  TCP/IP stack). Reads the user's
   local install via `pkg-config doca-comch` (legacy
   `doca-comm-channel` on installs <2.5) and inspects
   /opt/mellanox/doca/{lib,include,samples,applications}.
@@ -91,7 +92,7 @@ load-bearing piece — the worked example is a single instance.
   Comch-specific 2.5 rename rule.
 - **"What does this `DOCA_ERROR_*` from a Comch call mean and
   which layer caused it?"** — worked example: *"`DOCA_ERROR_AGAIN`
-  on `doca_comch_task_send_submit`"*. Answered by the Comch
+  on submitting a `doca_comch_task_send` via `doca_task_submit`"*. Answered by the Comch
   overlay on the cross-library taxonomy in
   [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
   + the layered ladder in

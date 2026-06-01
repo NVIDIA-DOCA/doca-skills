@@ -129,10 +129,15 @@ work, in any language. Concretely:
   against the host's PCIe path and the host's kernel symbol map,
   before `doca_ctx_start()`.
 - Enumerating any of the App Shield object families against an
-  active `doca_apsh_system` — `doca_apsh_proc` (processes),
-  `doca_apsh_module` (kernel modules), `doca_apsh_lib` (loaded
-  libraries on a process), `doca_apsh_thread` (threads on a
-  process).
+  active `doca_apsh_system` — e.g. `doca_apsh_process`
+  (processes), `doca_apsh_module` (kernel modules),
+  `doca_apsh_lib` (loaded libraries on a process),
+  `doca_apsh_thread` (threads on a process), plus the broader
+  per-release object set (VADs, env vars, privileges, handles,
+  SIDs, netscan connections, interfaces, containers, YARA
+  matches, injection-detect findings, …). The public surface is
+  NOT closed at four objects — see the full object table in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
 - Reading the device + host-OS capability surface for App Shield
   via dry-running each enumerator (`doca_apsh_processes_get`,
   module / lib / thread variants) and inspecting the
@@ -170,8 +175,10 @@ needed to pick the right next file. The substantive App Shield-
 specific material lives in two companion files:
 
 - `CAPABILITIES.md` — what App Shield can express on this version:
-  the DPU-side / host-side asymmetry rule, the object family
-  (`doca_apsh_system` → `_proc` / `_module` / `_lib` / `_thread`)
+  the DPU-side / host-side asymmetry rule,   the object family
+  (`doca_apsh_system` → `_process` / `_module` / `_lib` /
+  `_thread` / … — 19 object types in DOCA 3.5.0030, not a closed
+  set of four)
   and its read-mostly observation shape, the implicit
   capability-query surface (enumerator return code; App Shield
   does NOT ship a separate `doca_apsh_cap_*` family), the App

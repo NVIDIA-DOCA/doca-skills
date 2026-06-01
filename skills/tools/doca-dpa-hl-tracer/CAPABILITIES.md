@@ -101,10 +101,12 @@ events verbatim — do not paraphrase event names.
 | `TRACE` | Full per-event capture across every event class the DPA-side instrumentation emits. | Higher; can shift kernel timing by a measurable amount in tight loops. | When the bug is correctness (wrong-result, wrong ordering) or when the perf question is fine-grained (sub-microsecond gaps between events). |
 | `CRIT` | Critical-events-only — a documented narrower subset (errors, faults, lifecycle transitions). | Lower; minimal kernel timing perturbation. | When the bug is *"did anything bad happen"* (crash, fault, error event) and full event detail is not needed. Also the default *"start here"* mode before widening to `TRACE`. |
 
-The exact `--sub-mode` strings the binary accepts (e.g.
-narrower TRACE / CRIT variants) are authoritative on
-`--help` of the installed version; the agent does not
-invent them.
+The `--sub-mode` strings the binary accepts are `DBUF` or
+`COMCH` — a transport selector for *how* trace data is
+carried off the DPA, valid only for `TRACE` mode (not a
+narrower TRACE / CRIT capture variant). The exact strings
+remain authoritative on `--help` of the installed version;
+the agent does not invent them.
 
 **JSON config layout.** Capture parameters live in a JSON
 config file (passed via `--config-file`). The documented

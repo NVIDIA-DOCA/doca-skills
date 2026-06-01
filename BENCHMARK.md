@@ -32,7 +32,7 @@ repository must satisfy. The gate inventory:
 | - | --- | --- |
 | 0 | Keystone self-test (the gate-checks-the-gate) | OK (weekly) |
 | 1 | Structural keystone | OK |
-| 2 | Per-skill conformance (61 skills) | OK |
+| 2 | Per-skill conformance (60 skills) | OK |
 | 3 | DOCA inventory | OK |
 | 3 | Cross-links | OK |
 | 3 | Anchor density | OK |
@@ -40,7 +40,7 @@ repository must satisfy. The gate inventory:
 | 3 | JTBD coverage | OK |
 | 3 | Public-surface invariants (5/5) | OK |
 | 3 | Live-hardware harness shape (6/6 fixtures) | OK |
-| 3 | AgentSkills.io compliance (61 skills) | OK |
+| 3 | AgentSkills.io compliance (60 skills) | OK |
 | 3 | Non-goal routing (27 products) | OK |
 | 4 | Reference hygiene (no internal path leaks; no audit history in runtime `SKILL.md`) | OK |
 | 4 | Frontmatter `kind` (libs→library, services→service, tools→tool — all 52) | OK |
@@ -52,7 +52,7 @@ on the strict variant-C grader must still PASS, or the PR is blocked.
 
 ## Per-skill end-to-end behavior (Axis B)
 
-For each of the 52 shipping artifacts (28 libraries + 6 services + 18 tools)
+For each of the 51 shipping artifacts (28 libraries + 6 services + 17 tools)
 the deep E2E suite generates:
 
 - A **prompt** that asks the agent to walk a complete end-to-end workflow for
@@ -64,7 +64,7 @@ the deep E2E suite generates:
 
   | Dim | What it tests | What FAIL looks like |
   | --- | --- | --- |
-  | D1 invented_tokens | Every symbol, flag, subcommand, path, and pkg-config module is traceable to the bundle, AGENTS.md, or a real NVIDIA public doc. | Fabricated names (e.g. `--pipeline` on a tool that has no such flag, `_v1` suffix on a real symbol, `samples/gpi/` when the real path is `tools/gpi_ib_write_lat/`). |
+  | D1 invented_tokens | Every symbol, flag, subcommand, path, and pkg-config module is traceable to the bundle, AGENTS.md, or a real NVIDIA public doc. | Fabricated names (e.g. `--pipeline` on a tool that has no such flag, `_v1` suffix on a real symbol, `samples/gpunetio/` when the real path is `tools/gpunetio_ib_write_lat/`). |
   | D2 sequence_correctness | Steps satisfy each other's preconditions; the 5-step contract is visibly walked. | Build before install, or skipping the discovery step. |
   | D3 validation_concreteness | Step 4 names a concrete observable tied to the artifact's semantics. | "Exit 0 / no error" alone. |
   | D4 debug_concreteness | Step 5 names 3 distinct layers each with a distinguishing symptom. | A single generic "rerun with `-vvv`" bullet. |
@@ -76,14 +76,14 @@ the deep E2E suite generates:
 ## Latest measurement
 
 ```
-Overall:     52/52 PASS (100%)
+Overall:     51/51 PASS (100%)
 Blockers:    0
 MED gaps:    7  (non-blocking; stylistic / could-be-more-concrete)
 
 By kind:
   library: 28/28 PASS
   service:  6/6 PASS
-  tool:    18/18 PASS
+  tool:    17/17 PASS
 ```
 
 This is the second round of grading from the same source bundle. The first

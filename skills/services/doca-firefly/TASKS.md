@@ -50,12 +50,14 @@ end-to-end discipline before the container starts.
       `services/firefly/doca_firefly.yaml`). These four values map
       onto the industry-standard PTP profile names: `default` →
       IEEE 1588 default; `media` → SMPTE 2059-2 (broadcast);
-      `telco-l2` → G.8275.1 / G.8275.2 (telecom full / partial
-      timing, picked via the paired config file); `custom` → the
-      user's own config file. Do NOT put the industry-standard
-      names directly into the env var — they are not accepted
-      values. Must match (or interop with) the upstream master's
-      profile.
+      `telco-l2` → G.8275.1 only (telecom full timing over L2;
+      `ptp4l-telco-l2.conf` extends `G.8275.1.cfg`); `custom` → the
+      user's own config file (e.g. G.8275.2 partial timing
+      corresponds to the separate `telco-l3` config, which is NOT an
+      accepted `PROFILE` value and is reached only via `custom`). Do
+      NOT put the industry-standard names directly into the env var
+      — they are not accepted values. Must match (or interop with)
+      the upstream master's profile.
     - **Domain number** — must match the upstream master's domain;
       mismatched domains = zero peers visible.
     - **Network interface** — typically the wire-side BlueField

@@ -16,8 +16,9 @@ description: >
   ConnectX', 'kernel-launched WR tail latency', 'control-loop
   deadline over RDMA', or 'compare GPU-init vs CPU-init perftest'.
   Refuse and route for bandwidth runs (doca-gpunetio-ib-write-bw),
-  GPI-surface (doca-gpi-ib-write-lat), library debugging
-  (doca-gpunetio), or DOCA install — those belong to other skills.
+  the GPI programming surface (the doca-gpi library), library
+  debugging (doca-gpunetio), or DOCA install — those belong to
+  other skills.
 metadata:
   kind: tool
 compatibility: >
@@ -76,15 +77,17 @@ instance.
   [`TASKS.md ## configure`](TASKS.md#configure) +
   [`TASKS.md ## run`](TASKS.md#run).
 - **"This is the GPUNetIO tool — how does the latency
-  number differ from the GPI sister tool
-  `doca-gpi-ib-write-lat`?"** — worked example: *"the
-  team has a GPI number; should I expect GPUNetIO to
-  beat / tie / lose vs GPI?"*. Answered by the *"same
-  physical operation, different runtime framework"* rule
-  in
+  number differ from the GPI programming surface?"** —
+  worked example: *"the team is using GPI; should I expect
+  GPUNetIO to beat / tie / lose vs GPI?"*. Answered by the
+  *"same physical operation, different runtime framework"*
+  rule in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  + the cross-link to
-  [`../doca-gpi-ib-write-lat/CAPABILITIES.md`](../doca-gpi-ib-write-lat/CAPABILITIES.md).
+  + the cross-link to the GPI library skill
+  [`../../libs/doca-gpi/CAPABILITIES.md`](../../libs/doca-gpi/CAPABILITIES.md)
+  (note: `doca/tools/` ships no GPI `ib_write_lat`
+  benchmark binary — GPI is a programming surface, not a
+  shipped benchmark tool).
 - **"Median vs p99 vs jitter — which one is the actual
   answer for a real-time control loop?"** — worked
   example: *"my control loop has a deadline; the median
@@ -178,8 +181,9 @@ pair on each host's PCIe topology. Concretely:
 - Characterizing tail latency (p99 / p99.9) and jitter
   for a real-time / control-loop workload class.
 - Deciding whether the GPUNetIO path is the right runtime
-  surface for a class of workload vs the GPI path
-  ([`../doca-gpi-ib-write-lat/SKILL.md`](../doca-gpi-ib-write-lat/SKILL.md))
+  surface for a class of workload vs the GPI programming
+  surface (the [`doca-gpi`](../../libs/doca-gpi/SKILL.md)
+  library — `doca/tools/` ships no GPI benchmark binary)
   or the classic CPU-initiated `perftest` path.
 - Capturing a documented baseline (build + invocation +
   DOCA version + GPU + NIC + as-deployed environment +
@@ -295,10 +299,13 @@ pull requests should not add:
   framework. Same physical operation; different metric
   class (latency vs BW). The two together carry the full
   GPUNetIO-side latency / throughput picture.
-- [`../doca-gpi-ib-write-lat/SKILL.md`](../doca-gpi-ib-write-lat/SKILL.md) —
-  sister tool on the GPI runtime surface. Same physical
-  operation; different runtime framework. The selection
-  rule in
+- [`doca-gpi`](../../libs/doca-gpi/SKILL.md) — the GPI
+  programming surface (CUDA-kernel-initiated RDMA). The
+  alternative runtime framework for the same physical
+  operation; `doca/tools/` ships no GPI `ib_write_lat`
+  benchmark binary, so the GPI comparison is against the
+  library surface, not a sibling tool. The selection rule
+  in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   is the decision aid; the agent's job is to teach when
   to pick which.

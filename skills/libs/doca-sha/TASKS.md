@@ -190,8 +190,8 @@ Iteration shape:
 1. **Capability re-check.** Re-run
    `doca_sha_cap_task_hash_get_supported(devinfo, algorithm)`
    (and `_task_partial_hash_get_supported(devinfo, algorithm)`),
-   `_task_hash_is_supported`, `_task_partial_hash_is_supported`,
-   `_get_min_dst_buf_size`, and `_get_max_src_buf_size` against
+   `doca_sha_cap_get_min_dst_buf_size`, and
+   `doca_sha_cap_get_max_src_buf_size` against
    the active `doca_devinfo`. If any return false / unexpected →
    that's the answer; the user's device or DOCA version does not
    support the requested config. Update the intent or update the
@@ -219,9 +219,11 @@ Iteration shape:
    / incremental hashing, submit a sequence of intermediate
    chunks followed by the finalize call; verify the final digest
    against the equivalent one-shot digest (or against a CPU
-   reference). Order matters here: finalize before any
-   intermediate submit is `DOCA_ERROR_BAD_STATE` — that is the
-   most common partial-hash bug.
+   reference). Order matters here: marking the task final on the
+   first buffer (before any intermediate submit) is **undefined
+   behavior**, not a defined error — if a single buffer is all you
+   have, use a non-partial `doca_sha_task_hash` instead. That is
+   the most common partial-hash bug.
 7. **Negative test.** Once the positive path works, intentionally
    request an algorithm the device should NOT support (per step 1)
    and confirm the failure is the expected
@@ -236,7 +238,7 @@ Eval-loop overlay — why this is a loop, not a one-shot pass:
 | `DOCA_ERROR_INVALID_VALUE` on first submit | Destination buffer is smaller than `_get_min_dst_buf_size`, OR source buffer is larger than `_get_max_src_buf_size` | Re-size the buffer using the cap-query output. The error is sizing-vs-cap mismatch, not corruption. |
 | Known-vector smoke produces a wrong digest | Configuration accepted but output mismatches the published vector | Algorithm mis-selection (asked for SHA-256, configured SHA-1) or endianness assumption in the comparison. Re-check the algorithm enum in the `_alloc_init` call before any other diagnosis. |
 | Submitted task produces no completion | `doca_task_submit()` returned `DOCA_SUCCESS`; the PE produces nothing | The PE is not being progressed. Add a `doca_pe_progress()` call in the main loop. |
-| Partial-hash returns `DOCA_ERROR_BAD_STATE` on finalize | Finalize was submitted before any intermediate chunk | Walk the partial-hash submit sequence; at least one intermediate submit must complete before the finalize call. |
+| Partial-hash misbehaves when finalized on the first buffer | The task was marked final before any intermediate chunk was submitted | This is **undefined behavior**, not a defined `DOCA_ERROR_*` — if a single buffer is all you have, use a non-partial `doca_sha_task_hash` instead; otherwise submit (and complete) at least one intermediate chunk before marking the task final. |
 | Bulk submit returns `DOCA_ERROR_AGAIN` | First N submissions succeed, then `AGAIN` | The task queue is full. Drain completions between bursts via `doca_pe_progress()`, or raise the configured queue depth at configure time. |
 
 Loop termination: stop iterating once two consecutive iterations of
@@ -286,11 +288,13 @@ layers 5 (runtime) and 6 (program):
   `DOCA_SHA_ALGORITHM_*` enum the cap query returns false for
   returns `DOCA_ERROR_NOT_SUPPORTED`. Re-run the cap query against
   the active `doca_devinfo`; do not assume from prior installs.
-- Partial-hash ordering: `doca_sha_task_partial_hash` final-submit
-  before any intermediate submit returns `DOCA_ERROR_BAD_STATE`.
-  Walk the user's submit sequence chunk-by-chunk; the first
-  intermediate must complete (or at least submit) before the
-  finalize.
+- Partial-hash ordering: marking a `doca_sha_task_partial_hash`
+  task final on the first buffer (before any intermediate submit)
+  is **undefined behavior**, not a defined error — use a
+  non-partial `doca_sha_task_hash` instead when a single buffer is
+  all you have. Walk the user's submit sequence chunk-by-chunk;
+  at least one intermediate chunk must be submitted before the
+  task is marked final.
 - Known-vector mismatch: if the digest is the wrong length, the
   algorithm enum is wrong. If the digest is the right length but
   the bytes don't match the published vector, the input buffer

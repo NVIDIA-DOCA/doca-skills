@@ -27,7 +27,7 @@ examples shown.
 | 2. Register before start | New params are registered against the Arg Parser instance BEFORE `doca_argp_start` parses argv; registering after parse is the most common first-app failure | [`## Capabilities and modes`](#capabilities-and-modes) lifecycle table + [TASKS.md ## configure](TASKS.md#configure) |
 | 3. Pick the parameter type | Choose from the small public set (string, int, bool flag, JSON config file); the type drives both argv validation and JSON-config validation | [`## Capabilities and modes`](#capabilities-and-modes) parameter-type table + [TASKS.md ## modify](TASKS.md#modify) |
 | 4. Inherit the standard CLI surface | Keep `--device`, `--representor`, `--rep-list`, `--json` (`-j`), `--sdk-log-level` working the same way they do in the sibling samples; users learn one CLI for all of DOCA | [`## Capabilities and modes`](#capabilities-and-modes) standard-surface table + [TASKS.md ## modify](TASKS.md#modify) |
-| 5. Diagnose an Arg Parser error | Map symptom (`BAD_STATE`, `INVALID_VALUE`, `NOT_FOUND`, `IO_FAILED`) to root cause without leaving the Arg Parser layer prematurely | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
+| 5. Diagnose an Arg Parser error | Map symptom (`BAD_STATE`, `INVALID_VALUE`, `NOT_SUPPORTED`, `NOT_FOUND`, `IO_FAILED`) to root cause without leaving the Arg Parser layer prematurely | [`## Error taxonomy`](#error-taxonomy) + [TASKS.md ## debug](TASKS.md#debug) |
 
 Two cross-cutting rules that apply to *every* pattern above:
 
@@ -93,7 +93,7 @@ Modifications must preserve this surface.
 | `--device <PCI>` | String (PCIe address, e.g. `0000:03:00.0`) | Which `doca_dev` the program opens |
 | `--representor <name>` | String (representor name, e.g. `pf0vf0`) | Which `doca_dev_rep` the DPU side opens (Comch and similar libraries) |
 | `--rep-list` | Bool flag | Print the visible representors and exit (DPU-side discovery) |
-| `--json <path>` / `-j <path>` | String (path to a JSON file) | Read parameter values from a JSON file instead of expanding argv. The flag is registered as `--json` (`-j`) in `doca_argp.cpp::register_argp_param`; the bundle previously called this `--json-config`, which is not the real flag. |
+| `--json <path>` / `-j <path>` | String (path to a JSON file) | Read parameter values from a JSON file instead of expanding argv. The flag is registered as `--json` (`-j`) by `doca_argp.cpp::register_param` (the internal static helper; the public entry point is `doca_argp_register_param`); the bundle previously called this `--json-config`, which is not the real flag. |
 | `--sdk-log-level <level>` | String (one of the DOCA Log level names) | Set the SDK-side DOCA Log threshold for this run |
 
 **JSON-config integration.** The `--json <path>` flag (also
@@ -103,7 +103,7 @@ samples with non-trivial configurations expect operators to
 drive them from a file (the command line becomes unreadable
 past ~5 flags). The JSON keys match the registered long names;
 the JSON value types match the registered parameter types; an
-unknown JSON key fails with `DOCA_ERROR_NOT_FOUND` per
+unknown JSON key fails with `DOCA_ERROR_NOT_SUPPORTED` (pedantic parsing) per
 [`## Error taxonomy`](#error-taxonomy).
 
 **Path selection — when doca-argp is the right answer.** This
@@ -165,9 +165,9 @@ cross-library response.
 | --- | --- | --- |
 | `DOCA_ERROR_BAD_STATE` | `doca_argp_register_param` after `doca_argp_start`; a second `doca_argp_start` in the same process; any `doca_argp_*` call after `doca_argp_destroy` | Lifecycle violation. Walk the lifecycle table in [`## Capabilities and modes`](#capabilities-and-modes); the most common case is the program registering an extra param inside the value-callback of another param (i.e. during `_start`, not before). |
 | `DOCA_ERROR_INVALID_VALUE` | `doca_argp_start` when an argv value (or JSON-config value) does not match the registered param's declared type | Type mismatch. Re-check the registered type vs. the value the user is passing (e.g. param declared as `int` but operator wrote `--my-flag 0x40`). The fix is on the declaration side OR the operator side, not a retry. |
-| `DOCA_ERROR_NOT_FOUND` | `doca_argp_start` when a JSON-config key is not the long name of any registered param | The JSON file references a flag the program never registered. Either the key is a typo, or the program is older than the JSON config it is being fed. Diff the registered long names against the JSON keys. |
+| `DOCA_ERROR_NOT_SUPPORTED` | `doca_argp_start` when a JSON-config key is not the long name of any registered param (pedantic parsing rejects the unknown field — see `doca_argp.cpp::json_keys_validation`) | The JSON file references a flag the program never registered. Either the key is a typo, or the program is older than the JSON config it is being fed. Diff the registered long names against the JSON keys. |
 | `DOCA_ERROR_IO_FAILED` | `doca_argp_start` when `--json <path>` (or `-j <path>`) points at a file the process cannot open or read | File-system failure (missing path, wrong permission, JSON syntax error). Resolve at the OS layer (`ls -l <path>`; `cat <path> \| jq .`) before any code change. |
-| `DOCA_ERROR_INVALID_VALUE` (operator-side, on `--help`) | `doca_argp_start` against argv containing an unknown long / short name | The operator passed a flag the program never registered. The fix is on the operator side; the program may surface its own `--help` listing all registered params via the per-param descriptions. |
+| `DOCA_ERROR_NOT_SUPPORTED` (operator-side) | `doca_argp_start` against argv containing an unknown long / short name (an unsupported program flag, per the `doca_argp_start` doc in `doca_argp.h`) | The operator passed a flag the program never registered. The fix is on the operator side; the program may surface its own `--help` listing all registered params via the per-param descriptions. |
 
 The agent's rule: **never recommend a retry loop on a
 `doca_argp_*` `DOCA_ERROR_*`**. Every row above is an
@@ -244,8 +244,8 @@ a stylistic preference:
   surface is *"my JSON file is ignored"*, which the operator
   has no obvious place to file against.
 - **Lifecycle violations are caught only when doca-argp owns
-  parsing.** The `BAD_STATE` / `INVALID_VALUE` / `NOT_FOUND` /
-  `IO_FAILED` ladder in
+  parsing.** The `BAD_STATE` / `INVALID_VALUE` / `NOT_SUPPORTED` /
+  `NOT_FOUND` / `IO_FAILED` ladder in
   [`## Error taxonomy`](#error-taxonomy) only fires when the
   program goes through `doca_argp_*` — a hand-rolled parser
   re-creates this ladder by accident, badly.

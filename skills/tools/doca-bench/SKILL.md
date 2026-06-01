@@ -130,7 +130,7 @@ and **not** a substitute for the live public DOCA Bench guide on
 `doca_bench` is shipped as a **tool** (a single CLI binary plus a
 companion app for the remote half of remote-memory / RDMA / Eth
 scenarios), not a library you link against. The skill uses the
-same `kind: library` three-file shape as the rest of the bundle so
+same `kind: tool` three-file shape as the rest of the bundle so
 the agent's task-verb contract
 (`configure / build / modify / run / test / debug`) is uniform
 across libraries, services, and tools — even when individual

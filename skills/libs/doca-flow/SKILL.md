@@ -82,14 +82,15 @@ load-bearing piece — the worked example is a single instance.
 - **"How do I add hardware-accelerated stateful 5-tuple connection
   tracking (with aging timers and NAT-aware actions) on top of my
   existing doca-flow setup?"** — worked example: *"I have a
-  working doca-flow port and pipes; I want to add a `doca_flow_ct`
-  context that tracks TCP / UDP connections, ages out idle entries
+  working doca-flow port and pipes; I want to add connection
+  tracking that tracks TCP / UDP connections, ages out idle entries
   after 30s, and applies SNAT on outbound traffic"*. Answered by
-  the CT layering rule, multi-axis `doca_flow_ct_cap_*` discovery,
-  per-port `doca_flow_ct` context model, 5-tuple match shape,
+  the CT layering rule, the `doca_flow_ct_cap_is_dev_supported`
+  device-support query, the global CT module model
+  (`doca_flow_ct_init` before port start), 5-tuple match shape,
   CT-specific error overlay (`_BAD_STATE` on layering violations,
   `_FULL` on table saturation, `_INVALID_VALUE` on NAT conflicts),
-  and CT version pairing (`doca-flow-ct` rides `doca-flow`) in
+  and CT version pairing (CT ships inside `doca-flow`) in
   [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct) +
   the configure / build / modify / run / test / debug overlay in
   [`TASKS.md ## flow-ct`](TASKS.md#flow-ct).
@@ -138,10 +139,12 @@ language. Concretely:
 - Adding hardware-accelerated stateful 5-tuple connection
   tracking, aging-timer-driven entry eviction, or NAT-aware
   actions (SNAT / DNAT / combined) on top of an existing
-  doca-flow port via the companion library **`doca-flow-ct`**.
+  doca-flow port via the connection-tracking module of
+  **`doca-flow`** (header `doca_flow_ct.h`).
   The CT layering rule (CT extends doca-flow; it does not
-  replace it), the multi-axis `doca_flow_ct_cap_*` discovery,
-  the per-port `doca_flow_ct` context model, the 5-tuple match
+  replace it), the `doca_flow_ct_cap_is_dev_supported`
+  device-support query, the global CT module model
+  (`doca_flow_ct_init` before port start), the 5-tuple match
   shape (with VRF / VNI for overlays), the CT-specific error
   overlay, and the configure / build / modify / run / test /
   debug workflow live in

@@ -2,11 +2,11 @@
 name: doca-rmax
 description: >
   Use this skill when the user is doing hands-on DOCA Rivermax work on
-  a BlueField DPU or ConnectX host — standing up per-stream input
-  (receive) or output (transmit) sessions for timing-precise
+  a BlueField DPU or ConnectX host — standing up `doca_rmax_in_stream`
+  (receive) sessions for timing-precise
   media-over-IP (SMPTE ST 2110 video/audio, market data, scientific
   feeds), confirming the Rivermax SDK + license precondition before
-  any DOCA-side code, running `doca_rivermax_*_cap_*` cap queries,
+  any DOCA-side code, running `doca_rmax_get_*_supported` capability queries,
   pairing with `doca-eth` queues and `doca-flow` steering, or
   debugging `DOCA_ERROR_*` from a Rivermax call. Trigger even when the
   user does not explicitly mention "DOCA Rivermax" or "rmax" —
@@ -81,8 +81,8 @@ single instance.
   Answered by the per-stream object lifecycle in
   [`TASKS.md ## configure`](TASKS.md#configure) +
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  input-vs-output stream table.
-- **"Which `doca_rivermax_*_cap_*` query do I have to call before
+  input stream capability table.
+- **"Which `doca_rmax_get_*_supported` query do I have to call before
   picking a stream type / frame size / packet rate?"** — worked
   example: *"can this device + this Rivermax install carry a
   1080p60 video stream at the rate I want?"*. Answered by the
@@ -129,7 +129,7 @@ single instance.
 
 This skill serves **external developers building applications
 that consume the DOCA Rivermax integration** — i.e., users whose
-code calls `doca_rivermax_*` (directly in C/C++, or through
+code calls `doca_rmax_*` (directly in C/C++, or through
 FFI/bindings from another language) to drive timing-precise
 media-over-IP streams (SMPTE ST 2110, real-time market data,
 high-throughput scientific instrument streams) on top of a
@@ -141,7 +141,7 @@ best-effort packet I/O — for that, route to
 
 **Language scope.** DOCA Rivermax ships as a C library with
 `pkg-config` module name `doca-rmax`. The shipped samples
-live under `/opt/mellanox/doca/samples/doca_rivermax/` and are
+live under `/opt/mellanox/doca/samples/doca_rmax/` and are
 written in C. C and C++ consumers are the canonical case; the
 worked examples in `TASKS.md` assume that path. Other-language
 consumers (Rust, Go, Python, …) consume the same `*.so` through
@@ -163,20 +163,23 @@ work, in any language. Concretely:
   path; without it the answer is *"`doca-rmax` cannot be
   used; pick a different library"*, not *"let's try and see what
   fails"*.
-- Initializing a `doca_rivermax` context on a `doca_dev` opened
-  against a physical port, a representor, or an SF — choosing
-  between input (receive) and output (transmit) per-stream
-  objects based on the stream direction before
-  `doca_ctx_start()`.
-- Configuring a Rivermax stream for SMPTE ST 2110 audio + video
-  over IP, real-time market data feeds, or a scientific
+- Initializing the global DOCA Rivermax engine with
+  `doca_rmax_init()` / `doca_rmax_release()`, then creating a
+  `doca_rmax_in_stream` (receive) context with
+  `doca_rmax_in_stream_create()` on a `doca_dev` opened against a
+  physical port, a representor, or an SF, and converting it via
+  `doca_rmax_in_stream_as_ctx()` before `doca_ctx_start()`. The
+  public DOCA Rivermax API is receive-only — there is no
+  transmit/output stream object.
+- Configuring a Rivermax input stream for SMPTE ST 2110 audio +
+  video over IP, real-time market data feeds, or a scientific
   instrument stream — with awareness that the stream type,
   frame size, and packet rate the user wants are *all* device-
   and Rivermax-conditional and gate on the matching
-  `doca_rivermax_*_cap_*` query.
-- Reading or setting Rivermax properties via
-  `doca_rivermax_set_*` and querying device + Rivermax
-  capability via the `doca_rivermax_*_cap_*` family before
+  `doca_rmax_get_*_supported` query.
+- Reading or setting Rivermax stream properties via
+  `doca_rmax_in_stream_set_*` and querying device + Rivermax
+  capability via the `doca_rmax_get_*_supported` family before
   assuming any specific stream type / frame size / packet rate
   is supported.
 - Pairing the Rivermax stream with the `doca-eth` queue surface
@@ -217,9 +220,9 @@ Rivermax-specific material lives in two companion files:
 
 - `CAPABILITIES.md` — what DOCA Rivermax can express on this
   version *and this Rivermax SDK install*: the
-  Rivermax-as-hard-dependency rule, the input / output
-  per-stream object split, the capability-query surface
-  (`doca_rivermax_*_cap_*`), the Rivermax error taxonomy
+  Rivermax-as-hard-dependency rule, the receive-only
+  `doca_rmax_in_stream` object model, the capability-query surface
+  (`doca_rmax_get_*_supported`), the Rivermax error taxonomy
   (mapped onto the cross-library `DOCA_ERROR_*` set, with
   Rivermax-specific causes called out per row), the
   observability surface (per-stream progress engine events,
@@ -255,7 +258,7 @@ contain — and pull requests should not add:
 
 - **Pre-written DOCA Rivermax application source code, in any
   language.** The verified Rivermax source code is the shipped
-  C samples at `/opt/mellanox/doca/samples/doca_rivermax/<name>/`.
+  C samples at `/opt/mellanox/doca/samples/doca_rmax/<name>/`.
   The agent's job is to route the user to those files and
   prescribe a minimum-diff modification on them via the
   universal modify-a-sample workflow in
@@ -269,8 +272,8 @@ contain — and pull requests should not add:
   `pkg-config --modversion doca-rmax` is the source of
   truth.
 - **Quoted Rivermax symbol names beyond the public family
-  pattern (`doca_rivermax_*_cap_*` for capability discovery,
-  per-stream input/output session objects driven by the
+  pattern (`doca_rmax_get_*_supported` for capability discovery,
+  receive-only `doca_rmax_in_stream` session objects driven by the
   standard DOCA Core context lifecycle).** Exact Rivermax
   symbol names are install-bound and Rivermax-SDK-version-
   bound; the agent should read them from the installed headers
@@ -286,8 +289,8 @@ contain — and pull requests should not add:
 1. Read this `SKILL.md` first to confirm the user's question is
    in scope **and** that the Rivermax-SDK + license
    precondition has been considered.
-2. **For the Rivermax capability matrix, input / output stream
-   split, capability-query rules, error taxonomy,
+2. **For the Rivermax capability matrix, the receive-only input
+   stream model, capability-query rules, error taxonomy,
    observability, and safety policy, see
    [CAPABILITIES.md](CAPABILITIES.md).**
 3. **For step-by-step workflows — configure, build, modify,

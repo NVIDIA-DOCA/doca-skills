@@ -314,8 +314,9 @@ The decision shape this skill teaches:
    workload class is *"GPU-initiated WRITE for a real-time
    control loop"*, the alternative this benchmark
    answers is *"the same pattern on the GPI surface"*
-   per
-   [`../doca-gpi-ib-write-lat/SKILL.md`](../doca-gpi-ib-write-lat/SKILL.md);
+   per the [`doca-gpi`](../../libs/doca-gpi/SKILL.md)
+   library (there is no shipped GPI `ib_write_lat`
+   benchmark binary in `doca/tools/`);
    if the alternative is *"the same pattern on the host
    CPU"*, the comparison data has to come from the
    upstream CPU-initiated `perftest` `ib_write_lat`
@@ -359,9 +360,9 @@ should be routed out:
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
 - **GPU-initiated WRITE bandwidth** ⇒
   [`../doca-gpunetio-ib-write-bw/SKILL.md`](../doca-gpunetio-ib-write-bw/SKILL.md).
-- **GPI-flavored WRITE latency (same physical operation,
-  different runtime framework)** ⇒
-  [`../doca-gpi-ib-write-lat/SKILL.md`](../doca-gpi-ib-write-lat/SKILL.md).
+- **GPI programming surface (same physical operation,
+  different runtime framework; no shipped GPI benchmark
+  binary)** ⇒ [`doca-gpi`](../../libs/doca-gpi/SKILL.md).
 - **hardware-touching changes the benchmark surfaced a
   need for** ⇒
   [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md).

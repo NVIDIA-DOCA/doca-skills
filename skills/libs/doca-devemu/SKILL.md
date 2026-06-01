@@ -27,7 +27,7 @@ compatibility: >
   and the host kernel shipping the matching standard driver
   (virtio_net / virtio_fs / generic PCIe). Reads the local install
   via the per-sub-library pkg-config module and inspects
-  /opt/mellanox/doca/{lib,include,samples/doca_device_emulation}.
+  /opt/mellanox/doca/{lib,include,samples/doca_devemu}.
 ---
 
 # DOCA Device Emulation
@@ -141,7 +141,7 @@ example is a single instance.
 This skill serves **external developers building applications
 that consume the DOCA Device Emulation library** — i.e., users
 whose DPU-side code calls `doca_devemu_pci_*`,
-`doca_devemu_virtio_*`, or `doca_devemu_virtio_fs_*` (directly
+`doca_devemu_virtio_*`, or `doca_devemu_vfs_*` (directly
 in C / C++, or through FFI / bindings from another language)
 to expose an emulated PCIe device to the host that the host's
 existing kernel drivers can drive as if it were a real PCIe
@@ -158,7 +158,7 @@ selected by which emulation class the user is building (see
 the sub-library selection table in
 [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)).
 The shipped samples under
-`/opt/mellanox/doca/samples/doca_device_emulation/` are
+`/opt/mellanox/doca/samples/doca_devemu/` are
 written in C. C and C++ consumers are the canonical case and
 the worked examples in `TASKS.md` assume that path.
 Other-language consumers (Rust, Go, Python, …) consume the
@@ -183,7 +183,7 @@ Emulation work from the DPU side, in any language. Concretely:
   driver will interact with.
 - Reading per-sub-library capability surface via the
   `doca_devemu_pci_cap_*`, `doca_devemu_virtio_cap_*`, or
-  `doca_devemu_virtio_fs_cap_*` query families against the
+  `doca_devemu_vfs_cap_*` query families against the
   active `doca_devinfo` BEFORE assuming a particular feature
   bit or device characteristic is available.
 - Choosing between writing the backend with `doca-devemu`
@@ -260,7 +260,7 @@ contain — and pull requests should not add:
 - **Pre-written DOCA Device Emulation application source
   code, in any language.** The verified source is the shipped
   C samples at
-  `/opt/mellanox/doca/samples/doca_device_emulation/` (with
+  `/opt/mellanox/doca/samples/doca_devemu/` (with
   sub-directories per sub-library). The agent's job is to
   route the user to those files and prescribe a minimum-diff
   modification on them via the universal modify-a-sample

@@ -162,7 +162,7 @@ the right place for raw per-instruction cycle profiling
 
 The tracer is shipped as a **CLI binary** under
 `/opt/mellanox/doca/tools/`, not a library you link against.
-The skill uses the same `kind: library` three-file shape as
+The skill uses the same `kind: tool` three-file shape as
 the rest of the bundle so the agent's task-verb contract is
 uniform across libraries, services, and tools.
 

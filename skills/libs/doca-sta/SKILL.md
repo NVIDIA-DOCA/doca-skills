@@ -2,21 +2,21 @@
 name: doca-sta
 description: >
   Use this skill when the user is doing hands-on NVMe-over-Fabrics
-  transport work on a BlueField DPU or ConnectX NIC with DOCA STA —
-  standing up a doca_sta DOCA Core context for an NVMe-oF initiator
-  or target with the transport offloaded to hardware, picking
-  NVMe-over-RDMA (on the doca-rdma substrate) vs NVMe-over-TCP via
-  doca_sta_cap_*, sizing the per-connection admin queue plus N I/O
-  queues, plugging into an SPDK or kernel-nvme stack as transport
-  provider, or debugging DOCA_ERROR_* from a STA call. Trigger even
+  storage-target work on a BlueField DPU or ConnectX NIC with DOCA STA —
+  standing up a doca_sta DOCA Core context that accelerates the
+  target-side NVMe-oF data path over RDMA, defining
+  doca_sta_subsystem targets (NQN + namespaces) backed by local
+  NVMe-PCI backend disks (doca_sta_be), checking device support via
+  doca_sta_cap_is_supported, sizing the per-connection I/O queues,
+  or debugging DOCA_ERROR_* from a STA call. Trigger even
   when the user does not say "DOCA STA" — typical implicit phrasings
   include "my NVMe-oF Connect never completes", "Identify Controller
   times out over RoCE", "16 I/O queues at depth 1024 — does this
-  BlueField support that", "offload nvmf onto the DPU", or
+  BlueField support that", "offload the nvmf target onto the DPU", or
   "DOCA_ERROR_IO_FAILED on an NVMe read". Refuse and route elsewhere
   for DOCA install, raw RDMA data movement, raw packet I/O,
-  flow-rule programming, or NVMe stack work above the transport
-  (SPDK or kernel-nvme owns that) — those belong to other skills.
+  flow-rule programming, or initiator-side / host NVMe stack work
+  — those belong to other skills.
 metadata:
   kind: library
 compatibility: >
@@ -27,19 +27,20 @@ compatibility: >
   inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
-# DOCA STA (Storage Transport Acceleration)
+# DOCA STA (Storage Target Acceleration)
 
 **Where to start:** This skill assumes DOCA is already installed and
-the user is doing **hands-on NVMe-over-Fabrics transport work** on
+the user is doing **hands-on NVMe-over-Fabrics storage-target work** on
 a BlueField-class device with DOCA. Open [`TASKS.md`](TASKS.md) if
 the user wants to *do* something (configure / build / modify / run
 / test / debug); open [`CAPABILITIES.md`](CAPABILITIES.md) when the
 question is *what can DOCA STA express* on this version. If the
 user has not installed DOCA yet, route to
 [`doca-setup`](../../doca-setup/SKILL.md) first. If the user is
-asking *"do I still need SPDK or kernel-nvme on top of this?"*, the
-answer is yes — doca-sta is the transport layer, not a complete
-NVMe stack; the integration boundary lives in
+asking *"is this an NVMe-oF initiator/host transport?"*, the
+answer is no — doca-sta accelerates the **target** side: it presents
+NVMe-oF `doca_sta_subsystem` targets backed by local NVMe-PCI
+disks; the model lives in
 [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
 
 ## Example questions this skill answers well
@@ -49,19 +50,20 @@ each with one worked example. The agent should treat the *class*
 as the load-bearing piece — the worked example is a single
 instance.
 
-- **"How do I bring up an NVMe-oF initiator that uses the BlueField
-  to offload the transport layer?"** — worked example: *"set up an
-  NVMe-over-RDMA initiator-side admin queue plus a single I/O
-  queue against a remote target, with SPDK still owning the NVMe
-  semantics on top"*. Answered by the integration-and-lifecycle
+- **"How do I bring up an NVMe-oF target that uses the BlueField
+  to accelerate the storage data path?"** — worked example: *"define
+  a `doca_sta_subsystem` (NQN) with one namespace backed by a local
+  NVMe-PCI disk (`doca_sta_be`) and accept NVMe-over-RDMA
+  connections from a remote initiator"*. Answered by the
+  target-model-and-lifecycle
   workflow in [`TASKS.md ## configure`](TASKS.md#configure) +
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  integration-boundary table.
-- **"Which transport type fits my NVMe-oF deployment — RDMA or
-  TCP?"** — worked example: *"my data center is RoCE end-to-end;
-  is NVMe-over-RDMA available on this BlueField, or do I have to
-  fall back to NVMe-over-TCP?"*. Answered by the
-  capability-query rule (`doca_sta_cap_*` against a
+  target-object table.
+- **"Can this BlueField accelerate an NVMe-oF target at all?"** —
+  worked example: *"my data center is RoCE end-to-end; does this
+  device support DOCA STA target acceleration?"*. STA transport is
+  RDMA-only (there is no NVMe-over-TCP path). Answered by the
+  capability-query rule (`doca_sta_cap_is_supported` against a
   `doca_devinfo`) in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the discovery step in
@@ -73,7 +75,8 @@ instance.
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the queue-sizing step in
   [`TASKS.md ## configure`](TASKS.md#configure) which gates on
-  the matching `doca_sta_cap_*` query.
+  the matching `doca_sta_get_max_*` query (e.g.
+  `doca_sta_get_max_qps`, `doca_sta_get_max_io_queue_size`).
 - **"Which other DOCA libraries do I need alongside doca-sta?"** —
   worked example: *"do I need doca-rdma directly, or does doca-sta
   hide it from me?"*. Answered by the substrate-library rule in
@@ -84,14 +87,15 @@ instance.
   [`doca-flow`](../doca-flow/SKILL.md) and the RDMA substrate
   to [`doca-rdma`](../doca-rdma/SKILL.md).
 - **"Is this STA capability available on my installed DOCA?"** —
-  worked example: *"is NVMe-over-TCP transport supported on this
+  worked example: *"is STA target acceleration supported on this
   BlueField + DOCA version?"*. Answered by the version-and-device
   overlay in
   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility),
   which cross-links the canonical detection chain in
   [`doca-version`](../../doca-version/SKILL.md) and adds the
   STA-specific cap-query rule (`pkg-config --modversion doca-sta`
-  is the build-time anchor; the runtime cap-query is the truth).
+  is the build-time anchor; the runtime `doca_sta_cap_is_supported`
+  query is the truth).
 - **"What does this `DOCA_ERROR_*` from a STA call mean and which
   layer caused it?"** — worked example: *"`DOCA_ERROR_IO_FAILED`
   on a submitted NVMe read I/O against a target I can ping"*.
@@ -104,23 +108,25 @@ instance.
 ## Audience
 
 This skill serves **external developers building NVMe-over-Fabrics
-applications that consume DOCA STA on BlueField** — i.e., users
+storage targets that consume DOCA STA on BlueField** — i.e., users
 whose code calls `doca_sta_*` (directly in C/C++, or through
-FFI/bindings from another language) to offload the transport layer
-of an NVMe-oF initiator or target onto the BlueField hardware.
-Typical consumers run an SPDK-based NVMe-oF stack (initiator or
-target) on the BlueField Arm cores or on the host, with doca-sta
-plugged in as the transport provider; some deployments instead
-front the kernel `nvme` stack with doca-sta. The skill is *not*
-for NVIDIA developers contributing to DOCA STA itself.
+FFI/bindings from another language) to accelerate the target-side
+data path of an NVMe-oF target on the BlueField hardware: presenting
+`doca_sta_subsystem` targets (NQN + namespaces) backed by local
+NVMe-PCI disks (`doca_sta_be`) to remote initiators over RDMA. The
+skill is *not* for NVIDIA developers contributing to DOCA STA
+itself, and it is *not* for initiator/host-side NVMe stacks.
 
 **Language scope.** DOCA STA ships as a C library with
-`pkg-config` module name `doca-sta`. The shipped samples are
-written in C. C and C++ consumers are the canonical case; the
-worked examples in `TASKS.md` assume that path. Other-language
+`pkg-config` module name `doca-sta`. DOCA STA ships **no public
+samples** — it is absent from the DOCA libraries /
+extension_libraries sample profiles — so the worked examples in
+`TASKS.md` build against the public headers directly rather than
+modify a shipped sample. C and C++ consumers are the canonical
+case. Other-language
 consumers (Rust, Go, Python, …) consume the same `*.so` through
 FFI or language-specific bindings; the skill's contribution in
-that case is to keep the integration-boundary, lifecycle,
+that case is to keep the target-model, lifecycle,
 capability-discovery, queue-pair shape, substrate-dependency,
 and error-taxonomy guidance language-neutral, and to route the
 agent to the public C ABI as the authoritative surface that any
@@ -133,21 +139,20 @@ in any language. Concretely:
 
 - Initializing a `doca_sta` instance on a `doca_dev` opened
   against a BlueField PF / SF and configuring the NVMe-oF
-  transport before `doca_ctx_start()`.
-- Establishing one or more NVMe-oF connections (admin queue plus
-  N I/O queues per connection) on the initiator side, or
-  accepting them on the target side, with the user's higher-
-  level NVMe stack (SPDK or kernel-nvme) owning the NVMe
-  protocol semantics on top.
+  target subsystems before `doca_ctx_start()`.
+- Defining target resources — `doca_sta_subsystem` (NQN +
+  namespaces) and `doca_sta_be` backend controllers (local
+  NVMe-PCI disks) — and accepting NVMe-oF connections (admin
+  queue plus N I/O queues per connection) on the target side as
+  remote initiators connect over RDMA CM.
 - Reading or setting STA properties via the `doca_sta_set_*`
-  family and querying device capability via `doca_sta_cap_*`
-  (transport type support, max I/O queue depth, max number of
-  I/O queues, max in-flight IOs per queue, NVMe-oF feature set
-  presence).
-- Picking between **NVMe-over-RDMA** (which lands on the
-  `doca-rdma` substrate) and **NVMe-over-TCP** as the transport,
-  based on what the device cap-query reports and what the
-  fabric supports.
+  family, checking device support via `doca_sta_cap_is_supported`,
+  and querying sizing limits via the `doca_sta_get_max_*` family
+  (max I/O queue depth, max number of queue pairs, max I/O size,
+  max subsystems, max namespaces per subsystem, max backends).
+- Wiring the **NVMe-over-RDMA** transport — STA's only transport;
+  it lands on the `doca-rdma` substrate and uses RDMA CM for
+  connection establishment — for the target's I/O queues.
 - Wiring DOCA Flow rules so that NVMe-oF traffic actually
   reaches the STA-managed queues — the steering boundary is
   `doca-flow`, not `doca-sta`.
@@ -165,7 +170,7 @@ of DOCA itself, raw RDMA data movement (use
 [`doca-rdma`](../doca-rdma/SKILL.md)), raw packet I/O on
 Ethernet queues (use [`doca-eth`](../doca-eth/SKILL.md)),
 flow-rule programming (use [`doca-flow`](../doca-flow/SKILL.md)),
-or NVMe protocol-stack development above the transport layer
+or initiator/host-side NVMe stack development
 (SPDK or kernel-nvme own that, not this skill). For DOCA
 documentation orientation, use
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
@@ -177,10 +182,12 @@ needed to pick the right next file. The substantive STA-specific
 material lives in two companion files:
 
 - `CAPABILITIES.md` — what DOCA STA can express on this
-  version: the integration boundary with SPDK / kernel-nvme,
-  the NVMe queue-pair shape (admin queue + I/O queues), the
-  transport-type taxonomy (NVMe-over-RDMA vs NVMe-over-TCP),
-  the capability-query surface (`doca_sta_cap_*`), the STA
+  version: the target object model (`doca_sta_subsystem` /
+  namespaces / `doca_sta_be` backend NVMe-PCI disks),
+  the NVMe queue-pair shape (admin queue + I/O queues over RDMA),
+  the RDMA-only transport,
+  the capability-query surface (`doca_sta_cap_is_supported` plus
+  the `doca_sta_get_max_*` sizing queries), the STA
   error taxonomy (mapped onto the cross-library `DOCA_ERROR_*`
   set), the observability surface (per-queue progress engine
   events, capability snapshots), and the safety policy that
@@ -194,14 +201,15 @@ material lives in two companion files:
   reaches for.
 
 The skill assumes a BlueField (with DOCA installed at the
-standard location) plus an NVMe-oF peer (target if the user is
-building an initiator, initiator if the user is building a
-target) reachable on the fabric. It does not cover installing
+standard location) plus a remote NVMe-oF initiator reachable on
+the fabric to connect into the accelerated target, and one or
+more local NVMe-PCI disks to back the target's namespaces. It
+does not cover installing
 DOCA — that path goes through
 [`doca-setup`](../../doca-setup/SKILL.md). It does not cover
-SPDK installation or NVMe protocol semantics — the SPDK or
-kernel-nvme integration point is named, but the NVMe stack
-itself is owned by the upstream project.
+initiator/host-side NVMe stacks (SPDK `bdev_nvme`, kernel `nvme`
+host) or NVMe protocol semantics above the accelerated target
+data path — those are out of scope.
 
 ## What this skill deliberately does not ship
 
@@ -210,19 +218,18 @@ bundle. To keep the boundary clean, it deliberately does not
 contain — and pull requests should not add:
 
 - **Pre-written DOCA STA application source code, in any
-  language.** The verified STA source code is the shipped C
-  samples at `/opt/mellanox/doca/samples/doca_sta/<name>/`.
-  The agent's job is to route the user to those files and
-  prescribe a minimum-diff modification on them via the
-  universal modify-a-sample workflow in
-  [`doca-programming-guide`](../../doca-programming-guide/SKILL.md),
-  layered with the STA-specific overrides in
-  [`TASKS.md ## modify`](TASKS.md#modify).
-- **Pre-written SPDK or kernel-nvme integration glue.** SPDK
-  and the kernel `nvme` stack are upstream projects with their
-  own integration patterns; this skill names the boundary
-  (where doca-sta plugs in as the transport provider) but
-  does not ship the glue itself.
+  language.** DOCA STA ships **no public samples** — there is no
+  `/opt/mellanox/doca/samples/doca_sta/` directory, and STA is
+  absent from the libraries / extension_libraries sample
+  profiles. The authoritative surface is the public headers under
+  $(pkg-config --variable=includedir doca-common) plus the public
+  DOCA STA guide; the agent builds against those directly rather
+  than modifying a shipped sample, per the
+  [`TASKS.md ## modify`](TASKS.md#modify) workflow.
+- **Initiator/host-side NVMe stack glue.** SPDK `bdev_nvme`,
+  the kernel `nvme` host, and any initiator-side NVMe stack are
+  upstream projects out of scope for this skill — DOCA STA is
+  target-side acceleration, not an initiator transport provider.
 - **Standalone build manifests** (`meson.build`, `CMakeLists.txt`,
   `Cargo.toml`, …) parked inside the skill. The agent
   constructs the build manifest *in the user's project
@@ -237,8 +244,8 @@ contain — and pull requests should not add:
 
 1. Read this `SKILL.md` first to confirm the user's question
    is in scope.
-2. **For the STA capability matrix, integration boundary,
-   queue-pair shape, transport-type taxonomy, capability-query
+2. **For the STA capability matrix, the target object model,
+   queue-pair shape, RDMA-only transport, capability-query
    rules, error taxonomy, observability, and safety policy,
    see [CAPABILITIES.md](CAPABILITIES.md).**
 3. **For step-by-step workflows — configure, build, modify,
@@ -270,8 +277,9 @@ guidance".
 - [`doca-version`](../../doca-version/SKILL.md) — canonical
   DOCA version-handling rules. This skill's `## Version
   compatibility` cross-links the four-way match rule and adds
-  only the STA-specific overlay (transport-type availability
-  windows, NVMe-oF feature-set device-conditional support).
+  only the STA-specific overlay (STA target-acceleration
+  availability windows, NVMe-oF feature-set device-conditional
+  support).
 - [`doca-structured-tools-contract`](../../doca-structured-tools-contract/SKILL.md) —
   the bundle's structured-tools precedence rule (detect /
   prefer / fall back / report). The Command appendix in

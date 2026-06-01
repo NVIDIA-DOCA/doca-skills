@@ -11,7 +11,7 @@ changed), not a one-shot pass — see the eval-loop overlay in
 
 Read this file when the loader sent you here from
 [SKILL.md](SKILL.md). For the Rivermax capability surface,
-input / output stream split, capability-query rules, error
+the receive-only input stream model, capability-query rules, error
 taxonomy, observability, and safety policy, see
 [CAPABILITIES.md](CAPABILITIES.md). For the cross-library DOCA
 patterns layered under everything below (the universal
@@ -31,9 +31,10 @@ the next call.
 
 ## configure
 
-Goal: stand up a `doca_rivermax` per-integration context and at
-least one input or output per-stream session on a port,
-representor, or SF, with the user aware that the Rivermax SDK +
+Goal: initialize the process-global DOCA Rivermax engine
+(`doca_rmax_init()`) and stand up a receive-only
+`doca_rmax_in_stream` on a port, representor, or SF, with the
+user aware that the Rivermax SDK +
 license precondition is a gate (not an error path) and with the
 underlying queue + steering plan in place before any frame flow
 is meaningful.
@@ -67,44 +68,50 @@ Steps the agent should walk the user through:
 2. **Stand up the underlying packet queue first.** Per the
    queue-pair workflow in
    [`doca-eth TASKS.md ## configure`](../doca-eth/TASKS.md#configure),
-   bring up a `doca_eth_rxq` (for input streams) or
-   `doca_eth_txq` (for output streams) on the target port.
-   `doca-rmax` integrates *with* this queue; it does not
-   replace it.
-3. **Pick the stream direction(s).** Input (receive), output
-   (transmit), or both. Per the input vs output table in
+   bring up a `doca_eth_rxq` on the target port (the Rivermax
+   public API is receive-only). `doca-rmax` integrates *with*
+   this queue; it does not replace it.
+3. **Initialize the global engine and create the input stream.**
+   Call `doca_rmax_init()` once for the process (after any
+   `doca_rmax_set_cpu_affinity_mask()`), then create the
+   receive-only `doca_rmax_in_stream` via
+   `doca_rmax_in_stream_create()` on a `doca_dev` (which must
+   have a valid IPv4 address) and convert it to a DOCA Core
+   context with `doca_rmax_in_stream_as_ctx()`. Per the
+   object-model table in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes),
-   each is its own per-stream session object with its own
-   DOCA Core lifecycle on top of the per-integration
-   `doca_rivermax` context. Sketch the call sequence per
-   direction before writing code.
+   there is no per-integration context object and no
+   transmit/output stream. Sketch the call sequence before
+   writing code.
 4. **Run capability discovery against the active `doca_devinfo`.**
-   Walk the `doca_rivermax_*_cap_*` family per the
+   Walk the `doca_rmax_get_*_supported` family per the
    capability-query rule in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-   for stream type, frame size range, packet rate range, and
-   any advanced timing knob the user is considering. Quote the
+   for PTP-clock support and hardware-accelerated
+   packet-placement order (RTP-seqn, ST 2110-20 seqn) the user
+   is considering. Quote the
    queried values back to the user; do not assume from prior
    installs or from the public docs. The cap query is the
-   runtime authority — when it says false, that is the answer.
-5. **Configure the per-stream session(s).** Set the stream
-   type per the user's intent (e.g. SMPTE ST 2110 video
-   receive on the input side; market-data egress on the
-   output side) — but only after step 4 confirmed it is
-   supported. Wire the underlying `doca_eth_rxq` / `doca_eth_txq`
-   in. Register the recv-event callback (input) or the
-   send-task allocator (output). Plan the real-time
+   runtime authority — when it says not-supported, that is the
+   answer.
+5. **Configure the input stream.** Set the scatter type,
+   timestamp format, memory-block / element-count layout, and
+   (only after step 4 confirmed support) the packet-placement
+   order and PTP-synced timestamp via the
+   `doca_rmax_in_stream_set_*` setters. Wire the underlying
+   `doca_eth_rxq` in. Register the Rx-data event via
+   `doca_rmax_in_stream_event_rx_data_register()`. Plan the
+   real-time
    scheduling discipline for the streaming threads now,
    before start — the canonical scheduling guidance lives in
    the Rivermax SDK guide via
    [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
-6. **Start the per-integration context and each per-stream
-   session** via `doca_ctx_start()` per object, and progress
-   the PE (`doca_pe_progress`). For input streams, *no frames
+6. **Start the input stream** via `doca_ctx_start()`, attach a
+   `doca_rmax_flow` filter with `doca_rmax_flow_attach()`, and
+   progress the PE (`doca_pe_progress`). *No frames
    arriving* at this point is a Rivermax-license / steering /
    underlying-queue precondition gap, not a code bug; revisit
-   step 1. For output streams, the session is ready when
-   start returns `DOCA_SUCCESS`.
+   step 1.
 
 For the canonical DOCA universal lifecycle that underlies
 steps 2-6, see
@@ -156,10 +163,10 @@ any code-level edit:
 
 | Slot | What the agent asks the user | Rivermax-specific consideration |
 | --- | --- | --- |
-| 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_rivermax/`? | Pick the closest in *stream direction* (input vs output) and *stream type* (e.g. SMPTE ST 2110 video vs audio vs market data) to the user's intent. Do NOT bridge across both axes — a smaller diff is always safer than a re-architecture |
+| 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_rmax/`? | Pick the closest in *stream type* (e.g. SMPTE ST 2110 video vs audio vs market data) to the user's intent. All public samples are receive-side; a smaller diff is always safer than a re-architecture |
 | 2. Rivermax precondition still satisfied? | Has anything changed about the Rivermax SDK install or license since the last working build? | A working sample that suddenly stops working after a modify is sometimes really a license that expired between runs; do not assume the diff is the cause without re-checking the precondition matrix in [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) |
-| 3. Stream-type change | Switching the stream type (e.g. ST 2110 video → audio, or video frame rate / size change)? | Re-run the matching `doca_rivermax_*_cap_*` query for the new stream type / frame size / packet rate against the active `doca_devinfo`; capability is the joint property of device + DOCA version + Rivermax SDK version |
-| 4. Underlying queue change | Changing the underlying `doca_eth_rxq` / `doca_eth_txq` sizing, burst size, or RX type? | This is an `doca-eth` change, not a Rivermax change. Route to [`doca-eth`](../doca-eth/SKILL.md) for the queue body and back here only after the queue change re-validates against its own cap queries |
+| 3. Stream-type change | Switching the stream type (e.g. ST 2110 video → audio, or video frame rate / size change)? | Re-run the matching `doca_rmax_get_*_supported` query (PTP clock, packet-placement order) for the new configuration against the active `doca_devinfo`; capability is the joint property of device + DOCA version + Rivermax SDK version |
+| 4. Underlying queue change | Changing the underlying `doca_eth_rxq` sizing, burst size, or RX type? | This is an `doca-eth` change, not a Rivermax change. Route to [`doca-eth`](../doca-eth/SKILL.md) for the queue body and back here only after the queue change re-validates against its own cap queries |
 | 5. Steering / Flow rule change | Adding or modifying the Flow rule that steers traffic to the queue? | This is a steering change, not a Rivermax change. Route to [`doca-flow`](../doca-flow/SKILL.md) for the rule body and back here only after the rule programs cleanly |
 | 6. Scheduling discipline | Changing the real-time priority of the streaming thread, the CPU pinning, or the isolation? | This is a Rivermax-side concern; route the canonical scheduling guidance via the public Rivermax SDK guide reachable through [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md). The agent must not invent scheduler flags |
 
@@ -211,12 +218,10 @@ Steps the agent should walk the user through:
    This is the cheapest way to make the per-stream lifecycle
    and per-event transitions visible on first failure.
 5. **Send a single-frame smoke.** One frame / chunk of the
-   configured stream type — output direction: one send-task
-   with a minimum-size payload; input direction: a single
-   matching frame routed in via an external sender or
-   loopback. Confirm one completion event fires. The smoke
-   isolates the Rivermax path before timing-precise rate is
-   added.
+   configured stream type: a single matching frame routed in
+   via an external sender or loopback. Confirm one Rx-data
+   event fires. The smoke isolates the Rivermax receive path
+   before timing-precise rate is added.
 6. **Drive full stream rate only after the smoke passes.**
    Once the single-frame path is green, raise to the
    configured stream rate. A failure at this point is a
@@ -255,8 +260,8 @@ Iteration shape:
    wrong, the answer is the install / license fix, not a code
    change.
 2. **Capability re-check.** Re-run the matching
-   `doca_rivermax_*_cap_*` query for the chosen stream type
-   / frame size / packet rate against the active
+   `doca_rmax_get_*_supported` query for the chosen timestamp
+   format / packet-placement order against the active
    `doca_devinfo`. If wrong, that is the answer; the device,
    DOCA version, or Rivermax SDK version does not support the
    configuration. Update the user's intent or update the
@@ -270,7 +275,7 @@ Iteration shape:
 4. **Single-frame smoke.** As in [`## run`](#run) step 5 —
    one frame in or out, one completion. If yes, advance. If
    no, walk the error: a `DOCA_ERROR_*` narrows to the
-   Rivermax stream object or the per-integration context; no
+   `doca_rmax_in_stream` object or to `doca_rmax_init()`; no
    completion narrows to license, steering, queue, or
    missing-progress.
 5. **Stream-rate smoke.** Once single-frame passes, raise to
@@ -290,9 +295,9 @@ Eval-loop overlay — why this is a loop, not a one-shot pass:
 | Iteration trigger | What it looks like | What changes next iteration |
 | --- | --- | --- |
 | First Rivermax create returns `DOCA_ERROR_NOT_PERMITTED` | The DOCA-side device access has been validated independently; the `_NOT_PERMITTED` is from a Rivermax call, not a plain `doca_dev_open` | First hypothesis is Rivermax license missing / expired / not readable. Re-walk the first two precondition rows; ONLY then consider DOCA-side device access. |
-| Input stream started cleanly, no completions | Stream + queue + integration context all STARTED; no `DOCA_ERROR_*`; no completion event | Almost always (a) Flow rule missing on the steering side, or (b) Rivermax license problem the agent missed at configure, or (c) PE not progressed in the user's main loop. Walk those three in order. |
+| Input stream started cleanly, no completions | Stream + underlying queue both STARTED; no `DOCA_ERROR_*`; no Rx-data event | Almost always (a) Flow rule missing on the steering side, or (b) Rivermax license problem the agent missed at configure, or (c) PE not progressed in the user's main loop. Walk those three in order. |
 | Stream-rate smoke shows jitter / dropped frames | Single-frame smoke passed cleanly; full-rate run shows jitter past the Rivermax spec | The streaming thread is not at real-time priority, or the CPU is not isolated, or another high-priority thread is preempting it. Route the scheduling discipline to the public Rivermax SDK guide via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md). |
-| Stream-type set returns `DOCA_ERROR_NOT_SUPPORTED` at start | A `doca_rivermax_*_cap_*` query returned `true`, but `doca_ctx_start()` rejects the stream type | The cap query was run against the wrong `doca_devinfo`, or a setter on the per-stream object is incompatible with the chosen type. Re-narrow to the per-`devinfo` query and the full setter sequence. Confirm the Rivermax SDK version on the host matches the one the cap-query result implies. |
+| Placement-order set returns `DOCA_ERROR_NOT_SUPPORTED` at start | A `doca_rmax_get_*_supported` query returned `DOCA_SUCCESS`, but `doca_ctx_start()` rejects the configuration | The cap query was run against the wrong `doca_devinfo`, or a `doca_rmax_in_stream_set_*` setter is incompatible with the chosen configuration. Re-narrow to the per-`devinfo` query and the full setter sequence. Confirm the Rivermax SDK version on the host matches the one the cap-query result implies. |
 | Same code works on host A, fails on host B | One host has the Rivermax SDK + license; the other does not, or has a different Rivermax version | Re-walk the precondition matrix on host B; then re-run [`## configure`](#configure) step 4 (capability discovery) + [`doca-version TASKS.md ## test`](../../doca-version/TASKS.md#test) four-way match on host B. The cap surface is per-device AND per-Rivermax-version. |
 
 Loop termination: stop iterating once two consecutive
@@ -357,11 +362,11 @@ not check.
   cap-query rule in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   before changing code.
-- Lifecycle order: configure → start → use → stop → destroy,
-  per per-stream session AND per per-integration context.
-  Out-of-order returns `DOCA_ERROR_BAD_STATE`. The most
-  common case is treating the per-integration `doca_rivermax`
-  context's start as if it covered the per-stream sessions.
+- Lifecycle order: configure → start → use → stop → destroy
+  on the `doca_rmax_in_stream` context. Out-of-order returns
+  `DOCA_ERROR_BAD_STATE`. The most
+  common case is treating the process-global `doca_rmax_init()`
+  call as if it started the input stream context.
 - Wrong-layer responsibility: programming the queue from
   within Rivermax code, or programming steering from within
   Rivermax code, is a category error — Rivermax is the
@@ -463,7 +468,7 @@ the agent should:
 | --- | --- | --- | --- |
 | `pkg-config --modversion doca-rmax` | `## configure` step 1; `## build` slot 1 | What is the build-time DOCA Rivermax (wrapper) version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version ## debug`](../../doca-version/TASKS.md#debug) layer 2). Success here does NOT imply the Rivermax SDK is installed |
 | `pkg-config --cflags --libs doca-rmax` | `## build` | What include + link flags does the linker need on the DOCA side? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
-| `ls /opt/mellanox/doca/samples/doca_rivermax/` | `## modify` slot 1 | Which DOCA Rivermax samples ship in this install, and which is the closest starting point? | A list of sample directories named after the stream-direction + stream-type pattern they demonstrate. An empty result means no samples shipped on this install — route to [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) for the public DOCA Rivermax guide |
+| `ls /opt/mellanox/doca/samples/doca_rmax/` | `## modify` slot 1 | Which DOCA Rivermax samples ship in this install, and which is the closest starting point? | A list of receive-side sample directories named after the stream-type pattern they demonstrate. An empty result means no samples shipped on this install — route to [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) for the public DOCA Rivermax guide |
 | `devlink dev show` (sudo) | `## configure` step 1; `## debug` layer 7 | Is the underlying port up at the driver layer? | One row per port with `state: PORT_ACTIVE`; anything else means the port is down and the Rivermax stream will be silent |
 | `ip -j link show <dev>` | `## configure` step 1; `## debug` layer 7 | Does the kernel report this device as UP? | `flags` contains `UP,LOWER_UP`. Promiscuous mode is generally NOT how Rivermax input streams get their packets — they get them via a Flow rule on the underlying queue |
 | `ethtool <dev>` | `## configure` step 1; `## debug` layer 7 | Does the driver report link / speed / duplex? | A non-zero speed and `Link detected: yes` |

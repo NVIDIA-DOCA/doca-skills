@@ -171,7 +171,7 @@ to [`doca-flow-perf`](../doca-flow-perf/SKILL.md).
 its companion analyzer / visualizer scripts and JSON config
 templates) — the historical *server* and *client* roles live
 inside this one artifact, not in two separate executables. The
-skill uses the same `kind: library` three-file shape as the rest
+skill uses the same `kind: tool` three-file shape as the rest
 of the bundle so the agent's task-verb contract
 (`configure / build / modify / run / test / debug`) is uniform
 across libraries, services, and tools.

@@ -7,8 +7,10 @@ description: >
   (`doca_dpa_app`), creating DPA threads, launching kernels via
   `doca_dpa_kernel_launch_update_*`, draining
   `doca_dpa_completion`, running `doca_dpa_cap_*` discovery,
-  choosing between DPA-side companions `doca-dpa-comms`
-  (inter-DPA messaging) and `doca-dpa-verbs` (in-kernel RDMA),
+  choosing between the DPA device-side comm component
+  (`libdoca_dpa_dev_comm.a`, inter-DPA messaging) and the DPA
+  device-side verbs component (`libdoca_dpa_dev_verbs.a`,
+  in-kernel RDMA),
   or debugging `DOCA_ERROR_*` from `doca_dpa_*`. Trigger even
   when the user does not say "DOCA DPA" or "Data-Path
   Accelerator" — typical implicit phrasings include "run
@@ -119,9 +121,9 @@ instance.
   and DPA-Comms error overlay in
   [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms) plus the
   configure / build / modify / run / test / debug overlay in
-  [`TASKS.md ## comms`](TASKS.md#comms). Disambiguates DPA-side
-  `doca-dpa-comms` from host-side `doca-comch` and host-side
-  `doca-rdma`.
+  [`TASKS.md ## comms`](TASKS.md#comms). Disambiguates the DPA
+  device-side comm component from host-side `doca-comch` and
+  host-side `doca-rdma`.
 - **"How do I do RDMA directly from inside my DPA kernel to a
   remote peer, without round-tripping to the host?"** — worked
   example: *"my DPA kernel needs to fetch the next 4 KiB input
@@ -197,33 +199,40 @@ translation unit built by `dpacc`. Concretely:
   a DPA application image they built separately with `dpacc` —
   the env-precondition and capability-discovery rules in this
   skill still apply.
-- Writing DPA-side kernel code that calls the DPA-side
-  companion library **`doca-dpa-comms`** — for inter-DPA-thread
+- Writing DPA-side kernel code that calls the DPA device-side
+  comm component **`libdoca_dpa_dev_comm.a`** (header
+  `doca_dpa_dev_comch_msgq.h`) — for inter-DPA-thread
   messaging or coordination signals between DPA threads on the
   same `doca_dpa_app`. The DPA-Comms routing rule, primitive
-  families, host-side capability-budget rule (committed at
-  app-load time via `doca_dpa_comms_cap_*`), error overlay
-  (`_AGAIN` → kernel must yield; `_BAD_STATE` disambiguation
-  from the parent's host-side `_BAD_STATE`), and the
-  configure / build / modify / run / test / debug overlay live
-  in [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms) and
+  families, capability rule (there is no per-primitive host
+  cap-query family — host-side DPA discovery is only
+  `doca_dpa_cap_is_supported` /
+  `doca_dpa_cap_get_max_kernel_time_alive_supported`), error
+  overlay (`_AGAIN` → kernel must yield; `_BAD_STATE`
+  disambiguation from the parent's host-side `_BAD_STATE`), and
+  the configure / build / modify / run / test / debug overlay
+  live in [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms) and
   [`TASKS.md ## comms`](TASKS.md#comms) under this same skill.
-- Writing DPA-side kernel code that calls the DPA-side
-  companion library **`doca-dpa-verbs`** — for RDMA from inside
+- Writing DPA-side kernel code that calls the DPA device-side
+  verbs component **`libdoca_dpa_dev_verbs.a`** (header
+  `doca_dpa_dev_verbs.h`) — for RDMA from inside
   the DPA kernel to a remote peer when the host round-trip is
   the measured latency bottleneck. The 4-way RDMA matrix, the
-  host-configures-QP / DPA-uses-QP coupling rule, the host-side
-  `doca_dpa_verbs_cap_*` rule (cap-query for the SPECIFIC verb
-  from host code BEFORE launch), the IO_FAILED → CQE-inspection
+  host-configures-QP / DPA-uses-QP coupling rule, the
+  capability rule (no per-verb host cap-query family exists;
+  verb availability follows the BlueField generation + matched
+  DOCA/DPACC install, read from `doca_dpa_dev_verbs.h` and the
+  shipped sample), the IO_FAILED → CQE-inspection
   overlay, and the climb-back rule live in
   [`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs) and
   [`TASKS.md ## verbs`](TASKS.md#verbs) under this same skill.
 
 Do **not** load this skill for general DOCA orientation,
 install of DOCA or the DPACC compiler, the DPA-side
-programming model itself (how to write a DPA kernel; the
-DPA-side `doca-dpa-comms` and `doca-dpa-verbs` libraries that
-run *inside* the DPA kernel), or non-DPA library questions.
+  programming model itself (how to write a DPA kernel; the
+  DPA device-side comm and verbs components
+  (`libdoca_dpa_dev_comm.a` / `libdoca_dpa_dev_verbs.a`) that
+  run *inside* the DPA kernel), or non-DPA library questions.
 For those, route through
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
 to the matching upstream guide.
@@ -289,11 +298,13 @@ contain — and pull requests should not add:
   kind. A mock or incomplete artifact in this skill's tree,
   even one labeled "reference", is misleading: users will read
   it as buildable.
-- **DPA-side library content for `doca-dpa-comms` or
-  `doca-dpa-verbs`.** Those are *DPA-side* libraries: their
-  symbols are called from inside the DPA kernel, not from the
-  host. They have their own pkg-config modules and their own
-  public guides reachable via
+- **DPA device-side content for the comm / verbs components
+  (`libdoca_dpa_dev_comm.a` / `libdoca_dpa_dev_verbs.a`).**
+  These are *DPA-side* archives shipped as part of `doca-dpa`
+  (NOT separate pkg-config modules): their symbols are called
+  from inside the DPA kernel and linked into the DPA image by
+  `dpacc`, not from the host. Their public guides are reachable
+  via
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
   This skill names them and routes; it does not redefine them.
 
@@ -363,13 +374,15 @@ install layout" rather than "DPA host-side-specific guidance".
   call and the DPA-side function signature) overlays on top
   of that ladder.
 
-DOCA DPA's DPA-side companions — `doca-dpa-comms` (DPA-side
-communication primitives the DPA kernel itself calls) and
-`doca-dpa-verbs` (DPA-side ibverbs-like RDMA verbs the DPA
-kernel itself calls) — are **different libraries** with their
-own pkg-config modules and their own public guides. No
-library skill ships for them in this bundle yet; for any
-DPA-side question, route via
+DOCA DPA's DPA device-side components — the comm archive
+`libdoca_dpa_dev_comm.a` (communication primitives the DPA
+kernel itself calls, header `doca_dpa_dev_comch_msgq.h`) and
+the verbs archive `libdoca_dpa_dev_verbs.a` (ibverbs-like RDMA
+verbs the DPA kernel itself calls, header
+`doca_dpa_dev_verbs.h`) — are **DPA-side archives shipped
+within `doca-dpa`**, not separate pkg-config modules, and each
+has its own public guide. No library skill ships for them in
+this bundle yet; for any DPA-side question, route via
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
 to the public *DOCA DPA Comms* and *DOCA DPA Verbs* guides
 and to the shipped `/opt/mellanox/doca/samples/doca_dpa/`

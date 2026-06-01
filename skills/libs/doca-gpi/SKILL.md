@@ -4,17 +4,18 @@ description: >
   Use this skill when the user is doing hands-on DOCA GPI programming
   — wiring a GPU-Packet-Initiator context so a CUDA kernel drives
   RDMA queues directly from GPU memory without host CPU mediation.
-  Covers picking GPI vs doca-gpunetio, the doca_gpi / channel /
-  RDMA-queue object model, the GPU-side handle handoff
-  (doca_gpu_gpi_channel*), binding GPU memory, capability discovery
-  via doca_gpi_cap_get_*, and debugging DOCA_ERROR_* from
-  doca_gpi_* calls. Trigger even when the user does not explicitly
-  mention "DOCA GPI" — typical implicit phrasings include "my CUDA
-  kernel needs to post RDMA directly from GPU memory",
-  "DOCA_ERROR_BAD_STATE on channel_get_gpu_handle", "how do I hand
-  a GPU handle to my CUDA kernel", "is 64 RDMA queues per channel
-  allowed", or "GPU kernel driving RDMA without the host CPU on the
-  path". Refuse and route elsewhere for the doca-gpunetio
+  Covers picking GPI vs doca-gpunetio, the doca_gpi / domain /
+  channel object model, the GPU-side handle handoff
+  (doca_gpu_gpi_channel*), attaching GPU memory to a GPI domain,
+  the domain and channel attribute objects, and debugging
+  DOCA_ERROR_* from doca_gpi_* calls. Trigger even when the user
+  does not explicitly mention "DOCA GPI" — typical implicit
+  phrasings include "my CUDA kernel needs to post RDMA directly
+  from GPU memory", "DOCA_ERROR_* from doca_gpi_gpu_channel_get",
+  "how do I hand a GPU handle to my CUDA kernel", "how many
+  channels can a GPI domain hold", or "GPU kernel driving RDMA
+  without the host CPU on the path". Refuse and route elsewhere
+  for the doca-gpunetio
   Send/Receive surface, the doca-rdma queue lifecycle, DPA-side
   initiation (doca-rdmi), or the CUDA programming model — those
   belong to other skills.
@@ -25,8 +26,8 @@ compatibility: >
   22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
   attached, plus an NVIDIA GPU with CUDA Toolkit installed
   (GPUDirect-style PCIe path between GPU and NIC). Reads the local
-  install via `pkg-config doca-gpi` (co-requires doca-common,
-  doca-rdma) and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
+  install via `pkg-config doca-gpi` (co-requires doca-gpunetio,
+  doca-dpa, doca-verbs) and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA GPI
@@ -37,9 +38,9 @@ a BlueField / ConnectX device and an NVIDIA GPU reachable over
 PCIe. Open [`TASKS.md`](TASKS.md) if the user wants to *do*
 something (install / configure / build / modify / run / test /
 debug / use); open [`CAPABILITIES.md`](CAPABILITIES.md) when the
-question is *what can GPI express on this version* — the channel +
-queue object model, the GPU-side handle handoff, the relationship
-to doca-gpunetio and doca-rdma, capability discovery, and the
+question is *what can GPI express on this version* — the domain +
+channel object model, the GPU-side handle handoff, the relationship
+to doca-gpunetio and doca-verbs, the attribute objects, and the
 safety overlay. If the user has not installed DOCA yet, route to
 [`doca-setup`](../../doca-setup/SKILL.md) first.
 
@@ -57,16 +58,16 @@ load-bearing piece — the worked example is a single instance.
   rule in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   surface-selection table.
-- **"How do I bring up a GPI channel and bind it to a doca-rdma
-  queue?"** — worked example: *"create the GPI, set channel + queue
-  sizing, retrieve the channel, exchange descriptors with the
-  remote, connect the queue"*. Answered by the channel-object
-  lifecycle in
+- **"How do I bring up a GPI channel and connect it to a remote
+  peer?"** — worked example: *"create the GPI, set domain + channel
+  attribute sizing, create the channel, exchange endpoint
+  connection info with the remote, connect the endpoint"*. Answered
+  by the channel-object lifecycle in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   + the configure walk in
   [`TASKS.md ## configure`](TASKS.md#configure).
 - **"What is the GPU-side handle and how do I hand it to my CUDA
-  kernel?"** — worked example: *"`doca_gpi_channel_get_gpu_handle`
+  kernel?"** — worked example: *"`doca_gpi_gpu_channel_get`
   returns a `doca_gpu_gpi_channel*` — how do I get that into my
   CUDA kernel's argument list?"*. Answered by the GPU-handoff
   pattern in
@@ -81,16 +82,18 @@ load-bearing piece — the worked example is a single instance.
   the version-overlay in
   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility)
   + the install-checks in [`TASKS.md ## install`](TASKS.md#install).
-- **"Is the queue / channel sizing I want supported on this
-  device?"** — worked example: *"I want 64 RDMA queues per channel
-  with 1024 work-request slots each; is that allowed?"*. Answered
-  by the capability-query rule (`doca_gpi_cap_get_*`) in
+- **"How do I size the channels and work queues I want?"** —
+  worked example: *"I want 64 channels in a domain, each with a
+  1024-entry send queue; which setters express that?"*. Answered
+  by the attribute-object sizing rule
+  (`doca_gpi_domain_attr_set_num_channels`,
+  `doca_gpi_channel_attr_set_sq_wqe_num`) in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  + the discovery step in
+  + the sizing step in
   [`TASKS.md ## configure`](TASKS.md#configure).
 - **"What does this `DOCA_ERROR_*` from a `doca_gpi_*` call
-  mean?"** — worked example: *"`DOCA_ERROR_BAD_STATE` from
-  `doca_gpi_channel_get_gpu_handle`"*. Answered by the GPI overlay
+  mean?"** — worked example: *"`DOCA_ERROR_*` from
+  `doca_gpi_gpu_channel_get`"*. Answered by the GPI overlay
   on the cross-library taxonomy in
   [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
   + the layered ladder in [`TASKS.md ## debug`](TASKS.md#debug)
@@ -138,22 +141,22 @@ GPU. Concretely:
 - Deciding between `doca-gpi` (the lower-level channel/queue
   surface) and `doca-gpunetio` (the higher-level Send/Receive
   surface) for a new GPU-initiated RDMA workload.
-- Creating a `doca_gpi` on a `doca_dev`, configuring channel
-  count, RDMA queue count, RDMA queue size, and GPU queue size
-  via the `doca_gpi_set_*` family before `doca_ctx_start()`.
-- Retrieving a per-channel handle
-  (`doca_gpi_channel_get_handle`) and its GPU-side counterpart
-  (`doca_gpi_channel_get_gpu_handle`), and handing the
-  GPU-side handle to a CUDA kernel.
-- Exchanging RDMA queue descriptors with a remote peer using
-  `doca_gpi_channel_get_rdma_queue_descriptor` /
-  `doca_gpi_channel_connect_rdma_queue` to establish the
-  GPU-driven queue end-to-end.
-- Binding GPU memory regions to the GPI context with
-  `doca_gpi_bind_memory` and exporting their descriptor via
-  `doca_gpi_bind_memory_get_descriptor`.
-- Auditing the capability surface (`doca_gpi_cap_get_max_*`)
-  for channel / queue / size limits on the active device.
+- Creating a `doca_gpi` on a `doca_dev`, configuring it via the
+  `doca_gpi_set_*` family (domain count, GID index, port) and
+  sizing domains and channels through the
+  `doca_gpi_domain_attr_*` / `doca_gpi_channel_attr_*` setters
+  before `doca_gpi_start()`.
+- Creating a channel with `doca_gpi_channel_create` and
+  retrieving its GPU-side handle with `doca_gpi_gpu_channel_get`,
+  then handing the GPU-side handle to a CUDA kernel.
+- Exchanging endpoint connection info with a remote peer using
+  `doca_gpi_channel_ep_conn_info_create` /
+  `doca_gpi_channel_ep_connect` to establish the GPU-driven
+  channel end-to-end.
+- Attaching memory regions to a GPI domain with
+  `doca_gpi_domain_attach_local_mmap` /
+  `doca_gpi_domain_attach_remote_mmap` (each backed by a
+  `doca_mmap` the application created).
 - Debugging a `DOCA_ERROR_*` returned by a `doca_gpi_*` call
   and deciding whether the cause is a lifecycle ordering bug, a
   GPU datapath mis-assignment, a CUDA-version mismatch, or a
@@ -174,19 +177,18 @@ needed to pick the right next file. The substantive GPI-specific
 material lives in two companion files:
 
 - `CAPABILITIES.md` — what GPI can express on this version: the
-  `doca_gpi` / `doca_gpi_channel` / RDMA-queue object model, the
-  GPU-side handle handoff, the relationship to
-  [`doca-gpunetio`](../doca-gpunetio/SKILL.md) (the higher-level
-  surface that *uses* GPI internally for some operations) and to
-  [`doca-rdma`](../doca-rdma/SKILL.md) (the source of the RDMA
-  queue GPI binds), the capability-query surface
-  (`doca_gpi_cap_get_*`), the stability mix
-  (`doca_gpi_create`/`_destroy`/`_as_ctx`/`channel_get_handle`
-  are `DOCA_STABLE`; the rest of the surface is
+  `doca_gpi` / `doca_gpi_domain` / `doca_gpi_channel` object
+  model, the GPU-side handle handoff, the relationship to
+  [`doca-gpunetio`](../doca-gpunetio/SKILL.md) (which owns the
+  GPU-side `doca_gpu_gpi_channel*` device surface) and to
+  [`doca-verbs`](../doca-verbs/SKILL.md) and
+  [`doca-dpa`](../doca-dpa/SKILL.md) (the transport and DPA layers
+  GPI builds on), the domain and channel attribute objects, the
+  maturity statement (every `doca_gpi_*` symbol is
   `DOCA_EXPERIMENTAL`), the GPI overlay on the cross-library
   `DOCA_ERROR_*` taxonomy, the observability surface (CUDA-side
-  channel polling, GPI memory-bind descriptor exchange), and the
-  safety policy that gates GPU-side RDMA initiation.
+  channel polling, mmap-attach exchange), and the safety policy
+  that gates GPU-side RDMA initiation.
 - `TASKS.md` — step-by-step workflows for the eight in-scope
   verbs: `install`, `configure`, `build`, `modify`, `run`,
   `test`, `debug`, `use`. Plus a `Deferred task verbs` block that
@@ -211,8 +213,8 @@ contain — and pull requests should not add:
   GPU-side handoff) and to prescribe a minimum-diff modification
   via the universal modify-a-sample workflow in
   [`doca-programming-guide`](../../doca-programming-guide/SKILL.md).
-  Because most of the GPI surface is tagged `DOCA_EXPERIMENTAL`
-  in the public version map, the skill refuses to author GPI
+  Because every GPI symbol is tagged `DOCA_EXPERIMENTAL`
+  in the public header, the skill refuses to author GPI
   source from documentation prose.
 - **Standalone build manifests** (`meson.build`, `CMakeLists.txt`,
   `Cargo.toml`, …) parked inside the skill. The agent constructs
@@ -235,8 +237,8 @@ contain — and pull requests should not add:
 1. Read this `SKILL.md` first to confirm the user's question is
    in scope.
 2. **For the GPI object model, the GPU-side handoff pattern, the
-   capability-query surface, the version compatibility rule, the
-   error taxonomy, observability, and safety policy, see
+   domain and channel attribute objects, the version compatibility
+   rule, the error taxonomy, observability, and safety policy, see
    [CAPABILITIES.md](CAPABILITIES.md).**
 3. **For step-by-step workflows — install, configure, build,
    modify, run, test, debug, use — see [TASKS.md](TASKS.md).**
@@ -249,18 +251,24 @@ guidance".
 
 ## Related skills
 
-- [`doca-gpunetio`](../doca-gpunetio/SKILL.md) — the higher-level
-  GPU NetIO library that exposes Send/Receive-shaped Ethernet
-  I/O for CUDA kernels. GPI is the lower-level channel/queue
-  surface that GPU NetIO uses internally for some flows; both
-  can coexist in the same application. The selection table in
+- [`doca-gpunetio`](../doca-gpunetio/SKILL.md) — the GPU NetIO
+  library that exposes Send/Receive-shaped Ethernet I/O for CUDA
+  kernels and **owns the GPU-side device surface GPI hands off
+  to**: the `doca_gpu_gpi_channel*` type and its device-side
+  `.cuh` API live in doca-gpunetio, and `doca_gpi.h` includes
+  `doca_gpunetio.h`. Both can coexist in the same application.
+  The selection table in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
   is the load-bearing decision aid.
-- [`doca-rdma`](../doca-rdma/SKILL.md) — the higher-level RDMA
-  library. GPI **binds an RDMA queue from doca-rdma** via
-  `doca_gpi_channel_connect_rdma_queue`; the RDMA queue
-  lifecycle, transport type, and permission matrix are owned
-  there.
+- [`doca-verbs`](../doca-verbs/SKILL.md) and
+  [`doca-dpa`](../doca-dpa/SKILL.md) — the transport and DPA
+  layers GPI builds on. `dependencies/meson.build` lists
+  `doca-dpa`, `doca-gpunetio`, and `doca-verbs` (plus the
+  `libmlx5` / `libibverbs` externals); `doca_gpi_get_dpa` returns
+  the GPI-owned `doca_dpa*` for tuning DPA attributes. The RDMA
+  transport type, GID / port selection, and permission semantics
+  live at the verbs layer; GPI consumes it rather than binding a
+  `doca-rdma` queue.
 - [`doca-rdmi`](../doca-rdmi/SKILL.md) — the sister DPA-side
   initiator surface. Both GPI and RDMI exist for "drive RDMA
   initiation from an accelerator without the host CPU on the

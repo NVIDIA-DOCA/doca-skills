@@ -255,8 +255,8 @@ Iteration shape:
    `doca_ec_cap_task_create_is_supported(devinfo)`,
    `_task_recover_is_supported(devinfo)`,
    `_task_update_is_supported(devinfo)`,
-   `_get_max_block_size(devinfo)`,
-   `_get_max_num_blocks(devinfo)`, and the
+   `doca_ec_cap_get_max_block_size(devinfo)`,
+   `doca_ec_cap_get_max_buf_list_len(devinfo)`, and the
    `doca_ec_matrix_create()` constructor success per variant
    against the active
    `doca_devinfo`. If any required task type or matrix type

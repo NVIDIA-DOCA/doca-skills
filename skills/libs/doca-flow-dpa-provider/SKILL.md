@@ -109,7 +109,7 @@ example is a single instance.
   about on my installed DOCA?"** — worked example: *"is the
   three-queue-type `doca_flow_dpa_queues_create` available
   against the DOCA + DPACC versions on this host, or am I
-  still on the deprecated `doca_flow_dpa_pipe_queues_create`
+  still on the older `doca_flow_dpa_pipe_queues`-based
   surface?"*. Answered by the version-compatibility overlay
   in
   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility)

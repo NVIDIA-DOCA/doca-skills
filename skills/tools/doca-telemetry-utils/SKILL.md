@@ -172,7 +172,7 @@ when present, or via
 
 The tool is shipped as a **CLI binary** under
 `/opt/mellanox/doca/tools/`, not a library you link
-against. The skill uses the same `kind: library`
+against. The skill uses the same `kind: tool`
 three-file shape as the rest of the bundle so the
 agent's task-verb contract is uniform across libraries,
 services, and tools.

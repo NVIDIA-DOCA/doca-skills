@@ -9,7 +9,7 @@ one-shot pass — see the eval-loop overlay in `## test` below.
 
 Read this file when the loader sent you here from
 [SKILL.md](SKILL.md). For the UROM capability surface, the
-paired-contract model, the per-`doca_urom`-instance context, the
+paired-contract model, the Service + Worker context model, the
 enqueue-side operation surface, the capability-query rule, the
 env-precondition matrix, the error taxonomy, the observability
 surface, and the safety policy, see
@@ -26,7 +26,8 @@ the next call.
 
 ## configure
 
-Goal: stand up a `doca_urom` Core context on the host against a
+Goal: stand up a UROM Service context (and the Worker context(s)
+attached to it) on the host against a
 BlueField that is running the DOCA UROM Service, confirm the
 underlying RDMA substrate is healthy, and put the host + DPU
 pair into a state where the first remote memory operation can
@@ -72,16 +73,21 @@ Steps the agent should walk the user through:
    A UROM enqueue over a broken RDMA fabric surfaces as
    `DOCA_ERROR_IO_FAILED` and the user will incorrectly blame
    UROM.
-4. **Run capability discovery against the active
-   `doca_devinfo`.** Run the matching `doca_urom_cap_*`
-   queries against the `doca_devinfo` for the target
-   BlueField; record which operation families are supported
-   (puts, gets, atomic variants, active messages, collective
-   primitives) and what `doca_urom_cap_get_*` returns for
-   queue / payload sizing. The capability matrix to compare
-   against lives in
+4. **Create and start the Service, then run plugin discovery.**
+   Create the Service with `doca_urom_service_create`, bind it to
+   the target BlueField's `doca_dev` via
+   `doca_urom_service_set_dev`, and start it with
+   `doca_ctx_start(doca_urom_service_as_ctx(service))`. Then call
+   `doca_urom_service_get_plugins_list(service, &plugins, &count)`
+   — it requires a STARTED Service (`DOCA_ERROR_BAD_STATE`
+   otherwise) — and record which plugins the DPU side supports
+   (these map to operation families: puts, gets, atomic variants,
+   active messages, collective primitives). UROM has NO
+   `doca_urom_cap_*` devinfo capability family; the plugins list
+   IS the capability surface. The matrix to compare against lives
+   in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
-   Quote the queried values back to the user; do not assume
+   Quote the discovered plugins back to the user; do not assume
    from prior installs or from agent memory.
 5. **Decide the operation kind to enqueue.** Per the
    operation-shape table in
@@ -91,15 +97,20 @@ Steps the agent should walk the user through:
    primitive. The pick decides the next-step code shape; do
    not pick *for* the user when their intent is ambiguous —
    ask which HPC / UCX / MPI pattern they are offloading.
-6. **Create the `doca_urom` Core context against the chosen
-   `doca_dev`.** Pick the `doca_dev` deliberately: it must
-   map to the BlueField that is actually running the UROM
-   Service. A host driving UROM toward more than one BlueField
-   needs one `doca_urom` per target BlueField, not a
-   *"global"* one, per the per-instance rule in
+6. **Create and start the Worker context(s) attached to the
+   Service.** Create each Worker with `doca_urom_worker_create`,
+   attach it to the Service created in step 4 via
+   `doca_urom_worker_set_service`, select the discovered
+   plugin(s) via `doca_urom_worker_set_plugins`, optionally set
+   `doca_urom_worker_set_id` /
+   `doca_urom_worker_set_max_inflight_tasks`, and start it with
+   `doca_ctx_start(doca_urom_worker_as_ctx(worker))`. A host
+   driving UROM toward more than one BlueField needs one Service
+   (with its Workers) per target BlueField, not a *"global"* one,
+   per the per-BlueField rule in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
-   This is a standard DOCA Core context create — the universal
-   lifecycle from
+   Both the Service and the Worker are standard DOCA Core context
+   creates — the universal lifecycle from
    [`doca-programming-guide TASKS.md ## configure`](../../doca-programming-guide/TASKS.md#configure)
    applies.
 7. **Register the host-side memory descriptors the operations
@@ -175,11 +186,11 @@ user before recommending any code-level edit:
 | --- | --- | --- |
 | 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_urom/`? | Pick the closest in *operation family* (put / get vs atomic vs active message vs collective) to the user's intent. Do NOT bridge across operation families — a smaller diff is always safer than a re-architecture; if the user's intent crosses a family, that is a different starting sample |
 | 2. Target BlueField + UROM Service version | Which BlueField is the host offloading to, and what version is the DPU-side UROM Service running? | Per the paired-contract version rule in [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility), confirm the host-side `pkg-config --modversion doca-urom` matches what the DPU-side service supports. If the modify changes the operation family, re-confirm support on BOTH sides |
-| 3. Operation family changes | Which operation families is the user adding or removing relative to the sample? | Each added family needs its own `doca_urom_cap_*` confirmation before it can be assumed to work on this device + this DOCA + this UROM Service version; one cap query per family added |
-| 4. Memory descriptor changes | Which local buffers / remote handles change, and what is the payload size profile? | Per the descriptor validation in [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy), oversized payloads or mismatched remote handles return `DOCA_ERROR_INVALID_VALUE` at enqueue. Check `doca_urom_cap_get_*` for the payload limit on this device |
+| 3. Operation family changes | Which operation families is the user adding or removing relative to the sample? | Each added family needs its plugin confirmed present via `doca_urom_service_get_plugins_list` (and selected on the Worker via `doca_urom_worker_set_plugins`) before it can be assumed to work on this device + this DOCA + this UROM Service version; one plugin check per family added |
+| 4. Memory descriptor changes | Which local buffers / remote handles change, and what is the payload size profile? | Per the descriptor validation in [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy), oversized payloads or mismatched remote handles return `DOCA_ERROR_INVALID_VALUE` at enqueue. Check the comm-channel limit set by `doca_urom_service_set_max_comm_msg_size` for the payload limit |
 | 5. HPC stack integration | Is this UROM consumer standalone, or wired underneath OpenMPI / MPICH / custom UCX? | Stack integration is a separate concern — this skill teaches how to drive `doca-urom` directly; stack-side integration belongs in the upstream MPI / UCX documentation. The agent must NOT invent stack-side glue code |
 | 6. Single-pair smoke retained | Does the modify keep a small smoke test (one put + one get round-trip between two nodes) before the user's real pattern? | A modify that goes straight from sample-to-full-collective skips the cheapest place to catch service-side / version / substrate gaps. Per the safety-policy smoke rule in [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy), the smoke stays in the diff |
-| 7. Re-validate against capabilities | Re-run the `doca_urom_cap_*` queries from `## configure` step 4 against the modified configuration | Per the cross-cutting rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability), the cap query is the runtime authority |
+| 7. Re-validate against capabilities | Re-run `doca_urom_service_get_plugins_list` from `## configure` step 4 against the modified configuration | Per the cross-cutting rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability), the plugins-list query is the runtime authority |
 
 The agent emits an *intent description + the seven filled
 slots*; the *actual* unified diff against the sample source is
@@ -208,8 +219,8 @@ Steps the agent should walk the user through:
    public *DOCA UROM Service* guide via
    [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services)
    before assuming the host can offload to it. A host-side
-   `doca_urom` create succeeding does NOT prove the service is
-   still healthy.
+   `doca_urom_service_create` succeeding does NOT prove the
+   service is still healthy.
 2. **Confirm the peer node is reachable on the RDMA fabric.**
    UROM, like RDMA, needs at least one peer; running the binary
    on one side alone with no peer produces a misleading hang or
@@ -306,11 +317,11 @@ Eval-loop overlay — why this is a loop, not a one-shot pass:
 
 | Iteration trigger | What it looks like | What changes next iteration |
 | --- | --- | --- |
-| `DOCA_ERROR_NOT_PERMITTED` on the first enqueue, `doca_dev` access otherwise fine | Host-side `doca_urom` create succeeded; first enqueue rejects | DPU-side UROM Service is most likely not deployed / not running / at a non-pairing version. Re-check the service per the public service guide BEFORE diagnosing as a host-OS permission problem |
-| `DOCA_ERROR_NOT_SUPPORTED` on an operation the agent expected to work | `doca_urom_cap_*` against the active `doca_devinfo` returned supported; runtime rejected anyway | The cap-query answered for the *library* axis; the DPU-side *service* axis (a different UROM Service version) is the real gate. Re-narrow to the host-library + DPU-service version pair per the DOCA Compatibility Policy |
+| `DOCA_ERROR_NOT_PERMITTED` on the first enqueue, `doca_dev` access otherwise fine | Host-side `doca_urom_service_create` + Worker start succeeded; first enqueue rejects | DPU-side UROM Service is most likely not deployed / not running / at a non-pairing version. Re-check the service per the public service guide BEFORE diagnosing as a host-OS permission problem |
+| `DOCA_ERROR_NOT_SUPPORTED` on an operation the agent expected to work | `doca_urom_service_get_plugins_list` listed the plugin; runtime rejected anyway | The plugins list answered for the *library / discovery* axis; the DPU-side *service* axis (a different UROM Service version, or the Worker not having selected the plugin via `doca_urom_worker_set_plugins`) is the real gate. Re-narrow to the host-library + DPU-service version pair per the DOCA Compatibility Policy |
 | `DOCA_ERROR_IO_FAILED` on enqueue / completion | UROM API surface error that points downward | The underlying RDMA substrate has failed; route to [`doca-rdma TASKS.md ## debug`](../doca-rdma/TASKS.md#debug) layer 5-7. UROM did not cause it; UROM exposed it |
 | Enqueue returns `DOCA_SUCCESS`; completion never fires | PE not progressed, OR the DPU-side service queue is stuck, OR the algorithm body on the service side is hung | Confirm `doca_pe_progress()` is being driven in the host loop; consult the service-side observability per [`CAPABILITIES.md ## Observability`](CAPABILITIES.md#observability) |
-| Bulk enqueue starts returning `DOCA_ERROR_AGAIN` after N successful submits | First N submissions succeed, then `AGAIN` | The per-context enqueue queue is sized below the user's intended in-flight depth. Raise the queue depth via the matching `doca_urom_set_*` at configure time OR drain completions between bursts |
+| Bulk enqueue starts returning `DOCA_ERROR_AGAIN` after N successful submits | First N submissions succeed, then `AGAIN` | The Worker's in-flight task queue is sized below the user's intended in-flight depth. Raise it via `doca_urom_worker_set_max_inflight_tasks` at configure time OR drain completions between bursts |
 | Single-pair smoke passes; collective smoke fails | The operation family the collective uses (most often a specific atomic or active-message variant) is supported in single-pair shape but not in the collective primitive the user picked, OR the UROM Service version does not have that collective | Re-run the cap query for the specific collective variant; the answer may be that the user needs to upgrade the UROM Service or pick a different collective algorithm at the MPI / UCX layer |
 
 Loop termination: stop iterating once two consecutive
@@ -343,7 +354,7 @@ UROM-specific manifestation at layers 5 (runtime) and 6
   is enqueueing to. The host-side library cannot offload to a
   service that is not there; symptoms surface as
   `DOCA_ERROR_NOT_PERMITTED` at the first enqueue even though
-  `doca_urom` create looked fine. The agent's FIRST diagnostic
+  `doca_urom_service_create` looked fine. The agent's FIRST diagnostic
   move on this error is to walk the user to the public *DOCA
   UROM Service* guide via
   [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services)
@@ -374,14 +385,16 @@ UROM-specific manifestation at layers 5 (runtime) and 6
   buffer, or an oversized payload surfaced as
   `DOCA_ERROR_INVALID_VALUE`. Walk the user's local
   registration + peer export + payload-size choices against
-  the cap-query result for the operation family.
+  the discovered plugin for the operation family.
 - Lifecycle order: configure → start → enqueue → progress /
-  observe → stop → destroy. Out-of-order returns
-  `DOCA_ERROR_BAD_STATE`; the most common case is enqueueing
+  observe → stop → destroy, and Workers must be destroyed
+  before the Service they attach to. Out-of-order returns
+  `DOCA_ERROR_BAD_STATE` (or `DOCA_ERROR_IN_USE` when Workers
+  are still attached); the most common case is enqueueing
   before the context has finished starting, or destroying the
-  `doca_urom` while operations are still in flight (the
+  Service / Worker while operations are still in flight (the
   in-flight ones may leak DPU-side resources the next
-  `doca_urom` create has to recover from).
+  `doca_urom_service_create` has to recover from).
 - Paired-version mismatch: a host-side `pkg-config --modversion
   doca-urom` upgraded without the matching DPU-side UROM
   Service upgrade (or vice versa) returns

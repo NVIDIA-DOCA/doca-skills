@@ -108,8 +108,10 @@ any language. Concretely:
 
 - Initializing an RDMA context on a `doca_dev` and configuring at
   least one task type before `doca_ctx_start()`.
-- Establishing a connection — picking between RDMA CM (`doca_rdma_cm_*`),
-  bridge / OOB (`doca_rdma_bridge_*`), or gRPC (out-of-band exchange
+- Establishing a connection — picking between RDMA CM
+  (`doca_rdma_connect_to_addr()` / `doca_rdma_start_listen_to_port()`
+  / `doca_rdma_connection_accept()`), bridge / OOB
+  (`doca_rdma_bridge_*`), or gRPC (out-of-band exchange
   of `doca_rdma_export()` output).
 - Setting permissions on `doca_mmap` correctly for the chosen task
   type (Read needs RDMA-read + local read-write; Write needs
@@ -139,8 +141,9 @@ material lives in two companion files:
 
 - `CAPABILITIES.md` — what RDMA can express on this version: the
   eleven task types and their permission matrix, the three
-  connection methods, transport types (RC baseline, DC alpha,
-  UD per device + task) — note these are the per-QP service
+  connection methods, transport types (RC baseline and DC for
+  the export/connect CPU-datapath flow — there is no UD) — note
+  these are the per-QP service
   type controlled by `doca_rdma_set_transport_type()`, NOT the
   link-layer (IB vs RoCE) which is inherited from the device
   port configuration, the

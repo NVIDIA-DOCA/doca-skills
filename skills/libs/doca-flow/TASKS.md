@@ -263,11 +263,14 @@ validate-before-commit exists to prevent.
 
 Steps:
 
-1. **Pipe spec validation.** Use the Flow pipe-validate API for the
-   installed version (or, if unavailable on this version, the
-   dry-run sample under the installed Flow samples directory whose path
-   is documented in `doca-public-knowledge-map`). The validation must
-   complete without errors before any entry-add call. This is the
+1. **Pipe spec validation.** Validation is constructor-time: there is
+   no separate `doca_flow_pipe_validate` API — `doca_flow_pipe_create`
+   itself rejects an inconsistent spec (`DOCA_ERROR_INVALID_VALUE` /
+   `DOCA_ERROR_NOT_SUPPORTED`). Build the pipe with the staged-entry /
+   dry-run pattern from the shipped CT sample under the installed Flow
+   samples directory (path documented in `doca-public-knowledge-map`),
+   and confirm the constructor returns `DOCA_SUCCESS` before any
+   entry-add call. This is the
    "validate before commit" rule from
    [CAPABILITIES.md ## Safety policy](CAPABILITIES.md#safety-policy).
 2. **Capability cross-check.** Re-confirm that every match kind, action
@@ -345,60 +348,63 @@ The DOCA-Flow-CT-specific overlay on the parent verbs. Use AFTER
 the parent's [`## configure`](#configure) → [`## debug`](#debug)
 sequence has been walked for the stateless doca-flow port; this
 section adds only what CT changes on top. For the capability
-surface, layering rule, multi-axis cap discovery, CT-specific
-error overlay, and safety policy, see
+surface, layering rule, the single `doca_flow_ct_cap_is_dev_supported`
+device-support query, CT-specific error overlay, and safety
+policy, see
 [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct).
 
 **configure overlay.**
 
-1. **Confirm doca-flow is up on the target port.** Per the
-   layering rule in
-   [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct), CT
-   attaches on top of an already-up doca-flow port. If the
-   port has not been initialized through [`## configure`](#configure),
-   route the user back there FIRST — do NOT propose CT against
-   an un-started port, and do NOT recommend rewiring the
-   doca-flow setup *"to add CT"*. CT extends; it does not
-   replace.
-2. **Multi-axis cap-discovery for CT.** Call the matching
-   `doca_flow_ct_cap_*` queries against the active
-   `doca_devinfo` for EACH axis the workload uses: max
-   concurrent flows, aging-timer range AND granularity, NAT
-   variants (SNAT / DNAT / combined — separate checks), and
-   per-overlay CT support (do NOT promote a single overlay
-   cap-yes to *"all overlays supported"*). Surface ALL queried
-   axes back to the user — quoting only the flow ceiling is a
-   misroute.
-3. **Size the aging table to the user's expected peak, not
+1. **Confirm doca-flow is initialized, and slot CT init in BEFORE
+   port start.** Per the layering rule in
+   [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct), the
+   order is `doca_flow_init` → `doca_flow_ct_init` (global,
+   one-time) → port start. If the user has not yet run
+   [`## configure`](#configure) for doca-flow, route them back
+   there FIRST — do NOT propose CT against an un-initialized
+   doca-flow, and do NOT recommend rewiring the doca-flow setup
+   *"to add CT"*. CT extends; it does not replace. If their ports
+   are already started, CT init must move earlier in the
+   sequence — it cannot be bolted onto an already-running port.
+2. **Device-support check for CT.** Call
+   `doca_flow_ct_cap_is_dev_supported(devinfo)` against the active
+   `doca_devinfo`. This is the ONLY CT cap query — there is no
+   per-axis `doca_flow_ct_cap_*` family for flow count, aging
+   range, NAT variants, or overlays; do not invent one. If the
+   device does not support CT, surface that and stop.
+3. **Size the CT module to the user's expected peak, not
    average.** CT entries persist until aging evicts them or
-   policy removes them. Confirm peak concurrent-flow estimate
-   against the cap-advertised max BEFORE creating the context;
-   if the estimate exceeds the ceiling, surface the device-fit
-   gap — do not over-commit.
-4. **Create the per-port `doca_flow_ct` context.** Per
-   [`CAPABILITIES.md ## flow-ct`](CAPABILITIES.md#flow-ct) one
-   context per tracked port. Configure aging-timer-base in the
-   cap-advertised range and at a supported granularity; set the
-   table size from step 3.
-5. **Configure NAT actions only if the cap-query said yes** for
-   the specific variant (SNAT, DNAT, combined). Do NOT propose
-   double-NAT (SNAT + DNAT on the same connection) before
-   confirming the combined-NAT axis explicitly.
-6. **Start the context, then attach CT-aware pipe builders.**
-   `doca_ctx_start` on the `doca_flow_ct` per the Core lifecycle
-   in [`doca-programming-guide`](../../doca-programming-guide/SKILL.md);
-   wrap existing doca-flow pipes via the CT pipe-builder API to
-   produce CT-aware versions. The original stateless pipes
-   remain valid; CT-aware pipes are added on top.
+   policy removes them. Set the table / actions-memory through the
+   `doca_flow_ct_cfg_set_*` setters (e.g.
+   `doca_flow_ct_cfg_set_actions_mem_size`) sized to the peak
+   concurrent-flow estimate; oversubscription surfaces as
+   `DOCA_ERROR_FULL` / `_NO_MEMORY` at runtime.
+4. **Initialize the global CT module BEFORE starting ports.**
+   Build a `struct doca_flow_ct_cfg` via `doca_flow_ct_cfg_create`
+   plus the `doca_flow_ct_cfg_set_*` setters, then call
+   `doca_flow_ct_init(cfg)` exactly once for the process — after
+   `doca_flow_init`, before any port start. There is NO per-port
+   CT context.
+5. **Configure NAT direction / actions** through
+   `doca_flow_ct_cfg_set_direction` and the CT actions. There is
+   no per-variant cap query, so confirm SNAT / DNAT / combined
+   behavior empirically; an unsupported request surfaces as
+   `_NOT_SUPPORTED` at entry add.
+6. **Start the ports, then attach CT-aware pipes.** With the
+   global CT module initialized, start the doca-flow ports and
+   wrap existing doca-flow pipes with their CT-aware versions.
+   The original stateless pipes remain valid; CT-aware pipes are
+   added on top. CT is not a `doca_ctx`; there is no
+   `doca_ctx_start` on a CT object.
 
 **build overlay.**
 
 | Slot | Value |
 | --- | --- |
-| pkg-config modules | BOTH `doca-flow-ct` AND `doca-flow` — quote both `--cflags` and both `--libs` separately. Mixing one `.pc` with the other's headers / libraries is the canonical "I link, but my first `doca_flow_ct_*` call returns `_DRIVER`" |
-| Version anchors | `pkg-config --modversion doca-flow-ct` MUST equal `pkg-config --modversion doca-flow`, AND both MUST equal `doca_caps --version`. Mismatch → escalate to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 BEFORE diagnosing the CT layer itself |
-| Header includes | The CT-only headers add to (not replace) the doca-flow headers the parent [`## build`](#build) prescribes; both header trees are required |
-| `.pc` discovery | `pkg-config --list-all | grep doca-flow` confirms BOTH `.pc` files are visible to the build; missing `doca-flow-ct.pc` is the *"include resolved, link failed"* shape |
+| pkg-config modules | `doca-flow` only — CT ships inside the doca-flow library, so there is NO separate `doca-flow-ct` module (the packaging ships `doca-flow`, `doca-flow-lib`, `doca-flow-trace`, `doca-flow-trace-lib`). Build and link CT against `doca-flow` |
+| Version anchor | `pkg-config --modversion doca-flow` MUST equal `doca_caps --version`. Mismatch → escalate to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2 BEFORE diagnosing the CT layer itself |
+| Header includes | Add `doca_flow_ct.h` to the doca-flow headers the parent [`## build`](#build) prescribes; it ships in the same `doca-sdk-flow` devel package |
+| `.pc` discovery | `pkg-config --list-all | grep doca-flow` confirms `doca-flow.pc` is visible to the build; there is no `doca-flow-ct.pc` to look for |
 
 **modify overlay.** Take the closest shipped CT sample (an
 installed CT sample in the public DOCA samples bundle whose 5-
@@ -409,10 +415,11 @@ existing doca-flow setup:
 - Do NOT recreate the user's pipe scheme from scratch — port the
   sample's CT bookkeeping (context creation, aging-table sizing,
   CT pipe-builder wrap calls) onto the existing flow.
-- Each NAT variant added (SNAT, DNAT, combined) requires its own
-  pre-modify cap-query.
-- A 5-tuple shape change (e.g. adding overlay-aware CT to a
-  previously plain CT setup) requires a new per-overlay cap-query.
+- There is no per-variant or per-overlay CT cap-query — the only
+  CT cap symbol is `doca_flow_ct_cap_is_dev_supported(devinfo)`.
+  Confirm new NAT variants (SNAT, DNAT, combined) and overlay
+  shapes empirically against the shipped CT sample, not via
+  fabricated `doca_flow_ct_cap_*` axes.
 - After modify: rely on `doca_flow_pipe_create`'s
   constructor-time validation (any spec inconsistency surfaces as
   a constructor failure with `DOCA_ERROR_INVALID_VALUE` or
@@ -462,12 +469,13 @@ existing doca-flow setup:
 ladder:
 
 - `DOCA_ERROR_BAD_STATE` from a CT-layer call is *always* a
-  layering / lifecycle violation: doca-flow port not started,
-  OR `doca_flow_ct` context not started before CT entry add,
-  OR port stop before CT context stop. Walk the lifecycle in
-  this order — port-start → ct-context-create → ct-context-start
-  → ct-entry-add → … → ct-context-stop → port-stop — BEFORE
-  inspecting any individual CT call.
+  layering / lifecycle violation: `doca_flow_ct_init` run after a
+  port was already started (it must precede port start), OR a CT
+  entry add before the ports and wrapped pipes are up, OR
+  `doca_flow_ct_destroy` called out of order. Walk the lifecycle
+  in this order — doca_flow_init → doca_flow_ct_init →
+  port-start → ct-entry-add → … → port-stop → doca_flow_ct_destroy
+  → doca_flow_destroy — BEFORE inspecting any individual CT call.
 - `DOCA_ERROR_FULL` on entry add is *always* a table-sizing /
   aging-pressure mismatch with the workload. Read the per-CT-
   entry counters to identify stale entries; either wait for
@@ -521,18 +529,18 @@ destructively rewrapped.
    stateless setup"* is unfalsifiable.
 2. **Run the configure overlay AS IF the rollback were
    already needed.** Document, in the same answer that
-   recommends the CT add, the four-step reversal: (a)
-   `doca_flow_ct_entry_destroy` on every CT entry added since
-   the snapshot, in reverse-add order; (b)
-   `doca_flow_ct_pipe_*_destroy` on every CT-aware pipe
-   wrapped on top of the stateless pipes, in reverse-create
-   order; (c) `doca_ctx_stop` on the `doca_flow_ct` context;
-   (d) `doca_flow_ct_destroy` on the context. The stateless
-   doca-flow port and the original stateless pipes are
-   untouched by this sequence and must remain valid; if the
-   agent recommended a stateless-pipe edit *in addition to* CT
-   add, that edit needs its own rollback step BEFORE the CT
-   rollback runs.
+   recommends the CT add, the reversal: (a)
+   `doca_flow_ct_rm_entry` on every CT entry added since the
+   snapshot, in reverse-add order; (b) `doca_flow_pipe_destroy`
+   on every CT-aware pipe wrapped on top of the stateless pipes,
+   in reverse-create order; (c) once the ports are stopped,
+   `doca_flow_ct_destroy()` (global, takes no arguments) BEFORE
+   `doca_flow_destroy`. There is no per-port CT context and no
+   `doca_ctx_stop` for CT. The original stateless pipes are
+   untouched by entry / CT-pipe teardown and must remain valid;
+   if the agent recommended a stateless-pipe edit *in addition
+   to* CT add, that edit needs its own rollback step BEFORE the
+   CT rollback runs.
 3. **Trigger the rollback from the [deploy-loop
    bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger).**
    The single-flow CT smoke from the run/test overlay step 1
@@ -585,8 +593,8 @@ Flow pipe / entry / action edit on an already-up port, capture
 target port (root status, match spec, action spec, monitor /
 counter attachment, miss-pipe linkage), (b) per-pipe counter
 baseline (pre-edit values from
-`doca_flow_query_pipe_miss` +
-`doca_flow_query_entry`), and
+`doca_flow_resource_query_pipe_miss` +
+`doca_flow_resource_query_entry`), and
 (c) the device cap snapshot the agent gated on
 (`doca_caps --list-devs` + Flow cap query results for the
 specific match / action kinds). The triple IS the rollback

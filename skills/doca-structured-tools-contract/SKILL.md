@@ -212,7 +212,7 @@ synthesize the same answer):
 2. `cat /opt/mellanox/doca/applications/VERSION` → `version.applications_version`
 3. `doca_caps --version` → `version.doca_caps`
 4. `doca_caps --list-devs` → `devices` array (parse PCIe address + kind + representor)
-5. `for pc in /opt/mellanox/doca/infrastructure/lib/pkgconfig/*.pc; do pkg-config --exists "$(basename "$pc" .pc)" && echo "$pc"; done` → `libraries` array
+5. `PCDIR="$(dirname "$(find /opt/mellanox/doca -name doca-common.pc -print -quit)")"; for pc in "$PCDIR"/*.pc; do pkg-config --exists "$(basename "$pc" .pc)" && echo "$pc"; done` → `libraries` array. `PCDIR` is commonly `/opt/mellanox/doca/lib/<arch>-linux-gnu/pkgconfig` on DOCA 3.3+, or `/opt/mellanox/doca/infrastructure/lib/pkgconfig` on legacy / split-profile installs; deriving it from the live `doca-common.pc` (equivalently `pkg-config --variable=pcfiledir doca-common`) avoids the empty-glob trap of hard-coding `infrastructure/`.
 6. `ls /opt/mellanox/doca/samples/` → `sample_paths` array
 7. `lsmod | grep -E '^mlx5_(core|ib)'` and `uname -r` → `drivers` object
 8. `cat /proc/meminfo | grep -i Huge` → `hugepages` object

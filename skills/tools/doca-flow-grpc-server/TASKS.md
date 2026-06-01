@@ -4,9 +4,11 @@
 are `## configure`, `## run`, `## test`, and `## debug`. The
 other verbs (`## install`, `## build`, `## modify`, `## use`)
 carry routing stubs or a tightly-scoped agent-side workflow,
-because `doca_flow_grpc_server` is a shipped binary plus a
-shipped `.proto` contract, not a source artifact the user
-compiles or patches.
+because `doca_flow_grpc` is a build artifact
+(`install: false` in `tools/flow_grpc_server/meson.build`,
+gated by `flag_enable_grpc_support`) built from the DOCA
+source tree against a fixed `.proto` contract, not a binary
+the external user patches.
 
 This file is loaded by [`SKILL.md`](SKILL.md) after
 [`CAPABILITIES.md`](CAPABILITIES.md). It walks the agent through
@@ -14,14 +16,21 @@ the task verbs every artifact in this bundle exposes.
 
 ## install
 
-`doca_flow_grpc_server` is **shipped pre-built** with the DOCA
-install when the Flow gRPC Server package profile is present.
-There is no separate install workflow this skill owns.
+`doca_flow_grpc` is **NOT installed by a DOCA package**
+(`install: false` in `tools/flow_grpc_server/meson.build`). It
+is a build artifact produced only when DOCA is built from
+source with `flag_enable_grpc_support` (and
+`flag_enable_grpc_flow_library`) enabled. "Install" for this
+tool therefore means "build it from the source tree" — see
+[`## build`](#build).
 
 Routing for nearby "install" questions:
 
 - *"The binary isn't there — do I need to install something?"*
-  → yes. Route to
+  → it is not shipped pre-built; you must build it from the
+  DOCA source tree with gRPC support enabled (see
+  [`## build`](#build)). For the DOCA SDK / source prerequisites,
+  route to
   [`doca-setup ## install`](../../doca-setup/TASKS.md#configure)
   or to [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install).
 - *"I need to install gRPC tooling for my client language."*
@@ -32,7 +41,7 @@ Routing for nearby "install" questions:
 
 ## configure
 
-`configure` for `doca_flow_grpc_server` is *"decide whether
+`configure` for `doca_flow_grpc` is *"decide whether
 gRPC is the right surface AND pick the auth / TLS posture AND
 pick the network segment AND locate the `.proto` files BEFORE
 starting the server"*. Skipping any of those is the canonical
@@ -102,16 +111,24 @@ files are the joint source of truth.
 
 ## build
 
-`doca_flow_grpc_server` is **shipped pre-built** as part of
-every DOCA install that includes the Flow gRPC Server package.
-There is no source tree the external user is expected to
-compile, no build flags, no `meson` or `make` workflow for the
-binary itself.
+`doca_flow_grpc` is **built from the DOCA source tree**, not
+shipped pre-built. Its meson target is
+`executable('doca_flow_grpc', ..., install: false)` in
+`tools/flow_grpc_server/meson.build`, so it is produced in the
+build directory but never staged into an install prefix. The
+target is gated: `meson` skips it entirely unless
+`flag_enable_grpc_support` AND `flag_enable_grpc_flow_library`
+are set (the meson `subdir_done()` guards bail out otherwise).
 
 Routing for nearby "build" questions:
 
-- *"The binary isn't there — do I need to build it?"* → no.
-  Route to [`## install`](#install).
+- *"The binary isn't there — do I need to build it?"* → yes,
+  if you built DOCA without gRPC support. Re-configure the DOCA
+  build with `flag_enable_grpc_support` (and
+  `flag_enable_grpc_flow_library`) enabled, rebuild, and look
+  for `doca_flow_grpc` in the build directory (it is not
+  installed). For the DOCA source / build prerequisites, route
+  to [`## install`](#install).
 - *"I want to generate client stubs for my language."* → that
   is gRPC tooling, not a DOCA build. Route to the
   [gRPC language support](https://grpc.io/docs/languages/)
@@ -125,7 +142,7 @@ Routing for nearby "build" questions:
 
 ## modify
 
-**Do not modify the shipped `doca_flow_grpc_server` binary or
+**Do not modify the shipped `doca_flow_grpc` binary or
 the shipped `.proto` files.** They are the contract; modifying
 them in place breaks every client generated against the
 unmodified contract and breaks the version-overlay rule per
@@ -303,7 +320,7 @@ the canonical lost-fidelity failure for this skill.
 ## use
 
 `## use` is the agent-side workflow for *consuming* a
-captured `doca_flow_grpc_server` session as evidence.
+captured `doca_flow_grpc` session as evidence.
 
 1. **Read the captured server logs and client status codes
    together.** A server-side bind line without a
@@ -322,7 +339,7 @@ captured `doca_flow_grpc_server` session as evidence.
 
 ## Deferred task verbs
 
-The verbs below are not `doca_flow_grpc_server` work and
+The verbs below are not `doca_flow_grpc` work and
 should be routed out before the agent does any of them under
 this skill's name.
 
@@ -352,7 +369,7 @@ this skill's name.
 
 ## Command appendix
 
-`doca_flow_grpc_server`-specific invocation classes the
+`doca_flow_grpc`-specific invocation classes the
 verbs above reach for. Every row is a CLASS — the agent
 must not invent RPC method names, message field names, or
 endpoint paths beyond the shipped `.proto` files and the
@@ -377,7 +394,7 @@ the agent should:
 
 | Purpose (class) | Invocation (shape) | Owning step | Reads as healthy when … |
 | --- | --- | --- | --- |
-| Discover the documented CLI surface | `doca_flow_grpc_server --help` plus the public DOCA Flow gRPC Server guide | [`## configure`](#configure) step 8 + [`## debug`](#debug) layer 1 | Prints the documented flag inventory; the agent uses this as the only source of truth for flag names. |
+| Discover the documented CLI surface | `doca_flow_grpc --help` plus the public DOCA Flow gRPC Server guide | [`## configure`](#configure) step 8 + [`## debug`](#debug) layer 1 | Prints the documented flag inventory; the agent uses this as the only source of truth for flag names. |
 | Confirm DOCA Flow library version | `pkg-config --modversion doca-flow` on the side the gRPC server runs | [`## configure`](#configure) step 1 + [`## debug`](#debug) layer 6 | Matches `doca_caps --version` and the version the client-side `.proto` was generated from; disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2). |
 | Locate the shipped `.proto` files | On the monorepo source tree the Flow gRPC `.proto` files live under `doca/libs/doca_flow/grpc/` (`common.proto`, `doca_flow.proto`, `packet_buffering/packet_buffering.proto`) — NOT under `doca/tools/flow_grpc_server/`. On a binary install they are shipped via the `doca-flow` include / share path; the agent runs `pkg-config doca-flow --variable=prefix` then `find <prefix> -name '*.proto'` to pin the actual install path on the user's host instead of memorizing one. | [`## configure`](#configure) step 3 | The `.proto` files exist on the user's install at the path the `find` confirms; the agent quotes the confirmed path, not memory. |
 | Generate client stubs in the chosen language | `protoc` + the language-specific gRPC plugin per [grpc.io](https://grpc.io/docs/languages/), with the shipped `.proto` files as input | [`## test`](#test) step 2 | The generated stubs compile in the client language; the client can construct request / response messages matching the contract. |

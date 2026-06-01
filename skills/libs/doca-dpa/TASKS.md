@@ -144,7 +144,7 @@ overlay:
 | Include flags | `pkg-config --cflags doca-dpa` for the host side; the DPACC-prescribed include path for the DPA side | Resolves DOCA headers under whichever include directory `pkg-config --cflags` reports on this install (do not hardcode the include path — it can move across DOCA install profiles) for the host side; the DPA-side include path comes from the DPACC install layout via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md) |
 | Link flags | `pkg-config --libs doca-dpa` on the host side, plus the DPACC-prescribed embed step that bakes the DPA-side binary into the host executable | Pulls in whatever `pkg-config --libs` resolves on this install (do not predict the `-l<name>` form by hand — `.so` basenames use underscores, `.pc` names use hyphens, and `pkg-config` is the only correct translator) on the host side. The DPACC embed step is the load-bearing build action — without it the host has no DPA application image to load at runtime |
 | Companion DOCA libs | `doca-argp` for arg parsing in samples; the shipped samples include both host-side and DPA-side translation units | The shipped samples are the verified two-side-program build template; do not invent a one-side-only manifest |
-| DPA-side library NOT to add here | `doca-dpa-comms`, `doca-dpa-verbs` | Those are DPA-SIDE libraries: their symbols are linked from inside the DPA kernel by `dpacc`, NOT from the host link line. Adding them to the host link line is a common first-build error |
+| DPA device-side archives NOT to add to the host link line | `libdoca_dpa_dev_comm.a`, `libdoca_dpa_dev_verbs.a` | These are DPA-SIDE archives shipped within `doca-dpa` (NOT separate pkg-config modules): their symbols are linked into the DPA image from inside the DPA kernel by `dpacc`, NOT from the host link line. Adding them to the host link line is a common first-build error |
 | Minimum DOCA version | Query with `pkg-config --modversion doca-dpa`; never hardcode | Cross-version build/runtime mixing breaks per [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) |
 | Minimum DPACC version | Cross-check the installed `dpacc` version against the DOCA Compatibility Policy linked from [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) | Mismatched DOCA + DPACC combos fail at link time or at launch time with `DOCA_ERROR_DRIVER` |
 
@@ -168,7 +168,7 @@ this skill provides the DPA-specific slot fill.
 
 | Slot | What the agent asks the user | DPA-specific consideration |
 | --- | --- | --- |
-| 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_dpa/`? | Pick a sample whose **shape** matches the user's intent: same kernel-launch-style (single launch vs streaming), same use of `doca_dpa_completion`, same DPA-side library set (vanilla, or `doca-dpa-comms`, or `doca-dpa-verbs`). DPA samples are two-side programs; the sample's DPA-side translation unit is the second half of the verified base |
+| 1. Starting sample | Which sample under `/opt/mellanox/doca/samples/doca_dpa/`? | Pick a sample whose **shape** matches the user's intent: same kernel-launch-style (single launch vs streaming), same use of `doca_dpa_completion`, same DPA device-side component set (vanilla, or comm via `libdoca_dpa_dev_comm.a`, or verbs via `libdoca_dpa_dev_verbs.a`). DPA samples are two-side programs; the sample's DPA-side translation unit is the second half of the verified base |
 | 2. DPA-side kernel function body | What is the DPA kernel function actually computing? | The DPA-side translation unit is the in-place edit point for the kernel body. The agent's anti-pattern alert: do NOT propose moving the kernel logic to the host side to *"simplify"* — that defeats the entire reason to use DPA. Keep the kernel on the DPA |
 | 3. Host launch-argument shape | What arguments does the kernel take, what shapes / sizes? | Per the two-side-program rule in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes), the host launch call and the DPA-side kernel signature MUST agree on count, size, and type. Any change to one side requires updating the other; track this as a single edit, not two |
 | 4. Number of `doca_dpa_thread` execution contexts | One DPA thread or many? Persistent or per-launch? | Per the anti-pattern note in [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes), fresh-thread-per-launch defeats the DPA. Persistent threads processing a stream of launches are the right shape; multi-thread is a re-architecture, not a tweak |
@@ -411,18 +411,23 @@ matrix, see [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms).
    parent smoke. A broken parent flow surfaces as a broken
    DPA-Comms launch later. Fix via [`## configure`](#configure)
    first; do NOT start DPA-side comms code on a broken parent.
-3. **Commit the DPA-Comms cap-budget from host code.** Per the
-   host-side capability-budget rule in
-   [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms), call the
-   matching `doca_dpa_comms_cap_*` family from host code against
-   the active `doca_devinfo` BEFORE the host loads the DPA app
-   into the `doca_dpa` context per [`## configure`](#configure)
-   step 5. Cross-check `pkg-config --modversion doca-dpa-comms`
-   agrees with `pkg-config --modversion doca-dpa` and with the
-   installed `dpacc`; quote both back to the user.
+3. **Confirm the DPA is exposed and the install is matched.** Per
+   the capability rule in
+   [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms), there is
+   NO `doca_dpa_comms_cap_*` host cap family — host-side DPA
+   discovery is only `doca_dpa_cap_is_supported` /
+   `doca_dpa_cap_get_max_kernel_time_alive_supported`. Run
+   `doca_dpa_cap_is_supported` against the active `doca_devinfo`
+   to confirm a DPA is exposed, then confirm the comm primitives
+   the kernel will use exist on this BlueField generation +
+   matched install by reading `doca_dpa_dev_comch_msgq.h` and the
+   shipped sample. Cross-check the single
+   `pkg-config --modversion doca-dpa` agrees with the installed
+   `dpacc` (there is no separate `doca-dpa-comms.pc`); quote both
+   back to the user.
 4. **Read the matching shipped sample first.** The verified
    two-side-program baseline lives under
-   `/opt/mellanox/doca/samples/doca_dpa_comms/`. Read it on disk
+   `/opt/mellanox/doca/samples/doca_dpa/`. Read it on disk
    BEFORE writing any DPA-side comms code; do NOT re-derive the
    kernel-side initialization order from memory.
 
@@ -430,12 +435,12 @@ matrix, see [`CAPABILITIES.md ## comms`](CAPABILITIES.md#comms).
 
 | Slot | Value |
 | --- | --- |
-| pkg-config module (DPA side) | `doca-dpa-comms` — passed through `dpacc` for the DPA-side translation unit |
-| Host link line | **No `-ldoca-dpa-comms`**. The host link line stays as the parent [`## build`](#build) prescribes (`-ldoca-dpa -ldoca-common`). Host code may include the DPA-Comms header for the `doca_dpa_comms_cap_*` family used purely for the cap-budget commit, but the substantive send / receive / signal calls live DPA-side |
-| Version anchors | `pkg-config --modversion doca-dpa-comms` MUST agree with `pkg-config --modversion doca-dpa` AND the installed `dpacc` per the DOCA Compatibility Policy |
+| DPA-side archive | `libdoca_dpa_dev_comm.a` (header `doca_dpa_dev_comch_msgq.h`) — part of `doca-dpa`, linked into the DPA image by `dpacc`; NOT a separate pkg-config module |
+| Host link line | **Do NOT add `libdoca_dpa_dev_comm.a`**. The host link line stays as the parent [`## build`](#build) prescribes (`-ldoca-dpa -ldoca-common`). There is no host-side DPA-Comms cap call to include a header for; the substantive send / receive / signal calls live DPA-side |
+| Version anchors | The single `pkg-config --modversion doca-dpa` MUST agree with the installed `dpacc` per the DOCA Compatibility Policy (there is no separate `doca-dpa-comms.pc`) |
 
 **modify overlay.** Take the closest-fitting sample under
-`/opt/mellanox/doca/samples/doca_dpa_comms/` and apply a minimum
+`/opt/mellanox/doca/samples/doca_dpa/` and apply a minimum
 diff. Slot fill on top of the parent's [`## modify`](#modify):
 
 - Pick the DPA-Comms primitive family the kernel uses
@@ -445,9 +450,12 @@ diff. Slot fill on top of the parent's [`## modify`](#modify):
   endpoint handles; the host launch call and the DPA-side
   kernel signature MUST agree per the parent's two-side-program
   coupling rule.
-- Re-run the host-side `doca_dpa_comms_cap_*` if the modify
-  introduces a new primitive; otherwise the first kernel launch
-  surfaces `DOCA_ERROR_NOT_SUPPORTED` on the host completion.
+- If the modify introduces a new comm primitive, re-check
+  `doca_dpa_dev_comch_msgq.h` and the shipped sample that it
+  exists on this BlueField generation + matched install (there
+  is no host `doca_dpa_comms_cap_*` query to call); otherwise the
+  first kernel launch surfaces `DOCA_ERROR_NOT_SUPPORTED` on the
+  host completion.
 - Kernel-side cooperative back-off on `DOCA_ERROR_AGAIN`: the
   kernel must yield (return from the launch, let the host drain
   via `doca_pe_progress`, re-submit on the next launch) OR
@@ -473,11 +481,12 @@ diff. Slot fill on top of the parent's [`## modify`](#modify):
    losing any. Catches `_AGAIN`-handling bugs — if the kernel
    does not yield correctly on a full DPA-side comms queue,
    throughput collapses or the host completion stream stalls.
-3. **Capability-budget negative test**: write a kernel that
-   calls a primitive the host-side `doca_dpa_comms_cap_*`
-   reported as NOT supported, confirm `DOCA_ERROR_NOT_SUPPORTED`
-   cleanly on the launch's completion — validates the agent's
-   cap-budget commit is the runtime authority.
+3. **Unsupported-primitive negative test**: write a kernel that
+   calls a comm primitive the device header / sample shows is
+   NOT on this BlueField generation + matched install, confirm
+   `DOCA_ERROR_NOT_SUPPORTED` cleanly on the launch's completion
+   — validates the agent read the supported-primitive surface
+   correctly (there is no host cap-query to commit a budget).
 
 **debug overlay.** Layered on the parent's [`## debug`](#debug)
 ladder:
@@ -487,9 +496,11 @@ ladder:
   full. Recommend the cooperative back-off per the modify
   overlay above; confirm the host is draining the parent's
   progress engine. Do NOT recommend a tight in-kernel retry.
-- `DOCA_ERROR_NOT_SUPPORTED` is *always* a cap-budget /
-  hardware-generation mismatch. Re-run `doca_dpa_comms_cap_*`
-  from host code; if the query was never run, that is the bug.
+- `DOCA_ERROR_NOT_SUPPORTED` is *always* a
+  hardware-generation / matched-install mismatch. Confirm the
+  DPA is exposed via `doca_dpa_cap_is_supported` and re-check the
+  primitive in `doca_dpa_dev_comch_msgq.h` / the shipped sample;
+  there is no `doca_dpa_comms_cap_*` query to re-run.
 - `DOCA_ERROR_BAD_STATE` from a DPA-Comms call must be
   disambiguated from the parent's `_BAD_STATE`. The parent
   meaning is *host-side `doca_dpa` lifecycle violated*; the
@@ -532,14 +543,18 @@ walk these overlays.
    [`doca-verbs`](../doca-verbs/SKILL.md) for the host-side
    raw-verbs escape hatch when `doca-rdma` does not expose the
    verb the user needs).
-3. **Run the host-side cap-query for the SPECIFIC verb.** From
-   host code, BEFORE any DPA kernel launch, run the matching
-   `doca_dpa_verbs_cap_*` against the active `doca_devinfo` for
-   the BlueField the host is driving. The cap-query lives on
-   the host; the DPA-side translation unit cannot cap-query
-   from inside the kernel. If the query returns false, that is
-   the answer — the hardware does not expose the verb. Climb
-   back up if a host-side alternative covers the case.
+3. **Confirm the SPECIFIC verb is exposed on this device.** There
+   is NO `doca_dpa_verbs_cap_*` host cap family. From host code,
+   confirm a DPA is exposed via `doca_dpa_cap_is_supported`
+   against the active `doca_devinfo`, then confirm the specific
+   verb / opcode the kernel will post exists on this BlueField
+   generation + matched DOCA/DPACC install by reading
+   `doca_dpa_dev_verbs.h` and the shipped sample. The DPA-side
+   translation unit cannot cap-query from inside the kernel, and
+   there is no host-side per-verb query to substitute. If the
+   verb is not exposed, that is the answer — the hardware does
+   not expose it. Climb back up if a host-side alternative covers
+   the case.
 4. **Bring up the parent flow AND configure the RDMA QP(s) on
    the host.** Per the host-configures-QP / DPA-uses-QP rule in
    [`CAPABILITIES.md ## verbs`](CAPABILITIES.md#verbs), the QPs
@@ -550,12 +565,12 @@ walk these overlays.
    arguments or via DPA-visible memory; the agent must name the
    mechanism explicitly per the parent's two-side-program rule.
 5. **Read the DPA-side verbs symbols from the user's install.**
-   `doca_dpa_verbs_*` symbols are install-bound on the DPA
+   `doca_dpa_dev_verbs_*` symbols are install-bound on the DPA
    side; the agent must NOT quote them from memory. Direct the
-   user to the DPA-side header path DPACC uses (per the DPACC
-   guide via
+   user to the DPA-side header `doca_dpa_dev_verbs.h` (per the
+   DPACC guide via
    [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md))
-   and to `/opt/mellanox/doca/samples/doca_dpa_verbs/`. Headers
+   and to `/opt/mellanox/doca/samples/doca_dpa/`. Headers
    win over docs.
 6. **Pick the completion topology.** Host-side CQE inspection
    (default — the parent's `doca_dpa_completion` surfaces it)
@@ -568,20 +583,22 @@ walk these overlays.
 
 | Slot | Value |
 | --- | --- |
-| pkg-config module (DPA side) | `doca-dpa-verbs` — passed through `dpacc` for the DPA-side translation unit |
-| Host link line | **No `-ldoca-dpa-verbs`**. The host link line stays as the parent [`## build`](#build) prescribes (`-ldoca-dpa -ldoca-common`). Adding `-ldoca-dpa-verbs` to the host link line is the *"link line built, but my host program does not call any DPA-Verbs function"* dead weight |
-| DPACC step | The DPA-side translation unit calling `doca_dpa_verbs_*` is compiled by `dpacc` into the binary embedded as the `doca_dpa_app`. The host system compiler is NOT a substitute |
-| Version anchors | `pkg-config --modversion doca-dpa-verbs` MUST agree with `pkg-config --modversion doca-dpa`, `doca_caps --version`, and the installed `dpacc` per the DOCA Compatibility Policy |
+| DPA-side archive | `libdoca_dpa_dev_verbs.a` (header `doca_dpa_dev_verbs.h`) — part of `doca-dpa`, linked into the DPA image by `dpacc`; NOT a separate pkg-config module |
+| Host link line | **Do NOT add `libdoca_dpa_dev_verbs.a`**. The host link line stays as the parent [`## build`](#build) prescribes (`-ldoca-dpa -ldoca-common`). Adding the DPA-side verbs archive to the host link line is the *"link line built, but my host program does not call any DPA-Verbs function"* dead weight |
+| DPACC step | The DPA-side translation unit calling the `doca_dpa_dev_verbs_*` primitives is compiled by `dpacc` into the binary embedded as the `doca_dpa_app`. The host system compiler is NOT a substitute |
+| Version anchors | The single `pkg-config --modversion doca-dpa` MUST agree with `doca_caps --version` and the installed `dpacc` per the DOCA Compatibility Policy (there is no separate `doca-dpa-verbs.pc`) |
 
 **modify overlay.** Pick a sample under
-`/opt/mellanox/doca/samples/doca_dpa_verbs/` whose shape matches
+`/opt/mellanox/doca/samples/doca_dpa/` whose shape matches
 the user's intent (same DPA-side WR opcode pattern; same
 completion topology; same host-configured QP transport). Slot
 fill on top of the parent's [`## modify`](#modify):
 
 - Host-side QP configuration changes live in the host-side
-  translation unit. Each added opcode / WR flag needs its own
-  `doca_dpa_verbs_cap_*` query BEFORE the kernel is rebuilt.
+  translation unit. For each added opcode / WR flag, confirm it
+  is exposed on this device by reading `doca_dpa_dev_verbs.h` /
+  the shipped sample BEFORE the kernel is rebuilt (there is no
+  `doca_dpa_verbs_cap_*` host query to call).
 - DPA-side WR construction changes (opcode, target QP handle,
   memory region, flags, payload size) live in the DPA-side
   translation unit. Do NOT propose moving the WR construction
@@ -606,9 +623,12 @@ fill on top of the parent's [`## modify`](#modify):
    a small buffer; matched on the peer when two-sided), the
    host drains exactly ONE completion through the chosen
    completion surface. If this fails, do NOT scale — narrow.
-2. **Re-confirm the host-side cap-query passed for THIS device.**
-   Re-run `doca_dpa_verbs_cap_*` for the specific verb / opcode
-   the kernel posts. If false, climb back up.
+2. **Re-confirm the specific verb is exposed on THIS device.**
+   Confirm via `doca_dpa_cap_is_supported` that the DPA is
+   exposed and re-check `doca_dpa_dev_verbs.h` / the shipped
+   sample for the specific verb / opcode the kernel posts (there
+   is no `doca_dpa_verbs_cap_*` host query). If it is not
+   exposed, climb back up.
 3. **Verify host-configures-QP / DPA-uses-QP coupling.** If the
    kernel constructs a WR whose opcode / flag / payload size
    the host-configured QP cannot honor,
@@ -683,10 +703,12 @@ follows so the agent does not invent guidance:
   umbrella. This skill prescribes how to *use* the
   DPACC-produced image from the host; it does not redefine
   how to produce it.
-- **DPA-side `doca-dpa-comms` and `doca-dpa-verbs` library
-  surfaces.** These are DPA-side libraries: their symbols are
-  called from inside the DPA kernel, not from the host. Route
-  via
+- **DPA device-side comm / verbs component surfaces
+  (`libdoca_dpa_dev_comm.a` / `libdoca_dpa_dev_verbs.a`).**
+  These are DPA-side archives shipped within `doca-dpa` (NOT
+  separate pkg-config modules): their symbols are called from
+  inside the DPA kernel and linked by `dpacc`, not from the
+  host. Route via
   [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
   to the public *DOCA DPA Comms* and *DOCA DPA Verbs* guides.
 

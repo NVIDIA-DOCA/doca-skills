@@ -213,8 +213,10 @@ the flow, not the verbatim recipe.
 > with a hyphen; some OpenSSL builds may accept both, but the
 > bundle's verbatim form is the underscore. The engine ID is
 > `doca_sha_offload_engine`; the install path of the `.so` is
-> `${DOCA_DIR}/infrastructure/doca_sha_offload_engine/` (NOT
-> under `${DOCA_DIR}/tools/`).
+> `${DOCA_DIR}/tools/doca_sha_offload_engine/` (per
+> `install_dir: 'tools/doca_sha_offload_engine'` in
+> `tools/sha_offload_engine/meson.build` and the shipped
+> `readme.md`; NOT under `${DOCA_DIR}/infrastructure/`).
 
 1. **Confirm the `.so` and the environment.** Per
    [`## install`](#install), [`## configure`](#configure),
@@ -246,7 +248,7 @@ the flow, not the verbatim recipe.
    `readme.md`:
    ```
    ENGINE *e;
-   const char *doca_engine_path = "${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so";
+   const char *doca_engine_path = "${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so";
    ENGINE_load_dynamic();
    e = ENGINE_by_id(doca_engine_path);
    ENGINE_ctrl_cmd_string(e, "set_pci_addr", doca_engine_pci_addr, 0);
@@ -340,7 +342,7 @@ layers in order:
 1. **Load-layer.** `openssl engine dynamic -pre LOAD
    -vvv` fails or the verbose output does not list
    the engine. Confirm the `SO_PATH` is the verified
-   `${DOCA_DIR}/infrastructure/doca_sha_offload_engine/libdoca_sha_offload_engine.so`;
+   `${DOCA_DIR}/tools/doca_sha_offload_engine/libdoca_sha_offload_engine.so`;
    run `ldd <engine.so>` to surface missing transitive
    dependencies; confirm OpenSSL on the host matches
    what the engine was built against.
