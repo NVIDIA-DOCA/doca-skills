@@ -116,6 +116,20 @@ install path, and only then answer.
 > observability-before-workload, refuse-and-escalate when no rollback
 > exists). Per-artifact overlays MUST NOT redefine it.
 
+> **Upgrade / downgrade discipline.** When the user is contemplating
+> or recovering a DOCA upgrade or downgrade — moving a host to the
+> next release, refreshing the BFB, bumping an NGC container tag,
+> rolling back, or reacting to an accidental `apt upgrade` drift —
+> load [`doca-upgrade`](../doca-upgrade/SKILL.md). Its headline
+> contract is **detect → report → ASK → only-then guided upgrade;
+> never auto-upgrade.** It routes version detection to
+> [`doca-version`](../doca-version/SKILL.md), every hardware /
+> firmware / reboot step to
+> [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md), and
+> sunset / deprecation lifecycle lookups back to this map's
+> Release Notes entry below. It does not redefine version detection
+> or the hardware-touching discipline.
+
 ## Public documentation entry points
 
 Start here for any conceptual question. These are the canonical NVIDIA-hosted
@@ -599,6 +613,8 @@ When the user asks something, route as follows:
 | "What is the API for X?" | Library guide; confirm by inspecting headers under `$(pkg-config --variable=includedir doca-common)` (commonly `/opt/mellanox/doca/include/` on DOCA 3.3+; `/opt/mellanox/doca/infrastructure/include/` on legacy / split-profile installs). |
 | "Why does my build fail with `pkg-config` not finding `doca-...`?" | "Layout of an installed DOCA package" section above (`PKG_CONFIG_PATH`), then Installation Guide. |
 | "What is the latest version / what changed?" | Release Notes. |
+| "Is there a newer DOCA — should I upgrade / downgrade / roll back?" | [`doca-upgrade`](../doca-upgrade/SKILL.md) for the detect → report → ASK → guided-upgrade discipline (never auto-upgrade); Release Notes for what the target release contains. |
+| "Is the component I depend on being sunset / deprecated?" | Release Notes (lifecycle / deprecation notices), reached via the [`doca-upgrade`](../doca-upgrade/SKILL.md) sunset-awareness check; do not assert deprecation from memory. |
 | "What does the DOCA version number mean? Is LTS still supported?" | Compatibility Policy (Public documentation entry points table). |
 | "How do I run DOCA on Kubernetes / provision a DPU?" | DOCA Platform Framework on GitHub. |
 | "I have a behavior I cannot explain." | Release Notes (known issues) first; then the DOCA Developer Forum. Never go to the forum first. |

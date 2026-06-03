@@ -44,7 +44,7 @@ repository must satisfy. The gate inventory:
 | 3 | Non-goal routing (27 products) | OK |
 | 4 | Reference hygiene (no internal path leaks; no audit history in runtime `SKILL.md`) | OK |
 | 4 | Frontmatter `kind` (libs→library, services→service, tools→tool — all 52) | OK |
-| 4 | NVIDIA-Skills publishing readiness (LICENSE + CoC + BENCHMARK + per-skill `evals/evals.json` + `SKILLCARD.yaml` + `components.d/doca.yml`) | OK |
+| 4 | NVIDIA-Skills publishing readiness (LICENSE + CoC + BENCHMARK + per-skill `evals/evals.json` + `skill-card.md` (catalog-required governance card) + `SKILLCARD.yaml` (machine-readable companion) + `components.d/doca.yml`) | OK |
 | 5 | No-regression vs frozen baseline (609 baseline cells, variant C) | OK — 0 regressions |
 
 The frozen baseline is the no-regression contract: every previously-PASS cell

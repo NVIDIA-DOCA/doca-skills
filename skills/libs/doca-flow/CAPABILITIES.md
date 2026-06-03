@@ -46,6 +46,25 @@ DOCA Flow programs the BlueField NIC's accelerated steering hardware.
 Before writing any pipe spec, the agent should know which mode and feature
 set the device is in:
 
+- **Device placement — check this FIRST, before steering mode.** DOCA
+  Flow's hardware-steering plane is owned by *one* side of a BlueField:
+  the embedded DPU (Arm) cores, not the x86 host, whenever the card is in
+  **separated-host / NIC mode** (`INTERNAL_CPU_MODEL = SEPARATED_HOST` in
+  `mlxconfig`). On such a card the **host** function cannot bring up a Flow
+  port at all — `doca_flow_port_start` (or the first `doca_flow_pipe_create`
+  on a switch port) fails at the capability-query stage with the
+  signature in [`## Error taxonomy`](#error-taxonomy) (`Failed to get hws
+  cap` / `dest action ROOT … err -121`). This is NOT a spec, steering-mode,
+  or pipe bug and no amount of pipe-spec editing fixes it. The agent must
+  decide *where Flow runs* before anything else: run on the DPU Arm side
+  (the native place for DOCA Flow on a separated-host BlueField), or — if
+  the workload genuinely must run host-side — change the card's mode
+  (`mlxconfig` + reboot, possibly a firmware update) through the
+  [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md) overlay.
+  The placement check is step 1 of [TASKS.md ## configure](TASKS.md#configure);
+  do not skip it just because `doca_caps` *lists* the device — being
+  enumerable is not the same as the opened function having a usable
+  steering plane.
 - **Steering mode.** Flow runs over either hardware steering (HWS, the
   default on supported hardware/firmware combinations) or software steering
   (SWS, fallback). Supported match kinds, action kinds, and pipe types
@@ -320,6 +339,7 @@ to ask the user next:
 | Capability error | `DOCA_ERROR_NOT_SUPPORTED` on pipe creation or entry add | Match kind, action kind, or steering mode is unsupported on this device/firmware | Re-run capability discovery (TASKS.md `## configure`); compare requested capability to the device's actual capability set. Do not retry the same spec on the same device. |
 | Resource error | `DOCA_ERROR_NO_MEMORY`, `DOCA_ERROR_FULL` on entry add | Pipe entry budget exhausted or actions-memory pool depleted | Inspect counters and pipe statistics (`## Observability` below); enlarge the pool or evict entries before retrying. |
 | Lifecycle error | `DOCA_ERROR_BAD_STATE` on start/stop | Object operated on outside its allowed lifecycle window | Re-read the object's lifecycle in TASKS.md; ensure operations happen in the documented order (port started before pipe created, pipe created before entries added, etc.). |
+| Placement / steering-plane-unavailable error | Port refuses to start — `doca_flow_port_start` (or the first switch-port `doca_flow_pipe_create`) returns `DOCA_ERROR_DRIVER` / a failed start, and the SDK log shows `Failed to query WQE based flow table capabilities` → `Failed to get hws cap` (devx `op_mod=0x37`, `BAD_PARAM_ERR`), or `failed to create dest action ROOT, flag 64, err -121` | The opened function has no usable hardware-steering plane — almost always running **host-side against a BlueField in `SEPARATED_HOST` / NIC mode**, where the steering plane belongs to the DPU Arm. Identical on every card on such a host, in BOTH `vnf` and `switch` modes, and forcing `sws` does NOT bypass it (port-start still queries the HWS cap) | **Do not touch the pipe spec or steering-mode string.** This is the device-placement signature: check `INTERNAL_CPU_MODEL` per [`## Capabilities and modes`](#capabilities-and-modes) device-placement bullet + [TASKS.md ## configure](TASKS.md#configure) step 1. Run DOCA Flow on the DPU Arm side, or change the card's mode via [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md). |
 | Hardware/firmware error | `DOCA_ERROR_DRIVER` and similar | The kernel driver, firmware, or PCIe path is in a state Flow cannot recover from | Stop. This is not a Flow-spec problem. Capture device state via the platform's diagnostic CLIs and escalate. |
 
 Flow does not invent error codes outside the `DOCA_ERROR_*` family;

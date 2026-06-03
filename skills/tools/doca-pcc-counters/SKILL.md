@@ -1,26 +1,19 @@
 ---
 name: doca-pcc-counters
 description: >
-  Use this skill when the user is invoking the DOCA PCC
-  Counters tool — the `pcc_counters.sh` bash script under the
-  DOCA tools directory — to arm and read the fixed set of
-  firmware / hardware PCC (Programmable Congestion Control)
-  diagnostic counters (CNP, RTT, WRED-drop, RTT-gen, etc.) on
-  a ConnectX / BlueField device via mst + the mlx5 debugfs
-  `diag_cnt` interface. The script takes exactly two positional
-  arguments — `set | query` and an mst device path (e.g.
-  `sudo ./pcc_counters.sh set /dev/mst/mt41692_pciconf0`) — and
-  has no `--help`, no `--version`, and no other subcommands.
-  Trigger even when the user does not explicitly mention
-  "pcc_counters.sh" or "PCC counters" — typical implicit
-  phrasings include "how do I read the CNP / RTT / WRED-drop
-  counters on this NIC", "PCC counter stuck at zero", "the
-  script says Bad Device", or "is congestion control dropping
-  packets on this port?". Refuse and route elsewhere for
-  writing a custom PCC algorithm body (that is the host-side
-  `doca-pcc` library), the factory firmware PCC algorithm
-  configuration, DOCA install, or fleet-wide CC tuning — those
-  belong to other skills.
+  Use this skill when the user is invoking the DOCA PCC Counters tool
+  — the `pcc_counters.sh` bash script under the DOCA tools directory —
+  to arm and read the fixed firmware/hardware PCC (Programmable
+  Congestion Control) diagnostic counters (CNP, RTT, WRED-drop, etc.)
+  on a ConnectX / BlueField device via mst + the mlx5 debugfs
+  `diag_cnt` interface. The script takes two positional args —
+  `set | query` and an mst device path — with no `--help` or
+  subcommands. Trigger even without "pcc_counters.sh" or "PCC
+  counters": "how do I read the CNP / RTT / WRED-drop counters",
+  "PCC counter stuck at zero", "the script says Bad Device", or "is
+  congestion control dropping packets on this port?". Route elsewhere
+  for writing a custom PCC algorithm (doca-pcc), factory firmware PCC
+  config, DOCA install, or fleet-wide CC tuning.
 metadata:
   kind: tool
 compatibility: >

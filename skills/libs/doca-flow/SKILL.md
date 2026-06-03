@@ -79,6 +79,19 @@ load-bearing piece — the worked example is a single instance.
   + the layered ladder in
   [`TASKS.md ## debug`](TASKS.md#debug) that escalates to
   [`doca-debug`](../../doca-debug/SKILL.md).
+- **"My Flow port won't start at all — `Failed to get hws cap` /
+  `dest action ROOT … err -121`."** — worked example: *"every
+  `doca_flow_port_start` fails the HWS capability query on my
+  BlueField host, in both vnf and switch mode"*. This is the
+  **device-placement** signature, not a pipe bug: the steering plane
+  is unavailable to the opened function (typically host-side against a
+  `SEPARATED_HOST` / NIC-mode BlueField, where Flow belongs on the DPU
+  Arm). Answered by the device-placement bullet in
+  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  + the placement row in
+  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  + the placement gate in [`TASKS.md ## configure`](TASKS.md#configure)
+  step 2 and Step 0 of [`TASKS.md ## debug`](TASKS.md#debug).
 - **"How do I add hardware-accelerated stateful 5-tuple connection
   tracking (with aging timers and NAT-aware actions) on top of my
   existing doca-flow setup?"** — worked example: *"I have a

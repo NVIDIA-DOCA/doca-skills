@@ -30,6 +30,7 @@ skills/
 ├── doca-version/                 # cross-cutting version skill    (library-shape)
 ├── doca-structured-tools-contract/ # cross-cutting JSON-contract skill
 ├── doca-hardware-safety/         # cross-cutting hardware-safety meta-policy
+├── doca-upgrade/                 # cross-cutting upgrade/downgrade discipline (detect → report → ASK → guided)
 ├── doca-container-deployment/    # cross-cutting service-container deployment path
 ├── doca-bare-metal-deployment/   # cross-cutting bare-metal-binary deployment path (sibling of container-deployment)
 ├── libs/<library>/               # one skill per doca/libs/<library>
@@ -52,7 +53,7 @@ break agent discovery.
 
 ## Index
 
-### Top-level cross-cutting skills (9)
+### Top-level cross-cutting skills (10)
 
 | Skill | Source | When to load |
 | --- | --- | --- |
@@ -63,6 +64,7 @@ break agent discovery.
 | `doca-version` | [skills/doca-version/SKILL.md](skills/doca-version/SKILL.md) | Any question that depends on a DOCA version, BFB version, container tag, or host↔DPU↔container pairing. Every per-artifact skill's `## Version compatibility` anchor redirects here so the rule is stated once and reused. |
 | `doca-structured-tools-contract` | [skills/doca-structured-tools-contract/SKILL.md](skills/doca-structured-tools-contract/SKILL.md) | The agent is about to emit JSON for any infra step (env probe, hardware probe, version detect, NGC promote, build flags). This skill ships the JSON schemas the future infra tools will validate against. |
 | `doca-hardware-safety` | [skills/doca-hardware-safety/SKILL.md](skills/doca-hardware-safety/SKILL.md) | The agent is about to recommend a change that touches DPU / NIC hardware state (`mlxconfig`, firmware burn, BlueField mode flip, BAR change, IOMMU mode, hugepages, BFB reflash). Meta-policy: pre-flight inventory, OOB requirement, maintenance window, rollback discipline, replica-first validation. Every per-artifact `## Safety policy` cross-links here. |
+| `doca-upgrade` | [skills/doca-upgrade/SKILL.md](skills/doca-upgrade/SKILL.md) | The user is contemplating or recovering a DOCA upgrade / downgrade — moving a host to the next release, refreshing the BFB, bumping an NGC container tag, rolling back, or reacting to an accidental `apt upgrade` drift. Headline discipline: **detect → report → ASK → only-then guided upgrade; never auto-upgrade.** Routes version detection to `doca-version`, every hardware/firmware/reboot step to `doca-hardware-safety`, and sunset/deprecation lookups to `doca-public-knowledge-map`. |
 | `doca-container-deployment` | [skills/doca-container-deployment/SKILL.md](skills/doca-container-deployment/SKILL.md) | The user is deploying any DOCA service container on BlueField (kubelet-standalone + pod-spec drop). The CONTAINER half of the two-path deployment landscape; the bare-metal half lives in `doca-bare-metal-deployment`. Every in-bundle per-service skill cross-links here. If the developer has NOT yet decided container vs. bare-metal, route them back to `doca-setup ## recognize` first. |
 | `doca-bare-metal-deployment` | [skills/doca-bare-metal-deployment/SKILL.md](skills/doca-bare-metal-deployment/SKILL.md) | The user is deploying a DOCA-linked **application binary** directly on hardware — no container — on host x86 (DOCA host install talking to a remote BlueField NIC over PCIe) OR on BlueField Arm bare-metal (DOCA app on the DPU cores). Owns the launch contract (direct / tmux / systemd), hardware-resource binding (PF/VF/representor + NUMA + CPU pinning + IRQ affinity), per-tenant isolation (cgroup-v2 + namespaces + numactl), the bare-metal error taxonomy, observability (stdout / journald / devlink / sysfs), and the restart-loop-is-HIGH-STAKES rule. The BARE-METAL half of the two-path deployment landscape; the container half lives in `doca-container-deployment`. Routed to from `doca-setup ## recognize`. |
 

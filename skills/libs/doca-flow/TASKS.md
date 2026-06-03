@@ -27,21 +27,41 @@ Steps the agent should walk the user through:
 1. **Confirm the installed DOCA version.** Use the procedure in
    `doca-public-knowledge-map` (do not duplicate it here). Quote the
    version observed; do not assume "latest".
-2. **Discover device capabilities.** Run the installed `doca_caps`
+2. **Check device placement BEFORE anything else — host-side vs DPU
+   Arm.** On a BlueField, the hardware-steering plane DOCA Flow needs is
+   owned by only one side of the card. Determine which by reading
+   `INTERNAL_CPU_MODEL` from `mlxconfig -d <pcie> q` (the `mlxconfig`
+   command itself is the cross-cutting one owned by
+   [`doca-debug TASKS.md ## Command appendix`](../../doca-debug/TASKS.md#command-appendix)):
+   - `SEPARATED_HOST` → the card is in NIC mode; the steering plane lives
+     on the **DPU Arm**, and the **x86 host function cannot start a Flow
+     port** (it fails with the placement signature in
+     [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy):
+     `Failed to get hws cap` / `dest action ROOT … err -121`). If the
+     agent is on the host in this mode, STOP and route Flow work to the
+     DPU Arm side, or change the card's mode through
+     [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md) — do
+     not proceed to pipe construction.
+   - `EMBEDDED_CPU` (DPU mode) or a ConnectX whose opened function
+     advertises a usable steering plane → placement is fine; continue.
+   Being listed by `doca_caps --list-devs` is NOT proof the opened
+   function has a steering plane — placement is the gate, enumeration is
+   not.
+3. **Discover device capabilities.** Run the installed `doca_caps`
    capability tool and the Flow capability-query API; record the active
    steering mode (HWS or SWS), the supported match kinds, the supported
    action kinds, and the maximum pipe/entry budgets. The capability
    matrix to compare against lives in
    [CAPABILITIES.md ## Capabilities and modes](CAPABILITIES.md#capabilities-and-modes).
-3. **Enumerate ports and representors.** Confirm the BlueField port the
+4. **Enumerate ports and representors.** Confirm the BlueField port the
    user wants to program is visible to the host (`devlink dev show` and
    the installed Flow port-enumeration sample), and that the
    representors the user expects to forward to are present.
-4. **Bring up the Flow port.** Use the Flow port-init API with the
-   device handle obtained in step 3. The lifecycle is *port created →
+5. **Bring up the Flow port.** Use the Flow port-init API with the
+   device handle obtained in step 4. The lifecycle is *port created →
    port started → ready for pipe creation*; do not create pipes before
    the port reports started.
-5. **Sanity check before any pipe work.** Confirm with the user: which
+6. **Sanity check before any pipe work.** Confirm with the user: which
    ingress port, which egress representor(s), which traffic class. If
    any of those are unclear, stop and ask — do not invent.
 
@@ -301,6 +321,25 @@ root cause that is either fixable in the spec or escalatable.
 > The agent should walk the cross-cutting ladder first whenever the symptom
 > layer is not yet known; this Flow overlay layers on top once the symptom
 > is confirmed to be inside the Flow API surface.
+
+**Step 0 — did the port even start? (placement gate before the counter
+ladder).** The counter-first ladder below assumes a *started* port. If
+`doca_flow_port_start` — or the first `doca_flow_pipe_create` on a switch
+port — fails and the SDK log shows `Failed to query WQE based flow table
+capabilities` → `Failed to get hws cap` (devx `op_mod=0x37`,
+`BAD_PARAM_ERR`), or `failed to create dest action ROOT, flag 64, err
+-121`, then **stop — this is not a counter / spec / data-plane bug and
+none of the steps below apply.** It is the device-placement signature
+(see [CAPABILITIES.md ## Error taxonomy](CAPABILITIES.md#error-taxonomy)):
+the opened function has no hardware-steering plane, almost always because
+you are host-side on a BlueField in `SEPARATED_HOST` / NIC mode where the
+steering plane belongs to the DPU Arm. The tells: it reproduces on
+*every* device on the host, in *both* `vnf` and `switch` modes, and
+forcing `sws` does not help (port-start still queries the HWS cap). Route
+back to [`## configure`](#configure) step 2 (placement check); the fix is
+to run Flow on the DPU Arm side or change the card's mode via
+[`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md) — never a
+pipe-spec edit.
 
 Walk in this order — do not skip steps:
 
