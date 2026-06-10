@@ -1,6 +1,6 @@
 # NVIDIA DOCA Skills
 
-**Production-grade agent skill bundle for NVIDIA DOCA — 60 skills covering every public DOCA library, service, and tool.**
+**Production-grade agent skill bundle for NVIDIA DOCA — 61 skills covering every public DOCA library, service, and tool.**
 
 [![NVIDIA](https://img.shields.io/badge/NVIDIA-DOCA-76B900?style=flat&logo=nvidia&logoColor=white)](https://docs.nvidia.com/doca/sdk/index.html)
 [![Agent Skills Spec](https://img.shields.io/badge/Agent%20Skills-Specification-blue)](https://agentskills.io/specification)
@@ -28,7 +28,7 @@ This repository ships **60 portable, [AgentSkills.io](https://agentskills.io/spe
 >
 > When the agent receives a question about an out-of-scope product it does **not** synthesize an answer from training knowledge. The required response shape is: (a) name the product as externally-productized and out-of-bundle, (b) name the boundary (strict 1:1 with the DOCA monorepo), and (c) route the user to the right authoritative `docs.nvidia.com/doca/sdk/` page and the DOCA Developer Forum search hint — via the per-product row in [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md). Full non-goal contract: [`AGENTS.md` § Non-goals item 7](AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely).
 
-The bundle is **strictly 1:1 with the `doca/{libs,services,tools}/` monorepo** at the currently-aligned DOCA release (DOCA 3.3 / `doca-3.3.0109`): every public DOCA library, every public DOCA service, every public DOCA tool — plus 9 cross-cutting skills for setup, debug, hardware safety, version-pinning, bare-metal vs containerized deployment, programming patterns, public-docs routing, structured-tools contract, and non-goal routing for externally-productized NVIDIA networking software (27 products covered).
+The bundle is **strictly 1:1 with the `doca/{libs,services,tools}/` monorepo** at the currently-aligned DOCA release (DOCA 3.3 / `doca-3.3.0109`): every public DOCA library, every public DOCA service, every public DOCA tool — plus 10 cross-cutting skills for setup, debug, hardware safety, version-pinning, upgrade planning, bare-metal vs containerized deployment, programming patterns, public-docs routing, structured-tools contract, and non-goal routing for externally-productized NVIDIA networking software (27 products covered).
 
 The whole bundle is **vendor-neutral by design**: the directory layout is `skills/<name>/SKILL.md` (the AgentSkills.io standard), not `.claude/skills/` or any other runtime-specific path, so the bundle reads naturally to any agent that follows the open standard.
 
@@ -147,7 +147,7 @@ Use `--agent` more than once to install the same skill bundle into multiple agen
 ./install.sh --agent cursor --skill doca-flow --yes
 ```
 
-Replace `doca-flow` with any skill name from the [Skill Catalog](#skill-catalog). Without `--skill`, the installer installs all 60 skills (this is the default and is what an external reviewer should use).
+Replace `doca-flow` with any skill name from the [Skill Catalog](#skill-catalog). Without `--skill`, the installer installs all 61 skills (this is the default and is what an external reviewer should use).
 
 ### Browse the catalog without installing
 
@@ -204,7 +204,7 @@ If you are new to DOCA, the answer to *"how do I get to my first DOCA app?"* is 
 
 ## Skill Catalog
 
-60 skills, grouped by slot. Every skill conforms to AgentSkills.io and ships `SKILL.md` (frontmatter + body) + `CAPABILITIES.md` (what the skill can/cannot do) + `TASKS.md` (the worked tasks).
+61 skills, grouped by slot. Every skill conforms to AgentSkills.io and ships `SKILL.md` (frontmatter + body) + `CAPABILITIES.md` (what the skill can/cannot do) + `TASKS.md` (the worked tasks).
 
 ### Cross-cutting (9 skills)
 
@@ -299,7 +299,7 @@ Each library skill teaches the agent the library's API surface, build / link, li
 Every `SKILL.md` in this bundle conforms to the [AgentSkills.io](https://agentskills.io/specification) open standard for agent skills. Any AgentSkills.io-aware client — Anthropic Claude Code, Cursor, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, custom in-house LLMs — can discover, route to, and load these skills without any DOCA-specific glue:
 
 - Each skill ships YAML frontmatter with the spec-mandated fields: `name` (matches the directory name), `description` (imperative *"Use this skill when..."* phrasing per [optimizing-descriptions](https://agentskills.io/skill-creation/optimizing-descriptions), ≤ 1024 chars), `metadata` (for our `kind` routing contract: `library` / `service` / `tool` / `cross-cutting`), and `compatibility` (environment requirements: DOCA install path, Linux distro, BlueField / ConnectX gens).
-- Every release runs the official reference validator ([`skills-ref validate`](https://github.com/agentskills/agentskills/tree/main/skills-ref)) against all 60 skills as an internal CI gate before tagging. A green validator is a merge precondition.
+- Every release runs the official reference validator ([`skills-ref validate`](https://github.com/agentskills/agentskills/tree/main/skills-ref)) against all 61 skills as an internal CI gate before tagging. A green validator is a merge precondition.
 - The directory layout (`skills/<name>/SKILL.md` + `CAPABILITIES.md` + `TASKS.md`) is exactly the AgentSkills.io recommended progressive-disclosure shape: agents read the frontmatter first to decide whether to load, then drill into the body and companions only when activated.
 
 Re-validate locally:

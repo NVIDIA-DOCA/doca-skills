@@ -10,7 +10,7 @@ cd doca-skills
 ./install.sh --agent <cursor|claude-code|codex|gemini-cli|kiro-cli>
 ```
 
-Pick the agent you use. The installer writes (or symlinks) the 60 skill
+Pick the agent you use. The installer writes (or symlinks) the 61 skill
 folders into the right discovery path for that agent. Repeat with another
 `--agent` flag if you use more than one — they don't collide.
 
@@ -59,7 +59,7 @@ for `~/.claude/skills/`, `~/.agents/skills/` (Codex / cross-platform), or
   URO M Svc)
 - **17 tool skills** (bench, caps, flow-perf, flow-tune, apsh-config,
   pcc-counters, …)
-- **9 cross-cutting skills** that overlay on top of any per-component
+- **10 cross-cutting skills** that overlay on top of any per-component
   answer: `doca-setup`, `doca-version`, `doca-debug`,
   `doca-programming-guide`, `doca-public-knowledge-map`,
   `doca-container-deployment`, `doca-bare-metal-deployment`,

@@ -32,7 +32,7 @@ repository must satisfy. The gate inventory:
 | - | --- | --- |
 | 0 | Keystone self-test (the gate-checks-the-gate) | OK (weekly) |
 | 1 | Structural keystone | OK |
-| 2 | Per-skill conformance (60 skills) | OK |
+| 2 | Per-skill conformance (61 skills) | OK |
 | 3 | DOCA inventory | OK |
 | 3 | Cross-links | OK |
 | 3 | Anchor density | OK |
@@ -40,7 +40,7 @@ repository must satisfy. The gate inventory:
 | 3 | JTBD coverage | OK |
 | 3 | Public-surface invariants (5/5) | OK |
 | 3 | Live-hardware harness shape (6/6 fixtures) | OK |
-| 3 | AgentSkills.io compliance (60 skills) | OK |
+| 3 | AgentSkills.io compliance (61 skills) | OK |
 | 3 | Non-goal routing (27 products) | OK |
 | 4 | Reference hygiene (no internal path leaks; no audit history in runtime `SKILL.md`) | OK |
 | 4 | Frontmatter `kind` (libs→library, services→service, tools→tool — all 52) | OK |

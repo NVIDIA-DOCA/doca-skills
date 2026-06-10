@@ -33,7 +33,7 @@ tells the agent which companion file (`CAPABILITIES.md` for
   "when to load" triggers, plus the layout convention. Read this to
   decide which skills are relevant to the user's request.
 - [skills/](skills/) — the skill source files, layered:
-    - top-level: **9 cross-cutting skills** — `doca-public-knowledge-map`
+    - top-level: **10 cross-cutting skills** — `doca-public-knowledge-map`
       (routing), `doca-setup` (env prep + the `## recognize`
       front-door routing decision between the two deployment paths),
       `doca-programming-guide` (build / first-app / lifecycle),
