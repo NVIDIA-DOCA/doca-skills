@@ -5,19 +5,18 @@ description: >
   DPU to introspect a paired host's kernel state — standing up a
   doca_apsh_system, enumerating host processes / kernel modules /
   libraries / threads from the DPU side, loading the host kernel
-  symbol map, running doca_apsh_*_get() enumerators (App Shield
-  has no separate cap-query family; DOCA_ERROR_NOT_SUPPORTED from
-  the enumerator is the cap signal), or debugging DOCA_ERROR_*
-  returns. Trigger even without explicit mention of "App Shield"
-  or "doca_apsh"; implicit phrasings include "agent-less rootkit
-  detection on BlueField", "list host processes from the DPU",
-  "DPU-side host kernel introspection", "enumerator worked
-  yesterday, NOT_PERMITTED today", "process query NOT_FOUND but
-  ps shows it", "kernel module integrity check from the DPU".
-  Refuse and route elsewhere for host kernel symbol-map authoring,
-  bulk host↔DPU memory copies (doca-dma), packet I/O / flow
-  steering (doca-eth / doca-flow), and real-time host event
-  streams (doca-comch).
+  symbol map, running doca_apsh_*_get() enumerators (NOT_SUPPORTED
+  return is the cap signal), or debugging DOCA_ERROR_* returns.
+  Trigger even without explicit mention of "App Shield" or
+  "doca_apsh"; implicit phrasings include "agent-less rootkit
+  detection on BlueField", "list host processes from the DPU". For
+  NEW runtime-security / process-introspection work, prefer DOCA
+  Argus (doca-argus), NVIDIA's currently-promoted successor; use
+  this skill only for custom DPU-side tooling on the lower-level
+  App Shield library. Refuse and route elsewhere for symbol-map
+  authoring, bulk host↔DPU copies (doca-dma), packet I/O / flow
+  steering (doca-eth / doca-flow), and host event streams
+  (doca-comch).
 metadata:
   kind: library
 compatibility: >
@@ -30,6 +29,24 @@ compatibility: >
 ---
 
 # DOCA App Shield
+
+> **Lifecycle / preferred successor — read this first.** NVIDIA's
+> **currently-promoted, primary framework for runtime threat
+> detection and host memory forensics on BlueField is
+> [`DOCA Argus`](../../services/doca-argus/SKILL.md)**; the
+> standalone **App Shield library is the older, lower-level approach
+> Argus supersedes**. For any *new* "introspect host processes /
+> flag suspicious activity / runtime security" request — and
+> especially anything production- or packaged-workflow shaped — the
+> right *currently-supported* answer to name first is **DOCA Argus**.
+> Use the App Shield library covered here **only** when the user
+> genuinely needs to BUILD custom DPU-side tooling that Argus cannot
+> express. App Shield is still published with no formal deprecation
+> banner in the public docs as of this writing, so do **not** assert
+> it is end-of-life from memory — confirm its current
+> lifecycle/quality status in the DOCA Release Notes (via
+> [`doca-upgrade`](../../doca-upgrade/SKILL.md)) before building
+> anything new on it.
 
 **Where to start:** This skill assumes DOCA is already installed and
 the user is doing **hands-on App Shield work** on a BlueField DPU
@@ -177,7 +194,7 @@ specific material lives in two companion files:
 - `CAPABILITIES.md` — what App Shield can express on this version:
   the DPU-side / host-side asymmetry rule,   the object family
   (`doca_apsh_system` → `_process` / `_module` / `_lib` /
-  `_thread` / … — 19 object types in DOCA 3.5.0030, not a closed
+  `_thread` / … — 19 object types in DOCA 3.3.0109, not a closed
   set of four)
   and its read-mostly observation shape, the implicit
   capability-query surface (enumerator return code; App Shield

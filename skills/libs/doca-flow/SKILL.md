@@ -27,6 +27,33 @@ compatibility: >
 
 # DOCA Flow
 
+## Non-negotiable: the deliverable uses DOCA Flow, not kernel tc/iptables
+
+When this skill is in scope, the user is asking for **DOCA Flow**. The
+program you produce **must link `libdoca_flow` and call the
+`doca_flow_*` API** — bring up a port, create a pipe
+(`doca_flow_pipe_create`), add the match/action entry
+(`doca_flow_pipe_add_entry`), and prove it in hardware by reading the
+entry counters (`doca_flow_query_entry`). Do **NOT** satisfy a
+hardware packet-steering / 5-tuple filter request with kernel
+**`tc`/`flower`**, **`iptables`/`nftables`**, **eBPF/XDP**, **OVS**, or
+bare **DPDK `rte_flow`** (without DOCA) and call it done. Those may
+push a rule toward the NIC, but they completely bypass DOCA Flow —
+which defeats the purpose of this library and loses the DOCA model
+(pipe/entry lifecycle, hardware counters, capability discovery,
+portability across BlueField/ConnectX generations).
+
+"`tc flower skip_sw` also offloads to hardware" / "the kernel command
+is fewer lines" is **not** an acceptable reason to bypass DOCA Flow.
+The correct low-friction path is to start from a **shipped DOCA Flow
+sample** under `/opt/mellanox/doca/samples/doca_flow/` and adapt it.
+
+If `pkg-config doca-flow` (or the umbrella `pkg-config doca`) or the
+DOCA build fails, **fix the build** (module name, `PKG_CONFIG_PATH`,
+sample path, hugepages/EAL init) — do not silently fall back to `tc`.
+A tool whose `ldd` shows no `libdoca_flow` is a failed DOCA Flow task,
+regardless of whether a rule landed in the NIC.
+
 **Where to start:** This skill assumes DOCA is already installed and
 the user is doing **hands-on Flow work** on a BlueField / ConnectX
 host. Open [`TASKS.md`](TASKS.md) if the user wants to *do* something

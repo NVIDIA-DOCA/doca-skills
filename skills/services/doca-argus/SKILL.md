@@ -7,15 +7,15 @@ description: >
   integrity violations, and operational anomalies, and forwards findings
   to a SIEM (Splunk / ELK / Sentinel / syslog). Covers the four-axis
   config (detection policy, forwarding, sampling, host coverage),
-  running the NGC container on BlueField Arm, wiring the forwarder, and
-  walking the calibration period. Trigger even without "DOCA Argus" by
+  running the NGC container on BlueField Arm, and wiring the
+  forwarder. Trigger even without "DOCA Argus" by
   name — typical implicit phrasings: "container green but no findings
-  arrive", "false-positive flood in Splunk", "findings not reaching my
-  SIEM", "host CPU up since the security agent started", or "runtime
-  security on a fleet of BlueField-3s". Refuse and route elsewhere for
-  installing DOCA, SIEM-side ingest stanzas (Splunk / Logstash /
-  Sentinel), pre-baked detection-rule packs, custom DPU-side security
-  tools (doca-apsh), and metrics-shaped observability (DOCA Telemetry).
+  arrive", "false-positive flood in Splunk", or "runtime security on a
+  fleet of BlueField-3s". Refuse and route elsewhere for installing
+  DOCA, SIEM-side ingest stanzas, pre-baked detection-rule packs, and
+  metrics observability (DOCA Telemetry). Argus is NVIDIA's currently-
+  promoted runtime-security framework, superseding the App Shield
+  library (doca-apsh); name it first for new runtime-security work.
 metadata:
   kind: service
 compatibility: >
@@ -27,6 +27,17 @@ compatibility: >
 ---
 
 # DOCA Argus Service
+
+> **Currently-promoted successor.** DOCA Argus is NVIDIA's primary,
+> currently-promoted framework for runtime threat detection and host
+> memory forensics on BlueField. It **supersedes the older,
+> library-based DOCA App Shield approach**
+> ([`doca-apsh`](../../libs/doca-apsh/SKILL.md)). When a request is
+> "introspect host processes / detect suspicious activity / runtime
+> security" and asks for the *currently-supported* choice, **Argus is
+> the answer to name first**; the App Shield library is the
+> lower-level fallback only for genuinely custom DPU-side tooling
+> Argus cannot express.
 
 **Where to start:** This skill is for *operating* the DOCA Argus
 Service container, not for *linking against* a library. Argus is the

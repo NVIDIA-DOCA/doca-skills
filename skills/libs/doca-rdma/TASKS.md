@@ -29,7 +29,7 @@ Steps the agent should walk the user through:
 
 1. **Confirm the installed DOCA version.** Use the procedure in
    [`doca-setup CAPABILITIES.md ## Version compatibility`](../../doca-setup/CAPABILITIES.md#version-compatibility).
-   Quote the version observed (`pkg-config --modversion doca-rdma`,
+   Quote the version observed (`pkg-config --modversion doca`,
    then `doca_caps --version`); do not assume "latest".
 2. **Discover the device capability surface for RDMA.** Run
    `doca_caps --list-devs` ([`doca-caps`](../../tools/doca-caps/SKILL.md))
@@ -74,24 +74,62 @@ The build pattern for any DOCA C/C++ consumer is **identical** across
 libraries — `pkg-config` for include + link flags, meson or CMake as
 the build system — and is fully documented in
 [`doca-programming-guide TASKS.md ## build`](../../doca-programming-guide/TASKS.md#build).
+
+**Step 0 — resolve the pkg-config module (do this first; do not assume).**
+DOCA RDMA does **not** ship a standalone `doca-rdma.pc` on current
+installs. The RDMA library is delivered inside the **umbrella `doca`**
+pkg-config module. Resolve it on the target before writing any build file:
+
+1. Make sure pkg-config can see DOCA. If `pkg-config --exists doca`
+   fails, export the install's pkgconfig dir first:
+   `export PKG_CONFIG_PATH=/opt/mellanox/doca/lib/$(uname -m)-linux-gnu/pkgconfig:$PKG_CONFIG_PATH`
+   (the arch segment is e.g. `aarch64-linux-gnu` on BlueField, `x86_64-linux-gnu` on a host).
+2. List what actually exists: `pkg-config --list-all | grep -i doca`.
+   Use the **most specific RDMA module that exists** if a split install
+   exposes one; otherwise use the umbrella **`doca`** (the normal case).
+   The public RDMA header is `doca_rdma.h` and the shared object is
+   `libdoca_rdma.so` regardless of which `.pc` resolves them.
+
+> **Guardrail — DOCA is the deliverable, not "any RDMA".** If
+> `pkg-config doca-rdma` (or any `--libs`/`--cflags` probe) fails, the
+> cause is almost always a wrong module name or an unset
+> `PKG_CONFIG_PATH` — **fix that**. Do **NOT** silently fall back to
+> raw `libibverbs` / `librdmacm` / RDMA-CM and hand-roll a verbs
+> program. That technically moves bytes but abandons DOCA entirely,
+> which defeats the purpose of this work. A build that does not link
+> `libdoca_rdma` is a failed DOCA-RDMA build — troubleshoot the module
+> resolution above (and escalate via the error taxonomy) instead of
+> bypassing DOCA.
+
 This skill carries only the RDMA-specific overlay:
 
 | Slot | Value for RDMA | Why it matters |
 | --- | --- | --- |
-| `pkg-config` module name | `doca-rdma` | The library's `.pc` file installed by the DOCA host packages |
-| Required runtime libs | `libdoca-common`, `libdoca-rdma`, plus the device-side `*.so` referenced by `pkg-config --libs doca-rdma` | RDMA depends on Core + the rdma transport providers shipped with DOCA |
-| Header check | the artifact's public header resolvable under whichever include directory `pkg-config --cflags` reports (do not hardcode the include path — the install layout can move) | If `pkg-config --cflags doca-rdma` resolves but the include is missing, the install is partial |
-| Minimum required DOCA version | Query with `pkg-config --modversion doca-rdma`; never hardcode in build files | Cross-version build/runtime mixing breaks per [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) |
+| `pkg-config` module name | `doca` (umbrella; verify per Step 0 — there is normally no `doca-rdma.pc`) | The `.pc` that resolves the RDMA cflags/libs on current DOCA host packages |
+| Required runtime libs | whatever `pkg-config --libs doca` reports — it pulls in `libdoca_common`, `libdoca_rdma`, and the device-side providers | RDMA depends on Core + the rdma transport providers shipped with DOCA |
+| Header check | `doca_rdma.h` resolvable under the include directory `pkg-config --cflags doca` reports (do not hardcode the include path — the install layout can move) | If `--cflags` resolves but `doca_rdma.h` is missing, the install is partial |
+| Minimum required DOCA version | Query with `pkg-config --modversion doca`; never hardcode in build files | Cross-version build/runtime mixing breaks per [CAPABILITIES.md ## Version compatibility](CAPABILITIES.md#version-compatibility) |
 
 For non-C consumers (Rust, Go, Python), the link surface is the same
-`*.so` files; the FFI wrapper layer is the language-specific binding
-and is out of scope for this skill — but the four slots above are
-still the load-bearing inputs the wrapper needs.
+`*.so` files (cgo `#cgo pkg-config: doca`, Rust `pkg-config` crate on
+`doca`, etc.); the FFI wrapper layer is the language-specific binding
+and is out of scope for this skill — but the slots above (and the
+guardrail) are still the load-bearing inputs the wrapper needs.
 
 ## modify
 
 Goal: take a shipped DOCA RDMA sample as the verified starting point
 and apply a minimum-diff modification to express the user's intent.
+
+**Non-C languages (Go / Rust / Python): this is still the right verb.**
+Do not reimplement RDMA in raw libibverbs to avoid C. Start from the
+shipped sample under `/opt/mellanox/doca/samples/doca_rdma/<name>/`,
+then expose its entry points (e.g. the sample's send/receive or
+write/read driver functions) through a **thin** FFI shim — for Go, one
+small `*.c`/`*.h` pair compiled via `#cgo pkg-config: doca` calling the
+sample functions, with `main.go` orchestrating. This keeps the verified
+DOCA datapath intact and links `libdoca_rdma`; it is a single small
+wrapper, not a full re-binding of the DOCA API.
 
 The universal modify-a-shipped-sample workflow lives in
 [`doca-programming-guide TASKS.md ## modify`](../../doca-programming-guide/TASKS.md#modify).
@@ -123,8 +161,11 @@ DOCA on a host or BlueField, including a peer to connect to.
 Steps the agent should walk the user through:
 
 1. **Confirm the peer is reachable.** RDMA needs a peer; running the
-   binary on one side alone produces a misleading hang. Both sides
-   must be on networks that route IB or RoCE to each other.
+   binary on one side alone produces a misleading hang. Either both
+   sides are on networks that route IB or RoCE to each other, **or**
+   both run as local processes on a single host over the same
+   `doca_dev` (see *Single-host loopback* below) — the latter is the
+   right first-run smoke test when only one BlueField / NIC is on hand.
 2. **Run the side that listens first.** Server (RDMA CM) or
    accept-side (bridge / OOB) must be running and at the
    *connection-listening* state before the client / connect-side
@@ -137,6 +178,27 @@ Steps the agent should walk the user through:
    no completion events but doesn't error is almost always a missed
    `doca_pe_progress()` call. Confirm the progress engine is being
    driven on both sides.
+
+**Single-host loopback (only one BlueField / NIC available).** A peer
+does *not* have to be a second host. Both endpoints can run as two
+local processes bound to the same `doca_dev`; the device loops the
+traffic internally. The two sides still exchange connection state out
+of band, so the shipped send/receive (and read/write) samples
+implement a **file-based descriptor handshake**: each side writes its
+own `doca_rdma_export()` descriptor (and, for one-sided tasks, its
+`doca_mmap_export_rdma()` descriptor) to a local file and reads the
+peer's file, then each presses enter to advance from
+*connection-listening* to *connected*. On a single box, point the two
+processes at a shared filesystem (the requester's `local` path is the
+responder's `remote` path and vice-versa), start both, then release
+the handshake once both descriptor files exist. Two caveats that bite
+agents: (a) the **write/atomic** samples expect a *second* enter on
+the responder after the requester reports its task done — a single
+enter looks like a hang; (b) **loopback traffic stays internal to the
+device, so physical-port and `vport_*` RDMA hw_counters do not
+move** — prove success from the completion event and the received
+payload (e.g. the responder logging the bytes the requester sent), not
+from port counters.
 
 ## test
 
@@ -306,11 +368,11 @@ the agent should:
 
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |
-| `pkg-config --modversion doca-rdma` | `## configure` step 1; `## build` slot 4 | What is the build-time DOCA RDMA version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2) |
-| `pkg-config --cflags --libs doca-rdma` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores on every release where we have ground truth, while the `.pc` package names use hyphens, and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. |
-| `grep -RHn 'DOCA_VERSION_' $(pkg-config --variable=includedir doca-common)/doca_version.h` | `## configure` step 1 | What macros does this DOCA install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR`, `MINOR`, `PATCH` triple matching the runtime version |
+| `pkg-config --modversion doca` | `## configure` step 1; `## build` slot 4 | What is the build-time DOCA version? | A semver string matching `doca_caps --version`. Disagreement = partial install (route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) layer 2). Note: there is normally no `doca-rdma.pc`; use the umbrella `doca` module (verify with `pkg-config --list-all | grep -i doca`) |
+| `pkg-config --cflags --libs doca` | `## build` | What include + link flags does the linker need? | Trust whatever `pkg-config --cflags --libs doca` produces on this install. Do not hardcode either the `-I` include path or the `-l<name>` flag form — both can drift between DOCA install profiles and DOCA majors; the on-disk `.so` basenames use underscores (`libdoca_rdma.so`), and `pkg-config` is the only thing that resolves both correctly. Hand-crafted `-l` lines silently break when DOCA upgrades. If this probe fails, fix the module name / `PKG_CONFIG_PATH` per `## build` Step 0 — do NOT fall back to raw libibverbs. |
+| `grep -RHn 'DOCA_VERSION_' $(pkg-config --variable=includedir doca)/doca_version.h` | `## configure` step 1 | What macros does this DOCA install expose for compile-time version checks? | A `DOCA_VERSION_MAJOR`, `MINOR`, `PATCH` triple matching the runtime version |
 | `doca_caps --list-devs` | `## configure` step 2 | Which devices on this host can be used as a `doca_dev`? | One row per visible device with PCIe address and capability flags |
-| `doca_caps --version` | `## configure` step 1; `## test` step 1 | What is the *runtime* DOCA version on this host? | A semver string matching `pkg-config --modversion doca-rdma` |
+| `doca_caps --version` | `## configure` step 1; `## test` step 1 | What is the *runtime* DOCA version on this host? | A semver string matching `pkg-config --modversion doca` |
 | `ls /opt/mellanox/doca/samples/doca_rdma/` | `## modify` slot 1 | Which RDMA samples ship in this install, and which is the closest starting point? | A list of sample directories named after the task pattern they demonstrate |
 | `cat /opt/mellanox/doca/applications/VERSION` | `## configure` step 1; `## debug` layer 1 | What does the install tree itself claim its version is? | A semver string matching the other two version sources |
 | `dmesg | tail -n 40` (sudo) | `## debug` layer 7 | What did the kernel / driver log around the last RDMA call? | Empty or recent benign messages. Repeated mlx5/IB errors → driver-layer bug; route to [`doca-setup ## debug`](../../doca-setup/TASKS.md#debug) |

@@ -21,11 +21,42 @@ metadata:
 compatibility: >
   Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
   22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
-  attached. Reads the user's local install via `pkg-config doca-rdma`
+  attached. Reads the user's local install via `pkg-config doca` (the
+  umbrella module that ships the RDMA library; current DOCA installs do
+  NOT ship a separate doca-rdma.pc — discover the real module name with
+  `pkg-config --list-all | grep -i doca` and set PKG_CONFIG_PATH to
+  /opt/mellanox/doca/lib/<arch>/pkgconfig if pkg-config can't find it)
   and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
 ---
 
 # DOCA RDMA
+
+## Non-negotiable: the deliverable uses DOCA RDMA, not raw verbs
+
+When this skill is in scope, the user is asking for **DOCA RDMA**. The
+program you produce **must link `libdoca_rdma` and call the
+`doca_rdma_*` API** (directly in C/C++, or through a thin FFI/cgo shim
+from another language). Do **NOT** implement the request with raw
+`libibverbs` / `librdmacm` / RDMA-CM and call it done. Those move bytes
+but completely bypass DOCA — which defeats the entire purpose of using
+this library, loses the DOCA programming model (progress engine, task/
+event lifecycle, capability discovery, portability across BlueField/
+ConnectX generations), and is the single most common failure mode.
+
+"Raw verbs is fewer lines" / "it avoids building a DOCA binding layer"
+is **not** an acceptable reason to bypass DOCA. The correct low-friction
+path for a non-C language (Go, Rust, Python, …) is **not** to re-bind
+the whole API — it is to start from a **shipped DOCA RDMA sample** under
+`/opt/mellanox/doca/samples/doca_rdma/` and wrap its entry functions in
+a **thin** cgo/FFI shim built with `#cgo pkg-config: doca` (Go) or the
+equivalent. That shim is a single small file, not "a large custom
+binding layer". See [`TASKS.md ## build`](TASKS.md#build) Step 0 and
+[`TASKS.md ## modify`](TASKS.md#modify).
+
+If `pkg-config doca` or the DOCA build fails, **fix the build** (module
+name, `PKG_CONFIG_PATH`, sample path) — do not silently fall back to
+verbs. A binary whose `ldd` shows no `libdoca_rdma` is a failed
+DOCA-RDMA task, regardless of whether bytes moved.
 
 **Where to start:** This skill assumes DOCA is already installed and
 the user is doing **hands-on RDMA work** on a BlueField / ConnectX /
@@ -70,7 +101,7 @@ load-bearing piece — the worked example is a single instance.
   worked example: *"is RDMA CM in DOCA 2.6.0"*. Answered by the
   version-compatibility section in
   [`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility)
-  + the version-discovery rule (`pkg-config --modversion doca-rdma`)
+  + the version-discovery rule (`pkg-config --modversion doca`)
   pinned in [`TASKS.md ## configure`](TASKS.md#configure).
 - **"What does this `DOCA_ERROR_*` from an RDMA call mean and which
   layer caused it?"** — worked example: *"`DOCA_ERROR_BAD_STATE` from
@@ -90,8 +121,13 @@ another language) to do RDMA data movement between two sides
 (host↔host, host↔BlueField, DPU↔DPU, or SF↔SF on a BlueField). It
 is *not* for NVIDIA developers contributing to DOCA RDMA itself.
 
-**Language scope.** DOCA RDMA ships as a C library with `pkg-config`
-module name `doca-rdma`. The shipped samples are written in C
+**Language scope.** DOCA RDMA ships as a C library *inside the umbrella
+`doca` pkg-config module* (public header `doca_rdma.h`, shared object
+`libdoca_rdma.so`). Current DOCA installs do **not** ship a separate
+`doca-rdma.pc`; `pkg-config doca` is what resolves the RDMA cflags/libs.
+Always discover the module on the target (`pkg-config --list-all |
+grep -i doca`) rather than assuming a per-library `.pc` exists. The
+shipped samples are written in C
 (NVIDIA's choice). C and C++ consumers are the canonical case and
 the worked examples in `TASKS.md` assume that path. Other-language
 consumers (Rust, Go, Python, …) consume the same `*.so` through FFI
@@ -99,7 +135,11 @@ or language-specific bindings; the skill's contribution in that case
 is to keep the lifecycle, capability-discovery, permission-matrix,
 error-taxonomy, and connection-method guidance language-neutral, and
 to route the agent to the public C ABI as the authoritative surface
-that any wrapper will eventually call.
+that any wrapper will eventually call. **The non-C deliverable is still
+a DOCA program**: a thin cgo/FFI shim over the shipped `doca_rdma`
+sample that links `libdoca_rdma` (`#cgo pkg-config: doca`) — never a
+raw-libibverbs reimplementation chosen to avoid wrapping DOCA (see the
+mandate at the top of this file).
 
 ## When to load this skill
 
@@ -180,8 +220,9 @@ pull requests should not add:
 - **Standalone build manifests** (`meson.build`, `CMakeLists.txt`,
   `Cargo.toml`, …) parked inside the skill. The agent constructs
   the build manifest *in the user's project directory* against the
-  user's installed DOCA, where `pkg-config --modversion doca-rdma`
-  is the source of truth.
+  user's installed DOCA, where `pkg-config --modversion doca`
+  is the source of truth (resolve the module per `TASKS.md ## build`
+  Step 0 — there is normally no separate `doca-rdma.pc`).
 - **A `samples/`, `bindings/`, or `reference/` subtree** of any
   kind. A mock or incomplete artifact in this skill's tree, even
   one labeled "reference", is misleading: users will read it as

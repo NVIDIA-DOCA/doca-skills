@@ -30,6 +30,24 @@ compatibility: >
 
 # DOCA Verbs
 
+## STOP — most RDMA tasks do NOT belong here
+
+If the task is general RDMA **data movement** (send / receive / read /
+write / atomic between endpoints) and the user did **not** name a
+specific raw QP / CQ / work-request / SRQ / Address-Handle attribute
+that the higher-level API genuinely cannot express, this skill is
+**out of scope**. Route to [`doca-rdma`](../doca-rdma/SKILL.md) and
+follow its non-negotiable: the deliverable **links `libdoca_rdma` and
+calls `doca_rdma_*`**.
+
+Loading this raw-verbs skill is **never** a license to hand-roll
+`libibverbs` / `librdmacm`. "Raw verbs is fewer lines" or "the high-level
+binding is more work" is **not** a reason. A general-RDMA deliverable
+whose `ldd` shows no `libdoca_rdma` is a **failed task** — exactly the
+same rule [`doca-rdma`](../doca-rdma/SKILL.md) enforces. Raw `doca_verbs_*`
+is in scope only for the narrow attribute-level needs enumerated below;
+everything else climbs back up to the matching higher-level library.
+
 **Where to start:** This skill is the **raw-verbs escape hatch
 beneath the higher-level DOCA libraries** ([`doca-rdma`](../doca-rdma/SKILL.md)
 for RDMA workloads, [`doca-eth`](../doca-eth/SKILL.md) for Ethernet

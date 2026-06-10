@@ -31,7 +31,9 @@ RDMA data-movement use case, not just the worked example shown.
 Two cross-cutting rules that apply to *every* pattern above:
 
 - **Discover the version-installed surface, do not assume.** Every
-  pattern above gates on `pkg-config --modversion doca-rdma` and on
+  pattern above gates on `pkg-config --modversion doca` (the umbrella
+  module that ships RDMA — there is normally no separate `doca-rdma.pc`;
+  verify with `pkg-config --list-all | grep -i doca`) and on
   the `doca_rdma_cap_*` capability queries against the active
   `doca_devinfo`. Quoting a task type, a transport type, or a
   property value without checking is the most common hallucination
@@ -140,9 +142,9 @@ For the canonical DOCA version-detection chain, the four-way match rule, NGC con
 
 **The RDMA-specific overlay** is:
 
-- **DC transport is alpha.** The public DOCA RDMA guide explicitly notes that dynamically-connected (DC) transport support is alpha-level. The agent must surface this when the user asks about DC, not present it as production-stable. Use `pkg-config --modversion doca-rdma` as the build-time anchor (per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure)) when asked which RDMA features are on this install.
+- **DC transport is alpha.** The public DOCA RDMA guide explicitly notes that dynamically-connected (DC) transport support is alpha-level. The agent must surface this when the user asks about DC, not present it as production-stable. Use `pkg-config --modversion doca` as the build-time anchor (per [`doca-version TASKS.md ## configure`](../../doca-version/TASKS.md#configure)) when asked which RDMA features are on this install.
 - **Use the `doca_rdma_cap_*` query family at runtime.** Per the cross-cutting rule in [`doca-version CAPABILITIES.md ## Observability`](../../doca-version/CAPABILITIES.md#observability), the cap-query is the runtime authority for *"is this task / transport supported on this device + this DOCA version"*. The version-matrix is the *promise*; the cap query is the *reality*.
-- **`doca-rdma.pc` plus `doca-common.pc` must both match `doca_caps --version`** at the four-way-match check (per [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)). A common partial-install pattern on hosts where DOCA RDMA was installed separately from the rest of DOCA is that `doca-rdma.pc` reports release *X* while `doca-common.pc` reports release *Y*; route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) ladder step 2 before any RDMA-layer diagnosis.
+- **The resolved DOCA pkg-config module must match `doca_caps --version`** at the four-way-match check (per [`doca-version CAPABILITIES.md ## Version compatibility`](../../doca-version/CAPABILITIES.md#version-compatibility)). On current installs RDMA ships inside the umbrella `doca` module (there is no separate `doca-rdma.pc`); `pkg-config --modversion doca` must agree with `doca_caps --version`. On the rarer split installs that *do* expose per-library `.pc` files, every resolved component `.pc` must agree; a mismatch (one component reporting release *X*, another release *Y*) is the classic partial-install pattern — route to [`doca-version TASKS.md ## debug`](../../doca-version/TASKS.md#debug) ladder step 2 before any RDMA-layer diagnosis.
 
 ## Error taxonomy
 

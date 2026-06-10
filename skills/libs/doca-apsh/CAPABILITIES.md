@@ -65,7 +65,7 @@ asymmetry is the #1 first-app confusion.
 
 **Object family.** App Shield exposes ONE root object
 (`doca_apsh_system`) and a broad, version-extensible set of
-observation object types — 19 of them in DOCA 3.5.0030's public
+observation object types — 19 of them in DOCA 3.3.0109's public
 header. The surface is **not** closed at four objects; the agent
 must walk the installed `doca_apsh.h` rather than assume a fixed
 list, because the set grows release over release. The most common
@@ -79,7 +79,7 @@ objects, with their scope:
 | `doca_apsh_lib` | A loaded library on a given host process | Per (host process, loaded library) | Hangs off a `doca_apsh_process`, not directly off the system; the per-process library list snapshots at enumeration time |
 | `doca_apsh_thread` | A thread on a given host process | Per (host process, thread) | Hangs off a `doca_apsh_process`; useful when the integrity check is at thread granularity rather than process granularity |
 
-The full object set declared in the DOCA 3.5.0030 public header,
+The full object set declared in the DOCA 3.3.0109 public header,
 beyond the root `doca_apsh_system`, is: `doca_apsh_module`,
 `doca_apsh_process`, `doca_apsh_thread`, `doca_apsh_lib`,
 `doca_apsh_vad`, `doca_apsh_attestation`, `doca_apsh_privilege`,
