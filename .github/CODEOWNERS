@@ -1,0 +1,4 @@
+# NVSkills CI request workflow must require maintainer review before any change.
+# Replace @ttevet with the DOCA skills maintainers team handle if/when one exists.
+/.github/workflows/ @ttevet
+/.github/CODEOWNERS @ttevet
