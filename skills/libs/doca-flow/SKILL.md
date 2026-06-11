@@ -52,7 +52,8 @@ If `pkg-config doca-flow` (or the umbrella `pkg-config doca`) or the
 DOCA build fails, **fix the build** (module name, `PKG_CONFIG_PATH`,
 sample path, hugepages/EAL init) — do not silently fall back to `tc`.
 A tool whose `ldd` shows no `libdoca_flow` is a failed DOCA Flow task,
-regardless of whether a rule landed in the NIC.
+regardless of whether a rule landed in the NIC. Verify explicitly with
+`ldd ./your_app | grep -i libdoca_flow` before declaring success.
 
 **Where to start:** This skill assumes DOCA is already installed and
 the user is doing **hands-on Flow work** on a BlueField / ConnectX
