@@ -1,37 +1,34 @@
 ---
+license: Apache-2.0
 name: doca-flow-grpc-server
 description: >
-  Use this skill when the user is bringing up, configuring,
-  hardening, or debugging `doca_flow_grpc` — the
-  DOCA-shipped gRPC remote-control surface in front of
-  `doca-flow` that lets non-C++ clients (Python, Go, Rust,
-  Java) program Flow pipes and entries over RPC instead of
-  linking `libdoca_flow.so` directly. Trigger even when the
-  user does not explicitly mention "doca-flow-grpc-server"
-  or "gRPC" — typical implicit phrasings include "program
-  Flow rules from Python on a different host", "remotely
-  configure pipes on the BlueField", "client times out
-  connecting to the Flow server", "where is the .proto file
-  for Flow", "mTLS / token auth for the Flow control plane",
-  "UNAUTHENTICATED / FAILED_PRECONDITION on a Flow RPC", or
-  "control many BlueFields from one place". Refuse and route
-  elsewhere for questions about the underlying doca-flow API
-  itself, generic gRPC tooling (`protoc`, language bindings,
-  auth design at grpc.io), or DOCA install / BFB bring-up —
-  those belong to other skills.
+  PLAINTEXT-ONLY: the shipped `doca_flow_grpc` server uses
+  `grpc::InsecureServerCredentials()` with NO TLS / mTLS / token-auth
+  knob on the binary — transport security must come from external
+  infrastructure (e.g. an mTLS proxy / sidecar) on a trusted segment.
+  Use this skill when bringing up, configuring, hardening, or
+  debugging `doca_flow_grpc` — the DOCA-shipped gRPC remote-control
+  surface in front of `doca-flow` that lets non-C++ clients (Python,
+  Go, Rust, Java) program Flow pipes and entries over RPC instead of
+  linking `libdoca_flow.so` directly. Trigger even when the user
+  doesn't say 'doca-flow-grpc-server' or 'gRPC' — e.g. 'program Flow
+  rules from Python on another host', 'remotely configure pipes on the
+  BlueField', 'client times out connecting to the Flow server', 'where
+  is the .proto for Flow', 'UNAUTHENTICATED / FAILED_PRECONDITION on a
+  Flow RPC'. Route elsewhere for the underlying doca-flow API, generic
+  gRPC tooling (protoc, language bindings), or DOCA install / BFB
+  bring-up.
 metadata:
   kind: tool
 compatibility: >
-  Requires DOCA on Linux (Ubuntu 22.04/24.04 or RHEL/SLES)
-  with a BlueField DPU or ConnectX NIC attached. The
-  `doca_flow_grpc` binary is a build artifact (`install: false`
-  in `tools/flow_grpc_server/meson.build`, gated by
-  `flag_enable_grpc_support` + `flag_enable_grpc_flow_library`)
-  — it is NOT installed under a default DOCA package path, so
-  it must be built from the DOCA source tree with gRPC support
-  enabled. Its `.proto` contract lives under
-  `libs/doca_flow/grpc/`. Confirm the Flow library via
-  `pkg-config doca-flow`.
+  Requires DOCA on Linux (Ubuntu 22.04/24.04 or RHEL/SLES) with a
+  BlueField DPU or ConnectX NIC. The `doca_flow_grpc` binary is a build
+  artifact (install: false in tools/flow_grpc_server/meson.build, gated by
+  flag_enable_grpc_support + flag_enable_grpc_flow_library) — NOT
+  installed under a default DOCA path; build it from the DOCA source tree
+  with gRPC enabled. Its `.proto` lives under libs/doca_flow/grpc/.
+  Confirm Flow via `pkg-config doca-flow`.
+
 ---
 
 # DOCA Flow gRPC Server (`doca_flow_grpc`)
@@ -204,9 +201,12 @@ to it. Concretely:
 - Locating the `.proto` files on the user's install so a
   language-binding client can generate the appropriate
   stubs.
-- Picking the auth / TLS posture (mTLS, token, plaintext on
-  a trusted segment) and the network segment the endpoint
-  lives on.
+- Deciding the deployment's transport-security posture and
+  network segment. NOTE: the shipped server is plaintext-only
+  (`grpc::InsecureServerCredentials()`); TLS / mTLS / token-auth
+  are NOT binary configuration knobs — they are external
+  infrastructure concerns (e.g. an mTLS proxy / sidecar) and the
+  plaintext endpoint must stay on a trusted, isolated segment.
 - Standing up the server alongside a known-good Flow setup
   and smoke-testing one client end-to-end before exposing
   the endpoint to the fleet.

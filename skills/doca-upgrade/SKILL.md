@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-upgrade
 description: >
   Use this skill when the user is contemplating a DOCA upgrade or
@@ -94,8 +95,8 @@ load-bearing piece — the worked example is a single instance.
   [`TASKS.md ## run`](TASKS.md#run); this skill never redefines the
   reflash, mode-flip, or cold-power-cycle discipline.
 - **"My installed component is being sunset — should I keep building
-  on it or move?"** — worked example: *"I rely on DOCA App-Shield
-  (`doca-apsh`) / the `doca-flow-inspector` service; are they on a
+  on it or move?"** — worked example: *"I rely on DOCA App Shield /
+  the DOCA Flow Inspector service; are they on a
   deprecation track?"*. Answered by the sunset / deprecation
   awareness concern in
   [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes),

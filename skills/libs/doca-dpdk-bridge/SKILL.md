@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-dpdk-bridge
 description: >
   Use this skill when the user has an existing DPDK application and is

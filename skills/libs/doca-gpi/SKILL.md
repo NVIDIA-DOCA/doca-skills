@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-gpi
 description: >
   Use this skill when the user is doing hands-on DOCA GPI programming
@@ -300,3 +301,4 @@ guidance".
   the JSON-schema contracts for the agent-preferred structured
   helpers; the `## Command appendix` in `TASKS.md` defers to
   them before falling back to the manual chain.
+

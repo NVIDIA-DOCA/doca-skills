@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-bench
 description: >
   Use this skill when the user is running `doca_bench` (DOCA ≥

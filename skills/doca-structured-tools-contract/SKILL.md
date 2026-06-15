@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-structured-tools-contract
 description: >
   Use this skill whenever another DOCA skill says "prefer the

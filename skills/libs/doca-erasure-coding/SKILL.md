@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-erasure-coding
 description: >
   Use this skill when the user is doing hands-on DOCA Erasure Coding

@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-rdmi
 description: >
   Use this skill when the user is doing hands-on DOCA RDMI (RDMA
@@ -288,3 +289,4 @@ installed package layout" rather than "RDMI-specific guidance".
   helpers (env probe, capability snapshot, version-matrix
   lookup); the `## Command appendix` in `TASKS.md` defers to
   them before falling back to the manual chain.
+

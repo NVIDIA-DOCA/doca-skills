@@ -1,23 +1,22 @@
 ---
+license: Apache-2.0
 name: doca-urom-svc
 description: >
-  Use when operating the DOCA UROM Service container on a
-  BlueField Arm to execute remote memory ops (puts, gets,
-  atomics, collectives) that paired hosts enqueue through the
-  host-side `doca-urom` library — pulling the NGC container,
-  choosing UCX-component / collective surface, sizing enqueue
-  queue, wiring DOCA Comch endpoint pairing with `doca-urom`
-  (the binary has NO standalone authz list / `allowed_host` /
-  `allowed_users` / `auth_token` / `NOT_PERMITTED` knob — access
-  is governed by Comch pairing + RDMA permissions), or pinning
-  host-library + service paired versions per the DOCA
-  Compatibility Policy. Trigger even without "DOCA UROM" —
-  implicit forms: "MPI/UCX collectives slow on host CPU, want
-  BlueField offload", "enqueue returns NOT_PERMITTED though
-  doca_dev access is fine", "ops enqueue but completions never
-  fire", "cap query says supported but runtime says
-  NOT_SUPPORTED". Refuse for host-side app code, MPI/UCX
-  integration, RDMA substrate bring-up, or installing DOCA.
+  SECURITY: the DOCA UROM Service binary has NO standalone access
+  control (no authz list / `allowed_host` / `allowed_users` /
+  `auth_token`) — access is governed ENTIRELY by DOCA Comch pairing +
+  RDMA permissions, so any host able to establish a Comch pairing can
+  drive remote memory ops; isolate accordingly. Use when operating the
+  DOCA UROM Service container on a BlueField Arm to run remote memory
+  ops (puts, gets, atomics, collectives) that paired hosts enqueue via
+  the host-side `doca-urom` library — pulling the NGC container,
+  choosing UCX-component surface, sizing the enqueue queue, wiring
+  Comch endpoint pairing with `doca-urom`, or pinning host-library +
+  service versions per the DOCA Compatibility Policy. Trigger even
+  without 'DOCA UROM' — e.g. 'UCX collectives slow on host CPU, want
+  BlueField offload', 'enqueue returns NOT_PERMITTED though doca_dev
+  access is fine', 'ops enqueue but completions never fire'. Refuse
+  for host-side app code, MPI/UCX integration, or installing DOCA.
 metadata:
   kind: service
 compatibility: >

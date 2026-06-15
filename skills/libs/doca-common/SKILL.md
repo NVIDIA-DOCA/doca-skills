@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-common
 description: >
   Use this skill whenever the user is doing hands-on DOCA programming
@@ -288,7 +289,7 @@ installed package layout" rather than "Common-specific guidance".
   `doca-comch`, `doca-dma`, `doca-rmax`, `doca-sha`, `doca-aes-gcm`,
   `doca-erasure-coding`, `doca-compress`, `doca-dpa`, `doca-gpunetio`,
   `doca-pcc`, `doca-sta`, `doca-telemetry`, `doca-urom`,
-  `doca-verbs`, `doca-argp`, `doca-apsh`, `doca-devemu`,
+  `doca-verbs`, `doca-argp`, `doca-devemu`,
   `doca-dpdk-bridge`, …) — every per-library skill cross-links
   back to this skill for the foundation primitives. Loading this
   skill alongside any of them is the recommended default.

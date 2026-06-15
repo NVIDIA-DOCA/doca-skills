@@ -55,8 +55,6 @@ every later verb assumes the operator has read it here.
     - Argus → [`doca-argus`](../services/doca-argus/SKILL.md)
     - DMS → [`doca-dms`](../services/doca-dms/SKILL.md)
     - Firefly → [`doca-firefly`](../services/doca-firefly/SKILL.md)
-    - Flow-Inspector → [`doca-flow-inspector`](../services/doca-flow-inspector/SKILL.md)
-    - OS-Inspector → [`doca-os-inspector`](../services/doca-os-inspector/SKILL.md)
     - UROM service → [`doca-urom-svc`](../services/doca-urom-svc/SKILL.md)
 
    Quote the per-service config schema and "healthy" signal from

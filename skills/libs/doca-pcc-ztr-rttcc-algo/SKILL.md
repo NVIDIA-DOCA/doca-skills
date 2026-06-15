@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-pcc-ztr-rttcc-algo
 description: >
   Use this skill when the user is doing hands-on deployment, tuning,
@@ -398,3 +399,4 @@ PCC programming guide or the on-disk install layout".
   BlueField port, the meta-policy's pre-flight inventory,
   replica-first, and rollback rules apply via this
   skill's `## Safety policy` overlay.
+

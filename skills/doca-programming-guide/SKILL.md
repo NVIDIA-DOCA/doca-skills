@@ -1,10 +1,11 @@
 ---
+license: Apache-2.0
 name: doca-programming-guide
 description: >
   Use this skill when the user is writing their first DOCA app or
   asking a library-agnostic programming question — picking a
   shipped sample to copy and modify, wiring the canonical
-  pkg-config doca-<library> + meson build (or FFI from Rust / Go
+  pkg-config doca-{library} + meson build (or FFI from Rust / Go
   / Python against the public C ABI), walking the cfg-create →
   init → start → use → stop → destroy lifecycle, validating a
   spec before commit, or decoding a DOCA_ERROR_* return with
@@ -14,7 +15,7 @@ description: >
   DOCA_ERROR_BAD_STATE on my first call", "call DOCA from Rust
   without writing C", "built clean but nothing on the wire",
   "what order do doca_*_pipe calls go in". Refuse and route for
-  install / hugepages / pkg-config not resolving doca-<library>
+  install / hugepages / pkg-config not resolving doca-{library}
   (doca-setup), docs or version lookup
   (doca-public-knowledge-map), and library-internal API
   construction like Flow pipe topology or RDMA QP setup (matching

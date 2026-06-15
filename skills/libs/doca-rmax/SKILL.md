@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-rmax
 description: >
   Use this skill when the user is doing hands-on DOCA Rivermax work on
@@ -20,15 +21,13 @@ description: >
 metadata:
   kind: library
 compatibility: >
-  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
-  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
-  attached, AND the separately-installed NVIDIA Rivermax SDK with a
-  valid Rivermax license file readable by the running user — DOCA
-  does NOT bundle Rivermax. Reads the user's local install via
-  `pkg-config doca-rmax` and inspects
-  /opt/mellanox/doca/{lib,include,samples,applications}; route
-  Rivermax-SDK install / license questions to the public Rivermax
-  guide.
+  Requires DOCA SDK at /opt/mellanox/doca on Linux (Ubuntu 22.04/24.04 or
+  RHEL/SLES) with a BlueField DPU or ConnectX NIC, AND the separately-
+  installed NVIDIA Rivermax SDK with a valid Rivermax license readable by
+  the user — DOCA does NOT bundle Rivermax. Reads the local install via
+  `pkg-config doca-rmax`; route Rivermax SDK install/license questions to
+  the public Rivermax guide.
+
 ---
 
 # DOCA Rivermax
@@ -359,3 +358,4 @@ than *"Rivermax-integration-specific guidance"*.
   (license precondition gaps, stream-type / packet-rate
   capability mismatches, scheduling-discipline jitter
   symptoms) overlays on top of that ladder.
+

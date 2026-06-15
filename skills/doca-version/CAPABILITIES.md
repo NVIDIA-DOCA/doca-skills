@@ -90,7 +90,7 @@ with `doca-common` installed is:
 
 | What the four sources say                                      | What it means                                          | Fix (DOCA 3.3+ vocabulary)                                       |
 | ---                                                            | ---                                                    | ---                                                              |
-| (a) returns *X*; (b) and (c) are *absent*                      | Only the `doca-common` host package is installed       | `apt install doca-samples doca-caps` (samples ships `applications/VERSION` too on 3.3+; `doca-caps` ships the `doca_caps` binary; add other per-tool packages — `doca-bench`, `doca-pcc-counters`, `doca-flow-tune`, `doca-comm-channel-admin`, `doca-apsh-config` — as the workload requires) |
+| (a) returns *X*; (b) and (c) are *absent*                      | Only the `doca-common` host package is installed       | `apt install doca-samples doca-caps` (samples ships `applications/VERSION` too on 3.3+; `doca-caps` ships the `doca_caps` binary; add other per-tool packages — `doca-bench`, `doca-pcc-counters`, `doca-flow-tune`, `doca-comm-channel-admin` — as the workload requires) |
 | (a) returns *X*; (b) returns *X*; (c) is *absent*              | The per-tool package(s) that ship the binary you need (e.g. `doca-caps`) were not installed | `apt install doca-caps` (or the specific per-tool package the workload needs) |
 | (a) returns *X*; (c) returns *X*; (b) is *absent*              | The `doca-samples` package (which on DOCA 3.3+ ships `/opt/mellanox/doca/applications/VERSION` as well) was not installed | `apt install doca-samples` |
 | (a) returns *X*; (b) returns *X*; (c) returns *Y* (*X ≠ Y*)    | Build-time and runtime are from *different* releases   | Reinstall consistently — this IS the case that requires `doca-all`|
@@ -101,7 +101,7 @@ the legacy `doca-applications` and `doca-tools` meta-packages no
 longer exist (`applications/VERSION` ships inside `doca-samples`; the
 tools are granular per-binary: `doca-caps`, `doca-bench`,
 `doca-pcc-counters`, `doca-flow-tune`, `doca-comm-channel-admin`,
-`doca-apsh-config`, …). Before quoting an `apt install` line at the
+…). Before quoting an `apt install` line at the
 user, the agent **MUST** run `apt-cache policy <pkg>` (or
 `apt-cache search ^doca-`) on the target host to confirm the package
 name exists in that host's configured DOCA repo. A prescribed

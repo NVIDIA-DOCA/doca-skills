@@ -53,11 +53,10 @@ for `~/.claude/skills/`, `~/.agents/skills/` (Codex / cross-platform), or
 
 ## What's in the bundle
 
-- **28 library skills** (one per DOCA library — Flow, RDMA, GPUNetIO,
+- **27 library skills** (one per DOCA library — Flow, RDMA, GPUNetIO,
   AES-GCM, Telemetry, …)
-- **6 service skills** (Firefly, DMS, OS Inspector, Argus, Flow Inspector,
-  URO M Svc)
-- **17 tool skills** (bench, caps, flow-perf, flow-tune, apsh-config,
+- **4 service skills** (Firefly, DMS, Argus, URO M Svc)
+- **16 tool skills** (bench, caps, flow-perf, flow-tune,
   pcc-counters, …)
 - **10 cross-cutting skills** that overlay on top of any per-component
   answer: `doca-setup`, `doca-version`, `doca-debug`,

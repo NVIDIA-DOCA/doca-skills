@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-rdma
 description: >
   Use this skill when the user is doing hands-on DOCA RDMA programming
@@ -19,14 +20,14 @@ description: >
 metadata:
   kind: library
 compatibility: >
-  Requires DOCA SDK installed at /opt/mellanox/doca on Linux (Ubuntu
-  22.04/24.04 or RHEL/SLES) with a BlueField DPU or ConnectX NIC
-  attached. Reads the user's local install via `pkg-config doca` (the
-  umbrella module that ships the RDMA library; current DOCA installs do
-  NOT ship a separate doca-rdma.pc — discover the real module name with
-  `pkg-config --list-all | grep -i doca` and set PKG_CONFIG_PATH to
-  /opt/mellanox/doca/lib/<arch>/pkgconfig if pkg-config can't find it)
-  and inspects /opt/mellanox/doca/{lib,include,samples,applications}.
+  Requires DOCA SDK at /opt/mellanox/doca on Linux (Ubuntu 22.04/24.04 or
+  RHEL/SLES) with a BlueField DPU or ConnectX NIC. Reads the local install
+  via `pkg-config doca` (umbrella module shipping the RDMA library; no
+  separate doca-rdma.pc — find the real name via `pkg-config --list-all |
+  grep -i doca`, set PKG_CONFIG_PATH to
+  /opt/mellanox/doca/lib/{arch}/pkgconfig if needed) and inspects
+  /opt/mellanox/doca/{lib,include,samples,applications}.
+
 ---
 
 # DOCA RDMA
@@ -265,3 +266,5 @@ installed package layout" rather than "RDMA-specific guidance".
   program / driver). RDMA-specific debug (state-machine transitions,
   permission failures, connection callbacks) overlays on top of
   that ladder.
+
+

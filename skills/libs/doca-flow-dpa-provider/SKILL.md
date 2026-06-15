@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-flow-dpa-provider
 description: >
   Use this skill when the user is doing hands-on DOCA Flow DPA
@@ -366,3 +367,4 @@ install layout" rather than "provider-specific guidance".
   two-side-program rebuild discipline from `doca-dpa` BOTH
   apply, and the meta-policy provides the cross-cutting
   framing.
+

@@ -4,9 +4,9 @@
 container-deployment patterns the agent walks for every DOCA service
 on the BlueField. Pick the pattern first, then drill into the H2
 that owns the substance. For the *how* of executing each pattern,
-jump to [TASKS.md](TASKS.md). For per-service overlays of the six
+jump to [TASKS.md](TASKS.md). For per-service overlays of the four
 in-bundle services (`doca-argus`, `doca-dms`, `doca-firefly`,
-`doca-flow-inspector`, `doca-os-inspector`, `doca-urom-svc`), follow
+`doca-urom-svc`), follow
 the matching per-service skill that layers on top of this one.
 
 This file enumerates the cross-cutting DOCA container-deployment
@@ -144,8 +144,6 @@ BlueField:
 | [`doca-argus`](../services/doca-argus/SKILL.md) | Runtime-security / monitoring policy config; event-stream output as the "healthy" signal |
 | [`doca-dms`](../services/doca-dms/SKILL.md) | gNMI / gNOI endpoint config; gNMI session up + per-RPC counter as the "healthy" signal; host-side gNMI client as the paired-workload contract |
 | [`doca-firefly`](../services/doca-firefly/SKILL.md) | Four-axis PTP config (role / profile / domain / interface); PHC offset + ports state as the "healthy" signal; host-side time follower as a paired requirement |
-| [`doca-flow-inspector`](../services/doca-flow-inspector/SKILL.md) | Inspector / sampling / mirror-source config; mirrored-flow ingest as the "healthy" signal |
-| [`doca-os-inspector`](../services/doca-os-inspector/SKILL.md) | DPU-side host-OS introspection target config; per-target sample + introspection-output stream as the "healthy" signal |
 | [`doca-urom-svc`](../services/doca-urom-svc/SKILL.md) | UROM operations endpoint; per-operation counter as the "healthy" signal; paired host↔DPU workload contract |
 
 The agent's rule: walk the shared runtime here, then route to the

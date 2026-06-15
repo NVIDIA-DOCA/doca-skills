@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-compress
 description: >
   Use this skill for hands-on DOCA Compress programming on a

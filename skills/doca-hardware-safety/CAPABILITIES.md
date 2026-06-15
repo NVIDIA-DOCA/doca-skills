@@ -404,8 +404,6 @@ policy here. The canonical in-bundle overlays are:
   device state): [`doca-argus`](../services/doca-argus/SKILL.md),
   [`doca-dms`](../services/doca-dms/SKILL.md),
   [`doca-firefly`](../services/doca-firefly/SKILL.md),
-  [`doca-flow-inspector`](../services/doca-flow-inspector/SKILL.md),
-  [`doca-os-inspector`](../services/doca-os-inspector/SKILL.md),
   [`doca-urom-svc`](../services/doca-urom-svc/SKILL.md).
 - Device-touching libraries:
   [`doca-flow`](../libs/doca-flow/SKILL.md),

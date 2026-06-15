@@ -33,6 +33,9 @@ skills/
 ├── doca-upgrade/                 # cross-cutting upgrade/downgrade discipline (detect → report → ASK → guided)
 ├── doca-container-deployment/    # cross-cutting service-container deployment path
 ├── doca-bare-metal-deployment/   # cross-cutting bare-metal-binary deployment path (sibling of container-deployment)
+├── doca-bf3-deployment/          # cross-cutting BlueField-3 day-1 platform bring-up (RShim/BFB path)
+├── doca-bf4-deployment/          # cross-cutting BlueField-4 day-1 platform bring-up (BMC/Redfish path)
+├── doca-collectx-deployment/     # cross-cutting CollectX (clx) telemetry-collection deployment
 ├── libs/<library>/               # one skill per doca/libs/<library>
 ├── services/<service>/           # one skill per doca/services/<service>
 └── tools/<tool>/                 # one skill per doca/tools/<tool>
@@ -53,7 +56,7 @@ break agent discovery.
 
 ## Index
 
-### Top-level cross-cutting skills (10)
+### Top-level cross-cutting skills (13)
 
 | Skill | Source | When to load |
 | --- | --- | --- |
@@ -67,8 +70,11 @@ break agent discovery.
 | `doca-upgrade` | [skills/doca-upgrade/SKILL.md](skills/doca-upgrade/SKILL.md) | The user is contemplating or recovering a DOCA upgrade / downgrade — moving a host to the next release, refreshing the BFB, bumping an NGC container tag, rolling back, or reacting to an accidental `apt upgrade` drift. Headline discipline: **detect → report → ASK → only-then guided upgrade; never auto-upgrade.** Routes version detection to `doca-version`, every hardware/firmware/reboot step to `doca-hardware-safety`, and sunset/deprecation lookups to `doca-public-knowledge-map`. |
 | `doca-container-deployment` | [skills/doca-container-deployment/SKILL.md](skills/doca-container-deployment/SKILL.md) | The user is deploying any DOCA service container on BlueField (kubelet-standalone + pod-spec drop). The CONTAINER half of the two-path deployment landscape; the bare-metal half lives in `doca-bare-metal-deployment`. Every in-bundle per-service skill cross-links here. If the developer has NOT yet decided container vs. bare-metal, route them back to `doca-setup ## recognize` first. |
 | `doca-bare-metal-deployment` | [skills/doca-bare-metal-deployment/SKILL.md](skills/doca-bare-metal-deployment/SKILL.md) | The user is deploying a DOCA-linked **application binary** directly on hardware — no container — on host x86 (DOCA host install talking to a remote BlueField NIC over PCIe) OR on BlueField Arm bare-metal (DOCA app on the DPU cores). Owns the launch contract (direct / tmux / systemd), hardware-resource binding (PF/VF/representor + NUMA + CPU pinning + IRQ affinity), per-tenant isolation (cgroup-v2 + namespaces + numactl), the bare-metal error taxonomy, observability (stdout / journald / devlink / sysfs), and the restart-loop-is-HIGH-STAKES rule. The BARE-METAL half of the two-path deployment landscape; the container half lives in `doca-container-deployment`. Routed to from `doca-setup ## recognize`. |
+| `doca-bf3-deployment` | [skills/doca-bf3-deployment/SKILL.md](skills/doca-bf3-deployment/SKILL.md) | The user is doing BlueField-3 (BF3) day-1 platform bring-up — the classic RShim/BFB path: `bfb-install` over RShim, TMFIFO (`192.168.100.x`) management channel, DPU vs separated-host mode via `mlxconfig`, post-BFB recovery + the six-state classifier, host-side vs Arm-side DOCA install. Distinct from the BF4 BMC/Redfish path (`doca-bf4-deployment`). Every mutating burn/mode-flip routes to `doca-hardware-safety`; once the platform is up, routes onward to `doca-bare-metal-deployment` / `doca-container-deployment`. |
+| `doca-bf4-deployment` | [skills/doca-bf4-deployment/SKILL.md](skills/doca-bf4-deployment/SKILL.md) | The user is doing BlueField-4 (BF4) day-1 platform bring-up — the BMC-driven path: the three OS-ISO install methods (UEFI HTTP boot / PXE / Redfish Virtual Media), the PLDM firmware-update flow (BMC/NIC/SBIOS/ERoT), and the Grace Ubuntu + cloud-init install. Public-safe ({curly} placeholders, no internal hosts/paths/credentials). Distinct from the BF3 RShim/BFB path (`doca-bf3-deployment`); mutating firmware/power-cycle ops route to `doca-hardware-safety`. |
+| `doca-collectx-deployment` | [skills/doca-collectx-deployment/SKILL.md](skills/doca-collectx-deployment/SKILL.md) | The user is deploying/operating a CollectX (clx) telemetry **collection** pipeline (providers/counters → schema → collector daemon → exporters: Prometheus / Fluent Bit / NetFlow / file-IPC). Owns the clx collection class; routes the reader API to `doca-telemetry`, the publisher API to `doca-telemetry-exporter`, and the productized DTS container to public docs (Non-goal #7). |
 
-### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` at the **publicly-released DOCA the bundle is documented for, currently `3.3.0109`** — see README.md "Standards & Compatibility")
+### Per-artifact skills (48 — strict 1:1 with `doca/{libs,services,tools}` at the **publicly-released DOCA the bundle is documented for, currently `3.3.0109`** — see README.md "Standards & Compatibility")
 
 This bundle ships one skill per artifact in the DOCA monorepo at the
 DOCA release the bundle is aligned to. The agent loads the matching
@@ -81,7 +87,7 @@ The compact triple table below is the discovery surface every fresh
 agent walks. Strict 1:1 alignment with the named DOCA release is
 verified on every commit.
 
-**Libraries (28) — `skills/libs/<name>/`, 1:1 with `doca/libs/`** (excluding the internal-only `doca_gpunetio_internal`)
+**Libraries (27) — `skills/libs/<name>/`, 1:1 with `doca/libs/`** (excluding the internal-only `doca_gpunetio_internal`)
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
@@ -102,7 +108,6 @@ verified on every commit.
 | `doca-aes-gcm` | [skills/libs/doca-aes-gcm/SKILL.md](skills/libs/doca-aes-gcm/SKILL.md) | DOCA AES-GCM — hardware-accelerated AES-GCM. |
 | `doca-sha` | [skills/libs/doca-sha/SKILL.md](skills/libs/doca-sha/SKILL.md) | DOCA SHA — hardware-accelerated SHA hashing. |
 | `doca-erasure-coding` | [skills/libs/doca-erasure-coding/SKILL.md](skills/libs/doca-erasure-coding/SKILL.md) | DOCA Erasure Coding — hardware-accelerated EC (RS / similar). |
-| `doca-apsh` | [skills/libs/doca-apsh/SKILL.md](skills/libs/doca-apsh/SKILL.md) | DOCA App Shield (library) — process-introspection primitives. |
 | `doca-pcc` | [skills/libs/doca-pcc/SKILL.md](skills/libs/doca-pcc/SKILL.md) | DOCA PCC (library) — programmable congestion control (DPA-hosted). |
 | `doca-pcc-ztr-rttcc-algo` | [skills/libs/doca-pcc-ztr-rttcc-algo/SKILL.md](skills/libs/doca-pcc-ztr-rttcc-algo/SKILL.md) | DOCA PCC ZTR-RTTCC Algorithm — the shipped reference congestion-control algorithm (Zero-Touch-RTT-CC) that runs under doca-pcc. Pairs with `doca-pcc` (host) and `doca-pcc-counters` (observability). |
 | `doca-urom` | [skills/libs/doca-urom/SKILL.md](skills/libs/doca-urom/SKILL.md) | DOCA UROM (library) — Unified Communication Remote Memory Operations. |
@@ -114,7 +119,7 @@ verified on every commit.
 | `doca-rmax` | [skills/libs/doca-rmax/SKILL.md](skills/libs/doca-rmax/SKILL.md) | DOCA Rivermax — media / streaming integration. |
 | `doca-dpdk-bridge` | [skills/libs/doca-dpdk-bridge/SKILL.md](skills/libs/doca-dpdk-bridge/SKILL.md) | DOCA DPDK Bridge — interop layer for an existing DPDK application to reach DOCA libraries. |
 
-**Services (6) — `skills/services/<name>/`, 1:1 with `doca/services/`**
+**Services (4) — `skills/services/<name>/`, 1:1 with `doca/services/`**
 
 The doca-skills bundle is strict 1:1 with `doca/services/` (excluding
 the shared infra dirs `base_image` and `framework`, which are not
@@ -127,12 +132,9 @@ Telemetry-Service-as-deployed) are intentionally out of scope — see
 | --- | --- | --- |
 | `doca-dms` | [skills/services/doca-dms/SKILL.md](skills/services/doca-dms/SKILL.md) | DOCA Management Service — gNMI / gNOI config + ops over gRPC. |
 | `doca-firefly` | [skills/services/doca-firefly/SKILL.md](skills/services/doca-firefly/SKILL.md) | DOCA Firefly Service — PTP / time-sync. |
-| `doca-flow-inspector` | [skills/services/doca-flow-inspector/SKILL.md](skills/services/doca-flow-inspector/SKILL.md) | DOCA Flow Inspector Service — mirrored-flow inspection. |
 | `doca-urom-svc` | [skills/services/doca-urom-svc/SKILL.md](skills/services/doca-urom-svc/SKILL.md) | DOCA UROM Service — paired with `libs/doca-urom`. `-svc` suffix per AUTHORING § 17 collision rule. |
 | `doca-argus` | [skills/services/doca-argus/SKILL.md](skills/services/doca-argus/SKILL.md) | DOCA Argus Service — runtime-security / monitoring on BlueField. |
-| `doca-os-inspector` | [skills/services/doca-os-inspector/SKILL.md](skills/services/doca-os-inspector/SKILL.md) | DOCA OS Inspector Service — DPU-side out-of-band host-OS introspection container. Service wrapper for apsh-class capabilities; pairs with `doca-apsh` (library), `doca-apsh-config` (profile generation), and `doca-container-deployment`. |
-
-**Tools (17) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
+**Tools (16) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
@@ -146,7 +148,6 @@ Telemetry-Service-as-deployed) are intentionally out of scope — see
 | `doca-flow-grpc-server` | [skills/tools/doca-flow-grpc-server/SKILL.md](skills/tools/doca-flow-grpc-server/SKILL.md) | DOCA Flow gRPC Server — gRPC remote-control server for `doca-flow` rule programming. |
 | `doca-pcc-counters` | [skills/tools/doca-pcc-counters/SKILL.md](skills/tools/doca-pcc-counters/SKILL.md) | DOCA PCC Counters — the `pcc_counters.sh` script arms (`set`) and reads (`query`) the device's firmware/HW PCC diagnostic counters via mst + the mlx5 debugfs `diag_cnt` interface. |
 | `doca-socket-relay` | [skills/tools/doca-socket-relay/SKILL.md](skills/tools/doca-socket-relay/SKILL.md) | DOCA Socket Relay — socket relay between host and DPU. |
-| `doca-apsh-config` | [skills/tools/doca-apsh-config/SKILL.md](skills/tools/doca-apsh-config/SKILL.md) | DOCA App Shield Config — generates the host-OS profile / symbol files that `doca-apsh` and `doca-os-inspector` need to interpret host kernel state. Without a current profile, apsh-class introspection returns garbage. |
 | `doca-dpa-hl-tracer` | [skills/tools/doca-dpa-hl-tracer/SKILL.md](skills/tools/doca-dpa-hl-tracer/SKILL.md) | DOCA DPA High-Level Tracer — captures DPA-side execution traces with higher-level events than raw cycle counts. |
 | `doca-gpunetio-ib-write-bw` | [skills/tools/doca-gpunetio-ib-write-bw/SKILL.md](skills/tools/doca-gpunetio-ib-write-bw/SKILL.md) | DOCA GPUNetIO ib_write_bw — RDMA-write bandwidth benchmark from the GPUNetIO framework. |
 | `doca-gpunetio-ib-write-lat` | [skills/tools/doca-gpunetio-ib-write-lat/SKILL.md](skills/tools/doca-gpunetio-ib-write-lat/SKILL.md) | DOCA GPUNetIO ib_write_lat — RDMA-write latency benchmark from the GPUNetIO framework. |

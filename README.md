@@ -218,18 +218,17 @@ These load on top-level questions that aren't tied to a single library/service/t
 | [`doca-debug`](skills/doca-debug/SKILL.md) | Layered debug ladder (install → version → build → link → runtime → program → driver), verbosity controls (`--sdk-log-level`, `DOCA_LOG_LEVEL`, per-library trace), how to capture state for a Developer Forum post. | Any "DOCA symptom" — build won't compile, link can't resolve `doca_*`, runtime returns `DOCA_ERROR_*`, silent service. |
 | [`doca-hardware-safety`](skills/doca-hardware-safety/SKILL.md) | The `## configure / ## modify / ## test` operator discipline for any change that touches live BlueField / NIC state — `mlxconfig`, firmware burn, BFB reflash, SFC flip. Preconditions: operator window, OOB console, rollback. | Any mutating change against live hardware. Loaded automatically alongside any tool/lib skill that prescribes such a change. |
 | [`doca-bare-metal-deployment`](skills/doca-bare-metal-deployment/SKILL.md) | Launching, supervising, debugging DOCA-linked binaries directly on hardware (host x86 over PCIe or BF Arm bare-metal): launch mode, PCI/NUMA/CPU/IRQ binding, cgroup-v2/netns/numactl isolation, 7-layer error taxonomy. Handoff to BFB-install (out-of-scope, routes via non-goal #7). | The user is running or supervising a DOCA binary directly on hardware — no container, no kubelet. |
-| [`doca-container-deployment`](skills/doca-container-deployment/SKILL.md) | Hands-on deploying an in-bundle DOCA service container on BlueField via kubelet-standalone + static-pod manifests. Smoke-before-bulk, layered error taxonomy (pod-spec, scheduling, pull, runtime, mount, network, version, host). | The user is deploying an Argus / DMS / Firefly / Flow-Inspector / OS-Inspector / UROM-Svc container. |
+| [`doca-container-deployment`](skills/doca-container-deployment/SKILL.md) | Hands-on deploying an in-bundle DOCA service container on BlueField via kubelet-standalone + static-pod manifests. Smoke-before-bulk, layered error taxonomy (pod-spec, scheduling, pull, runtime, mount, network, version, host). | The user is deploying an Argus / DMS / Firefly / UROM-Svc container. |
 | [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) | Master routing index — every authoritative DOCA information source (public docs URLs, on-disk `/opt/mellanox/doca` layout, public GitHub repos, NGC catalog, Developer Forum) + the 27-product routing table for externally-productized NVIDIA networking software not in this bundle. | Any "where is / which doc / how do I find" question, AND any out-of-scope question that requires routing-with-substance (non-goal #7 contract). |
 | [`doca-structured-tools-contract`](skills/doca-structured-tools-contract/SKILL.md) | JSON schemas the agent must produce for every infra step (env probe, version detect, hardware probe, capability snapshot, validate-before-commit, host-vs-DPU state diff). Plus the Detect / Prefer / Fall-back / Report behavior contract for the future structured-tools binaries. | The agent is about to emit JSON for any infra step, or is being wired into a structured-tool / function-calling dispatcher (MCP, OpenAI function calling) and needs the JSON-schema contract. |
 
-### DOCA Libraries (28 skills)
+### DOCA Libraries (27 skills)
 
 Each library skill teaches the agent the library's API surface, build / link, lifecycle, the library-specific `DOCA_ERROR_*` shapes, and the derive-from-sample first-app pattern.
 
 | Skill | DOCA library | One-line API surface |
 |---|---|---|
 | [`doca-aes-gcm`](skills/libs/doca-aes-gcm/SKILL.md) | DOCA AES-GCM | Hardware-accelerated AES-GCM encrypt/decrypt offload to BlueField / ConnectX. |
-| [`doca-apsh`](skills/libs/doca-apsh/SKILL.md) | DOCA App Shield | Live-introspection of host processes from BlueField (zero host-agent footprint). |
 | [`doca-argp`](skills/libs/doca-argp/SKILL.md) | DOCA Argument Parser | Sample-shaped CLI argument parsing used by every shipped DOCA sample. |
 | [`doca-comch`](skills/libs/doca-comch/SKILL.md) | DOCA Comch | BlueField↔host control-channel message passing (consumer + producer patterns). |
 | [`doca-common`](skills/libs/doca-common/SKILL.md) | DOCA Common | The foundation: contexts, devices, mmap, sync events, error / log / pe / mmap / mem APIs every other DOCA lib stands on. |
@@ -257,22 +256,19 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-urom`](skills/libs/doca-urom/SKILL.md) | DOCA UROM | Unified Communication Remote Memory Operations — offload control of long-lived RDMA flows. |
 | [`doca-verbs`](skills/libs/doca-verbs/SKILL.md) | DOCA Verbs | Low-level verbs surface for libraries / wrappers that want direct QP / CQ / WR control under DOCA's safety model. |
 
-### DOCA Services (6 skills)
+### DOCA Services (4 skills)
 
 | Skill | DOCA service | What it does |
 |---|---|---|
 | [`doca-argus`](skills/services/doca-argus/SKILL.md) | DOCA Argus | Cybersecurity-monitoring service on BlueField — process / network / file telemetry stream. |
 | [`doca-dms`](skills/services/doca-dms/SKILL.md) | DOCA Management Service | gRPC-based device management (gNMI for config, gNOI for system ops, YANG-modeled paths, `dmsd` + `dmspe` two-process daemon, four auth modes). Beta as of DOCA 3.3. |
 | [`doca-firefly`](skills/services/doca-firefly/SKILL.md) | DOCA Firefly | PTP synchronization service — sub-microsecond clock sync on BlueField. |
-| [`doca-flow-inspector`](skills/services/doca-flow-inspector/SKILL.md) | DOCA Flow Inspector | Mirrored-flow inspection service — taps a copy of programmed Flow traffic and emits a stream for off-host analysis (containerized, kubelet-standalone). |
-| [`doca-os-inspector`](skills/services/doca-os-inspector/SKILL.md) | DOCA OS Inspector | DPU-side out-of-band introspection of the **HOST** OS via DOCA App Shield (read-only via PCIe DMA). Pairs with `doca-apsh` (library) and `doca-apsh-config` (profile generation). |
 | [`doca-urom-svc`](skills/services/doca-urom-svc/SKILL.md) | DOCA UROM Service | The deployed service half of UROM — manages offloaded RDMA flow state. |
 
-### DOCA Tools (17 skills)
+### DOCA Tools (16 skills)
 
 | Skill | DOCA tool | What it does |
 |---|---|---|
-| [`doca-apsh-config`](skills/tools/doca-apsh-config/SKILL.md) | `doca_apsh_config` | Configures App Shield (target-host symbol / kallsyms / process-map fixtures). |
 | [`doca-bench`](skills/tools/doca-bench/SKILL.md) | `doca_bench` | Standardized benchmark harness for DOCA libraries (Flow, DMA, etc.). |
 | [`doca-bench-extension`](skills/tools/doca-bench-extension/SKILL.md) | `doca_bench_extension` | Plugin surface for adding new bench scenarios. |
 | [`doca-caps`](skills/tools/doca-caps/SKILL.md) | `doca_caps` | Read-only `/opt/mellanox/doca/tools/doca_caps` — devices, representors, per-library per-device capabilities, logger names. The canonical first-step state snapshot. |
@@ -345,16 +341,16 @@ doca-skills/
     ├── doca-container-deployment/            # Cross-cutting: kubelet-standalone on BF
     ├── doca-public-knowledge-map/            # Cross-cutting: routing index + non-goal #7 table
     ├── doca-structured-tools-contract/       # Cross-cutting: tool-call contract for dispatchers
-    ├── libs/                                 # 28 library skills
+    ├── libs/                                 # 27 library skills
     │   ├── doca-flow/
     │   ├── doca-rdma/
     │   ├── doca-eth/
     │   └── …
-    ├── services/                             # 6 service skills
+    ├── services/                             # 4 service skills
     │   ├── doca-argus/
     │   ├── doca-dms/
     │   └── …
-    └── tools/                                # 17 tool skills
+    └── tools/                                # 16 tool skills
         ├── doca-caps/
         ├── doca-bench/
         └── …
@@ -371,7 +367,7 @@ doca-skills/
 - **C / C++ consumers** are the canonical case. The "first app" workflow is *modify a shipped C sample on your DOCA-installed Linux host*; the build manifest is meson + `pkg-config doca-<library>`.
 - **Other-language consumers** (Rust, Go, Python, …) consume DOCA via FFI / language-specific bindings against the same `*.so` libraries the C samples link against. The skills route you to the public C API surface (which is what your bindings will call) and keep the install / runtime / safety guidance language-agnostic. Your build system (cargo, go build, setup.py, …) is your concern; DOCA appears to it as a system C library.
 
-**What is in scope:** The strict-1:1 set with the `doca/{libs,services,tools}/` monorepo at DOCA 3.3 — 28 libraries + 6 services + 17 tools.
+**What is in scope:** The strict-1:1 set with the `doca/{libs,services,tools}/` monorepo at DOCA 3.3 — 27 libraries + 4 services + 16 tools. (DOCA App Shield, the OS Inspector Service, and the Flow Inspector Service exist in the monorepo but are policy-excluded from this public bundle — see [`AGENTS.md ## Non-goals`](AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely) item 7.)
 
 **What is intentionally out of scope (non-goal #7):** 27 externally-productized NVIDIA networking products that NVIDIA ships *outside* the DOCA monorepo — BlueField BSP / `bfb-install` / RShim, DOCA Platform Framework (DPF), NVIDIA Network Operator, MLNX_OFED-as-separate-install, NVIDIA UFM, NVIDIA Cumulus Linux, NVIDIA Firmware Tools (MFT), NVIDIA Rivermax SDK (the license layer), BlueField BMC, DOCA Telemetry Service (as-deployed), DOCA HBN, DOCA BlueMan, DOCA SNAP Services, DOCA Virtio-net Service, DOCA DPL Service (Pipeline Language), OVS-DOCA (ASAP² Open vSwitch offload), DOCA DPACC Compiler, DPA Tools, DOCA DPU CLI, DOCA Ngauge, `doca-hugepages` helper, DOCA Privileged Executor (DPE), NIC Configuration Operator, NVIDIA NetQ, NVIDIA NVOS, NVIDIA Spectrum-X Validated Solution Stack, NVIDIA GPU Operator. Each has a per-product row in [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) with authoritative docs URL + common-gotcha class + Developer Forum entry. The bundle's contract requires agents to give the **three-part response** (recognize + name boundary + route with substance) for these — not a bare-URL handoff.
 

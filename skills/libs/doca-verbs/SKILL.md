@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-verbs
 description: >
   Use this skill when the user is dropping below the higher-level DOCA

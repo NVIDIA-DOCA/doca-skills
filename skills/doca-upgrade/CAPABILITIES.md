@@ -67,9 +67,10 @@ number; the agent does not conflate them.
 
 When the agent detects what is installed, part of the gap report is
 checking whether an installed component is on a deprecation / sunset
-track. The team has flagged DOCA App-Shield (the `doca-apsh`
-library) and the `doca-flow-inspector` service as worked examples to
-watch on this front. The discipline is:
+track. The team has flagged DOCA App Shield and the DOCA Flow
+Inspector service — both now policy-excluded from this public
+bundle (see [AGENTS.md `## Non-goals`](../../AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely)
+item 7) — as worked examples to watch on this front. The discipline is:
 
 - Treat a possible sunset as a finding to **surface**, not a fact to
   assert from memory. The authoritative statement of a component's
@@ -82,9 +83,9 @@ watch on this front. The discipline is:
   path via
   [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md),
   and lets the user decide whether to upgrade-in-place or migrate.
-- This is class-shaped: `doca-apsh` and `doca-flow-inspector` are
-  the worked examples, but the discipline applies to any component
-  whose release notes mark it deprecated.
+- This is class-shaped: DOCA App Shield and the Flow Inspector
+  service are the worked examples, but the discipline applies to any
+  component whose release notes mark it deprecated.
 
 ## Version compatibility
 

@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-argus
 description: >
   Use this skill when the user is deploying or operating the DOCA Argus
@@ -14,8 +15,8 @@ description: >
   fleet of BlueField-3s". Refuse and route elsewhere for installing
   DOCA, SIEM-side ingest stanzas, pre-baked detection-rule packs, and
   metrics observability (DOCA Telemetry). Argus is NVIDIA's currently-
-  promoted runtime-security framework, superseding the App Shield
-  library (doca-apsh); name it first for new runtime-security work.
+  promoted runtime-security framework, superseding the older App Shield
+  library; name it first for new runtime-security work.
 metadata:
   kind: service
 compatibility: >
@@ -31,24 +32,28 @@ compatibility: >
 > **Currently-promoted successor.** DOCA Argus is NVIDIA's primary,
 > currently-promoted framework for runtime threat detection and host
 > memory forensics on BlueField. It **supersedes the older,
-> library-based DOCA App Shield approach**
-> ([`doca-apsh`](../../libs/doca-apsh/SKILL.md)). When a request is
-> "introspect host processes / detect suspicious activity / runtime
-> security" and asks for the *currently-supported* choice, **Argus is
-> the answer to name first**; the App Shield library is the
-> lower-level fallback only for genuinely custom DPU-side tooling
-> Argus cannot express.
+> library-based DOCA App Shield approach** (the DOCA App Shield
+> library is **not covered by this bundle** — it is policy-excluded
+> from the public release; see [AGENTS.md `## Non-goals`](../../../AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely)
+> item 7 and route to the public docs via
+> [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)).
+> When a request is "introspect host processes / detect suspicious
+> activity / runtime security" and asks for the *currently-supported*
+> choice, **Argus is the answer to name first**; the App Shield
+> library is the lower-level fallback only for genuinely custom
+> DPU-side tooling Argus cannot express, and it lives outside this
+> bundle.
 
 **Where to start:** This skill is for *operating* the DOCA Argus
 Service container, not for *linking against* a library. Argus is the
 packaged security agent that ships as a container and surfaces
 findings on its API / dashboard / forwarded SIEM; it is *not* a
 host-side agent the user installs as a host package, *not* a
-programming surface, and *not* the same thing as the
-[`doca-apsh`](../../libs/doca-apsh/SKILL.md) library (which is the
-*lower-level* introspection library a developer would use to BUILD
-custom security tooling — Argus is what most operators want
-INSTEAD). If the user wants to *deploy* the Argus container, open
+programming surface, and *not* the same thing as the DOCA App
+Shield library (the *lower-level* introspection library a developer
+would use to BUILD custom security tooling — Argus is what most
+operators want INSTEAD; the App Shield library is not covered by
+this bundle). If the user wants to *deploy* the Argus container, open
 [`TASKS.md`](TASKS.md) and start at
 [`## configure`](TASKS.md#configure). If the question is *what
 shape of service is Argus, what does it detect, and how does it
@@ -57,8 +62,10 @@ If DOCA is not installed on the BlueField yet, route to
 [`doca-setup`](../../doca-setup/SKILL.md) first. If the user's real
 question is *"I want to write a custom security tool against host
 kernel state from the BlueField side"*, the right answer is
-**not** this skill — route to
-[`doca-apsh`](../../libs/doca-apsh/SKILL.md) instead.
+**not** this skill — that is the DOCA App Shield library, which is
+not covered by this bundle; route the user to the public docs via
+[`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
+instead.
 
 ## Example questions this skill answers well
 
@@ -67,10 +74,11 @@ with one worked example. The class is the load-bearing piece; the
 worked example is one instance.
 
 - **"For a production BlueField security workflow, do I deploy
-  Argus, or do I build my own on top of `doca-apsh`?"** — worked
+  Argus, or do I build my own on top of the DOCA App Shield
+  library?"** — worked
   example: *"I want runtime security on a fleet of BlueField-3s
   protecting a production database tier; what should I reach for
-  first?"*. Answered by the Argus-vs-apsh path-selection rule in
+  first?"*. Answered by the Argus-vs-App-Shield path-selection rule in
   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
   + the path-selection step in
   [`TASKS.md ## configure`](TASKS.md#configure).
@@ -127,9 +135,9 @@ It is **not** for NVIDIA developers contributing to Argus itself,
 and it is **not** a programming guide for *building security tools
 on top of* DOCA libraries (that is
 [`doca-programming-guide`](../../doca-programming-guide/SKILL.md)
-plus the matching `libs/<library>` skill — in particular
-[`doca-apsh`](../../libs/doca-apsh/SKILL.md) for the App Shield
-library that custom security tooling builds on). Argus is a
+plus the matching `libs/<library>` skill — and for the App Shield
+library that custom security tooling builds on, the public docs,
+since App Shield is not covered by this bundle). Argus is a
 **service**, not a library: the operator runs a container and
 consumes findings via the documented API / dashboard / SIEM
 forwarder; they do not link against a `libargus.so` to write their
@@ -138,9 +146,9 @@ own program.
 **Path selection up front (load-bearing).** Use Argus when the
 user wants **production runtime security on BlueField as a packaged
 workflow** — most operators in this position should reach for
-Argus rather than building their own on top of `doca-apsh`. Argus
-is the packaged product; apsh is the library a developer would
-use only if Argus is genuinely insufficient (e.g. the team is
+Argus rather than building their own on top of the DOCA App Shield
+library. Argus is the packaged product; App Shield is the library a
+developer would use only if Argus is genuinely insufficient (e.g. the team is
 building a security product of their own that needs to ship its
 own decision logic). Do **not** reach for Argus when (a) there is
 no security-posture concern (Argus is heavyweight overhead for
@@ -148,10 +156,11 @@ nothing); (b) the user actually wants observability / metrics
 rather than security (route to the DOCA Telemetry Service via
 [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services));
 (c) the user is building their own DPU-side custom security
-tooling (route to
-[`doca-apsh`](../../libs/doca-apsh/SKILL.md) — the library
+tooling (that is the DOCA App Shield library — the library
 equivalent, same shape of BlueField-side observation, different
-shape of operator effort).
+shape of operator effort — which is not covered by this bundle;
+route to the public docs via
+[`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)).
 
 ## When to load this skill
 
@@ -159,8 +168,8 @@ Load this skill when the user is doing **hands-on Argus deployment
 work** on a BlueField where DOCA is already installed. Concretely:
 
 - Deciding *whether* Argus is the right answer for the user's
-  security posture (vs. building custom tooling on
-  [`doca-apsh`](../../libs/doca-apsh/SKILL.md), vs. deploying
+  security posture (vs. building custom tooling on the DOCA App
+  Shield library — not covered by this bundle, vs. deploying
   observability instead of security, vs. not deploying anything at
   all if there is no posture concern).
 - Deploying the Argus container on BlueField Arm — choosing the
@@ -194,9 +203,9 @@ of DOCA itself, library-API questions, or non-security topics. For
 those, route via
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md),
 [`doca-setup`](../../doca-setup/SKILL.md), or the matching
-`libs/<library>` skill (e.g.
-[`doca-apsh`](../../libs/doca-apsh/SKILL.md) when the user is
-building their own DPU-side security tooling).
+`libs/<library>` skill (and to the public docs for the DOCA App
+Shield library when the user is building their own DPU-side
+security tooling, since App Shield is not covered by this bundle).
 
 ## What this skill provides
 
@@ -213,7 +222,7 @@ companion files:
   finding feed + SIEM-side ingest confirmation), the error
   taxonomy (container-runtime / detection-policy / forwarding /
   sampling-performance / host-coverage), and the safety policy
-  (Argus-vs-apsh path selection, never silently disable findings,
+  (Argus-vs-App-Shield path selection, never silently disable findings,
   expect a calibration period, smoke-before-bulk).
 - `TASKS.md` — step-by-step workflows for the in-scope Argus
   verbs: `configure`, `build`, `modify`, `run`, `test`, `debug`,
@@ -279,8 +288,9 @@ contain — and pull requests should not add:
 
 1. Read this `SKILL.md` first to confirm the user's question is
    in scope **and** that Argus is the right answer at all (vs.
-   building on `doca-apsh`, vs. deploying nothing, vs. deploying
-   observability instead).
+   building on the DOCA App Shield library — not covered by this
+   bundle, vs. deploying nothing, vs. deploying observability
+   instead).
 2. **For Argus's deployment shape, the four configuration axes,
    the SIEM pairing surface, the error taxonomy, the
    observability surface, and the safety policy (including the
@@ -317,17 +327,16 @@ contain — and pull requests should not add:
   (frontend-before-backend, env-before-program, never-invent-flags)
   remains useful when Argus reports an error that originated in
   the container runtime or in a DOCA library it called.
-- [`doca-apsh`](../../libs/doca-apsh/SKILL.md) — the **library
-  equivalent**. Argus and App Shield are both BlueField-side
-  observation surfaces over host state; they DIFFER in operator
-  shape (Argus is a packaged product with detection policy and
-  SIEM forwarding built in; apsh is a C library a developer
-  builds custom DPU-side tooling on top of) and in operator
-  effort (Argus's calibration period vs apsh's full custom-tool
-  development cycle). The path-selection rule in
+- **DOCA App Shield library** — the **library equivalent**, the
+  lower-level introspection library a developer builds custom
+  DPU-side tooling on top of. It is **not covered by this bundle**
+  (policy-excluded from the public release); when Argus is
+  genuinely insufficient and the team needs to build their own
+  security product, route to the public docs via
+  [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
+  The path-selection rule in
   [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)
-  routes the user to Argus first for production security and to
-  apsh only when Argus is genuinely insufficient.
+  routes the user to Argus first for production security.
 - [`doca-dms`](../doca-dms/SKILL.md) and
   [`doca-firefly`](../doca-firefly/SKILL.md) — sibling service
   skills. The agent reading any two of these should see the same

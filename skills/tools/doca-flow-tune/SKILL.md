@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-flow-tune
 description: >
   Use this skill when the user is tuning a live or captured

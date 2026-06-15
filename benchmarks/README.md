@@ -41,7 +41,7 @@ A task PASSES a config iff all 5 dimensions PASS. The headline metric
 is the per-config PASS rate (e.g. `cursor-skills` 8/10 vs `cursor-bare`
 2/10 = 60 pp delta attributable to the bundle).
 
-## Task index (v0 — 10 seed tasks)
+## Task index (v0 — 9 seed tasks)
 
 | ID | Title | Skill(s) primarily exercised | Status |
 |---|---|---|---|
@@ -50,7 +50,6 @@ is the per-config PASS rate (e.g. `cursor-skills` 8/10 vs `cursor-bare`
 | BLD-003 | "Build a `doca_compress` deflate stream" | `doca-compress` | placeholder |
 | BLD-004 | "Build a DOCA RDMA write-with-immediate sample" | `doca-rdma` | placeholder |
 | DEP-001 | "Deploy DOCA Firefly for PTP sync on a BlueField-3" | `doca-firefly`, `doca-container-deployment` | placeholder |
-| DEP-002 | "Deploy DOCA Flow Inspector against an existing DOCA Flow application" | `doca-flow-inspector`, `doca-container-deployment` | placeholder |
 | DBG-001 | "My `doca_eth_rxq` sample returns `DOCA_ERROR_NOT_SUPPORTED` at start. Root cause." | `doca-debug`, `doca-eth`, `doca-version` | placeholder |
 | DBG-002 | "I get `undefined reference to doca_flow_*` when linking. Root cause." | `doca-debug`, `doca-flow`, `doca-programming-guide` | placeholder |
 | EXP-001 | "What is DOCA SHA, does it support SHA-256 on my hardware?" | `doca-sha`, `doca-version` | placeholder |

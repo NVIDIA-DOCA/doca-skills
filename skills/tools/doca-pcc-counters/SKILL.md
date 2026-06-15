@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-pcc-counters
 description: >
   Use this skill when the user is invoking the DOCA PCC Counters tool
@@ -17,19 +18,14 @@ description: >
 metadata:
   kind: tool
 compatibility: >
-  Requires a DOCA / MFT environment on Linux (Ubuntu
-  22.04/24.04 or RHEL/SLES) with a ConnectX-6+ / BlueField
-  device, the mst tools (`mst status -v` must resolve the
-  device), debugfs mounted, and root / sudo (the script writes
-  to and reads from `/sys/kernel/debug/mlx5/<pci>/diag_cnt/`).
-  `pcc_counters.sh` is a plain bash script installed under the
-  DOCA tools directory (`install_data` in
-  `tools/pcc_counters/meson.build`); it reads firmware / HW
-  diagnostic counters and is INDEPENDENT of any custom DPA /
-  `doca-pcc` kernel. Reading is diagnostic, but the `set`
-  operation reconfigures which diagnostic counters the device
-  collects (a privileged debugfs write), and any CC tuning
-  decision derived from a reading is fleet-impacting.
+  Requires a DOCA/MFT environment on Linux (Ubuntu 22.04/24.04 or
+  RHEL/SLES) with a ConnectX-6+/BlueField device, mst tools (`mst status
+  -v` must resolve it), debugfs mounted, and root/sudo (reads/writes
+  /sys/kernel/debug/mlx5/{pci}/diag_cnt/). `pcc_counters.sh` is a bash
+  script under the DOCA tools dir; it reads FW/HW diagnostic counters,
+  independent of any custom DPA/doca-pcc kernel. The set op reconfigures
+  collected counters (privileged write) and is fleet-impacting.
+
 ---
 
 # DOCA PCC Counters (`pcc_counters.sh`)

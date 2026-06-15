@@ -1,84 +1,55 @@
-# Skill Card
+## Description: <br>
+Use this skill for DOCA Flow on a supported NVIDIA NIC/DPU — both for DOCA Flow application knowledge and for writing Flow applications: defining match/action pipes, bringing up ports/representors, forwarding with FWD_PORT, reading flow counters, validating a pipe before hardware programming, picking the right Flow version against an installed DOCA, or debugging DOCA_ERROR_* from the Flow API. <br>
 
-## Description
-
-The `doca-flow` skill is used when the user is doing hands-on DOCA Flow programming on a BlueField DPU or ConnectX NIC — defining match/action pipes, configuring ports / representors, validating a pipe before hardware programming, reading flow counters and traces, picking the right Flow version against an installed DOCA, or debugging DOCA_ERROR_* failures from the Flow API.
-
-This skill is **documentation-only** (it ships no runnable code) and is intended
-for developer guidance and demonstration use, not as a production control plane.
+This skill is ready for commercial/non-commercial use. <br>
 
 ## Owner
+NVIDIA <br>
 
-NVIDIA DOCA team (NVIDIA-DOCA/doca-skills)
+### License/Terms of Use: <br>
+Apache 2.0 AND CC-BY-4.0 <br>
+## Use Case: <br>
+External developers and engineers writing applications that consume the DOCA Flow library to program packet steering on a supported NVIDIA NIC/DPU with DOCA installed. <br>
 
-## License/Terms of Use
+### Deployment Geography for Use: <br>
+Global <br>
 
-Apache-2.0 AND CC-BY-4.0
+## Known Risks and Mitigations: <br>
+Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
+Mitigation: Review and scan skill before deployment. <br>
 
-## Use Case
+## Reference(s): <br>
+- [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
+- [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
+- [CAPABILITIES.md](CAPABILITIES.md) <br>
+- [TASKS.md](TASKS.md) <br>
 
-For external developers building on the NVIDIA DOCA SDK with a BlueField DPU or
-ConnectX NIC, driven by an AI coding agent. The agent loads this skill when a
-task matches its trigger surface (see the `description` in `SKILL.md`) and
-follows the procedural guidance to configure, build, run, validate, or debug
-the relevant DOCA library. This skill's latest deep end-to-end evaluation verdict is **PASS** (0 blocker findings); see `evals/evals.json` and the bundle `BENCHMARK.md`.
 
-## Deployment Geography for Use
+## Skill Output: <br>
+**Output Type(s):** [Code, Shell commands, Configuration instructions, Analysis] <br>
+**Output Format:** [Markdown with inline C and bash code blocks] <br>
+**Output Parameters:** [1D] <br>
+**Other Properties Related to Output:** [None] <br>
 
-Global. The guidance references only public NVIDIA documentation and the user's
-own local DOCA install; it carries no region-specific constraints.
+## Evaluation Tasks: <br>
+3-Tier evaluation via NVSkills-Eval (`external` profile). Tier 1 static validation passed with observations. Tier 3 live agent evaluation not available in this report. <br>
 
-## Known Risks and Mitigations
+## Evaluation Metrics Used: <br>
+Reported benchmark dimensions: <br>
+- Security: Checks whether skill-assisted execution avoids unsafe behavior such as secret leakage, destructive commands, or unauthorized access. <br>
+- Correctness: Checks whether the agent follows the expected workflow and produces the correct final output. <br>
+- Discoverability: Checks whether the agent loads the skill when relevant and avoids using it when irrelevant. <br>
+- Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
+- Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
-Risk: The skill may recommend commands that change DPU/NIC hardware or firmware
-state (for example `mlxconfig` writes, a BlueField mode flip, a BFB reflash, or
-hugepage reservation).
-Mitigation: every hardware-touching step is routed through the
-`doca-hardware-safety` meta-policy (pre-flight inventory, out-of-band access,
-maintenance window, replica-first validation, and a rollback path), and the
-agent must surface the change for human review before executing it.
 
-Risk: The skill names DOCA API symbols, tool flags, pkg-config modules, and
-on-disk paths that an agent could otherwise fabricate.
-Mitigation: the bundle's authoring contract forbids unverified tokens; the
-agent is instructed to confirm every symbol, flag, and path against the live
-install (`pkg-config`, `--help`, on-disk headers) before relying on it.
 
-Risk: The skill could drift from the installed DOCA version and suggest an
-API or layout that does not match the user's release.
-Mitigation: version detection, pairing, and rollback are routed to the
-`doca-version` skill, and the bundle is aligned to publicly-released DOCA 3.3.0109.
+## Skill Version(s): <br>
+f1254ae (source: git SHA, committed 2026-06-12) <br>
 
-## References
+## Ethical Considerations: <br>
+NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>
 
-- [`skills/libs/doca-flow/SKILL.md`](SKILL.md) — the skill instructions consumed by the agent
-- `CAPABILITIES.md` — capabilities, modes, error taxonomy, safety policy
-- `TASKS.md` — the configure / build / modify / run / test / debug workflows
-- `evals/evals.json` — the Tier-3 deep end-to-end evaluation dataset for this skill
-- `../../../BENCHMARK.md` — how this bundle is graded and the latest measurement
-- `../../../nvskills/components.d/doca.yml` — catalog product registration
-- [NVIDIA DOCA SDK documentation](https://docs.nvidia.com/doca/sdk/) — the authoritative public source
-
-## Skill Output
-
-Output type(s): natural-language guidance and analysis. The bundle is
-documentation-only and produces no code, files, or API calls of its own.
-
-Output format: Markdown instructions consumed by an AI agent.
-
-Other properties: no direct side effects. Any commands the agent runs as a
-result of the guidance are gated by the human-review and hardware-safety rules
-in `AGENTS.md` and `doca-hardware-safety`.
-
-## Skill Version
-
-Aligned to publicly-released DOCA 3.3.0109. The signed release version and signing identifier
-(`skill.oms.sig`) are populated by the NVCARPS scan/sign pipeline at publish
-time; the machine-readable companion record is `SKILLCARD.yaml`.
-
-## Ethical Considerations
-
-Guidance must not be executed blindly. Any change touching shared hardware
-requires human review and an appropriate maintenance window. The skill cites
-only public NVIDIA documentation and must not surface NVIDIA-internal
-information.
+(For Release on NVIDIA Platforms Only) <br>
+Please report quality, risk, security vulnerabilities or NVIDIA AI Concerns [here](https://app.intigriti.com/programs/nvidia/nvidiavdp/detail). <br>

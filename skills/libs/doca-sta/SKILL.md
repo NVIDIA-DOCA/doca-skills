@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-sta
 description: >
   Use this skill when the user is doing hands-on NVMe-over-Fabrics

@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-pcc
 description: >
   Use this skill when the user is doing hands-on host-side DOCA
@@ -367,3 +368,4 @@ it is a separate artifact for *inspecting* runtime PCC
 counters and lives under the public DOCA Tools umbrella.
 Conflating either of those with the `doca-pcc` library is the
 single most common PCC first-app design error.
+

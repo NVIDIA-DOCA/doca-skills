@@ -23,7 +23,7 @@ consumer.
 
 | Argus pattern | Class shape | Where the substance lives |
 | --- | --- | --- |
-| 1. Decide Argus (packaged) vs apsh (library) vs nothing | Production security workflow as a packaged product → Argus; custom DPU-side security tooling → [`doca-apsh`](../../libs/doca-apsh/SKILL.md); no security posture concern → neither | [`## Safety policy`](#safety-policy) path-selection rule |
+| 1. Decide Argus (packaged) vs App Shield library vs nothing | Production security workflow as a packaged product → Argus; custom DPU-side security tooling → the DOCA App Shield library (not covered by this bundle — route via [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)); no security posture concern → neither | [`## Safety policy`](#safety-policy) path-selection rule |
 | 2. Pick the four configuration axes | Detection policy + forwarding destination + sampling / sensitivity + host coverage — every axis is a deployment hazard if wrong | [`## Capabilities and modes`](#capabilities-and-modes) four-axis table |
 | 3. Wire the END-TO-END security pipeline | Argus container emits findings; the forwarder ships them to the SIEM (Splunk / ELK / …); the security ops team reviews; the Argus side and the SIEM side are independent moving parts | [`## Safety policy`](#safety-policy) END-TO-END rule + [`## Capabilities and modes`](#capabilities-and-modes) deployment shape |
 | 4. Pair with a SIEM consumer | Splunk / ELK / Sentinel / generic syslog — each pairs with Argus in the same shape (Argus = finding emitter; SIEM = finding consumer) | [`## Capabilities and modes`](#capabilities-and-modes) pairing table |
@@ -77,8 +77,10 @@ Three architectural properties the operator must hold throughout:
   the forwarder integration ship as one operationally-ready unit.
   An operator who finds themselves writing their own detection
   loop has reached for the wrong artifact and should be routed to
-  [`doca-apsh`](../../libs/doca-apsh/SKILL.md), the lower-level
-  library that custom security tooling builds on.
+  the DOCA App Shield library — the lower-level library that custom
+  security tooling builds on, which is **not covered by this
+  bundle** (policy-excluded from the public release; route via
+  [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)).
 - **Findings are the primary output, not metrics.** Argus's
   surface is "did something security-relevant happen on this
   BlueField + host pair, and what is it" — not "what is the CPU
@@ -104,7 +106,7 @@ Two deployment-shape rules:
   does not run on the host. The host's relationship to Argus is
   via the observation surface that Argus reaches across (Argus
   observes the host from the DPU side, the same architectural
-  shape as [`doca-apsh`](../../libs/doca-apsh/SKILL.md), only
+  shape as the DOCA App Shield library, only
   packaged) and via the network (forwarder traffic from the
   BlueField to the SIEM).
 - **One Argus deployment per BlueField, one configured posture.**
@@ -295,12 +297,12 @@ silent.
       and is going to integrate with existing SIEM infrastructure
       (Splunk / ELK / Sentinel / …). This is the production
       default for most operators in this position.
-    - **First recommend Argus (the packaged product) over
-      [`doca-apsh`](../../libs/doca-apsh/SKILL.md) (the
-      library) for production security use cases.** A response
-      that walks an external operator into building their own
-      detection loop on apsh as the default answer for production
-      security is wrong by construction — the operator gets to
+    - **First recommend Argus (the packaged product) over the
+      DOCA App Shield library for production security use cases.**
+      A response that walks an external operator into building
+      their own detection loop on App Shield as the default answer
+      for production security is wrong by construction — the
+      operator gets to
       own the detection logic, the rule tuning, the forwarder
       integration, and the lifetime of all of it, when Argus
       already ships those.
@@ -312,10 +314,11 @@ silent.
       [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md));
       or when the user is genuinely building a custom security
       product of their own that needs to ship its own decision
-      logic (route to
-      [`doca-apsh`](../../libs/doca-apsh/SKILL.md) — same shape
-      of BlueField-side observation, different shape of operator
-      effort).
+      logic (that is the DOCA App Shield library — same shape of
+      BlueField-side observation, different shape of operator
+      effort — which is not covered by this bundle; route to the
+      public docs via
+      [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)).
 - **END-TO-END discipline (load-bearing).** Argus emits findings.
   The forwarder ships them to the SIEM. The SIEM ingests, stores,
   and presents them. The security ops team reviews. An Argus

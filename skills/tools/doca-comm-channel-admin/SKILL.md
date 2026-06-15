@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-comm-channel-admin
 description: >
   Use this skill to enumerate host↔DPU DOCA comch (formerly

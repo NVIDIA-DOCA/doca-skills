@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-dms
 description: >
   Use this skill for operating NVIDIA DOCA Management Service

@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-gpunetio
 description: >
   Use this skill when the user is doing hands-on DOCA GPUNetIO
@@ -21,15 +22,13 @@ description: >
 metadata:
   kind: library
 compatibility: >
-  Requires DOCA SDK installed at /opt/mellanox/doca on Linux
-  (Ubuntu 22.04/24.04 or RHEL/SLES) with a BlueField DPU or
-  ConnectX NIC attached. Reads the user's local install via
-  `pkg-config doca-gpunetio` and inspects
-  /opt/mellanox/doca/{lib,include,samples,applications}. Requires
-  NVIDIA GPU with CUDA toolkit installed (matched to DOCA per the
-  DOCA Compatibility Policy) and the `nvidia_peermem` kernel
-  module loaded for GPUDirect RDMA; some samples need an
-  InfiniBand-capable RNIC.
+  Requires DOCA SDK at /opt/mellanox/doca on Linux (Ubuntu 22.04/24.04 or
+  RHEL/SLES) with a BlueField DPU or ConnectX NIC. Reads the local install
+  via `pkg-config doca-gpunetio`. Requires an NVIDIA GPU with CUDA toolkit
+  (matched to DOCA per the DOCA Compatibility Policy) and the
+  nvidia_peermem kernel module loaded for GPUDirect RDMA; some samples
+  need an InfiniBand-capable RNIC.
+
 ---
 
 # DOCA GPUNetIO
@@ -301,3 +300,4 @@ setup, route via
 [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
 to the public *DOCA Ethernet* guide and to the shipped
 `/opt/mellanox/doca/samples/doca_eth/` samples.
+

@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-comch
 description: >
   Use this skill when the user is doing hands-on DOCA Comch work

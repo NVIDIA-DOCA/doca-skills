@@ -212,7 +212,7 @@ The anti-pattern to refuse: posting on the forum *first* (before walking the lad
 The cross-cutting debug commands the verbs above reach for, grouped by
 layer so the agent picks the right family without searching prose.
 Library-specific debug tools (Flow's `doca-flow-tune`,
-`doca-flow-inspector`, RDMA QP-state dumps, …) overlay in the matching
+RDMA QP-state dumps, …) overlay in the matching
 library skill; this appendix lists only the cross-cutting ones.
 
 | Layer | Command | Owning step | Reads as healthy when … |

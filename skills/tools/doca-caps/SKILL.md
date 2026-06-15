@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-caps
 description: >
   Use this skill when the user wants to invoke the read-only

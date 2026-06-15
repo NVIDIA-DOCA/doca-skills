@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-flow-perf
 description: >
   Use this skill when the user is measuring the host or DPU-CPU

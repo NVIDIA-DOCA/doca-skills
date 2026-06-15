@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-telemetry-utils
 description: >
   Use this skill when the user is invoking `doca_telemetry_utils` on

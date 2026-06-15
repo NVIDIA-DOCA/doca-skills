@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-sha-offload-engine
 description: >
   Use this skill when wiring the DOCA SHA Offload Engine

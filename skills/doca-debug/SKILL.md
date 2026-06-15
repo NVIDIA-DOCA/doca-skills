@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-debug
 description: >
   Use this skill when the user is debugging any DOCA symptom — a build
@@ -7,7 +8,7 @@ description: >
   a stack trace / valgrind / core dump — and needs the layered ladder
   (install → version → build → link → runtime → program → driver),
   verbosity controls (--sdk-log-level, DOCA_LOG_LEVEL, the
-  doca-<lib>-trace flavor), container-debug constraints, or how to
+  doca-{lib}-trace flavor), container-debug constraints, or how to
   capture state for a Developer Forum post. Trigger even when the user
   does not say "DOCA debug" — implicit phrasings include "undefined
   reference to doca_*", "how do I get more logs", "packets aren't

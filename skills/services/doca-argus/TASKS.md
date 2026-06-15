@@ -29,16 +29,17 @@ review) before the container starts.
       BlueField as a packaged workflow, with findings flowing
       into existing SIEM infrastructure? If yes, Argus is the
       right answer — and specifically, **recommend Argus over
-      building from [`doca-apsh`](../../libs/doca-apsh/SKILL.md)**
-      for this production case. The bundled product is the
-      production default; the library is the right answer only
-      when the user is genuinely building a custom security
-      product of their own.
+      building from the DOCA App Shield library** for this
+      production case. The bundled product is the production
+      default; the library is the right answer only when the user
+      is genuinely building a custom security product of their own.
     - Is the user trying to build a custom DPU-side security
-      tool of their own? Route them to
-      [`doca-apsh`](../../libs/doca-apsh/SKILL.md) — same shape
-      of BlueField-side observation, different shape of operator
-      effort.
+      tool of their own? That is the DOCA App Shield library —
+      same shape of BlueField-side observation, different shape of
+      operator effort — which is **not covered by this bundle**
+      (policy-excluded from the public release); route them to the
+      public docs via
+      [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md).
     - Does the user actually want observability / metrics rather
       than security? Route to the DOCA Telemetry Service via
       [`doca-public-knowledge-map ## DOCA services`](../../doca-public-knowledge-map/SKILL.md#doca-services).
@@ -111,15 +112,17 @@ the container ships from NGC and the config is a static file.
 If the user is asking how to build a **custom DPU-side security
 tool** (a program that reads host state from the BlueField side
 to make its own decisions), that is not an Argus question — it is
-the path-selection rule pointing at
-[`doca-apsh`](../../libs/doca-apsh/SKILL.md):
+the path-selection rule pointing at the DOCA App Shield library,
+which is **not covered by this bundle** (policy-excluded from the
+public release):
 
 - For applications that **introspect the host's running kernel
   state from the DPU side** (rootkit detection, periodic process
   / module / library / thread snapshots, integrity verification),
-  the build is the App Shield library's build — route to
-  [`doca-apsh ## build`](../../libs/doca-apsh/TASKS.md#build) and
-  to [`doca-programming-guide`](../../doca-programming-guide/SKILL.md)
+  the build is the App Shield library's build — route the user to
+  the public docs via
+  [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
+  and to [`doca-programming-guide`](../../doca-programming-guide/SKILL.md)
   for the canonical build pattern.
 - For applications that **consume Argus's findings** (an internal
   dashboard, a custom enrichment pipeline that sits between
@@ -458,13 +461,15 @@ Three cross-cutting rules for this appendix:
   and the security ops team own; Argus only emits findings the
   posture has decided are worth emitting.
 - **Building a custom DPU-side security tool** — not an Argus
-  question. Route to
-  [`doca-apsh ## configure`](../../libs/doca-apsh/TASKS.md#configure)
-  for the App Shield library workflow plus
+  question. That is the DOCA App Shield library, which is **not
+  covered by this bundle** (policy-excluded from the public
+  release); route the user to the public docs via
+  [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
+  plus
   [`doca-programming-guide ## build`](../../doca-programming-guide/TASKS.md#build)
   for the canonical build pattern.
 - **Other DOCA services** (DMS / DTS / Firefly / BlueMan /
-  Flow-Inspector / HBN / …) — not Argus. Route to
+  HBN / …) — not Argus. Route to
   [doca-public-knowledge-map ## DOCA services](../../doca-public-knowledge-map/SKILL.md#doca-services)
   for the routing table and the matching `services/<service>`
   skill when it exists (e.g.
@@ -486,9 +491,10 @@ Three cross-cutting rules for this appendix:
   presents; the security ops team reviews. All four legs are
   mandatory; naming only one is how the channel silently breaks.
 - Path-selection is mandatory up front. Argus (the packaged
-  product) is the production default; [`doca-apsh`](../../libs/doca-apsh/SKILL.md)
-  (the library) is the right answer only when the user is
-  genuinely building their own security product; observability
+  product) is the production default; the DOCA App Shield library
+  (not covered by this bundle) is the right answer only when the
+  user is genuinely building their own security product;
+  observability
   questions go to DOCA Telemetry Service; no-security-concern
   cases get Argus *not* deployed.
 - Expect a calibration period; never silently disable findings.

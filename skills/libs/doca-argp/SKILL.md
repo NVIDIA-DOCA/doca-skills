@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-argp
 description: >
   Use this skill for hands-on DOCA Arg Parser CLI work on a

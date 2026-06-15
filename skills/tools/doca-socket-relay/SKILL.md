@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-socket-relay
 description: >
   Use this skill when the operator is driving the DOCA Socket Relay

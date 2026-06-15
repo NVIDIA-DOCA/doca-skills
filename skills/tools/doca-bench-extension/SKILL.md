@@ -1,4 +1,5 @@
 ---
+license: Apache-2.0
 name: doca-bench-extension
 description: >
   Use this skill when the operator is authoring, building, loading,
