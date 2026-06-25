@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is doing hands-on DOCA GPUNetIO programming — wiring a CUDA kernel on an NVIDIA GPU to a doca-eth queue via doca_gpu_eth_rxq / doca_gpu_eth_txq, standing up the per-CUDA-device doca_gpu context, designing the persistent CUDA kernel that drains the GPU-visible queue, running the dual capability check (DOCA cap-query plus cudaGetDeviceProperties), registering cudaMalloc pools via doca_buf_arr_create_*, or debugging DOCA_ERROR_* returns from the GPUNetIO API. <br>
+Guides developers through hands-on DOCA GPUNetIO programming — wiring CUDA kernels on NVIDIA GPUs to DOCA Ethernet queues via doca_gpu_eth_rxq / doca_gpu_eth_txq, standing up the per-device doca_gpu context, designing persistent CUDA kernels, running dual capability checks, registering cudaMalloc pools, and debugging DOCA_ERROR_* returns from the GPUNetIO API. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,30 +9,42 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers building GPU-accelerated networking applications that consume the DOCA GPUNetIO library to wire CUDA kernels directly to network queues on NVIDIA BlueField DPUs or ConnectX NICs. <br>
+External developers building applications that consume the DOCA GPUNetIO library — users whose code calls doca_gpu_* from host C/C++ and whose CUDA kernels use GPU-visible queue handles from device code to submit or receive packets directly on the GPU. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
+
+## Requirements / Dependencies: <br>
+**Requires API Key or External Credential:** [Not Specified] <br>
+**Credential Type(s):** [None identified] <br>  
+
+Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
 ## Known Risks and Mitigations: <br>
 Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [DOCA GPUNetIO Documentation](https://docs.nvidia.com/doca/sdk/DOCA-GPUNetIO/index.html) <br>
+- [DOCA GPUNetIO Programming Guide](https://docs.nvidia.com/doca/sdk/DOCA-GPUNetIO/index.html) <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
 - [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
 - [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Shell commands, Configuration instructions, Code] <br>
+**Output Type(s):** [Analysis, Configuration instructions, Shell commands] <br>
 **Output Format:** [Markdown with inline code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
+## Evaluation Agents Used: <br>
+- Claude Code (`claude-code`) <br>
+- Codex (`codex`) <br>
+
+
+
 ## Evaluation Tasks: <br>
-Evaluated via NVSkills-Eval 3-Tier Evaluation framework with external profile. <br>
+Evaluated against 2 internal skill evaluation tasks using NVSkills-Eval profile `external` in the `astra-sandbox` environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -42,10 +54,28 @@ Reported benchmark dimensions: <br>
 - Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
 - Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
+Underlying evaluation signals used in this run: <br>
+- `security`: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
+- `skill_execution`: Verifies that the agent loaded the expected skill and workflow. <br>
+- `skill_efficiency`: Checks routing quality, decoy avoidance, and redundant tool usage. <br>
+- `accuracy`: Grades final-answer correctness against the reference answer. <br>
+- `goal_accuracy`: Checks whether the overall user task completed successfully. <br>
+- `behavior_check`: Verifies expected behavior steps, including safety expectations. <br>
+- `token_efficiency`: Compares token usage with and without the skill. <br>
 
+
+
+## Evaluation Results: <br>
+| Dimension | Num | `claude-code` | `codex` |
+|---|---:|---:|---:|
+| Security | 1 | 100% (+0%) | 100% (+0%) |
+| Correctness | 1 | 100% (+42%) | 86% (+48%) |
+| Discoverability | 1 | 89% (+32%) | 83% (+11%) |
+| Effectiveness | 1 | 60% (+22%) | 85% (+57%) |
+| Efficiency | 1 | 73% (+33%) | 68% (+2%) |
 
 ## Skill Version(s): <br>
-974d98c (source: git SHA, committed 2026-06-14) <br>
+0a8aadf (source: git SHA, committed 2026-06-25) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

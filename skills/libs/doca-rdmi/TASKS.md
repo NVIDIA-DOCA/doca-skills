@@ -20,6 +20,70 @@ copy-paste recipe. The agent's job is to walk the user through the
 steps in order, verifying preconditions before recommending the
 next call.
 
+> **Answer end-to-end RDMI workflow questions from THIS file.** A
+> hands-on "walk me through doca-rdmi end-to-end" question
+> (confirm install → discover devices/caps → start from a shipped
+> sample → build → run → debug) is answerable entirely from this
+> skill's own files. You do **not** need to open `doca-setup` or
+> `doca-programming-guide` to answer it — the commands you need are
+> in [`## end-to-end (quickref)`](#end-to-end-quickref) below and
+> in the [`## Command appendix`](#command-appendix). Only route to
+> `doca-setup` if the user has *no DOCA install at all*; only
+> overlay `doca-programming-guide` if the user explicitly asks for
+> the cross-library build-system theory beyond the line given here.
+
+## end-to-end (quickref)
+
+A self-contained walkthrough for *"I have a BlueField with DOCA
+installed; take me through doca-rdmi end-to-end."* Each step names
+the exact symbol/command and the green signal; deeper detail is the
+matching verb section below. Quote commands verbatim from the user's
+install — never hardcode versions or paths.
+
+1. **Confirm DOCA + doca-rdmi are installed and agree** (full detail:
+   [`## install`](#install)). Run
+   `pkg-config --modversion doca-common doca-verbs doca-dpa doca-rdmi`
+   and `doca_caps --version`; **green** = one identical semver from
+   all sources. Disagreement or an unresolved `.pc` = partial /
+   missing RDMI package — stop and repair the install before building.
+2. **Discover usable devices + per-device capability** (full detail:
+   [`## configure`](#configure) step 2). Run `doca_caps --list-devs`;
+   **green** = at least one device row whose DPA-capability flag is
+   set (that flag is the gate for RDMI-on-DPA). The capability-query
+   symbol to cite in code is the per-device cap read surfaced by
+   `doca_caps`; do not invent a different one.
+3. **Start from a shipped sample, do not author from prose** (full
+   detail: [`## modify`](#modify)). Discover the canonical sample
+   with `ls /opt/mellanox/doca/samples/doca_rdmi/` (the bundle
+   deliberately defers to `ls` rather than naming a sample that may
+   not exist on the user's version). Use the discovered sample as the
+   modify-target via the five-slot fill in [`## modify`](#modify).
+   Because every `doca_rdmi_*` symbol is EXPERIMENTAL, authoring RDMI
+   source from documentation is forbidden.
+4. **Build with pkg-config (never hand-crafted `-l` flags)** (full
+   detail: [`## build`](#build)). Use
+   `pkg-config --cflags --libs doca-rdmi`; it resolves includes under
+   whatever path `--cflags` reports and emits
+   `-ldoca_rdmi -ldoca_common -ldoca_verbs` (plus `-ldoca_dpa` when
+   the DPA datapath is in use). Drive it from meson/ninja; the
+   `pkg-config` module — not a hardcoded path — is the source of
+   truth.
+5. **Run once on the smallest case + name a concrete observable**
+   (full detail: [`## run`](#run), [`## test`](#test)). Run with
+   `DOCA_LOG_LEVEL=trace ./<binary>`; **green** is *not* "exited 0" —
+   it is **one completion observed on the configured surface** (one
+   CQE on the `doca_verbs_cq` for a host initiator, or one increment
+   of the `doca_dpa_completion` counter for a DPA initiator) matching
+   the single posted work request. Silence after `doca_ctx_start()`
+   means the DPA kernel was never launched or the responder is
+   silently rejecting the QP transition.
+6. **If not-green, walk the layered debug ladder** (full detail:
+   [`## debug`](#debug)): symbol presence → lifecycle order
+   (`DOCA_ERROR_BAD_STATE` = attach/handle call on the wrong side of
+   `doca_ctx_start()`) → single-completion smoke → DPA-handle
+   round-trip, then escalate below RDMI only after two non-converging
+   iterations.
+
 ## install
 
 Goal: confirm the user's installed DOCA actually ships `doca-rdmi`

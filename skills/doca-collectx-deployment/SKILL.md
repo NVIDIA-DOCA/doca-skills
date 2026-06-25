@@ -81,7 +81,7 @@ it up front:
   provider set, its kubelet manifest, its NGC image — is
   externally productized. Route every "operate the DTS service"
   question to the
-  [`doca-public-knowledge-map` externally-productized routing row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+  [`doca-public-knowledge-map` externally-productized routing row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
   and the public DTS guide it points at. The agent must NOT
   synthesize DTS config file names, provider knob names, or
   paths from memory.

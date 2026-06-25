@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is doing hands-on DOCA RDMI (RDMA Initiator) programming — picking doca-rdmi vs doca-rdma for an accelerator-initiated one-sided RDMA flow, standing up a doca_rdmi_connection or doca_rdmi_poster, attaching a doca_dpa_completion or doca_verbs_cq before doca_ctx_start(), retrieving the DPA-side handle for a DPA kernel, auditing whether a doca_rdmi_* symbol is EXPERIMENTAL on this DOCA, or debugging DOCA_ERROR_* returns from RDMI calls. <br>
+Guides agents through hands-on DOCA RDMI (RDMA Initiator) programming including connection and poster setup, DPA-side handle retrieval, EXPERIMENTAL symbol auditing, and debugging DOCA_ERROR returns from RDMI calls. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,30 +9,44 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers building DPA-resident or GPU-resident DOCA applications that need to initiate one-sided RDMA operations against a remote responder, using the DOCA RDMI library on BlueField DPUs or ConnectX NICs. <br>
+Developers and engineers building DPA-resident DOCA applications that need to initiate one-sided RDMA operations against a remote responder using the DOCA RDMI library on BlueField DPUs or ConnectX NICs. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
+
+## Requirements / Dependencies: <br>
+**Requires API Key or External Credential:** [No] <br>
+**Credential Type(s):** [None] <br>  
+
+Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
 ## Known Risks and Mitigations: <br>
 Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [NVIDIA DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
+- [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
 - [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
 - [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
 - [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
+- [CAPABILITIES.md](CAPABILITIES.md) <br>
+- [TASKS.md](TASKS.md) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Code, Shell commands, Configuration instructions] <br>
-**Output Format:** [Markdown with inline bash and C code blocks] <br>
+**Output Type(s):** [Analysis, Shell commands, Configuration instructions] <br>
+**Output Format:** [Markdown with inline code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
+## Evaluation Agents Used: <br>
+- Claude Code (`claude-code`) <br>
+- Codex (`codex`) <br>
+
+
+
 ## Evaluation Tasks: <br>
-NVSkills-Eval 3-Tier evaluation with external profile. Tier 1 static validation passed with observations (7 findings, 0 blockers). Overall verdict: PASS. <br>
+Evaluated against 2 evaluation tasks using NVSkills-Eval 3-Tier Evaluation (external profile, astra-sandbox environment). <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -42,10 +56,28 @@ Reported benchmark dimensions: <br>
 - Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
 - Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
+Underlying evaluation signals used in this run: <br>
+- `security`: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
+- `skill_execution`: Verifies that the agent loaded the expected skill and workflow. <br>
+- `skill_efficiency`: Checks routing quality, decoy avoidance, and redundant tool usage. <br>
+- `accuracy`: Grades final-answer correctness against the reference answer. <br>
+- `goal_accuracy`: Checks whether the overall user task completed successfully. <br>
+- `behavior_check`: Verifies expected behavior steps, including safety expectations. <br>
+- `token_efficiency`: Compares token usage with and without the skill. <br>
 
+
+
+## Evaluation Results: <br>
+| Dimension | Num | `claude-code` | `codex` |
+|---|---:|---:|---:|
+| Security | 1 | 100% (+0%) | 100% (+0%) |
+| Correctness | 1 | 80% (+44%) | 57% (-3%) |
+| Discoverability | 1 | 89% (+32%) | 42% (-38%) |
+| Effectiveness | 1 | 42% (+20%) | 26% (+6%) |
+| Efficiency | 1 | 73% (+34%) | 31% (-43%) |
 
 ## Skill Version(s): <br>
-974d98c (source: git SHA, committed 2026-06-14) <br>
+9320a93 (source: git SHA, committed 2026-06-25) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

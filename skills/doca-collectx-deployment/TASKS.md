@@ -39,7 +39,7 @@ smoke-before-bulk postures are established.
    and the productized DTS container (Non-goal #7 → public docs).
    If the operator actually wants the productized DTS service,
    STOP and route per the
-   [externally-productized DTS row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+   [externally-productized DTS row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 2. **Confirm the env is healthy first.** This skill expects DOCA
    installed and healthy on the side being collected from (host
    x86 OR BlueField Arm). If install health is unverified, run
@@ -99,7 +99,7 @@ stub:
   [`doca-telemetry ## build`](../libs/doca-telemetry/TASKS.md#build).
 - If the user is asking how to build the productized DTS container
   image, that is externally productized (Non-goal #7) — route to
-  the [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+  the [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 - The collector's own config is *composed against the live env*,
   not built ahead of time — see [`## run`](#run).
 
@@ -285,7 +285,7 @@ conversation. Route them so the agent does not invent guidance:
 - **Operate the productized DTS container** (its packaged config
   schema, built-in provider set, kubelet manifest, NGC image) —
   externally productized (Non-goal #7); route to the
-  [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+  [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 - **Install DOCA / prepare the env** (install, hugepages,
   pkg-config, devlink, representor visibility) — route to
   [`doca-setup`](../doca-setup/SKILL.md).

@@ -868,7 +868,7 @@ rollback target.
    `doca_flow_monitor_destroy`, so the reversal is `doca_flow_pipe_destroy`
    + `doca_flow_pipe_create` with a `doca_flow_pipe_cfg` that does NOT call
    `doca_flow_pipe_cfg_set_monitor`.
-2. **Trigger from the [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger).**
+2. **Trigger from the [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge--step-5-not-green-is-the-debug-loop-trigger).**
    The contract's smoke probe is constructor-time validation
    ([`## test`](#test) step 1) plus a counter read under traffic
    ([`## run`](#run) step 5). If it does not return green (counter

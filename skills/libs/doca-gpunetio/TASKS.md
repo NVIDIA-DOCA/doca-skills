@@ -399,7 +399,7 @@ rollback target.
    `cudaDeviceSynchronize()` until the kernel returns; if it
    does not return within the expected drain window, the kernel
    is hung — that is the
-   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger)
+   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge--step-5-not-green-is-the-debug-loop-trigger)
    trigger, not a rollback trigger; fire the debug-loop on the
    hung-kernel symptom before continuing the rollback.
 2. **Unregister GPU buffers in reverse-register order.**

@@ -331,13 +331,13 @@ BSP / DOCA Platform Framework documentation for those steps.
    MUST produce the three-part response shape (recognize + name boundary
    + **route with substance**). For step (c), consult the per-product
    rows in the `doca-public-knowledge-map` routing table:
-   [BlueField BSP / BFB / `bfb-install` / RShim / TMFIFO / `bf.cfg`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
-   for the single-host case, and [DOCA Platform Framework (DPF)](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   [BlueField BSP / BFB / `bfb-install` / RShim / TMFIFO / `bf.cfg`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
+   for the single-host case, and [DOCA Platform Framework (DPF)](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
    for fleet-scale K8s-driven DPU provisioning. If the BFB-install symptom
    touches firmware state (`mlxconfig` / `flint` / `mlxfwmanager`), also
-   load the [NVIDIA Firmware Tools (MFT)](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   load the [NVIDIA Firmware Tools (MFT)](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
    row. If the BFB-install left the BlueField unreachable, the recovery
-   path is the [BlueField BMC](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   path is the [BlueField BMC](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
    row. The agent **must** name the symptom-matching gotcha class from the
    relevant row (e.g. "`bfb-install` exit 0 with `NIC firmware update failed`
    is the BSP row's #1 partial-failure signature — bisect with `flint -d

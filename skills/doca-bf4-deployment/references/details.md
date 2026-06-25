@@ -12,43 +12,43 @@ worked example is one instance.
   bundle ISO onto it. What are my options and which should I use?"** —
   worked example: *"I do not want to set up PXE; can I just point it at
   an ISO over HTTP?"*. Answered by the install-method table in
-  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
+  [`CAPABILITIES.md ## Capabilities and modes`](../CAPABILITIES.md#capabilities-and-modes)
   (UEFI HTTP Boot is the recommended default) + the step-by-step flow
-  in [`TASKS.md ### method-a-uefi-http-boot`](TASKS.md#method-a-uefi-http-boot).
+  in [`TASKS.md ### method-a-uefi-http-boot`](../TASKS.md#method-a-uefi-http-boot).
 - **"I want to install the DPU completely out-of-band — no physical
   access, no HTTP server to stand up. Is there a way?"** — worked
   example: *"attach the ISO straight from the BMC via Redfish"*.
   Answered by the Redfish Virtual Media row in
-  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  + [`TASKS.md ### method-c-redfish-virtual-media`](TASKS.md#method-c-redfish-virtual-media).
+  [`CAPABILITIES.md ## Capabilities and modes`](../CAPABILITIES.md#capabilities-and-modes)
+  + [`TASKS.md ### method-c-redfish-virtual-media`](../TASKS.md#method-c-redfish-virtual-media).
 - **"I pushed a firmware bundle through Redfish and the Task just sits
   at Running. Is it stuck?"** — worked example: *"the multipart POST
   was accepted, PercentComplete is not moving"*. Answered by the
   firmware-Task layer in
-  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
-  + [`TASKS.md ## debug`](TASKS.md#debug) layer 3, with the HIGH-STAKES
+  [`CAPABILITIES.md ## Error taxonomy`](../CAPABILITIES.md#error-taxonomy)
+  + [`TASKS.md ## debug`](../TASKS.md#debug) layer 3, with the HIGH-STAKES
   "do not re-push blindly" rule in
-  [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
+  [`CAPABILITIES.md ## Safety policy`](../CAPABILITIES.md#safety-policy).
 - **"The firmware Task said Completed but the version did not change.
   What did I miss?"** — worked example: *"pldmtool shows a Pending
   version that never becomes Active"*. Answered by the activation layer
-  in [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  in [`CAPABILITIES.md ## Error taxonomy`](../CAPABILITIES.md#error-taxonomy)
   + the power-cycle-to-activate step in
-  [`TASKS.md ### pldm-firmware-update`](TASKS.md#pldm-firmware-update).
+  [`TASKS.md ### pldm-firmware-update`](../TASKS.md#pldm-firmware-update).
 - **"I want a Grace Ubuntu image with my SSH key and hostname baked in
   via cloud-init, installed over Redfish. How?"** — worked example:
   *"my CIDATA seed is not being picked up"*. Answered by the Virtual
   Media + cloud-init rules in
-  [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes)
-  + [`TASKS.md ### grace-ubuntu-cloud-init`](TASKS.md#grace-ubuntu-cloud-init),
+  [`CAPABILITIES.md ## Capabilities and modes`](../CAPABILITIES.md#capabilities-and-modes)
+  + [`TASKS.md ### grace-ubuntu-cloud-init`](../TASKS.md#grace-ubuntu-cloud-init),
   with the CIDATA / fixed-`config.iso`-URI gotcha in the cloud-init
   layer of the error taxonomy.
 - **"My BlueField-4 keeps re-entering the installer every time it
   resets. Why?"** — worked example: *"I finished the install but it
   loops back into setup"*. Answered by the boot-loop layer in
-  [`CAPABILITIES.md ## Error taxonomy`](CAPABILITIES.md#error-taxonomy)
+  [`CAPABILITIES.md ## Error taxonomy`](../CAPABILITIES.md#error-taxonomy)
   (media was never detached) + the detach-and-verify-`"Inserted":
-  false` step in [`TASKS.md ### post-install`](TASKS.md#post-install).
+  false` step in [`TASKS.md ### post-install`](../TASKS.md#post-install).
 
 ## What this skill deliberately does not ship
 
@@ -64,14 +64,14 @@ should not add:
 - **Container or bare-metal application launch.** Running a DOCA
   service container or a DOCA-linked binary on an already-working
   BlueField is owned by
-  [`doca-container-deployment`](../doca-container-deployment/SKILL.md)
+  [`doca-container-deployment`](../../doca-container-deployment/SKILL.md)
   and
-  [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md).
+  [`doca-bare-metal-deployment`](../../doca-bare-metal-deployment/SKILL.md).
   This skill stops at "Grace installed, firmware at the target level."
 - **The hardware-change meta-policy.** The preflight / OOB-console /
   maintenance-window / rollback discipline that wraps every PLDM burn,
   ISO reflash, power cycle, and BMC factory reset is owned by
-  [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md). This
+  [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md). This
   skill cross-links it and never redefines it.
 - **Real credentials, internal hostnames, internal paths, or
   pre-release firmware version strings.** This skill uses only
@@ -90,7 +90,7 @@ should not add:
 
 ## Related skills
 
-- [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) — the
+- [`doca-hardware-safety`](../../doca-hardware-safety/SKILL.md) — the
   CRITICAL cross-cutting meta-policy for any change touching DPU / NIC
   hardware state. Every PLDM firmware burn, ISO reflash, power cycle,
   and BMC factory reset in this skill is a MUTATING op; the
@@ -98,25 +98,25 @@ should not add:
   ALONGSIDE, never duplicating it. This skill's `## Safety policy`
   overlays that meta-policy with BF4-specific rules (never print a
   credential, always detach media, public information only).
-- [`doca-bare-metal-deployment`](../doca-bare-metal-deployment/SKILL.md)
+- [`doca-bare-metal-deployment`](../../doca-bare-metal-deployment/SKILL.md)
   — the downstream skill for launching a DOCA-linked binary directly
   on the BlueField Arm once this skill has brought Grace up. Its
   `## bluefield-lifecycle` anchor covers the BF3-era BFB / RShim /
   TMFIFO lifecycle; this skill is the BF4 BMC-driven day-1 analog.
-- [`doca-container-deployment`](../doca-container-deployment/SKILL.md)
+- [`doca-container-deployment`](../../doca-container-deployment/SKILL.md)
   — the downstream skill for deploying a DOCA service container on the
   BlueField once Grace is up.
-- [`doca-setup`](../doca-setup/SKILL.md) — env preparation on the
+- [`doca-setup`](../../doca-setup/SKILL.md) — env preparation on the
   installed Grace OS (install verification, hugepages, pkg-config
   path, devlink mode, representor visibility). This skill hands off to
   it once the platform is up.
-- [`doca-version`](../doca-version/SKILL.md) — the four-way version
+- [`doca-version`](../../doca-version/SKILL.md) — the four-way version
   match rule. This skill's `## Version compatibility` cross-links the
   body there and adds only the BF4 overlay (install / firmware targets
   come from the public release notes; the Redfish FirmwareInventory
   and `pldmtool GetFwParams` are the post-update anchors; `cat
   /etc/mlnx-release` is the Grace install anchor).
-- [`doca-public-knowledge-map`](../doca-public-knowledge-map/SKILL.md)
+- [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
   — the routing table to the public BlueField/DOCA documentation,
   release notes, and download surface. This skill does not duplicate
   URLs or invent exact doc anchors; it points at the map. The

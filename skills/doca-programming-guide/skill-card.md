@@ -1,5 +1,5 @@
 ## Description: <br>
-Guides agents through library-agnostic DOCA programming tasks including first-app derivation from shipped samples, canonical pkg-config + meson builds, the universal DOCA object lifecycle, FFI/bindings for non-C languages, and cross-library DOCA_ERROR_* decoding. <br>
+Guides agents through library-agnostic DOCA programming tasks including first-app derivation from shipped samples, the canonical pkg-config build pattern, the universal object lifecycle, cross-library error handling, and program-class debugging. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -7,12 +7,18 @@ This skill is ready for commercial/non-commercial use. <br>
 NVIDIA <br>
 
 ### License/Terms of Use: <br>
-Apache-2.0 <br>
+Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers building applications that consume DOCA libraries — writing their first DOCA program, wiring canonical builds, walking the DOCA object lifecycle, calling DOCA from non-C languages via FFI, and decoding DOCA_ERROR_* returns. <br>
+Developers and engineers writing applications that consume NVIDIA DOCA libraries, using AI coding agents to scaffold first apps, resolve build issues, decode DOCA errors, and debug programs across C/C++ and FFI consumers. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
+
+## Requirements / Dependencies: <br>
+**Requires API Key or External Credential:** [Not Specified] <br>
+**Credential Type(s):** [None identified] <br>  
+
+Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
 ## Known Risks and Mitigations: <br>
 Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
@@ -21,18 +27,25 @@ Mitigation: Review and scan skill before deployment. <br>
 ## Reference(s): <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/) <br>
 - [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
-- [NVIDIA NGC Catalog](https://catalog.ngc.nvidia.com/) <br>
 - [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
+- [NGC Catalog](https://catalog.ngc.nvidia.com/) <br>
+- [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Code, Shell commands, Configuration instructions] <br>
+**Output Type(s):** [Analysis, Configuration instructions, Shell commands] <br>
 **Output Format:** [Markdown with inline code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
+## Evaluation Agents Used: <br>
+- Claude Code (`claude-code`) <br>
+- Codex (`codex`) <br>
+
+
+
 ## Evaluation Tasks: <br>
-NVSkills-Eval 3-Tier Evaluation (external profile). Tier 1 static validation passed. Tier 3 live agent evaluation not available in this report. <br>
+Evaluated against 8 tasks using NVSkills-Eval profile `external` in `astra-sandbox` environment with 1 attempt per task and a 50% pass threshold. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -42,10 +55,28 @@ Reported benchmark dimensions: <br>
 - Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
 - Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
+Underlying evaluation signals used in this run: <br>
+- `security`: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
+- `skill_execution`: Verifies that the agent loaded the expected skill and workflow. <br>
+- `skill_efficiency`: Checks routing quality, decoy avoidance, and redundant tool usage. <br>
+- `accuracy`: Grades final-answer correctness against the reference answer. <br>
+- `goal_accuracy`: Checks whether the overall user task completed successfully. <br>
+- `behavior_check`: Verifies expected behavior steps, including safety expectations. <br>
+- `token_efficiency`: Compares token usage with and without the skill. <br>
 
+
+
+## Evaluation Results: <br>
+| Dimension | Num | `claude-code` | `codex` |
+|---|---:|---:|---:|
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+70%) | 98% (+21%) |
+| Discoverability | 4 | 100% (+75%) | 96% (+42%) |
+| Effectiveness | 4 | 81% (+50%) | 82% (+26%) |
+| Efficiency | 4 | 93% (+50%) | 92% (+40%) |
 
 ## Skill Version(s): <br>
-253cef8 (source: git SHA, committed 2026-06-13) <br>
+54742b6 (source: git SHA, committed 2026-06-25) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

@@ -77,7 +77,7 @@ It is **not** for:
   for the single-host kubelet-standalone shape; **fleet/production-scale
   deployment is fleet-orchestration scope** — route to the orchestration
   entry-point in
-  [`doca-public-knowledge-map ## Deploying DOCA services at scale`](../doca-public-knowledge-map/SKILL.md#deploying-doca-services-at-scale-orchestration-entry-point-personascale-routing)
+  [`doca-public-knowledge-map ## Deploying DOCA services at scale`](../doca-public-knowledge-map/references/map.md#deploying-doca-services-at-scale--orchestration-entry-point-personascale-routing)
   (DPF / Network Operator / Launch Kit), not hand-rolled static-pod loops),
 - fresh-laptop-no-hardware users with no DOCA install yet — those
   belong on

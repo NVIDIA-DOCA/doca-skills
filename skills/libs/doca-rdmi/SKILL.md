@@ -40,9 +40,17 @@ the DOCA package set that ships the `doca-rdmi` library. Open
 open [`CAPABILITIES.md`](CAPABILITIES.md) when the question is
 *what can RDMI express on this version* — the object model, the
 DPA-side handle types, the relationship to `doca-rdma`, the
-EXPERIMENTAL-tag policy, and the safety overlay. If the user has not
-installed DOCA yet, route to
-[`doca-setup`](../../doca-setup/SKILL.md) first.
+EXPERIMENTAL-tag policy, and the safety overlay.
+
+**End-to-end "walk me through doca-rdmi" questions are answerable
+entirely from this skill.** Go straight to
+[`TASKS.md ## end-to-end (quickref)`](TASKS.md#end-to-end-quickref),
+which carries the self-contained install-check → device/cap
+discovery → sample → `pkg-config` build → run → debug walkthrough
+with the exact commands. You do **not** need to open `doca-setup` or
+`doca-programming-guide` to answer an RDMI build/run/debug question.
+Route to [`doca-setup`](../../doca-setup/SKILL.md) **only** when the
+user has no DOCA install at all.
 
 ## Example questions this skill answers well
 

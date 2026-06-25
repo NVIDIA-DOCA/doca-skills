@@ -421,7 +421,7 @@ share. **Externally-productized analogs** — `doca-virtio-net`,
 `doca-snap`, `doca-hbn`, BlueMan, DPF — are NOT in-bundle skills;
 their per-product safety policies live in the public product
 documentation reached through
-[`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+[`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 The meta-policy in this skill still applies operationally (OOB
 console, preflight, maintenance window, rollback), but the
 artifact-specific preconditions for those products are owned by

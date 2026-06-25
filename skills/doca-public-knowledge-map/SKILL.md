@@ -143,7 +143,7 @@ for the cross-library programming patterns it layers on top of.
 See [`references/map.md`](references/map.md#example-questions-this-skill-answers-well).
 ## Library- and module-specific guides
 
-See [`references/map.md`](references/map.md#library-and-module-specific-guides).
+See [`references/map.md`](references/map.md#library--and-module-specific-guides).
 ## DOCA services
 
 See [`references/map.md`](references/map.md#doca-services).
@@ -152,7 +152,7 @@ See [`references/map.md`](references/map.md#doca-services).
 See [`references/map.md`](references/map.md#doca-tools).
 ## Externally-productized DOCA software — not in this bundle, but here is where to route
 
-See [`references/map.md`](references/map.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+See [`references/map.md`](references/map.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 ## Public source code: GitHub
 
 See [`references/map.md`](references/map.md#public-source-code-github).

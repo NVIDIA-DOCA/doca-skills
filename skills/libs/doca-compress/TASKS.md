@@ -404,7 +404,7 @@ list. The triple IS the rollback target.
    zero. Do NOT submit new tasks after rollback intent is
    declared. If the drain stalls (counter not decrementing
    within the bounded debug-loop window), fire the
-   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger)
+   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge--step-5-not-green-is-the-debug-loop-trigger)
    on the stalled-drain symptom before continuing the rollback.
 2. **`doca_ctx_stop` on the Compress context.** Returns
    `DOCA_ERROR_BAD_STATE` if step 1 was skipped — that is

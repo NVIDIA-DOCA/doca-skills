@@ -522,7 +522,7 @@ because the bare-metal-deployment skill's downstream verbs (`## run`,
 assumption breaks, the bundle previously routed the operator out to
 [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md) for the
 mutating-change meta-policy AND out to
-[`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+[`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
 for the BSP/BFB documentation entry, but the **operational sequencing
 ladder itself** (which evidence to collect in which order, which
 failure mode each evidence pattern points to, which recovery action
@@ -574,7 +574,7 @@ public BlueField Platform Software Manual.
     - The OOB management path the operator will use if the push
       breaks the Arm OS: BMC console-over-Redfish, BMC IPMI
       serial-over-LAN, or the physical UART (per the
-      [`BlueField BMC Software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+      [`BlueField BMC Software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
       row in the public-knowledge-map). Without one of these, the
       bar for proceeding is "stop, escalate" per
       [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md).
@@ -820,7 +820,7 @@ console output reach the same triage step.
    buffer to host, capture host-side `dmesg`, do NOT immediately
    re-push BFB; first perform a    documented cold power cycle of
    the BlueField (via BMC per the
-   [`BlueField BMC Software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route)
+   [`BlueField BMC Software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route)
    row, not just `reboot` from the unresponsive Arm side); only
    if cold power cycle does NOT recover, re-push BFB under
    [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md)

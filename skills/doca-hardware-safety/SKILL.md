@@ -252,4 +252,4 @@ companion files:
   BlueMan, DPF) are NOT in-bundle skills — their safety policies
   live in product documentation reached through
   [`doca-public-knowledge-map ## Externally-productized DOCA
-  software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+  software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).

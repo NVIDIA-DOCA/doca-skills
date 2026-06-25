@@ -23,12 +23,21 @@
           "Response cites cap discovery as 'doca_caps --list-devs' which the bundle's Command appendix endorses, but does not call a per-device doca_flow_*_cap_* getter name explicitly — the bundle itself defers to the live install for the exact getter, so this is not a blocker, only a note that the response remains at the doca_caps tool level rather than naming a Flow-specific cap-query symbol."
         ],
         "source": "runner/reports/2026-05-26_r15_full_e2e/grades/doca-flow.json"
-      }
+      },
+      "expected_output": "A structured Markdown answer that walks the documented end-to-end workflow for doca-flow, quotes only real symbols/flags/paths/pkg-config modules from the bundle (no invented tokens), names a concrete validation observable that proves the right thing happened, and gives a distinct first-failure debug ladder — matching the recorded PASS baseline.",
+      "assertions": [
+        "No invented symbols, flags, subcommands, paths, or pkg-config module names — every token is traceable.",
+        "Steps are in a workable order; each step's preconditions are established by earlier steps.",
+        "The validate step names a concrete observable tied to the artifact's semantics (not just 'exited 0').",
+        "The first-failure ladder names 3 distinct layers, each with a distinguishing symptom.",
+        "The modify step points to a real shipped sample/config/unit the user can put their hands on."
+      ]
     }
   ],
   "schema_version": "1",
   "artifact": "doca-flow",
   "kind": "library",
   "generated_from": "runner/reports/2026-05-26_r15_full_e2e",
-  "regenerate_with": "python3 runner/build_evals.py"
+  "regenerate_with": "python3 runner/build_evals.py",
+  "skill_name": "doca-flow"
 }

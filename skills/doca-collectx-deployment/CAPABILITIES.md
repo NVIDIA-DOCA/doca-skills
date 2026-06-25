@@ -11,7 +11,7 @@ hardware-counter reader) and
 [`doca-telemetry-exporter`](../libs/doca-telemetry-exporter/SKILL.md)
 (the application-side publisher). For the productized DTS
 container (out of scope here), see the
-[`doca-public-knowledge-map` externally-productized routing row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+[`doca-public-knowledge-map` externally-productized routing row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 
 This file enumerates the collector-deployment contract **as a
 class**, as described in the public **DOCA Telemetry guide** and
@@ -71,7 +71,7 @@ config-level guidance.
 | CollectX (clx) collection mechanism | The framework that gathers provider counters into a schema and ships them through exporters — the *collector runtime* the operator deploys | THIS skill (deployment / operation) |
 | Hardware-counter reader library | The per-domain API a DOCA program links to *read* hardware counters off a `doca_dev` | [`doca-telemetry`](../libs/doca-telemetry/SKILL.md) |
 | Publisher library | The application-side API a DOCA program links to *emit / publish* counters and events to a consumer | [`doca-telemetry-exporter`](../libs/doca-telemetry-exporter/SKILL.md) |
-| Productized DTS container | The packaged, NGC-shipped / kubelet-started DOCA Telemetry Service as-deployed (config schema, built-in providers, manifest) | Out of bundle (Non-goal #7) — route to the [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route) |
+| Productized DTS container | The packaged, NGC-shipped / kubelet-started DOCA Telemetry Service as-deployed (config schema, built-in providers, manifest) | Out of bundle (Non-goal #7) — route to the [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route) |
 
 Conflating any two of these is the #1 first-touch telemetry
 error. In particular: a collector that uses the operator's own
@@ -112,7 +112,7 @@ the exact config knob that turns each on, or the config file path
 Telemetry guide reached through
 [`doca-public-knowledge-map ## DOCA tools`](../doca-public-knowledge-map/SKILL.md#doca-tools)
 and the
-[externally-productized DTS routing row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+[externally-productized DTS routing row](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 
 ## Version compatibility
 
@@ -247,7 +247,7 @@ route elsewhere:
   [`doca-telemetry-exporter`](../libs/doca-telemetry-exporter/SKILL.md).
 - **The productized DTS container as-deployed** — externally
   productized (Non-goal #7); route to the
-  [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+  [public DTS guide](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
 - **Installing DOCA / preparing the env** — owned by
   [`doca-setup`](../doca-setup/SKILL.md).
 - **Cross-cutting `DOCA_ERROR_*` taxonomy** raised by a source

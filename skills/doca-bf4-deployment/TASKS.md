@@ -323,4 +323,4 @@ mutating recovery action (re-burn, reflash, factory reset), route to
 - **Fleet-scale / orchestrated DPU provisioning** (DOCA Platform
   Framework, NVIDIA Network Operator) — out of scope per the bundle's
   non-goals. Route via
-  [`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software-not-in-this-bundle-but-here-is-where-to-route).
+  [`doca-public-knowledge-map ## Externally-productized DOCA software`](../doca-public-knowledge-map/SKILL.md#externally-productized-doca-software--not-in-this-bundle-but-here-is-where-to-route).
