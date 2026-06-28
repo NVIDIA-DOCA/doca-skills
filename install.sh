@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 #
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
 # install.sh — one-line installer for the NVIDIA DOCA Skills bundle.
 #
 # Copies (or symlinks) the bundle's 60 AgentSkills.io-compliant skill

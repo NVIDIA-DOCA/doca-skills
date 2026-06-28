@@ -7,7 +7,7 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 ## Evaluation Summary
 
 - Skill: `doca-public-knowledge-map`
-- Evaluation date: 2026-06-25
+- Evaluation date: 2026-06-28
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
 - Dataset: 6 evaluation tasks
@@ -49,10 +49,10 @@ The benchmark included 6 recorded Tier 3 trials, but the source evaluation datas
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 3 | 100% (+0%) | 100% (+0%) |
-| Correctness | 3 | 100% (+70%) | 96% (+25%) |
-| Discoverability | 3 | 100% (+67%) | 82% (+19%) |
-| Effectiveness | 3 | 82% (+59%) | 95% (+29%) |
-| Efficiency | 3 | 95% (+48%) | 75% (+13%) |
+| Correctness | 3 | 100% (+73%) | 98% (+30%) |
+| Discoverability | 3 | 100% (+67%) | 77% (+15%) |
+| Effectiveness | 3 | 89% (+77%) | 95% (+32%) |
+| Efficiency | 3 | 95% (+48%) | 65% (+4%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 

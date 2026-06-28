@@ -1,5 +1,5 @@
 ## Description: <br>
-Guides agents through hands-on DOCA RDMI (RDMA Initiator) programming including connection and poster setup, DPA-side handle retrieval, EXPERIMENTAL symbol auditing, and debugging DOCA_ERROR returns from RDMI calls. <br>
+Use this skill when the user is doing hands-on DOCA RDMI (RDMA Initiator) programming — picking doca-rdmi vs doca-rdma for an accelerator-initiated one-sided RDMA flow, standing up connections and posters, attaching completions, retrieving DPA-side handles, auditing EXPERIMENTAL symbols, or debugging DOCA_ERROR returns from RDMI calls. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,7 +9,7 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers building DPA-resident DOCA applications that need to initiate one-sided RDMA operations against a remote responder using the DOCA RDMI library on BlueField DPUs or ConnectX NICs. <br>
+Developers and engineers building DPA-resident or GPU-resident DOCA applications that need to initiate one-sided RDMA operations (writes, reads, sends) from an accelerator against a remote responder, without round-tripping through the host CPU. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
@@ -26,16 +26,14 @@ Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
-- [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
-- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
+- [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
 - [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
-- [CAPABILITIES.md](CAPABILITIES.md) <br>
-- [TASKS.md](TASKS.md) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Analysis, Shell commands, Configuration instructions] <br>
-**Output Format:** [Markdown with inline code blocks] <br>
+**Output Type(s):** [Analysis, Shell commands, Configuration instructions, Code] <br>
+**Output Format:** [Markdown with inline C and bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
@@ -46,7 +44,7 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 2 evaluation tasks using NVSkills-Eval 3-Tier Evaluation (external profile, astra-sandbox environment). <br>
+Evaluated against 2 recorded Tier 3 trials using the NVSkills-Eval external profile in the astra-sandbox environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -71,13 +69,13 @@ Underlying evaluation signals used in this run: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 80% (+44%) | 57% (-3%) |
-| Discoverability | 1 | 89% (+32%) | 42% (-38%) |
-| Effectiveness | 1 | 42% (+20%) | 26% (+6%) |
-| Efficiency | 1 | 73% (+34%) | 31% (-43%) |
+| Correctness | 1 | 90% (+32%) | 92% (+25%) |
+| Discoverability | 1 | 89% (+33%) | 66% (-16%) |
+| Effectiveness | 1 | 62% (+34%) | 66% (+44%) |
+| Efficiency | 1 | 71% (+31%) | 43% (-26%) |
 
 ## Skill Version(s): <br>
-9320a93 (source: git SHA, committed 2026-06-25) <br>
+d3b2828 (source: git SHA, committed 2026-06-28) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

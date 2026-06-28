@@ -443,7 +443,7 @@ is unfalsifiable without it.
    from [`## modify`](#modify); `cudaDeviceSynchronize` / DPA
    join until the kernel returns. If it does not return within
    the bounded debug-loop window, that is the
-   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge-step-5-not-green-is-the-debug-loop-trigger)
+   [deploy-loop bridge](../../doca-setup/CAPABILITIES.md#deploy-loop-bridge--step-5-not-green-is-the-debug-loop-trigger)
    trigger; fire the debug-loop on the hung-kernel symptom
    before continuing the rollback.
 2. **Tear down RDMI objects in reverse-create order.** (a)

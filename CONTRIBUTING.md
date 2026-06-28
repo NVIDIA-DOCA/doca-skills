@@ -1,5 +1,13 @@
 # Contributing to NVIDIA DOCA Skills
 
+> **Note — this public repository is a read-only mirror and is not accepting
+> external contributions.** It is generated and re-synced automatically from
+> NVIDIA's internal source of truth, so pull requests opened here cannot be
+> merged. The authoring rules below are the internal rules-of-engagement that
+> NVIDIA maintainers follow on the source repository; they are published here
+> for transparency. To report a problem or request a change, use the issue and
+> forum channels in the [README](README.md#getting-help--contributing).
+
 Thank you for your interest in improving the public DOCA agent-skills
 bundle. This file is the rules-of-engagement. Read it before you author
 a new skill or change an existing one.

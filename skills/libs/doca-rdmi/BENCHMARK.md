@@ -7,7 +7,7 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 ## Evaluation Summary
 
 - Skill: `doca-rdmi`
-- Evaluation date: 2026-06-25
+- Evaluation date: 2026-06-28
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
 - Dataset: 2 evaluation tasks
@@ -49,10 +49,10 @@ The benchmark included 2 recorded Tier 3 trials, but the source evaluation datas
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 80% (+44%) | 57% (-3%) |
-| Discoverability | 1 | 89% (+32%) | 42% (-38%) |
-| Effectiveness | 1 | 42% (+20%) | 26% (+6%) |
-| Efficiency | 1 | 73% (+34%) | 31% (-43%) |
+| Correctness | 1 | 90% (+32%) | 92% (+25%) |
+| Discoverability | 1 | 89% (+33%) | 66% (-16%) |
+| Effectiveness | 1 | 62% (+34%) | 66% (+44%) |
+| Efficiency | 1 | 71% (+31%) | 43% (-26%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 

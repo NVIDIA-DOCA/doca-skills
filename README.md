@@ -379,7 +379,7 @@ For the *human* "how do I install DOCA, build a sample, run a sample" walk-throu
 
 - [NVIDIA DOCA Developer Guide](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Developer+Guide)
 - [NVIDIA DOCA Installation Guide for Linux](https://docs.nvidia.com/doca/sdk/NVIDIA+DOCA+Installation+Guide+for+Linux) — install with the `doca-all` profile (superset of `doca-ofed` + `doca-networking`).
-- [NVIDIA BlueField DPU OS / Platform Software docs](https://docs.nvidia.com/networking/display/BlueFieldDPUOSLatest) — RShim, host↔DPU connectivity, and install troubleshooting (the standalone *DOCA Troubleshooting Guide* was folded into the BlueField Platform Software documentation set).
+- [NVIDIA BlueField DPU OS / Platform Software docs](https://docs.nvidia.com/networking/display/bluefieldbsp4132) — RShim, host↔DPU connectivity, and install troubleshooting (the standalone *DOCA Troubleshooting Guide* was folded into the BlueField Platform Software documentation set).
 - [Meson build configuration guide](https://mesonbuild.com/) — the build system every shipped sample uses.
 
 If you have a DOCA install and want to build a sample by hand: follow the Installation Guide above with the `doca-all` profile, then `meson /tmp/build && ninja -C /tmp/build` from `applications/`. The generated binaries land under `/tmp/build/<application_name>/doca_<application_name>`.
@@ -417,6 +417,8 @@ For **DOCA product questions** — building applications, runtime errors, perfor
 For **bundle-level issues** — a skill gave a wrong answer, a skill is missing a topic, a `SKILL.md` doesn't match a recent DOCA release — open an issue on the repo where you got this bundle.
 
 For **DOCA contributions** — patches to the libraries / services / tools themselves — go through the upstream DOCA team; this bundle's content is mirrored from the public monorepo and does not author DOCA itself.
+
+**This project is currently not accepting contributions.** This public repository is a read-only mirror that is generated and re-synced automatically from NVIDIA's internal source of truth, so external pull requests cannot be merged here. Please use the issue/forum channels above to report problems or request changes.
 
 ---
 

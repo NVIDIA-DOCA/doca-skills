@@ -7,7 +7,7 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 ## Evaluation Summary
 
 - Skill: `doca-setup`
-- Evaluation date: 2026-06-25
+- Evaluation date: 2026-06-28
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
 - Dataset: 8 evaluation tasks
@@ -49,10 +49,10 @@ The benchmark included 8 recorded Tier 3 trials, but the source evaluation datas
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 4 | 100% (+0%) | 100% (+0%) |
-| Correctness | 4 | 97% (+68%) | 98% (+39%) |
-| Discoverability | 4 | 97% (+72%) | 91% (+35%) |
-| Effectiveness | 4 | 85% (+55%) | 93% (+54%) |
-| Efficiency | 4 | 87% (+44%) | 85% (+24%) |
+| Correctness | 4 | 91% (+59%) | 98% (+37%) |
+| Discoverability | 4 | 99% (+74%) | 98% (+51%) |
+| Effectiveness | 4 | 80% (+42%) | 96% (+41%) |
+| Efficiency | 4 | 89% (+46%) | 95% (+42%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 

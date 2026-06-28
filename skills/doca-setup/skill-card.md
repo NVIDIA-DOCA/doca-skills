@@ -1,5 +1,5 @@
 ## Description: <br>
-Guides agents through DOCA SDK environment setup, install verification, build-environment preparation, runtime precondition configuration, env-class failure debugging, and deployment-shape routing on BlueField DPUs. <br>
+Guides agents through DOCA environment setup, install verification, build-environment preparation, runtime precondition configuration, env-class failure diagnosis, and deployment-path routing (container vs. bare-metal) for NVIDIA BlueField DPUs. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,14 +9,14 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers setting up, verifying, and debugging the DOCA SDK environment on BlueField DPUs — including install health checks, build-environment preparation (pkg-config, headers, LD_LIBRARY_PATH), runtime preconditions (hugepages, devlink, representors), and deployment-shape routing (container vs. bare-metal). <br>
+Developers and engineers setting up, verifying, debugging, and configuring NVIDIA DOCA environments on BlueField DPUs — including install health checks, build-environment preparation (pkg-config, headers, LD_LIBRARY_PATH, hugepages, devlink, representors), and deployment-path routing. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
 
 ## Requirements / Dependencies: <br>
-**Requires API Key or External Credential:** [Not Specified] <br>
-**Credential Type(s):** [None identified] <br>  
+**Requires API Key or External Credential:** [No] <br>
+**Credential Type(s):** [None] <br>  
 
 Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
@@ -28,7 +28,6 @@ Mitigation: Review and scan skill before deployment. <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
 - [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
 - [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
-- [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
 
 
 ## Skill Output: <br>
@@ -38,13 +37,13 @@ Mitigation: Review and scan skill before deployment. <br>
 **Other Properties Related to Output:** [None] <br>
 
 ## Evaluation Agents Used: <br>
-- Claude Code (`claude-code`) <br>
-- Codex (`codex`) <br>
+- claude-code <br>
+- codex <br>
 
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 8 evaluation tasks using NVSkills-Eval profile `external` in `astra-sandbox` environment. <br>
+Evaluated against 8 evaluation tasks using the NVSkills-Eval external profile in astra-sandbox environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -69,13 +68,13 @@ Underlying evaluation signals used in this run: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 4 | 100% (+0%) | 100% (+0%) |
-| Correctness | 4 | 97% (+68%) | 98% (+39%) |
-| Discoverability | 4 | 97% (+72%) | 91% (+35%) |
-| Effectiveness | 4 | 85% (+55%) | 93% (+54%) |
-| Efficiency | 4 | 87% (+44%) | 85% (+24%) |
+| Correctness | 4 | 91% (+59%) | 98% (+37%) |
+| Discoverability | 4 | 99% (+74%) | 98% (+51%) |
+| Effectiveness | 4 | 80% (+42%) | 96% (+41%) |
+| Efficiency | 4 | 89% (+46%) | 95% (+42%) |
 
 ## Skill Version(s): <br>
-54742b6 (source: git SHA, committed 2026-06-25) <br>
+d3b2828 (source: git SHA, committed 2026-06-28) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

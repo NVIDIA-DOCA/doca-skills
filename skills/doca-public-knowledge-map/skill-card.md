@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user needs to locate authoritative information about NVIDIA DOCA without access to the source tree — finding the right docs.nvidia.com page, identifying installed library versions, locating samples on disk or on GitHub, decoding on-disk paths under /opt/mellanox/doca, or recovering from broken doc URLs. <br>
+Routes users to authoritative NVIDIA DOCA documentation, on-disk install paths, public GitHub samples, and NGC catalog entries without requiring access to the DOCA source tree. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,14 +9,14 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers building with NVIDIA DOCA use this skill to locate authoritative documentation, find installed library versions, identify sample locations, and route questions to the correct DOCA reference source. <br>
+Developers and engineers working with NVIDIA DOCA use this skill to locate the correct documentation page, identify installed library versions, find samples on disk or on GitHub, decode on-disk paths, and recover from broken or renamed doc URLs. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
 
 ## Requirements / Dependencies: <br>
-**Requires API Key or External Credential:** [Not Specified] <br>
-**Credential Type(s):** [None identified] <br>  
+**Requires API Key or External Credential:** [No] <br>
+**Credential Type(s):** [None] <br>  
 
 Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
@@ -25,16 +25,16 @@ Risk: Review before execution as proposals could introduce incorrect or misleadi
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [DOCA Public Knowledge Map — Routing Tables](references/map.md) <br>
 - [NVIDIA DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
 - [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
 - [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
 - [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
+- [Routing tables reference](references/map.md) <br>
 
 
 ## Skill Output: <br>
 **Output Type(s):** [Analysis, Configuration instructions] <br>
-**Output Format:** [Markdown] <br>
+**Output Format:** [Markdown with inline URLs and routing tables] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
@@ -45,7 +45,7 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 6 evaluation tasks in the astra-sandbox environment using the external NVSkills-Eval profile with 1 attempt per task and a 50% pass threshold. <br>
+Evaluated against 6 internal evaluation tasks using NVSkills-Eval 3-Tier Evaluation (external profile, astra-sandbox environment). <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -70,13 +70,13 @@ Underlying evaluation signals used in this run: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 3 | 100% (+0%) | 100% (+0%) |
-| Correctness | 3 | 100% (+70%) | 96% (+25%) |
-| Discoverability | 3 | 100% (+67%) | 82% (+19%) |
-| Effectiveness | 3 | 82% (+59%) | 95% (+29%) |
-| Efficiency | 3 | 95% (+48%) | 75% (+13%) |
+| Correctness | 3 | 100% (+73%) | 98% (+30%) |
+| Discoverability | 3 | 100% (+67%) | 77% (+15%) |
+| Effectiveness | 3 | 89% (+77%) | 95% (+32%) |
+| Efficiency | 3 | 95% (+48%) | 65% (+4%) |
 
 ## Skill Version(s): <br>
-54742b6 (source: git SHA, committed 2026-06-25) <br>
+d3b2828 (source: git SHA, committed 2026-06-28) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>
