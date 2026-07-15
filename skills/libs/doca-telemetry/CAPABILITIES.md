@@ -269,8 +269,8 @@ agent must prevent.
   counter state.** When `set_hist_clear_on_read` /
   `data_clear` is enabled, reading resets the underlying
   counters. Surface this to the user before enabling it — a
-  second reader (or a later read) will see the post-clear state,
-  not the cumulative total.
+  second reader (or a later read) sees the counters as they
+  stand after the reset, not the cumulative total.
 
 ## Deferred topic boundaries
 

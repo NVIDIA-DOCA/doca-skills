@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on DOCA Flow DPA\nProvider work — exporting a `doca-flow` pipe or external\nresource (index-selector/memory) into BlueField DPA\naddress space so a DPACC-built kernel can read counters, mutate\nhash-pipe entries, and update/read memory or index-selector\nresources inline with Flow. Covers per-port\n`doca_flow_dpa_ctx`, three queue types\n(general/resources-write/resources-read), the order-sensitive\nexport handshake (`_export_prepare` → add entries → `_export` →\n`_get_device_addr`), and DPA-side device API. Trigger even\nwhen the user does not say \"DOCA Flow DPA Provider\" — implicit\nphrasings include \"DPA kernel never sees entries in the exported\npipe\", \"BAD_STATE from `_pipe_export`\", \"how do I disable a hash\nentry from a DPA kernel\", \"DPA memory read returns no value\", or\n\"DPA-side post keeps returning AGAIN\". Refuse and route\nelsewhere for `doca-flow` pipe construction, generic\nhost-side DPA (`doca-dpa`), or DPA-side kernel-writing — those\nbelong to other skills."
 

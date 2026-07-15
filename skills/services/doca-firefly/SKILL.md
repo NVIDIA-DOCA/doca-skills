@@ -156,7 +156,7 @@ BlueField Arm, choosing its PTP role / profile / domain / interface
 from the public Firefly guide, wiring the host-side follower (chrony
 with the PHC source, or `ptp4l` reading the PHC) so the host clock
 tracks the BlueField PHC, and validating the end-to-end discipline
-before scaling a Rivermax / 5G UPF / financial-trading / distributed-
+  before scaling a Rivermax, 5G UPF, financial-trading, or distributed-
 database workload that depends on it.
 
 It is **not** for NVIDIA developers contributing to Firefly itself,

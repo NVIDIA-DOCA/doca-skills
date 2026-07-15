@@ -179,7 +179,7 @@ user before recommending any code-level edit:
 | 2. Domain + counters | Which per-domain sub-library, and which specific counters / sub-areas within it? | Re-validate against the per-domain cap-query per [`## configure`](#configure) step 3; a counter family present on one install / device may return `NOT_SUPPORTED` on another |
 | 3. Sample shape (sampled domains) | For `diag` / `adp_retx`: what sample mode, sample period, and num-samples / histogram-bin shape? | Bound every setter by the `_cap_*` sizing caps from [`## configure`](#configure) step 3; a value past the cap returns `DOCA_ERROR_INVALID_VALUE`. For `diag`, the `_apply_config` + `_apply_counters_list_by_id` calls MUST stay before `_start` |
 | 4. Read cadence + `AGAIN` behavior | How often does the modified reader read, and what does it do when a read returns `DOCA_ERROR_AGAIN`? | Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy) sample-window rule, the retry must respect the sample window (for diag, wait for the previous sampling cycle); a tight `AGAIN` spin is a sample gap that needs editing out before the modify lands |
-| 5. Clear-on-read intent | Does the modified reader enable clear-on-read (`adp_retx` `_set_hist_clear_on_read`, `diag` data-clear)? | Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy), clear-on-read resets the underlying counters — a second reader sees post-clear state. Decide explicitly; default to NOT clearing unless the user wants destructive reads |
+| 5. Clear-on-read intent | Does the modified reader enable clear-on-read (`adp_retx` `_set_hist_clear_on_read`, `diag` data-clear)? | Per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy), clear-on-read resets the underlying counters — a second reader sees the counters as they stand after the reset. Decide explicitly; default to NOT clearing unless the user wants destructive reads |
 | 6. Build manifest | Keep the sample's existing `meson.build` (which already wires `pkg-config doca-telemetry`)? | Yes. Do not switch to a hand-rolled Makefile for *"simplicity"* — it removes the version-check rail. And do not silently swap the `pkg-config` module to `doca-telemetry-exporter` — that flips the role and is the load-bearing first-app failure |
 
 The agent emits an *intent description + the filled slots*; the
@@ -427,7 +427,7 @@ Every command below is **cross-cutting on DOCA Telemetry
 that comes up in the verbs above. The agent should treat the
 *class* as load-bearing; the worked example is a single
 instance. Run-as user is the reader application's normal user
-unless noted; sudo is called out per row (and is needed only for
+unless noted. Rows that need elevated privileges call that out explicitly. (and is needed only for
 counter domains that require elevated device access, per
 [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)).
 

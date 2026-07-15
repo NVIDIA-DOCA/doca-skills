@@ -472,8 +472,7 @@ Every command below is **cross-cutting on DOCA UROM** — it
 answers a recurring class of question that comes up in the
 verbs above. The agent should treat the *class* as
 load-bearing; the worked example is a single instance. Run-as
-user is the unprivileged user unless noted; sudo is called out
-per row.
+user is the unprivileged user unless noted. Rows that need elevated privileges call that out explicitly.
 
 **Infra-aware preamble (every row below).** Per the bundle's
 detect → prefer → fall back → report contract documented in

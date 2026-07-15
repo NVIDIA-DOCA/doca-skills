@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is bringing up, configuring,\nhardening, or debugging `doca_flow_grpc` — the\nDOCA-shipped gRPC remote-control surface in front of\n`doca-flow` that lets non-C++ clients (Python, Go, Rust,\nJava) program Flow pipes and entries over RPC instead of\nlinking `libdoca_flow.so` directly. Trigger even when the\nuser does not explicitly mention \"doca-flow-grpc-server\"\nor \"gRPC\" — typical implicit phrasings include \"program\nFlow rules from Python on a different host\", \"remotely\nconfigure pipes on the BlueField\", \"client times out\nconnecting to the Flow server\", \"where is the .proto file\nfor Flow\", \"mTLS / token auth for the Flow control plane\",\n\"UNAUTHENTICATED / FAILED_PRECONDITION on a Flow RPC\", or\n\"control many BlueFields from one place\". Refuse and route\nelsewhere for questions about the underlying doca-flow API\nitself, generic gRPC tooling (`protoc`, language bindings,\nauth design at grpc.io), or DOCA install / BFB bring-up —\nthose belong to other skills."
 

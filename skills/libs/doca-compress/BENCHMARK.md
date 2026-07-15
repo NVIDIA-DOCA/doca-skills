@@ -7,10 +7,10 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 ## Evaluation Summary
 
 - Skill: `doca-compress`
-- Evaluation date: 2026-06-25
+- Evaluation date: 2026-07-15
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
-- Dataset: 2 evaluation tasks
+- Dataset: 8 evaluation tasks
 - Attempts per task: 1
 - Pass threshold: 50%
 - Overall verdict: PASS
@@ -42,17 +42,17 @@ Underlying evaluation signals used in this run:
 
 ## Test Tasks
 
-The benchmark included 2 recorded Tier 3 trials, but the source evaluation dataset was not available in this report payload.
+The benchmark included 8 recorded Tier 3 trials, but the source evaluation dataset was not available in this report payload.
 
 ## Results
 
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 100% (+32%) | 74% (+37%) |
-| Discoverability | 1 | 89% (+33%) | 75% (+32%) |
-| Effectiveness | 1 | 60% (+18%) | 70% (+40%) |
-| Efficiency | 1 | 73% (+33%) | 72% (+43%) |
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+80%) | 98% (+71%) |
+| Discoverability | 4 | 100% (+75%) | 98% (+60%) |
+| Effectiveness | 4 | 93% (+79%) | 99% (+80%) |
+| Efficiency | 4 | 92% (+48%) | 94% (+41%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 

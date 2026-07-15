@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on DOCA Rivermax work on\na BlueField DPU or ConnectX host — standing up `doca_rmax_in_stream`\n(receive) sessions for timing-precise\nmedia-over-IP (SMPTE ST 2110 video/audio, market data, scientific\nfeeds), confirming the Rivermax SDK + license precondition before\nany DOCA-side code, running `doca_rmax_get_*_supported` capability queries,\npairing with `doca-eth` queues and `doca-flow` steering, or\ndebugging `DOCA_ERROR_*` from a Rivermax call. Trigger even when the\nuser does not explicitly mention \"DOCA Rivermax\" or \"rmax\" —\nimplicit phrasings include \"ST 2110 receive isn't getting frames\",\n\"sub-microsecond jitter on BlueField\", \"NOT_PERMITTED on first\nrivermax create\", \"no recv events after stream start\", or \"license\ncheck failing on a media receiver\". Refuse and route elsewhere for\ninstalling the Rivermax SDK or its license, programming the\nunderlying queue (`doca-eth`), steering rules (`doca-flow`), or\nbest-effort packet I/O — those belong to other skills."
 

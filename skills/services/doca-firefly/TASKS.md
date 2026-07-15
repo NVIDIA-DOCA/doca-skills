@@ -24,8 +24,8 @@ end-to-end discipline before the container starts.
    path-selection rule in
    [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy):
     - Is PTP-grade time precision genuinely required by the consumer
-      workload (SMPTE ST 2110 on Rivermax / 5G UPF / financial
-      trading / sub-microsecond distributed-database time)?
+      workload (SMPTE ST 2110 on Rivermax, 5G UPF, financial
+      trading, or sub-microsecond distributed-database time)?
     - Is the network between Firefly and the upstream PTP master
       PTP-aware (PTP-aware switches in the path, or boundary clocks
       where the switches are not PTP-aware)?
@@ -407,8 +407,8 @@ Three cross-cutting rules for this appendix:
   skill (e.g.
   [`doca-rmax ## configure`](../../libs/doca-rmax/TASKS.md#configure)
   for SMPTE) for the API surface.
-- **Other DOCA services** (DMS / DTS / BlueMan / Flow-Inspector /
-  HBN / Argus / …) — not Firefly. Route to
+- **Other DOCA services** (DMS, DTS, BlueMan, Flow-Inspector,
+  HBN, Argus, …) — not Firefly. Route to
   [doca-public-knowledge-map ## DOCA services](../../doca-public-knowledge-map/SKILL.md#doca-services)
   for the routing table and the matching `services/<service>` skill
   when it exists (e.g.
@@ -430,8 +430,8 @@ Three cross-cutting rules for this appendix:
 - Path-selection is mandatory up front. Firefly is the wrong
   answer when chrony / NTP suffices, when no PTP-aware path
   exists, or when pure software-side time precision is enough.
-- Smoke before scale. Every consumer workload (Rivermax / 5G UPF /
-  finance / distributed DB) goes after the end-to-end smoke
+- Smoke before scale. Every consumer workload (Rivermax, 5G UPF,
+  finance, distributed DB) goes after the end-to-end smoke
   passes, never before.
 - For URL routing to the Firefly guide and other public DOCA
   documentation, see

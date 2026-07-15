@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is doing hands-on DOCA RDMA programming on a BlueField DPU, ConnectX NIC, or DOCA host — bringing up an RDMA context on a doca_dev, picking a connection method, enabling task types, setting permissions, sizing queues, querying capabilities, or debugging DOCA_ERROR_* from an RDMA call. <br>
+Guides agents through hands-on DOCA RDMA programming on BlueField DPUs, ConnectX NICs, or DOCA hosts — covering context bring-up, connection methods, task types, permissions, capability queries, and error debugging. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,10 +9,16 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers building applications that consume the DOCA RDMA library for RDMA data movement on BlueField DPUs, ConnectX NICs, or DOCA hosts. <br>
+External developers and engineers building applications that consume the DOCA RDMA library for RDMA data movement between hosts, BlueField DPUs, and ConnectX NICs. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
+
+## Requirements / Dependencies: <br>
+**Requires API Key or External Credential:** [Not Specified] <br>
+**Credential Type(s):** [None identified] <br>
+
+Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
 ## Known Risks and Mitigations: <br>
 Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
@@ -20,19 +26,26 @@ Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
-- [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
-- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
-- [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
+- [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
+- [CAPABILITIES.md](CAPABILITIES.md) <br>
+- [TASKS.md](TASKS.md) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Code, Shell commands, Configuration instructions] <br>
-**Output Format:** [Markdown with inline C code blocks] <br>
+**Output Type(s):** [Analysis, Configuration instructions, Code] <br>
+**Output Format:** [Markdown with inline code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
+## Evaluation Agents Used: <br>
+- Claude Code (`claude-code`) <br>
+- Codex (`codex`) <br>
+
+
+
 ## Evaluation Tasks: <br>
-3-Tier NVSkills-Eval benchmark (external profile); overall verdict PASS. <br>
+Evaluated against 8 recorded Tier-3 trials in the NVSkills-Eval external profile. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -42,10 +55,28 @@ Reported benchmark dimensions: <br>
 - Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
 - Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
+Underlying evaluation signals used in this run: <br>
+- `security`: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
+- `skill_execution`: Verifies that the agent loaded the expected skill and workflow. <br>
+- `skill_efficiency`: Checks routing quality, decoy avoidance, and redundant tool usage. <br>
+- `accuracy`: Grades final-answer correctness against the reference answer. <br>
+- `goal_accuracy`: Checks whether the overall user task completed successfully. <br>
+- `behavior_check`: Verifies expected behavior steps, including safety expectations. <br>
+- `token_efficiency`: Compares token usage with and without the skill. <br>
 
+
+
+## Evaluation Results: <br>
+| Dimension | Num | `claude-code` | `codex` |
+|---|---:|---:|---:|
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 97% (+46%) | 98% (+44%) |
+| Discoverability | 4 | 100% (+62%) | 96% (+36%) |
+| Effectiveness | 4 | 92% (+56%) | 99% (+64%) |
+| Efficiency | 4 | 93% (+41%) | 91% (+27%) |
 
 ## Skill Version(s): <br>
-974d98c (source: git SHA, committed 2026-06-14) <br>
+59d6e8a (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

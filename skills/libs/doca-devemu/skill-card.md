@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is doing hands-on DOCA Device Emulation on a BlueField DPU — exposing a custom emulated PCIe device the host sees as a real peripheral while DPU-side code runs the backend, picking the sub-library (PCI Generic, virtio-net, virtio-fs), wiring the per-sub-library Core context plus doorbell / DMA primitives, querying doca_devemu_*_cap_*, or debugging DOCA_ERROR_* from a doca_devemu_* call. <br>
+Guides agents through hands-on DOCA Device Emulation on a BlueField DPU, covering sub-library selection (PCI Generic, virtio-net, virtio-fs), Core context wiring, capability discovery, and error debugging for custom emulated PCIe devices. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,14 +9,14 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-External developers and engineers building DPU-side applications that consume the DOCA Device Emulation library to expose custom emulated PCIe devices (PCI Generic, virtio-net, virtio-fs) from a BlueField DPU to the host. <br>
+Developers and engineers building custom emulated PCIe devices on NVIDIA BlueField DPUs using the DOCA Device Emulation library to expose DPU-backed virtual peripherals to the host. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
 
 ## Requirements / Dependencies: <br>
 **Requires API Key or External Credential:** [No] <br>
-**Credential Type(s):** [None] <br>  
+**Credential Type(s):** [None] <br>
 
 Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
@@ -28,12 +28,12 @@ Mitigation: Review and scan skill before deployment. <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
 - [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
 - [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
-- [Skill Reference Details](references/details.md) <br>
+- [references/details.md](references/details.md) <br>
 
 
 ## Skill Output: <br>
 **Output Type(s):** [Analysis, Configuration instructions, Shell commands] <br>
-**Output Format:** [Markdown with inline code blocks] <br>
+**Output Format:** [Markdown with inline bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
@@ -44,7 +44,7 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 2 evaluation tasks using NVSkills-Eval `external` profile in `astra-sandbox` environment. <br>
+Evaluated against 8 evaluation tasks using NVSkills-Eval with external profile in astra-sandbox environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -68,14 +68,14 @@ Underlying evaluation signals used in this run: <br>
 ## Evaluation Results: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 60% (+2%) | 44% (+6%) |
-| Discoverability | 1 | 90% (+36%) | 53% (+7%) |
-| Effectiveness | 1 | 20% (-2%) | 18% (+6%) |
-| Efficiency | 1 | 72% (+32%) | 34% (+3%) |
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+68%) | 98% (+39%) |
+| Discoverability | 4 | 97% (+72%) | 98% (+37%) |
+| Effectiveness | 4 | 92% (+54%) | 98% (+65%) |
+| Efficiency | 4 | 88% (+44%) | 95% (+29%) |
 
 ## Skill Version(s): <br>
-625ba86 (source: git SHA, committed 2026-06-25) <br>
+1bf01d0 (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

@@ -59,8 +59,8 @@ workflows assume the install is healthy, and a partial install is a
 ## configure
 
 Goal: bring up the universal doca-common foundation that every
-higher-level library context (Flow / RDMA / Eth / DMA / Comch /
-Rmax / …) is going to consume.
+higher-level library context (Flow, RDMA, Eth, DMA, Comch,
+Rmax, …) is going to consume.
 
 Steps the agent should walk the user through:
 

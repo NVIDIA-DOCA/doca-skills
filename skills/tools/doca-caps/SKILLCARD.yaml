@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user wants to invoke the read-only\ndoca_caps CLI to ask what DOCA sees on this host — listing\nDOCA devices and PCIe addresses, listing representor devices,\nasking which DOCA libraries are available on the current OS,\nchecking per-device per-library capabilities, scoping output\nto a specific PCIe address, or capturing a side-effect-free\ncapability snapshot for a debug session or install\nsmoke-test. Trigger even when the user does not explicitly\nmention \"doca_caps\" or \"capabilities print tool\" — typical\nimplicit phrasings include \"what does DOCA actually see on\nthis box\", \"is my BlueField PF visible to DOCA\", \"is Flow\navailable on my RHEL host\", \"enumerate VF representors for\npf0\", \"doca_caps: command not found\", or \"empty output for\nRDMA, is the tool broken\". Refuse and route elsewhere for\nDOCA installation, library-internal capability matrices\n(Flow pipe creation, RDMA verbs features), streaming\ntelemetry / DTS, or modifying the shipped binary — those\nbelong to other skills."
 

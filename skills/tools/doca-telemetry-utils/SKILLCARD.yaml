@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is invoking `doca_telemetry_utils` on\na host with DOCA installed — discovering the diagnostic-counter\nschema, translating counter names to binary Data IDs, validating\nper-device counter support before committing a DOCA Telemetry\nexporter config, or reverse-resolving a captured Data ID. Trigger\neven when the user does not explicitly mention \"doca_telemetry_utils\"\nor \"Data ID\" — typical implicit phrasings include \"my exporter ships\nbut the collector sees nothing\", \"this metric silently drops\ndownstream\", \"which counters does this BlueField expose\", \"translate\nthis 0x... back to a counter name\", \"what do node / pcie_index /\ndepth mean here\", or \"is this counter supported on this device before\nI commit it\". Refuse and route elsewhere for developer-side collector\n/ exporter library programming, DTS deployment, or DOCA install /\nrepair — those belong to doca-telemetry, doca-public-knowledge-map,\nand doca-setup."
 

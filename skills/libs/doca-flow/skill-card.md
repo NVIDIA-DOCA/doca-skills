@@ -9,14 +9,14 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-External developers writing applications that consume the DOCA Flow library to program packet steering on a supported NVIDIA NIC/DPU with DOCA installed. <br>
+External developers writing DOCA Flow applications on supported NVIDIA NICs/DPUs — defining packet-steering pipes, bringing up ports, reading counters, and debugging Flow API errors in C/C++ or via FFI. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
 
 ## Requirements / Dependencies: <br>
 **Requires API Key or External Credential:** [No] <br>
-**Credential Type(s):** [None] <br>  
+**Credential Type(s):** [None] <br>
 
 Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
@@ -25,26 +25,25 @@ Risk: Review before execution as proposals could introduce incorrect or misleadi
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [NVIDIA DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
-- [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
-- [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
-- [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
+- [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
+- [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
 
 
 ## Skill Output: <br>
 **Output Type(s):** [Code, Shell commands, Configuration instructions, Analysis] <br>
-**Output Format:** [Markdown with inline C code blocks and bash commands] <br>
+**Output Format:** [Markdown with inline C and bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
 ## Evaluation Agents Used: <br>
-- Claude Code (`claude-code`) <br>
-- Codex (`codex`) <br>
+- claude-code <br>
+- codex <br>
 
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 2 evaluation tasks using the NVSkills-Eval external profile in astra-sandbox environment. <br>
+8 evaluation tasks using NVSkills-Eval external profile in astra-sandbox environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -68,14 +67,14 @@ Underlying evaluation signals used in this run: <br>
 ## Evaluation Results: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 100% (+62%) | 47% (+16%) |
-| Discoverability | 1 | 100% (+41%) | 64% (+27%) |
-| Effectiveness | 1 | 88% (+62%) | 16% (-8%) |
-| Efficiency | 1 | 82% (+41%) | 43% (+22%) |
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+82%) | 98% (+48%) |
+| Discoverability | 4 | 96% (+71%) | 98% (+50%) |
+| Effectiveness | 4 | 83% (+70%) | 99% (+64%) |
+| Efficiency | 4 | 84% (+39%) | 94% (+36%) |
 
 ## Skill Version(s): <br>
-625ba86 (source: git SHA, committed 2026-06-25) <br>
+1bf01d0 (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

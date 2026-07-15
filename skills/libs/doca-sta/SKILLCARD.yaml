@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on NVMe-over-Fabrics\nstorage-target work on a BlueField DPU or ConnectX NIC with DOCA STA —\nstanding up a doca_sta DOCA Core context that accelerates the\ntarget-side NVMe-oF data path over RDMA, defining\ndoca_sta_subsystem targets (NQN + namespaces) backed by local\nNVMe-PCI backend disks (doca_sta_be), checking device support via\ndoca_sta_cap_is_supported, sizing the per-connection I/O queues,\nor debugging DOCA_ERROR_* from a STA call. Trigger even\nwhen the user does not say \"DOCA STA\" — typical implicit phrasings\ninclude \"my NVMe-oF Connect never completes\", \"Identify Controller\ntimes out over RoCE\", \"16 I/O queues at depth 1024 — does this\nBlueField support that\", \"offload the nvmf target onto the DPU\", or\n\"DOCA_ERROR_IO_FAILED on an NVMe read\". Refuse and route elsewhere\nfor DOCA install, raw RDMA data movement, raw packet I/O,\nflow-rule programming, or initiator-side / host NVMe stack work\n— those belong to other skills."
 

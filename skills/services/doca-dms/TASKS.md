@@ -124,6 +124,14 @@ list first, then issue. Operations like `OS install`, `Reboot`, and
 the operator should know which sub-operation they are invoking and
 why.
 
+> **⚠️ Destructive and irreversible — confirm before issuing.** `OS
+> install`, `Reboot`, and `Factory-reset` are service-impacting and
+> cannot be undone: they can take a production BlueField or ConnectX
+> offline or wipe its configuration. Before issuing any of them the
+> agent MUST (1) verify the target device identity and (2) get explicit
+> user confirmation for that specific action. Never issue them
+> speculatively or as an implicit side effect of another task.
+
 ## test
 
 DMS has no "compile and unit-test" workflow — testing is operational.

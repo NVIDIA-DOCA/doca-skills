@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is invoking doca_flow_dpa_perf on\nDPA-capable hardware (ConnectX-7+ or BlueField-3) to measure rule\nupdate / disable rates on the DPA-offloaded DOCA Flow path —\npicking the active / passive device split, choosing workload-shape\naxes (burst, queue, completion threshold, workers, hash pipe algo,\nPSL tables), or reading Kops/sec iteration stats and the optional\nself-test. Trigger even when the user does not explicitly mention\n\"doca_flow_dpa_perf\" or \"DPA Provider\" — typical implicit phrasings\ninclude \"how fast can the DPA program path-selector entries\",\n\"baseline rule-update rate on ConnectX-8\", \"tool reports zero ops\non my BlueField\", \"self-test sentinel never shows on tcpdump\", or\n\"is my BlueField-2 DPA-capable\". Refuse and route elsewhere for the\nhost / DPU-CPU Flow path (doca-flow-perf), Flow pipeline tuning\n(doca-flow-tune), writing doca-flow / doca-dpa applications, or\nDOCA install — those belong to other skills."
 

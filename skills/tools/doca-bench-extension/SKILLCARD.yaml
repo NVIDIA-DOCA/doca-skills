@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the operator is authoring, building, loading,\nor debugging a custom doca-bench plug-in — a versioned shared\nlibrary with DOCA_EXPERIMENTAL-marked C entry points that\ndoca-bench loads to measure a workload class its built-in modes\ndo not cover, with doca_bench_cuda as the shipped reference\nexemplar. Trigger even when the user does not say\n\"doca-bench-extension\" or \"doca_bench_cuda\" — typical implicit\nphrasings include \"no built-in doca-bench mode fits my workload\",\n\"how do I benchmark a CUDA GPUNetIO RX/TX kernel\", \"doca-bench\ncannot find or load my custom .so\", \"extension exported symbols\ndo not match what the parent expects\", \"soversion mismatch after\na DOCA upgrade\", or \"my GPU kernel hangs because stop_flag was\nnever set\". Refuse and route elsewhere for questions about which\nbuilt-in doca-bench mode to pick, DOCA GPUNetIO programming\nsemantics, CUDA toolkit installation, or contributor work on\nin-tree extensions — those belong to other skills."
 

@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is measuring GPU-kernel-initiated RDMA WRITE latency through doca-gpunetio — building and running the `gpunetio_ib_write_lat` client + server pair, checking GPU-NIC pairing, reading the half-iter / full-iter / CUDA-side usec columns, characterizing median / p99 / jitter for a real-time control loop, picking GPUNetIO vs GPI vs CPU-initiated `perftest`, or weighing the latency-vs-batching trade-off. <br>
+Use this skill when measuring GPU-kernel-initiated RDMA WRITE latency through doca-gpunetio — building and running the gpunetio_ib_write_lat client + server pair, checking GPU-NIC pairing, reading the half-iter / full-iter / CUDA-side usec columns, characterizing median / p99 / jitter for a real-time control-loop workload, picking GPUNetIO vs GPI vs CPU-initiated perftest, or weighing the latency-vs-batching trade-off. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,10 +9,16 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-External developers and performance engineers measuring GPU-kernel-initiated RDMA WRITE latency through doca-gpunetio to determine whether the GPUNetIO path's tail latency fits real-time control-loop deadlines. <br>
+Developers and performance engineers measuring GPU-kernel-initiated RDMA WRITE latency on real hosts with DOCA-capable hardware, characterizing tail latency for real-time control-loop workloads, and deciding between GPUNetIO, GPI, and CPU-initiated perftest paths. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
+
+## Requirements / Dependencies: <br>
+**Requires API Key or External Credential:** [Not Specified] <br>
+**Credential Type(s):** [None identified] <br>
+
+Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
 ## Known Risks and Mitigations: <br>
 Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
@@ -21,6 +27,7 @@ Mitigation: Review and scan skill before deployment. <br>
 ## Reference(s): <br>
 - [NVIDIA DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
 - [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
 
 
 ## Skill Output: <br>
@@ -29,8 +36,14 @@ Mitigation: Review and scan skill before deployment. <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
+## Evaluation Agents Used: <br>
+- Claude Code (`claude-code`) <br>
+- Codex (`codex`) <br>
+
+
+
 ## Evaluation Tasks: <br>
-Evaluated via NVSkills-Eval (profile: external); Tier 1 static validation passed with observations (7 findings, 0 blockers). Overall verdict: PASS. <br>
+Evaluated against 8 Tier-3 evaluation tasks using the NVSkills-Eval external profile in the astra-sandbox environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -40,10 +53,28 @@ Reported benchmark dimensions: <br>
 - Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
 - Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
+Underlying evaluation signals used in this run: <br>
+- `security`: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
+- `skill_execution`: Verifies that the agent loaded the expected skill and workflow. <br>
+- `skill_efficiency`: Checks routing quality, decoy avoidance, and redundant tool usage. <br>
+- `accuracy`: Grades final-answer correctness against the reference answer. <br>
+- `goal_accuracy`: Checks whether the overall user task completed successfully. <br>
+- `behavior_check`: Verifies expected behavior steps, including safety expectations. <br>
+- `token_efficiency`: Compares token usage with and without the skill. <br>
 
+
+
+## Evaluation Results: <br>
+| Dimension | Num | `claude-code` | `codex` |
+|---|---:|---:|---:|
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+82%) | 96% (+55%) |
+| Discoverability | 4 | 100% (+75%) | 94% (+47%) |
+| Effectiveness | 4 | 94% (+76%) | 100% (+69%) |
+| Efficiency | 4 | 92% (+48%) | 91% (+32%) |
 
 ## Skill Version(s): <br>
-a3144e0 (source: git SHA, committed 2026-06-14) <br>
+ff51db6 (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

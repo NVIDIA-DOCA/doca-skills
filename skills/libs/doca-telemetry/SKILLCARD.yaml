@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when reading **DOCA hardware-counter events**\nfrom a `doca_dev` via the per-domain DOCA Telemetry reader\nlibraries — `doca_telemetry_pcc`, `_dpa`, `_diag`,\n`_adp_retx`, `_phy`, `_pci`. This is the **counter-READER**\nsurface — there is no NetFlow / IPFIX / local-socket collector\nframework here; the bundle previously framed it that way and\nthat framing is wrong. Each domain ships its own\n`doca_telemetry_<domain>_*` API: cap-query\n`_cap_is_supported(devinfo)` (EXCEPT `_pci`, which has no single\n`_cap_is_supported` and uses per-feature caps like\n`doca_telemetry_pci_cap_management_info_is_supported` /\n`_cap_perf_counters_1_is_supported`), `_create()` on a `doca_dev`,\n`_start()`, then per-domain read / sample. Trigger\neven when the user does not say \"DOCA Telemetry\" — typical\nimplicit phrasings: \"read PCC counters from my BlueField\napp\", \"sample DPA counter exports\", \"expose PHY / PCI / DIAG\ncounters from this `doca_dev`\". Refuse and route elsewhere\nfor the publishing / export side\n(`doca-telemetry-exporter`), DOCA Telemetry Service (DTS) as\ndeployed (out of scope), NetFlow / IPFIX collectors, and\nplain stdout logging."
 

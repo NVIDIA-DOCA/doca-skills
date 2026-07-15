@@ -453,7 +453,7 @@ Every command below is **cross-cutting on DOCA DPDK Bridge** —
 it answers a recurring class of question that comes up in the
 verbs above. The agent should treat the *class* as load-bearing;
 the worked example is a single instance. Run-as user is the
-unprivileged user unless noted; sudo is called out per row. The
+unprivileged user unless noted. Sudo is called out per row. The
 bridge is unusual in this bundle because every row reads BOTH
 the DOCA side AND the DPDK side; do not skip the DPDK column
 when reporting back.

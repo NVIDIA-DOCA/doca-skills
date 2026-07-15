@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is running `doca_bench` (DOCA ≥ 2.7.0) — the cross-library micro-benchmark harness — to measure throughput, bulk-latency, precision-latency, or max-bandwidth of a DOCA library on host or BlueField Arm, probe the granular-build query for which libraries the install exposes, capture a baseline four-tuple, or diagnose a bench failure in the config-syntax, device-binding, library/workload-precondition, or measurement-soundness layer. <br>
+Use this skill when the user is running doca_bench (DOCA ≥ 2.7.0) — the cross-library micro-benchmark harness — to measure throughput, bulk-latency, precision-latency, or max-bandwidth of a DOCA library on host or BlueField Arm, probe the granular-build query for which libraries the install exposes, capture a baseline four-tuple (command, version, device, environment), or diagnose a bench failure in the config-syntax, device-binding, library/workload-precondition, or measurement-soundness layer. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,10 +9,16 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers, platform operators, SREs, and AI agents who need a reproducible, vendor-supported way to measure DOCA library performance (RDMA, COMPRESS, AES-GCM, SHA, DMA, EC, ETH, Comch, GPUNetIO) on a real host with a BlueField DPU or ConnectX NIC attached. <br>
+External operators, developers, and AI agents who need a reproducible, vendor-supported way to measure DOCA library performance on their actual install and device using the doca_bench CLI tool. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
+
+## Requirements / Dependencies: <br>
+**Requires API Key or External Credential:** [No] <br>
+**Credential Type(s):** [None] <br>
+
+Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
 ## Known Risks and Mitigations: <br>
 Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
@@ -20,8 +26,8 @@ Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
-- [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
-- [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
+- [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
 
 
 ## Skill Output: <br>
@@ -30,8 +36,14 @@ Mitigation: Review and scan skill before deployment. <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
+## Evaluation Agents Used: <br>
+- Claude Code (`claude-code`) <br>
+- Codex (`codex`) <br>
+
+
+
 ## Evaluation Tasks: <br>
-Evaluated via NVSkills-Eval 3-Tier Evaluation (external profile). Tier 1 static validation passed with observations (7 findings, 0 blockers). Overall verdict: PASS. <br>
+Evaluated against 8 recorded Tier 3 trials using the NVSkills-Eval external profile in astra-sandbox environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -41,10 +53,28 @@ Reported benchmark dimensions: <br>
 - Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
 - Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
+Underlying evaluation signals used in this run: <br>
+- `security`: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
+- `skill_execution`: Verifies that the agent loaded the expected skill and workflow. <br>
+- `skill_efficiency`: Checks routing quality, decoy avoidance, and redundant tool usage. <br>
+- `accuracy`: Grades final-answer correctness against the reference answer. <br>
+- `goal_accuracy`: Checks whether the overall user task completed successfully. <br>
+- `behavior_check`: Verifies expected behavior steps, including safety expectations. <br>
+- `token_efficiency`: Compares token usage with and without the skill. <br>
 
+
+
+## Evaluation Results: <br>
+| Dimension | Num | `claude-code` | `codex` |
+|---|---:|---:|---:|
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+82%) | 96% (+40%) |
+| Discoverability | 4 | 100% (+75%) | 90% (+30%) |
+| Effectiveness | 4 | 95% (+77%) | 96% (+63%) |
+| Efficiency | 4 | 92% (+48%) | 83% (+19%) |
 
 ## Skill Version(s): <br>
-0f06aba (source: git SHA, committed 2026-06-14) <br>
+b46f0c4 (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

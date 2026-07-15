@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the operator is driving the DOCA Socket Relay\nto bridge a socket-oriented host application onto a BlueField DPU\npeer without rewriting it — picking the deployment shape\n(in-process, sidecar, or BlueField service container), configuring\nthe host-side socket and the DPU-side forwarding endpoint, walking\nthe bind → connect → round-trip → admit-fleet smoke, or diagnosing\na stuck/silent relay. Trigger even when the user does not\nexplicitly mention \"DOCA Socket Relay\" — typical implicit phrasings\ninclude \"move my socket app onto the BlueField without rewriting\nit\", \"host app gets ECONNREFUSED on the relay\", \"relay accepts the\nconnection but bytes never arrive on the DPU side\", \"first\nround-trip works, the rest hang\", \"bridge an AF_UNIX (UDS) socket\nto a DPU peer over Comch\", or \"I want a sidecar that forwards my\nsocket to the BlueField\". Refuse and route elsewhere for the comch programming\nAPI, line-rate raw packet I/O via doca-eth, and DOCA\ninstall/bring-up — those belong to other skills."
 

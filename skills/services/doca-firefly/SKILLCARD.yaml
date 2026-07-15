@@ -11,7 +11,7 @@ identity:
   kind: "service"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is operating the DOCA Firefly Service\ncontainer on BlueField — picking the four PTP configuration axes\n(role / profile / domain / interface), wiring the BlueField PHC +\nhost follower + consumer workload pairing, deciding whether\nPTP-grade time is even needed (vs. chrony / NTP), or debugging a\nFirefly deployment where PTP isn't syncing or the host clock isn't\nfollowing. Trigger even when the user does not explicitly mention\n\"DOCA Firefly\" or \"PTP\" — typical implicit phrasings include\n\"container green but PTP never advances past LISTENING\", \"Firefly\nsays synced but the host clock still drifts\", \"sync acquired but\noffset is tens of microseconds\", \"my Rivermax SMPTE workload needs\nPTP\", or \"is chrony good enough\". Refuse and route elsewhere for\ninstalling DOCA, host-side chrony / ptp4l config bodies, PTP\ntopology / boundary-clock design, building DOCA apps that read the\ndisciplined PHC, or other DOCA services (DMS, Flow-Inspector, HBN)\n— those belong to other skills."
 

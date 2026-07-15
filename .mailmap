@@ -1,0 +1,11 @@
+# .mailmap — display-time author attribution for GitHub's Contributors graph,
+# `git shortlog`, and `git log --use-mailmap`. GitHub applies this at VIEW time
+# (refreshes within ~24h); it does NOT modify any git object or history.
+# Ref: https://git-scm.com/docs/gitmailmap
+#
+# This public mirror is published under a single-publisher model. Fold the
+# legacy automated DOCA export/import commits into the canonical automated
+# publisher identity so the Contributors graph reflects that model. The mapped
+# email is not linked to a GitHub account, so those commits are attributed to
+# the sync identity rather than to an individual.
+doca-skills sync <doca-skills-sync@nvidia.com> <rhagege@nvidia.com>

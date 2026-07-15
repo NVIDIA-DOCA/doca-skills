@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill for hands-on DOCA Compress programming on a\nBlueField DPU, ConnectX NIC, or host with DOCA — enabling\ncompress-deflate, decompress-deflate, decompress-lz4-stream,\nor decompress-lz4-block tasks on a doca_compress context\n(the hardware supports DEFLATE both directions plus LZ4\ndecompress; LZ4 encode is NOT supported), sizing source /\ndestination doca_buf against the per-task cap query, setting\nmmap permissions, deciding offload vs CPU zlib / zstd,\nvalidating with a round-trip smoke, or debugging\nDOCA_ERROR_* from a Compress call. Trigger on phrasings\nlike \"offload this gzip\", \"decompress incoming network\ndata\", \"compress task returns INVALID_VALUE on alloc_init\",\n\"submitted a task but no completion arrives\", or \"decompress\nLZ4 on the BlueField.\" Refuse and route elsewhere for\nnon-DEFLATE / non-LZ4 algorithms (zstd / Snappy / brotli),\nLZ4 encode (route to a CPU LZ4 library), pure mmap-to-mmap\ncopies (doca-dma), or DOCA Core lifecycle internals."
 

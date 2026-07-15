@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is doing hands-on DOCA RDMI (RDMA Initiator) programming — picking doca-rdmi vs doca-rdma for an accelerator-initiated one-sided RDMA flow, standing up connections and posters, attaching completions, retrieving DPA-side handles, auditing EXPERIMENTAL symbols, or debugging DOCA_ERROR returns from RDMI calls. <br>
+Use this skill when the user is doing hands-on DOCA RDMI (RDMA Initiator) programming — picking doca-rdmi vs doca-rdma for an accelerator-initiated one-sided RDMA flow, standing up a doca_rdmi_connection or doca_rdmi_poster, attaching a doca_dpa_completion or doca_verbs_cq before doca_ctx_start(), retrieving the DPA-side handle for a DPA kernel, auditing whether a doca_rdmi_* symbol is EXPERIMENTAL on this DOCA, or debugging DOCA_ERROR_* returns from RDMI calls. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,14 +9,14 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-Developers and engineers building DPA-resident or GPU-resident DOCA applications that need to initiate one-sided RDMA operations (writes, reads, sends) from an accelerator against a remote responder, without round-tripping through the host CPU. <br>
+Developers and engineers building DPA-resident or GPU-resident DOCA applications that need to initiate one-sided RDMA operations against a remote responder from the accelerator side without round-tripping through the host CPU. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
 
 ## Requirements / Dependencies: <br>
 **Requires API Key or External Credential:** [No] <br>
-**Credential Type(s):** [None] <br>  
+**Credential Type(s):** [None] <br>
 
 Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
@@ -26,14 +26,13 @@ Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
-- [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
-- [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
-- [DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
+- [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Analysis, Shell commands, Configuration instructions, Code] <br>
-**Output Format:** [Markdown with inline C and bash code blocks] <br>
+**Output Type(s):** [Analysis, Shell commands, Configuration instructions] <br>
+**Output Format:** [Markdown with inline bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
@@ -44,7 +43,7 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 2 recorded Tier 3 trials using the NVSkills-Eval external profile in the astra-sandbox environment. <br>
+Evaluated against 8 evaluation tasks using NVSkills-Eval profile `external` in `astra-sandbox` environment with 1 attempt per task and a 50% pass threshold. Overall verdict: PASS. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -68,14 +67,14 @@ Underlying evaluation signals used in this run: <br>
 ## Evaluation Results: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 90% (+32%) | 92% (+25%) |
-| Discoverability | 1 | 89% (+33%) | 66% (-16%) |
-| Effectiveness | 1 | 62% (+34%) | 66% (+44%) |
-| Efficiency | 1 | 71% (+31%) | 43% (-26%) |
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+76%) | 98% (+58%) |
+| Discoverability | 4 | 99% (+64%) | 98% (+42%) |
+| Effectiveness | 4 | 93% (+80%) | 92% (+66%) |
+| Efficiency | 4 | 89% (+43%) | 93% (+33%) |
 
 ## Skill Version(s): <br>
-d3b2828 (source: git SHA, committed 2026-06-28) <br>
+1bf01d0 (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

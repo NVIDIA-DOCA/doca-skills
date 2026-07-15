@@ -7,10 +7,10 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 ## Evaluation Summary
 
 - Skill: `doca-devemu`
-- Evaluation date: 2026-06-25
+- Evaluation date: 2026-07-15
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
-- Dataset: 2 evaluation tasks
+- Dataset: 8 evaluation tasks
 - Attempts per task: 1
 - Pass threshold: 50%
 - Overall verdict: PASS
@@ -42,17 +42,17 @@ Underlying evaluation signals used in this run:
 
 ## Test Tasks
 
-The benchmark included 2 recorded Tier 3 trials, but the source evaluation dataset was not available in this report payload.
+The benchmark included 8 recorded Tier 3 trials, but the source evaluation dataset was not available in this report payload.
 
 ## Results
 
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 60% (+2%) | 44% (+6%) |
-| Discoverability | 1 | 90% (+36%) | 53% (+7%) |
-| Effectiveness | 1 | 20% (-2%) | 18% (+6%) |
-| Efficiency | 1 | 72% (+32%) | 34% (+3%) |
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+68%) | 98% (+39%) |
+| Discoverability | 4 | 97% (+72%) | 98% (+37%) |
+| Effectiveness | 4 | 92% (+54%) | 98% (+65%) |
+| Efficiency | 4 | 88% (+44%) | 95% (+29%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 

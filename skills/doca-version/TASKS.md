@@ -375,7 +375,7 @@ Every command below is **cross-cutting on DOCA version handling**
 — it answers a recurring class of question that comes up in the
 verbs above. The agent should treat the *class* as load-bearing;
 the worked example is a single instance. Run-as user is the
-unprivileged user unless noted; sudo is called out per row.
+unprivileged user unless noted. Rows that need elevated privileges call that out explicitly.
 
 | Command (worked example) | Owning step | Class of question it answers | What healthy output looks like |
 | --- | --- | --- | --- |

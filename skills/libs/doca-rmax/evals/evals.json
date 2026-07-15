@@ -1,32 +1,45 @@
 {
+  "skill_name": "doca-rmax",
   "evals": [
     {
-      "id": "doca-rmax.e2e.v1",
-      "kind": "end_to_end_workflow",
-      "prompt": "You are an AI coding agent with access to a DOCA-skills bundle at\n<bundle-root>/skills/.\nYou will answer one end-to-end question. The bundle is your authoritative\nsource; open AGENTS.md first, then SKILLS.md, then the per-artifact skill\nat skills/libs/doca-rmax/.\n\nUSER QUESTION:\n        \"I'm new to DOCA and I have a BlueField with DOCA installed. I want\n        to exercise the doca-rmax library end-to-end. Specifically:\n\n        >\n\n        Walk me through the COMPLETE end-to-end workflow:\n\n(1) Confirm DOCA and doca-rmax are installed on my host at compatible versions\n    (host package + runtime device cap query both agreeing).\n\n(2) Discover which devices on this host can be used for doca-rmax and which\n    per-device capabilities are supported — name the actual capability-query\n    symbol(s) I should call before committing.\n\n(3) Start from a real shipped DOCA sample under\n    /opt/mellanox/doca/samples/doca_rmax/ (or wherever the bundle says\n    the canonical sample lives) as my modify-target. Name the sample, the\n    files I'll be touching, and the minimum-change set.\n\n(4) Build (using `pkg-config --cflags --libs doca-rmax`, not hand-crafted -l\n    flags), run once on the smallest legal scope, and verify the application\n    actually did the right thing — name a concrete observable that proves it\n    worked.\n\n(5) If it fails, the first three layers I should check (in order), with the\n    specific symptom that distinguishes each layer.\n\n\nConstraints (these are HARD — the grader will fail your response on any of\nthese):\n\n  * Do NOT invent symbols, flags, subcommand names, paths, or\n    pkg-config module names. Quote them verbatim from the bundle skill,\n    AGENTS.md, or a public NVIDIA doc.\n  * Do NOT hardcode install-layout values; defer to pkg-config / ldconfig /\n    find per AGENTS.md ground rule #6.\n  * Step (3) must name a CONCRETE real shipped sample / config / unit; if\n    the bundle deliberately defers to `ls`, mirror that pattern explicitly.\n  * Step (4) must name a CONCRETE observable that proves the right thing\n    happened. 'No error / exited 0' alone is NOT a green signal.\n  * Step (5) must name three DISTINCT layers each with a distinguishing\n    symptom that lets me self-classify which layer I'm in.\n\nOutput: structured Markdown with numbered headings (1)–(5).\n\n",
-      "grader": {
-        "kind": "llm_rubric",
-        "dimensions": [
-          "D1_invented_tokens",
-          "D2_sequence_correctness",
-          "D3_validation_concreteness",
-          "D4_debug_concreteness",
-          "D5_consumer_concreteness"
-        ],
-        "rubric": "You are a strict, conservative DOCA operational-fidelity grader.\n\nYou are grading ONE end-to-end response that an AI agent produced for the\nartifact `doca-rmax` (kind: library). You will compare the response against the\nauthoritative bundle skill files for that artifact and against general public\nDOCA reality.\n\nINPUTS:\n  * Original user-facing E2E question + constraints:\n      <bundle-root>/runner/reports/2026-05-26_r15_full_e2e/prompts/doca-rmax.prompt.txt\n  * Agent response under test:\n      <bundle-root>/runner/reports/2026-05-26_r15_full_e2e/responses/doca-rmax.md\n  * Authoritative bundle skill for this artifact:\n      <bundle-root>/skills/libs/doca-rmax/SKILL.md\n      <bundle-root>/skills/libs/doca-rmax/CAPABILITIES.md\n      <bundle-root>/skills/libs/doca-rmax/TASKS.md\n  * Universal rules:\n      <bundle-root>/AGENTS.md\n\nOpen every one of those files yourself before grading.\n\nGrade on EXACTLY these 5 dimensions. For each, output PASS or FAIL plus a\n1-3 sentence concrete justification quoting the response text under test.\n\nD1. invented_tokens — Did the response invent any symbol, flag, subcommand,\n    path, or pkg-config module name that is not present in the bundle skill,\n    AGENTS.md, or a real NVIDIA public doc? Every name the agent uses MUST be\n    traceable. Inventing a flag or symbol is an automatic FAIL on D1.\n\nD2. sequence_correctness — Are the steps in a workable order? Step N's\n    preconditions must be established by steps 1..N-1. The 5-step contract\n    (env confirm → discover → modify-from-sample → build/run/validate →\n    debug-layer) must be visibly walked.\n\nD3. validation_concreteness — Does step (4) (validate) name a CONCRETE\n    observable that proves the right thing happened? 'Exited 0' or 'no\n    error in stderr' alone is FAIL on D3. The observable must be tied to\n    the artifact's actual semantics.\n\nD4. debug_concreteness — Does step (5) (first-failure ladder) name 3\n    DISTINCT layers each with a distinguishing symptom that lets the user\n    self-classify which layer they're in?\n\nD5. consumer_concreteness — Does step (3) point to a REAL shipped sample,\n    config, systemd unit, or container image that the user can put their\n    hands on right now? If the bundle deliberately defers to `ls` for sample\n    choice, the response must mirror that explicitly (and naming an exact\n    sample anyway is FINE provided it's a real one).\n\nOutput ONE JSON object on a single line with EXACTLY these keys (no extra\nkeys, no Markdown wrapping):\n\n  {\n    \"artifact\": \"doca-rmax\",\n    \"kind\": \"library\",\n    \"D1_invented_tokens\":         {\"verdict\":\"PASS|FAIL\",\"why\":\"...\"},\n    \"D2_sequence_correctness\":    {\"verdict\":\"PASS|FAIL\",\"why\":\"...\"},\n    \"D3_validation_concreteness\": {\"verdict\":\"PASS|FAIL\",\"why\":\"...\"},\n    \"D4_debug_concreteness\":      {\"verdict\":\"PASS|FAIL\",\"why\":\"...\"},\n    \"D5_consumer_concreteness\":   {\"verdict\":\"PASS|FAIL\",\"why\":\"...\"},\n    \"verdict_overall\": \"PASS|FAIL\",\n    \"blocker_findings\": [...],\n    \"med_findings\":     [...],\n    \"low_findings\":     [...]\n  }\n\nSeverity classes:\n  * blocker_findings: any D1 FAIL (invented token) OR a D2/D3/D4/D5 FAIL\n    that would cause a real user to take a wrong action on real hardware.\n  * med_findings:     non-blocking factual gap, stylistic mismatch with\n    the bundle's preferred phrasing, or anchor reference slightly off.\n  * low_findings:     minor / nitpick (e.g. could-be-more-concrete).\n\nThe overall verdict is PASS iff blocker_findings is empty.\n\n",
-        "pass_iff": "blocker_findings is empty"
-      },
-      "baseline": {
-        "verdict": "PASS",
-        "blocker_findings": [],
-        "med_findings": [],
-        "source": "runner/reports/2026-05-26_r15_full_e2e/grades/doca-rmax.json"
-      }
+      "id": "doca-rmax.explicit-positive.v1",
+      "prompt": "Use the doca-rmax skill to help me. I'm working on: doing hands-on DOCA Rivermax work on a BlueField DPU or ConnectX host \u2014 standing up `doca_rmax_in_stream` (receive) sessions for timing-precise media-over-IP (SMPTE ST 2110 video/audio, market data, scientific feeds), confirming the Rivermax SDK + license precondition before any DOCA-side code, running `doca_rmax_get_*_supported` capability queries, pairing with `doca-eth` queues and `doca-flow` steering, or debugging `DOCA_ERROR_*` from a Rivermax call.",
+      "expected_skill": "doca-rmax",
+      "expected_output": "The agent selects the doca-rmax skill and answers from its documented workflow, quoting only real symbols/commands from the bundle (no invented tokens).",
+      "assertions": [
+        "The doca-rmax skill is selected and its SKILL.md/TASKS.md drive the answer.",
+        "Every symbol, flag, or command named is traceable to the bundle (no invented tokens)."
+      ]
+    },
+    {
+      "id": "doca-rmax.implicit-positive.v1",
+      "prompt": "I'm running into this: \"ST 2110 receive isn't getting frames\". Can you walk me through it?",
+      "expected_skill": "doca-rmax",
+      "expected_output": "The agent recognizes this as a doca-rmax issue even though the skill is not named, loads it, and answers grounded in the bundle.",
+      "assertions": [
+        "The doca-rmax skill is triggered from the implicit phrasing without the user naming it.",
+        "The answer stays grounded in real bundle symbols/commands."
+      ]
+    },
+    {
+      "id": "doca-rmax.implicit-positive.v2",
+      "prompt": "I'm running into this: \"sub-microsecond jitter on BlueField\". Can you walk me through it?",
+      "expected_skill": "doca-rmax",
+      "expected_output": "The agent recognizes this as a doca-rmax issue even though the skill is not named, loads it, and answers grounded in the bundle.",
+      "assertions": [
+        "The doca-rmax skill is triggered from the implicit phrasing without the user naming it.",
+        "The answer stays grounded in real bundle symbols/commands."
+      ]
+    },
+    {
+      "id": "doca-rmax.negative.v1",
+      "prompt": "I actually need help with installing the Rivermax SDK. Which skill should handle this, and why is it not doca-rmax?",
+      "expected_skill": null,
+      "expected_output": "The agent does NOT force doca-rmax; it explains that installing the Rivermax SDK is out of doca-rmax's scope and routes to the appropriate skill instead.",
+      "assertions": [
+        "doca-rmax is not selected as the primary skill for this out-of-scope request.",
+        "The answer routes to the appropriate skill(s) instead."
+      ]
     }
-  ],
-  "schema_version": "1",
-  "artifact": "doca-rmax",
-  "kind": "library",
-  "generated_from": "runner/reports/2026-05-26_r15_full_e2e",
-  "regenerate_with": "python3 runner/build_evals.py"
+  ]
 }

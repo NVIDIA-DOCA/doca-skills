@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user runs doca_dpa_hl_tracer to\ncapture/decode DPA-side traces at the programming-events\nlayer (kernel entry/exit, sync points, comm primitive\ncalls, RDMA WR submission, completion drain) — picking\nTRACE vs CRIT, tuning the JSON config (file-size limits\n+ file_size_limit_policy, thread priorities/cores),\ndecoding against the matching DPA-side ELF, or\ndiagnosing empty/noisy captures. Trigger even when the\nuser does not explicitly mention \"DOCA DPA tracer\" or\n\"high-level tracer\" — typical implicit phrasings include\n\"DPA kernel returns wrong result but host completions\nlook clean\", \"kernel-entry to first-comm latency is\nhuge\", \"RDMA WR to drain gap on the DPA\", \"trace file\ntruncated mid-run\", \"TRACE doubled my DPA latency\", or\n\"tracer wrote a file but parser shows zero events\".\nRefuse and route elsewhere for writing DPA kernels,\nDPA-Comms/DPA-Verbs programming, raw per-cycle DPA\nprofiling, host-side doca-dpa debugging, or production\nDPA telemetry — those belong to other skills."
 

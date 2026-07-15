@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on DOCA RDMA programming\non a BlueField DPU, ConnectX NIC, or DOCA host — bringing up an RDMA\ncontext on a doca_dev, picking a connection method (RDMA CM,\nbridge/OOB, or gRPC exchange of doca_rdma_export()), enabling one of\nthe eleven task types (Send/Receive/Send-Imm, Read/Write/Write-Imm,\nAtomic CmpSwap/FetchAdd, Get/Set/Add Remote Sync Event), setting\nmatching mmap + RDMA permissions, sizing queues and connections,\nquerying doca_rdma_cap_*, or debugging DOCA_ERROR_* from an RDMA\ncall. Trigger even when the user does not mention \"DOCA RDMA\" —\ntypical implicit phrasings include \"one-sided read returns permission\ndenied\", \"completions never arrive after submit\", \"connection\ncallback never fires\", \"how do I do atomic compare-and-swap over\nRoCE\", or \"send queue hits DOCA_ERROR_FULL under burst\". Refuse and\nroute elsewhere for general RDMA / ibverbs theory (queue pairs, MRs,\nRoCE vs IB), installing DOCA itself, or non-RDMA DOCA libraries."
 

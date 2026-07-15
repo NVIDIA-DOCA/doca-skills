@@ -1,5 +1,5 @@
 ## Description: <br>
-Guides developers through hands-on DOCA GPUNetIO programming — wiring CUDA kernels on NVIDIA GPUs to DOCA Ethernet queues via doca_gpu_eth_rxq / doca_gpu_eth_txq, standing up the per-device doca_gpu context, designing persistent CUDA kernels, running dual capability checks, registering cudaMalloc pools, and debugging DOCA_ERROR_* returns from the GPUNetIO API. <br>
+Guides AI agents through hands-on DOCA GPUNetIO programming — wiring CUDA kernels on NVIDIA GPUs to DOCA network queues, standing up per-device GPU contexts, designing persistent CUDA kernels, running capability checks, and debugging GPUNetIO API errors. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,14 +9,14 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-External developers building applications that consume the DOCA GPUNetIO library — users whose code calls doca_gpu_* from host C/C++ and whose CUDA kernels use GPU-visible queue handles from device code to submit or receive packets directly on the GPU. <br>
+Developers and engineers building GPU-accelerated network packet processing applications using NVIDIA DOCA GPUNetIO, wiring CUDA kernels to network queues for high-performance GPU-initiated networking on BlueField DPUs. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
 
 ## Requirements / Dependencies: <br>
 **Requires API Key or External Credential:** [Not Specified] <br>
-**Credential Type(s):** [None identified] <br>  
+**Credential Type(s):** [None identified] <br>
 
 Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
@@ -26,14 +26,15 @@ Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
 - [DOCA GPUNetIO Programming Guide](https://docs.nvidia.com/doca/sdk/DOCA-GPUNetIO/index.html) <br>
-- [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
-- [DOCA Samples (GitHub)](https://github.com/NVIDIA-DOCA/doca-samples) <br>
-- [DOCA Platform Framework (GitHub)](https://github.com/NVIDIA/doca-platform) <br>
+- [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
+- [CAPABILITIES.md](CAPABILITIES.md) <br>
+- [TASKS.md](TASKS.md) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Analysis, Configuration instructions, Shell commands] <br>
-**Output Format:** [Markdown with inline code blocks] <br>
+**Output Type(s):** [Analysis, Shell commands, Configuration instructions] <br>
+**Output Format:** [Markdown with inline bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
@@ -44,7 +45,7 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 2 internal skill evaluation tasks using NVSkills-Eval profile `external` in the `astra-sandbox` environment. <br>
+Evaluated against 8 evaluation tasks using NVSkills-Eval external profile in astra-sandbox environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -68,14 +69,14 @@ Underlying evaluation signals used in this run: <br>
 ## Evaluation Results: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 100% (+42%) | 86% (+48%) |
-| Discoverability | 1 | 89% (+32%) | 83% (+11%) |
-| Effectiveness | 1 | 60% (+22%) | 85% (+57%) |
-| Efficiency | 1 | 73% (+33%) | 68% (+2%) |
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+60%) | 98% (+32%) |
+| Discoverability | 4 | 100% (+75%) | 98% (+55%) |
+| Effectiveness | 4 | 94% (+55%) | 95% (+34%) |
+| Efficiency | 4 | 92% (+48%) | 94% (+42%) |
 
 ## Skill Version(s): <br>
-0a8aadf (source: git SHA, committed 2026-06-25) <br>
+1bf01d0 (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

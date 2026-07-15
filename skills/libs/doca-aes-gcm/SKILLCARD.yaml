@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on DOCA AES-GCM\nwork on a BlueField DPU or ConnectX NIC — configuring\n`doca_aes_gcm_task_encrypt` / `_task_decrypt`, querying\n`doca_aes_gcm_cap_*` for per-key-type (only\n`DOCA_AES_GCM_KEY_128` / `_256` — AES-192 not supported) and\nper-task support, sizing plaintext against the max-buf cap,\nsetting source / destination mmap permissions, validating\nwith a NIST GCMVS or RFC 5288 vector, or debugging\nDOCA_ERROR_* including the security-critical\ntag-verification-failed outcome on decrypt. Trigger even\nwhen the user does not explicitly mention \"DOCA AES-GCM\" or\n\"AEAD\" — typical implicit phrasings: \"decrypt completion\nIO_FAILED\", \"auth tag isn't verifying\",\n\"NOT_PERMITTED on my encrypt buffer\", \"is AES-192-GCM on\nthis BlueField\" (no), or \"encrypted record came back\ntampered\". Refuse and route elsewhere for non-GCM AES modes\n(CBC / CTR / XTS — CPU OpenSSL), key management\n(KMS / HSM / rotation), SHA (doca-sha), or general AEAD\nbackground."
 

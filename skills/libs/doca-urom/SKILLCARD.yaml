@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on DOCA UROM library\nwork from the host side — wiring doca-urom under an HPC / UCX /\nMPI stack to OFFLOAD remote memory operations (puts, gets, atomics,\nactive messages, collective primitives) onto a BlueField DPU,\ncreating a UROM Service context (doca_urom_service_*) and the\nWorker contexts (doca_urom_worker_*) that run plugins on the DPU,\ndiscovering supported plugins via doca_urom_service_get_plugins_list,\nprogressing completions on the\nDOCA progress engine, or debugging DOCA_ERROR_* from a doca_urom_*\ncall. Trigger even when the user does not explicitly mention\n\"DOCA UROM\" — typical implicit phrasings include \"MPI all-reduce\nburning host CPU I want for compute\", \"push UCX traffic onto the\nBlueField\", \"first doca_urom call returns NOT_PERMITTED\", \"is\nfetch-and-add supported on this BF for an MPI window\", \"host\nlibrary and DPU service look out of sync\". Refuse and route\nelsewhere for DOCA UROM Service deployment / operation on the DPU\nside, MPI / UCX collective algorithm design, and RDMA / RoCE / IB\nsubstrate bring-up — those belong to other skills."
 

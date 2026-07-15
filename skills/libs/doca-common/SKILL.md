@@ -141,7 +141,7 @@ Load this skill whenever the user is doing **any** hands-on DOCA
 work — it is the foundation. Concretely:
 
 - Setting up the universal DOCA-side skeleton before opening any
-  per-library context (Flow / RDMA / Eth / Comch / DMA / Rmax / …).
+  per-library context (Flow, RDMA, Eth, Comch, DMA, Rmax, …).
 - Discovering devices and representors and gating capability use
   on the active `doca_devinfo` via the `doca_*_cap_*` family.
 - Wiring `doca_mmap` + `doca_buf_inventory` + `doca_buf` for
@@ -159,10 +159,10 @@ work — it is the foundation. Concretely:
   permission errors first surface for higher-level libraries.
 - Designing or extending non-C bindings (Rust, Go, Python, …) that
   wrap any DOCA library — for the universal foundation surface
-  (buf / ctx / dev / pe / log) the wrapper has to expose first.
+  (buf, ctx, dev, pe, log) the wrapper has to expose first.
 
-Do **not** load this skill for library-specific Flow / RDMA / Eth /
-Comch / DMA / Rmax / … questions in isolation — load the matching
+Do **not** load this skill for library-specific Flow, RDMA, Eth,
+Comch, DMA, Rmax, … questions in isolation — load the matching
 per-library skill alongside this one. Do **not** load this skill for
 general DOCA orientation, install of DOCA itself, or
 *"where do I find docs"*. For those, use

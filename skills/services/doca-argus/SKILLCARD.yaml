@@ -11,7 +11,7 @@ identity:
   kind: "service"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is deploying or operating the DOCA Argus\nService — the packaged BlueField-side runtime-security container that\nwatches the BlueField and attached host for suspicious activity,\nintegrity violations, and operational anomalies, and forwards findings\nto a SIEM (Splunk / ELK / Sentinel / syslog). Covers the four-axis\nconfig (detection policy, forwarding, sampling, host coverage),\nrunning the NGC container on BlueField Arm, wiring the forwarder, and\nwalking the calibration period. Trigger even without \"DOCA Argus\" by\nname — typical implicit phrasings: \"container green but no findings\narrive\", \"false-positive flood in Splunk\", \"findings not reaching my\nSIEM\", \"host CPU up since the security agent started\", or \"runtime\nsecurity on a fleet of BlueField-3s\". Refuse and route elsewhere for\ninstalling DOCA, SIEM-side ingest stanzas (Splunk / Logstash /\nSentinel), pre-baked detection-rule packs, custom DPU-side security\ntools (the DOCA App Shield library — not in this bundle), and metrics-shaped observability (DOCA Telemetry)."
 

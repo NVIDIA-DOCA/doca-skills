@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is running `doca_bench` (DOCA ≥\n2.7.0) — the cross-library micro-benchmark harness — to measure\nthroughput, bulk-latency, precision-latency, or max-bandwidth\n(the four `benchmark_mode` enum values the binary ships) of a\nDOCA library (RDMA, COMPRESS, AES-GCM, SHA, DMA, EC, ETH,\nComch, GPUNetIO) on host or BlueField Arm, probe the granular-\nbuild query for which libraries the install exposes, capture a\nbaseline four-tuple (command, version, device, environment), or\ndiagnose a bench failure in the config-syntax, device-binding,\nlibrary/workload-precondition, or measurement-soundness layer.\nTrigger even without the word \"doca_bench\" — typical implicit\nforms include \"how fast is compress on my BlueField\", \"what\nRDMA throughput can this NIC do\", \"measure AES-GCM latency\",\nor \"baseline before a firmware update\". Refuse and route\nelsewhere for application-level end-to-end timing, custom\nbenchmark programs, DOCA install/upgrade, or patching the\nbinary."
 

@@ -387,8 +387,7 @@ Every command below is **cross-cutting on DOCA Telemetry
 Exporter** — it answers a recurring class of question that comes
 up in the verbs above. The agent should treat the *class* as
 load-bearing; the worked example is a single instance. Run-as
-user is the application's normal unprivileged user unless noted;
-sudo is called out per row (and is rarely needed for the exporter
+user is the application's normal unprivileged user unless noted. Rows that need elevated privileges call that out explicitly. (and is rarely needed for the exporter
 itself, per [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy)).
 
 **Infra-aware preamble (every row below).** Per the bundle's

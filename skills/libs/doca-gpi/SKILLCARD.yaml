@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on DOCA GPI programming\n— wiring a GPU-Packet-Initiator context so a CUDA kernel drives\nRDMA queues directly from GPU memory without host CPU mediation.\nCovers picking GPI vs doca-gpunetio, the doca_gpi / domain /\nchannel object model, the GPU-side handle handoff\n(doca_gpu_gpi_channel*), attaching GPU memory to a GPI domain,\nthe domain and channel attribute objects, and debugging\nDOCA_ERROR_* from doca_gpi_* calls. Trigger even when the user\ndoes not explicitly mention \"DOCA GPI\" — typical implicit\nphrasings include \"my CUDA kernel needs to post RDMA directly\nfrom GPU memory\", \"DOCA_ERROR_* from doca_gpi_gpu_channel_get\",\n\"how do I hand a GPU handle to my CUDA kernel\", \"how many\nchannels can a GPI domain hold\", or \"GPU kernel driving RDMA\nwithout the host CPU on the path\". Refuse and route elsewhere for the doca-gpunetio\nSend/Receive surface, the doca-rdma queue lifecycle, DPA-side\ninitiation (doca-rdmi), or the CUDA programming model — those\nbelong to other skills."
 

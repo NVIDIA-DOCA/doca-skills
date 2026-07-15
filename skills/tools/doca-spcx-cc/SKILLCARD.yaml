@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is invoking `doca_spcx_cc` (the\nhost-side CLI under /opt/mellanox/doca/tools/) to load,\nparameterize, start, observe, or stop a Programmable Congestion\nControl (SPCX) algorithm on a BlueField with a DPA processor\nagainst a live RDMA / RoCE fabric, or picking SPCX vs the\nestablished `doca-pcc` surface. Trigger even when the user does\nnot say \"DOCA SPCX\" or \"doca_spcx_cc\" —\ntypical implicit phrasings include \"I want to write a custom\nRTT-based CC algorithm for my RoCE fabric\", \"my SPCX session\nloaded but throughput / latency didn't change\", \"doca_pcc status\nshows Active but factory CC seems to still be in charge\",\n\"DOCA_PCC_PS_ERROR on start\", \"is the programmable-CC surface\navailable on my install\", or \"DPA-side algorithm image won't\nload\". Refuse and route elsewhere for DPA-side algorithm\nauthoring detail, factory PCC firmware configuration, read-only\nPCC counter inspection, raw DPA cycle profiling, RDMA library\nprogramming, or general DOCA install — those belong to other\nskills."
 

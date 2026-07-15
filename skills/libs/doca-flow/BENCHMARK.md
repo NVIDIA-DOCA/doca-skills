@@ -7,10 +7,10 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 ## Evaluation Summary
 
 - Skill: `doca-flow`
-- Evaluation date: 2026-06-25
+- Evaluation date: 2026-07-15
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
-- Dataset: 2 evaluation tasks
+- Dataset: 8 evaluation tasks
 - Attempts per task: 1
 - Pass threshold: 50%
 - Overall verdict: PASS
@@ -42,17 +42,17 @@ Underlying evaluation signals used in this run:
 
 ## Test Tasks
 
-The benchmark included 2 recorded Tier 3 trials, but the source evaluation dataset was not available in this report payload.
+The benchmark included 8 recorded Tier 3 trials, but the source evaluation dataset was not available in this report payload.
 
 ## Results
 
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 100% (+62%) | 47% (+16%) |
-| Discoverability | 1 | 100% (+41%) | 64% (+27%) |
-| Effectiveness | 1 | 88% (+62%) | 16% (-8%) |
-| Efficiency | 1 | 82% (+41%) | 43% (+22%) |
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+82%) | 98% (+48%) |
+| Discoverability | 4 | 96% (+71%) | 98% (+50%) |
+| Effectiveness | 4 | 83% (+70%) | 99% (+64%) |
+| Efficiency | 4 | 84% (+39%) | 94% (+36%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 

@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill whenever the user is doing hands-on DOCA programming\non a BlueField DPU or ConnectX NIC and needs the foundation\nprimitives every per-library context rests on — walking the\ndoca_ctx lifecycle, discovering doca_dev / doca_devinfo and gating\non doca_*_cap_* before trusting a feature, wiring doca_mmap /\ndoca_buf_inventory / doca_buf for zero-copy I/O across libraries,\ndriving doca_pe for completions, or DOCA Log's two-tier\n(--sdk-log-level vs app-side) model. Trigger even when the user\ndoes not say \"DOCA Common\" — typical implicit phrasings include\n\"my tasks submit but nothing completes\", \"DOCA_ERROR_BAD_STATE\nfrom doca_ctx_start\", \"--sdk-log-level does nothing for my\nDOCA_LOG_DBG lines\", \"share a buf between doca_dma and doca_rdma\",\nor \"crashes far from the offending line\". Refuse and route\nelsewhere for per-library questions in isolation (load doca-flow /\ndoca-rdma / doca-eth alongside), installing DOCA (doca-setup), or\ndoc lookup (doca-public-knowledge-map)."
 

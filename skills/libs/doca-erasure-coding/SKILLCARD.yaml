@@ -11,7 +11,7 @@ identity:
   kind: "library"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill when the user is doing hands-on DOCA Erasure Coding\nprogramming on a BlueField DPU, ConnectX NIC, or host — bringing\nup a doca_ec context, picking among the create / recover / update\ntasks, choosing matrix type / N / K / block size, querying\ndoca_ec_cap_* before sizing, setting doca_mmap src/dst\npermissions, or debugging DOCA_ERROR_* returns from\ndoca_ec_task_*. Trigger even when the user does not name \"DOCA\nErasure Coding\" or \"Reed-Solomon\" — typical implicit phrasings\ninclude \"one data block changed, how do I refresh parity without\nre-encoding\", \"a disk failed and 2 parity blocks are gone, can I\nrebuild\", \"RAID-6 resilience across 12 disks\", \"my\ndoca_ec_task_create returns NOT_PERMITTED\", or \"is this N+K layout\nstill recoverable\". Refuse and route elsewhere for non-Reed-Solomon\ncodes (fountain / LDPC / raptor), pure-replication designs,\nnetwork FEC, or other DOCA accelerator libraries (SHA / Compress /\nAES-GCM / DMA) — those belong to other skills."
 

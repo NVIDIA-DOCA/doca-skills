@@ -11,7 +11,7 @@ identity:
   kind: "tool"
   version: "TBD-at-sign-time"          # NVCARPS fills from the source ref
   signature: "TBD-at-sign-time"        # NVCARPS-generated SHA + ed25519 sig
-  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT keyring)
+  signed_by: "TBD-at-sign-time"        # NVCARPS identity (NVIDIA-PSIRT signing key)
 
 description: "Use this skill to enumerate host↔DPU DOCA comch (formerly\nComm Channel) servers and connections via the shipped\ndoca_comm_channel_admin binary — listing comch-capable\ndevices and decoding the per-device server / connection\ntable (server name, PID, in-use / max, PCIe address). The\nshipped binary is a SINGLE-SHOT SCAN-AND-PRINT tool with no\nregistered arguments — NO list / inspect / drain / restart\nsubcommands; one inventory pass over every comch-capable\ndoca_dev on this side. Channel reset / drain / restart go to\ndoca-comch (program side), doca-setup / doca-hardware-safety\n(driver reload), or BFB / RShim — NOT to this binary.\nTrigger on phrasings like \"list comch servers\", \"which\nchannels are active on this BlueField\", or \"verify admin\ntool sees same channel as program.\" Refuse and route\nelsewhere for the comch programming API, library install,\nprotocol design, channel reset, or general orientation."
 

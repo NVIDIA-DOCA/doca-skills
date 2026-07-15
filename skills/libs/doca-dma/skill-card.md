@@ -1,5 +1,5 @@
 ## Description: <br>
-Use this skill when the user is doing hands-on DOCA DMA programming — bringing up a doca_dma context, configuring the single doca_dma_task_memcpy task type, sizing buffers via the doca_dma_cap_task_memcpy_* queries, setting LOCAL_READ_ONLY / LOCAL_READ_WRITE permissions on source / destination doca_mmap regions, driving the progress engine, or debugging DOCA_ERROR_* returns. <br>
+Use this skill when the user is doing hands-on DOCA DMA programming — bringing up a doca_dma context, configuring the single doca_dma_task_memcpy task type, sizing buffers via the doca_dma_cap_task_memcpy_* queries, setting LOCAL_READ_ONLY / LOCAL_READ_WRITE permissions on source / destination doca_mmap regions (plus doca_mmap_export_* for cross-peer copies), driving the progress engine, or debugging DOCA_ERROR_* returns. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,29 +9,41 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-External developers building applications that consume the DOCA DMA library to copy bytes between doca_mmap regions using the BlueField DMA engine instead of the host CPU. <br>
+Developers and engineers building applications that consume the DOCA DMA library to copy bytes between doca_mmap regions using the BlueField DMA engine, including context lifecycle management, buffer sizing, permission configuration, and error debugging. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
+
+## Requirements / Dependencies: <br>
+**Requires API Key or External Credential:** [No] <br>
+**Credential Type(s):** [None] <br>
+
+Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
 ## Known Risks and Mitigations: <br>
 Risk: Review before execution as proposals could introduce incorrect or misleading guidance into skills. <br>
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [DOCA DMA SDK Documentation](https://docs.nvidia.com/doca/sdk/DOCA-DMA/index.html) <br>
-- [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
+- [DOCA DMA Documentation](https://docs.nvidia.com/doca/sdk/DOCA-DMA/index.html) <br>
 - [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
+- [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Shell commands, Configuration instructions, Code] <br>
-**Output Format:** [Markdown with inline bash and C code blocks] <br>
+**Output Type(s):** [Code, Shell commands, Configuration instructions] <br>
+**Output Format:** [Markdown with inline code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
+## Evaluation Agents Used: <br>
+- Claude Code (`claude-code`) <br>
+- Codex (`codex`) <br>
+
+
+
 ## Evaluation Tasks: <br>
-3-Tier Evaluation from NVSkills-Eval with external profile. <br>
+Evaluated against 8 evaluation tasks using NVSkills-Eval Tier 3 trials with the `external` profile in `astra-sandbox` environment. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -41,10 +53,28 @@ Reported benchmark dimensions: <br>
 - Effectiveness: Checks whether the agent performs measurably better with the skill than without it. <br>
 - Efficiency: Checks whether the agent uses fewer tokens and avoids redundant work. <br>
 
+Underlying evaluation signals used in this run: <br>
+- `security`: Checks for unsafe operations, secret leakage, and unauthorized access. <br>
+- `skill_execution`: Verifies that the agent loaded the expected skill and workflow. <br>
+- `skill_efficiency`: Checks routing quality, decoy avoidance, and redundant tool usage. <br>
+- `accuracy`: Grades final-answer correctness against the reference answer. <br>
+- `goal_accuracy`: Checks whether the overall user task completed successfully. <br>
+- `behavior_check`: Verifies expected behavior steps, including safety expectations. <br>
+- `token_efficiency`: Compares token usage with and without the skill. <br>
 
+
+
+## Evaluation Results: <br>
+| Dimension | Num | `claude-code` | `codex` |
+|---|---:|---:|---:|
+| Security | 4 | 100% (+0%) | 100% (+0%) |
+| Correctness | 4 | 100% (+50%) | 98% (+50%) |
+| Discoverability | 4 | 100% (+75%) | 98% (+51%) |
+| Effectiveness | 4 | 95% (+40%) | 97% (+58%) |
+| Efficiency | 4 | 92% (+48%) | 95% (+39%) |
 
 ## Skill Version(s): <br>
-4b22f7b (source: git SHA, committed 2026-06-13) <br>
+c82da23 (source: git SHA, committed 2026-07-14) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>
