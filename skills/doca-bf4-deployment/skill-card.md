@@ -1,5 +1,5 @@
 ## Description: <br>
-Guides potentially irreversible BlueField-4 hardware operations (PLDM firmware burns, ISO reflashes, power cycles, BMC factory resets) for day-1 platform bring-up of a BlueField-4 DPU via the BMC, including installing the BlueField/DOCA bundle ISO onto the DPU over UEFI HTTP Boot, PXE, or Redfish Virtual Media, and the PLDM firmware-update flow. <br>
+Guides potentially irreversible BlueField-4 hardware operations (PLDM firmware burns, ISO reflashes, power cycles, BMC factory resets) for day-1 platform bring-up from the BMC, including OS installation via UEFI HTTP Boot, PXE, or Redfish Virtual Media and PLDM firmware updates. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,14 +9,14 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 AND CC-BY-4.0 <br>
 ## Use Case: <br>
-External operators and engineers performing day-1 platform bring-up of a BlueField-4 DPU via the BMC, including OS installation, PLDM firmware updates, and initial configuration before workload deployment. <br>
+External operators and engineers performing day-1 BlueField-4 platform bring-up via the BMC, installing the BlueField/DOCA bundle ISO onto the DPU and updating firmware to target levels. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
 
 ## Requirements / Dependencies: <br>
 **Requires API Key or External Credential:** [Yes] <br>
-**Credential Type(s):** [Other [Basic auth]] <br>  
+**Credential Type(s):** [Other [Basic auth]] <br>
 
 Do not include secrets in prompts/logs/output; use least-privilege credentials; rotate keys as appropriate. <br>
 
@@ -25,14 +25,14 @@ Risk: Review before execution as proposals could introduce incorrect or misleadi
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [details.md](references/details.md) <br>
 - [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
 - [DOCA Samples](https://github.com/NVIDIA-DOCA/doca-samples) <br>
 - [DOCA Platform Framework](https://github.com/NVIDIA/doca-platform) <br>
+- [details.md](references/details.md) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Shell commands, Configuration instructions] <br>
+**Output Type(s):** [Shell commands, Configuration instructions, API Calls] <br>
 **Output Format:** [Markdown with inline bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
@@ -44,7 +44,7 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 6 evaluation tasks in an astra-sandbox environment using the NVSkills-Eval external profile. <br>
+Evaluated against 6 evaluation tasks in the astra-sandbox environment using NVSkills-Eval external profile. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -68,14 +68,14 @@ Underlying evaluation signals used in this run: <br>
 ## Evaluation Results: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 3 | 100% (+0%) | 83% (-17%) |
-| Correctness | 3 | 100% (+70%) | 98% (+20%) |
-| Discoverability | 3 | 100% (+67%) | 90% (+22%) |
-| Effectiveness | 3 | 94% (+70%) | 97% (+44%) |
-| Efficiency | 3 | 94% (+47%) | 76% (+17%) |
+| Security | 3 | 100% (+0%) | 100% (+0%) |
+| Correctness | 3 | 100% (+70%) | 98% (+31%) |
+| Discoverability | 3 | 100% (+67%) | 95% (+40%) |
+| Effectiveness | 3 | 95% (+72%) | 98% (+42%) |
+| Efficiency | 3 | 94% (+46%) | 83% (+28%) |
 
 ## Skill Version(s): <br>
-ce589ef (source: git SHA, committed 2026-06-25) <br>
+c953a55 (source: git SHA, committed 2026-07-15) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

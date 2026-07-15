@@ -7,7 +7,7 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 ## Evaluation Summary
 
 - Skill: `doca-bf4-deployment`
-- Evaluation date: 2026-06-25
+- Evaluation date: 2026-07-15
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
 - Dataset: 6 evaluation tasks
@@ -48,11 +48,11 @@ The benchmark included 6 recorded Tier 3 trials, but the source evaluation datas
 
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
-| Security | 3 | 100% (+0%) | 83% (-17%) |
-| Correctness | 3 | 100% (+70%) | 98% (+20%) |
-| Discoverability | 3 | 100% (+67%) | 90% (+22%) |
-| Effectiveness | 3 | 94% (+70%) | 97% (+44%) |
-| Efficiency | 3 | 94% (+47%) | 76% (+17%) |
+| Security | 3 | 100% (+0%) | 100% (+0%) |
+| Correctness | 3 | 100% (+70%) | 98% (+31%) |
+| Discoverability | 3 | 100% (+67%) | 95% (+40%) |
+| Effectiveness | 3 | 95% (+72%) | 98% (+42%) |
+| Efficiency | 3 | 94% (+46%) | 83% (+28%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 

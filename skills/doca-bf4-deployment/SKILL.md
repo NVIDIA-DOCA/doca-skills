@@ -40,6 +40,13 @@ compatibility: >
 > governed by
 > [`doca-hardware-safety`](../doca-hardware-safety/SKILL.md), which
 > MUST be loaded alongside this skill before any destructive action.
+>
+> Before executing any mutating step — PLDM firmware burn, ISO reflash,
+> power cycle, or BMC factory reset — the agent MUST show the exact
+> command and its blast radius (which device, what becomes unavailable,
+> whether it is reversible) and obtain the user's explicit confirmation
+> for that specific action. Never chain destructive steps or run them
+> speculatively as a side effect of another task.
 
 **Where to start:** This skill is the bundle's deliberate in-bundle
 home for **day-1 platform bring-up of a BlueField-4 DPU via the
