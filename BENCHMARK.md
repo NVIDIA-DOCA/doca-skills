@@ -5,11 +5,12 @@ the test surface is, how it is graded, what counts as "green", and where the
 artifacts live. It is the BENCHMARK.md companion to `LICENSE`, `CONTRIBUTING.md`,
 and `SECURITY.md` required by the NVIDIA Skills Publishing Onboarding contract.
 
-The bundle is **documentation-only** — it does not ship runnable code. The
-benchmark therefore measures the *behavior an AI agent produces when handed the
-bundle*, not the latency of a library call. The grading rubric is deliberately
-strict: the bundle's job is to keep agents from inventing symbols, paths, flags,
-or subcommands, and from skipping safety-relevant preconditions.
+The skills themselves are documentation. The repository also carries a
+separately qualified read-only MCP plugin and an opt-in private-review operator,
+so structural qualification covers both Markdown behavior and executable plugin
+contracts. The grading rubric is deliberately strict: the bundle's job is to
+keep agents from inventing symbols, paths, flags, or subcommands, and from
+skipping safety-relevant preconditions.
 
 ## What is measured
 
@@ -17,43 +18,69 @@ Two orthogonal axes:
 
 | Axis | What it measures | How it runs |
 | --- | --- | --- |
-| **A. Structural regression** | The bundle still satisfies every contract that the constant-grader scoreboard depends on (skill structure, anchor density, public-source URLs, frontmatter `kind`, AgentSkills.io reference validity, non-goal routing, JTBD coverage, live-hardware-harness shape, reference hygiene, NVIDIA-Skills publishing readiness). | The DOCA team's internal development pipeline runs a 15-gate fail-fast suite on every PR before the bundle is mirrored into this public catalog. |
+| **A. Structural regression** | The bundle still satisfies every declared contract (skill structure, links and anchors, public-source URLs, frontmatter `kind`, AgentSkills.io validity, non-goal routing, JTBD coverage, plugin qualification, and publishing readiness). | The manifest-driven suite runs every required static gate and reports any optional or post-evaluation gate separately; a skip is never printed as an all-gates pass. |
 | **B. Per-skill end-to-end agent behavior** | A real AI agent is handed the bundle and one end-to-end prompt per shipping skill. A separate strict grader subagent then grades the response on 5 dimensions against the bundle's authoritative skill files. | Generator + per-prompt agent dispatch + per-response grader dispatch + aggregation. Same internal pipeline as Axis A. |
 
 Both axes run from the same source-of-truth bundle layout (`AGENTS.md`,
 `SKILLS.md`, `skills/<kind>/<name>/{SKILL,CAPABILITIES,TASKS}.md`).
 
-## Structural regression baseline (Axis A)
+## Structural regression contract (Axis A)
 
-The 15-gate suite is the contract every PR to the upstream development
-repository must satisfy. The gate inventory:
+The qualification harness's versioned gate manifest is the source of truth.
+Missing required
+implementations or required environment tools fail closed. The public claim is
+checked against that manifest on every run.
 
-| # | Gate | Current state |
-| - | --- | --- |
-| 0 | Keystone self-test (the gate-checks-the-gate) | OK (weekly) |
-| 1 | Structural keystone | OK |
-| 2 | Per-skill conformance (61 skills) | OK |
-| 3 | DOCA inventory | OK |
-| 3 | Cross-links | OK |
-| 3 | Anchor density | OK |
-| 3 | Coverage | OK |
-| 3 | JTBD coverage | OK |
-| 3 | Public-surface invariants (5/5) | OK |
-| 3 | Live-hardware harness shape (6/6 fixtures) | OK |
-| 3 | AgentSkills.io compliance (61 skills) | OK |
-| 3 | Non-goal routing (27 products) | OK |
-| 4 | Reference hygiene (no internal path leaks; no audit history in runtime `SKILL.md`) | OK |
-| 4 | Frontmatter `kind` (libs→library, services→service, tools→tool — all 52) | OK |
-| 4 | NVIDIA-Skills publishing readiness (LICENSE + CoC + BENCHMARK + per-skill `evals/evals.json` + `skill-card.md` (catalog-required governance card) + `SKILLCARD.yaml` (machine-readable companion) + `components.d/doca.yml`) | OK |
-| 5 | No-regression vs frozen baseline (609 baseline cells, variant C) | OK — 0 regressions |
+| Gate ID | Contract | Execution |
+| --- | --- | --- |
+| `keystone-self-test` | The gate-checks-the-gate fixture | Optional locally/CI; required for release |
+| `structural-keystones` | Constant-grader structural prerequisites | Required static |
+| `skill-conformance` | Per-skill structure and public-source rules | Required static |
+| `doca-inventory` | Bundle/DOCA source inventory alignment | Required in CI/release |
+| `crosslinks` | Relative file and anchor integrity | Required static |
+| `anchor-density` | Required workflow anchors | Required static |
+| `catalog-coverage` | Catalog, prompt, and discoverability coverage | Required static |
+| `jtbd-coverage` | Jobs-to-be-done coverage | Periodic optional input; required for release |
+| `gate-documentation-consistency` | This table resolves exactly to the manifest | Required static |
+| `worktree-hygiene` | Generated-root allowlist and build/scan path containment | Required static |
+| `quality-schema-validation` | Current/prior evidence schemas and negative fixtures | Required static |
+| `eval-validity` | Complete label-free eval kinds, hard set, wrong-context arm, and grader fixtures | Required static |
+| `benchmark-evidence` | Post-sign evidence has its source dataset, matching task count, PASS verdict, and the NVCARPS-recorded attempt count | Required post-sign |
+| `skill-quality-report` | Generated 60-skill scorecard, context analysis, and HTML dashboard | Required static |
+| `advisory-agent-policy` | Classification routing, budgets, denials, checkpoints, and human interrupt | Required static |
+| `public-surface-invariants` | Five publish-surface invariants | Required static |
+| `public-mirror-boundary` | Exact allowlisted mirror has no private/plugin paths or hygiene findings | Required static and release |
+| `live-hardware-harness` | Read-only live-hardware adapter fixtures | Required static |
+| `agentskills-io-compliance` | Agent Skills frontmatter and layout contract | Required static |
+| `non-goal-routing` | Live externally-productized routing table (currently 26 product rows) and public count | Required static |
+| `reference-hygiene` | No internal paths, audit history, or private references | Required static |
+| `url-liveness` | Full public URL GET validation | Required in CI/release; network-declared locally |
+| `nvskills-readiness` | NVIDIA Skills publishing artifacts | Required static |
+| `plugin-source-verification` | Plugin unit, security, dependency, and source-coverage checks | Required pre-sign |
+| `plugin-verification` | Signed plugin/operator build, reproducibility, install, and security | Required post-sign |
+| `plugin-mutation` | Fixed security-mutant catalog with a 100% current baseline | Nightly/opt-in; required for release |
+| `frontmatter-kind` | `libs→library`, `services→service`, `tools→tool` | Required static |
+| `jenkinsfile-budget-and-syntax` | Groovy parse plus frozen monolith line budget | Required static |
+| `deep-e2e-generate` | Deterministic prompt/grader generation for every skill | Required static |
+| `no-regression` | Comparable post-evaluation evidence has no blocking regression | Required post-evaluation |
+| `eval-replay-regression` | Candidate replay has no decisive failure (a task passing zero of its attempts), no hard veto, no unsound evidence, and no bundle pass-rate drop against the frozen baseline | Required post-evaluation; tasks that pass some attempts but not a majority are recorded as unstable and also block under `release` |
 
-The frozen baseline is the no-regression contract: every previously-PASS cell
-on the strict variant-C grader must still PASS, or the PR is blocked.
+## Release evidence policy
+
+- This release candidate is qualified against `devops-ai` harness commit
+  `dabc13523ba604f8843e3993014df2f369300828` on `main`.
+- `skill-card.md` is the required canonical card for every skill. A signer may
+  also generate `SKILLCARD.yaml`; its presence does not replace the canonical
+  card and does not widen the public allowlist.
+- Private plugin source and artifacts remain in the private repository. The
+  public mirror copies only the explicit allowlist and rejects every plugin
+  path until a separate official signing approval and allowlist review.
+- Missing behavioral evidence is reported as `NOT_MEASURED`, never inferred as
+  a pass from deterministic or signing checks.
 
 ## Per-skill end-to-end behavior (Axis B)
 
-For each of the 51 shipping artifacts (28 libraries + 6 services + 17 tools)
-the deep E2E suite generates:
+For each shipping skill, the deep E2E suite generates:
 
 - A **prompt** that asks the agent to walk a complete end-to-end workflow for
   that artifact: confirm env, discover devices/capabilities, modify a real
@@ -75,30 +102,12 @@ the deep E2E suite generates:
 
 ## Latest measurement
 
-```
-Overall:     51/51 PASS (100%)
-Blockers:    0
-MED gaps:    7  (non-blocking; stylistic / could-be-more-concrete)
-
-By kind:
-  library: 28/28 PASS
-  service:  6/6 PASS
-  tool:    17/17 PASS
-```
-
-This is the second round of grading from the same source bundle. The first
-round (against the same bundle, against the same prompts and graders) returned
-46/52 PASS with 9 blockers spread across 6 tools. Every one of those blockers
-was an agent-under-test fabrication, not a bundle factual error, but a real
-downstream agent would have repeated the same fabrication. The fix landed as
-fix batch 10: an explicit `> **Do-not-invent guard ...**` blockquote at the
-top of each of the 6 affected tools' `TASKS.md ## run`, naming the specific
-trap by name. The same 6 prompts re-dispatched to a fresh agent against the
-hardened bundle returned 6/6 PASS, 0 blockers — converting the round to 52/52.
-
-The `Do-not-invent guard` pattern is now part of the bundle's authoring
-contract; new tool skills must include one when the tool's flag / subcommand
-inventory is `--help`-driven rather than statically named.
+The current generated inventory is 60 skills: 13 cross-cutting and 47 product
+skills (27 libraries, 4 services, 16 tools). Historical measurements used a
+different inventory and leaked labels in some prompts, so they are retained as
+historical evidence but are not treated as a comparable current baseline.
+Until the regenerated hard set and calibrated grader run, current behavioral
+status is `NOT_MEASURED`, not an inferred pass.
 
 ## How to reproduce
 
@@ -125,7 +134,7 @@ targets:
 
 | Env | What changes | How it's covered |
 | --- | --- | --- |
-| With the DOCA monorepo cloned alongside | Strict-to-doca invariants (the bundle aligns to the publicly-released DOCA `3.3.0109` source set). | Validated against the cached monorepo in the internal CI pipeline. |
+| Public DOCA inventory | The bundle aligns only to the publicly released DOCA `3.3.0109` documentation set. | Validated against the versioned public inventory sourced from the DOCA Libraries, Services, and Tools indexes; unreleased source trees are never used as publication inputs. |
 | Without the DOCA monorepo (the customer's normal environment) | The bundle must be self-sufficient — no internal-only paths, no hostnames that resolve only inside NVIDIA, no references to files that only exist in the monorepo. | Reference-hygiene gate (gate 4) blocks any leak; AgentSkills.io compliance gate blocks any unresolved reference. |
 | On a real BlueField host (BF2 + BF3 DPUs) | The TMFIFO, RShim, apt-source, log-level, and `bf.cfg` claims must match what the hardware actually reports. | The latest live hardware probe folded its 5 findings back into `doca-bare-metal-deployment`, `doca-version`, and `doca-public-knowledge-map`; the live-hardware harness gate (gate 3) keeps the harness shape from drifting. |
 

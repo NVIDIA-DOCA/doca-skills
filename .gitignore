@@ -1,0 +1,17 @@
+dist/
+.plugin-venv/
+.coverage
+coverage.xml
+htmlcov/
+**/__pycache__/
+.plugin-dist*/
+.plugin-debug*/
+.plugin-native-test/
+.plugin-releases/
+.operator-releases/
+.plugin-release-qualify/
+.plugin-install-home/
+plugin/demo/output/
+# Validator output embeds absolute host paths, which the public mirror rejects.
+validation-reports/
+.DS_Store

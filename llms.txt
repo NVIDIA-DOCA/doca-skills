@@ -12,7 +12,7 @@ this order before answering any DOCA question:
 1. `AGENTS.md` — agent-side ground rules, persona routing, universal
    verification + debug contracts.
 2. `SKILLS.md` — the catalog of every shipping skill (27 libraries,
-   4 services, 16 tools, 9 cross-cutting) with the *Use this skill when …*
+   5 services, 16 tools, 9 cross-cutting) with the *Use this skill when …*
    trigger for each one.
 3. `skills/<kind>/<name>/SKILL.md` — the per-component skill matching the
    user's question. From there, progressive-disclose into
@@ -46,8 +46,9 @@ agent should *route, not invent*:
 
 1. **Externally-productized NVIDIA networking software that ships outside
    the DOCA monorepo** — DOCA Platform Framework (DPF), the DOCA
-   Microservices family (HBN, BlueMan, SNAP, Virtio-net, Telemetry
-   Service as-deployed), NVIDIA Network Operator, the BlueField BSP /
+   Microservices family (HBN, BlueMan, SNAP, Virtio-net; the Telemetry
+   Service as-deployed is the exception, see `doca-dts`),
+   NVIDIA Network Operator, the BlueField BSP /
    BFB / RShim / TMFIFO / BMC lifecycle, MLNX_OFED-as-package, NVIDIA
    UFM, MFT, Cumulus Linux, NetQ, NVOS, GPU Operator, Rivermax SDK,
    and similar. Each is owned by a different team with its own docs and
