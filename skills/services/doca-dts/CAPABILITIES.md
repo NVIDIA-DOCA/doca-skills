@@ -40,7 +40,7 @@ deployment shapes; only the *carrier* of the configuration differs
 Two cross-cutting rules that apply to *every* pattern above:
 
 - **Shape first, then column.** Route the user through
-  [`doca-setup ## recognize`](../../doca-setup/TASKS.md#recognize)
+  `doca-setup ## recognize` (`doca-setup/TASKS.md#recognize`)
   (`uname -m`, `lspci -d 15b3:`, `bf-release`) to learn whether they
   are on the BlueField Arm side, a plain host, or inside a DPF-managed
   cluster. Every subsequent instruction is read from that shape's
@@ -103,7 +103,7 @@ DTS is a **single container** with a two-phase lifecycle:
 | Where the manifest lives | `/etc/kubelet.d/doca_telemetry_standalone.yaml` (pre-installed; backup copy plus `doca_telemetry_service_${version}_arm64.tar.gz` on the DPU; per-version yaml published under `configs/<version>/` on the container's NGC page) | No manifest — the `docker run` invocation *is* the artifact; copy it from the guide's "Host Deployment" section | `DPUService.yaml` (`apiVersion: svc.dpu.nvidia.com/v1alpha1`, `kind: DPUService`, `namespace: dpf-operator-system`) pointing at the NGC DOCA helm repository as `repoURL` (copy it from the public `dpuservices/dts/DPUService.yaml`), `chart: doca-telemetry`; or a `DPUServiceTemplate` + `DPUServiceConfiguration` pair referenced from `DPUDeployment.spec.services.dts` |
 | How config reaches the container | Host dir `/opt/mellanox/doca/services/telemetry/config` bind-mounted at `/config`; edit `dts_config.ini` on the DPU | Same host dir, mounted via `-v .../config:/config` | `spec.helmChart.values.configMapData` is delivered to the pod as a ConfigMap (mounted at `/configmap` in the chart observed 2026-09-16) and DTS regenerates `/config/dts_config.ini` from it, then self-restarts — mount path and regeneration mechanics are chart internals, confirm with `helm show values` |
 | Start / stop | Kubelet starts it at boot while the yaml is present; taking the yaml out of that directory disables auto-start, and yaml edits apply on system restart (guide); restart without a reboot: `crictl stop <container-id>` — kubelet recreates the static-pod container (attempt +1), the config dir is kept | `docker run -d ...` / removing the `doca-telemetry` container | `kubectl apply -f DPUService.yaml` / `kubectl delete -f DPUService.yaml`; rollout per `spec.serviceDaemonSet.updateStrategy` (`RollingUpdate`, `maxUnavailable`) |
-| Upgrade | Download the newer version's yaml from the NGC page and replace the one in `/etc/kubelet.d` (guide: "DOCA Service on NGC"; the yaml path, the NGC `configs/<version>/` download and `crictl` inspection are this skill's; generic static-pod manifest mechanics in [`doca-container-deployment ## configure`](../../doca-container-deployment/TASKS.md#configure)). A freshly downloaded yaml carries the documented default `-i=127.0.0.1 -p=24224` — re-apply your Fluent Bit destination before dropping it in | Re-run with the newer `-host` tag (init step reuses the existing config dir) | Bump `spec.helmChart.source.version` and re-apply; the chart pins its own image tag |
+| Upgrade | Download the newer version's yaml from the NGC page and replace the one in `/etc/kubelet.d` (guide: "DOCA Service on NGC"; the yaml path, the NGC `configs/<version>/` download and `crictl` inspection are this skill's; generic static-pod manifest mechanics in `doca-container-deployment ## configure` (`doca-container-deployment/TASKS.md#configure`)). A freshly downloaded yaml carries the documented default `-i=127.0.0.1 -p=24224` — re-apply your Fluent Bit destination before dropping it in | Re-run with the newer `-host` tag (init step reuses the existing config dir) | Bump `spec.helmChart.source.version` and re-apply; the chart pins its own image tag |
 | Inspect | `crictl pods`, `crictl ps`, `crictl logs <container-id>` (the static-pod tooling of the Container Deployment Guide — the DTS guide itself names only the yaml path) | `docker ps`, `docker logs doca-telemetry` | `kubectl` on the DPU cluster plus `dpfctl describe all --show-resources=dpuservice/doca-telemetry-service --show-conditions=all` |
 | Owning docs section | Guide: "Service Deployment > Built-in DOCA Service Image (BlueField)", "DPU Deployment", "DTS Configuration > Initialization Scripts (BlueField Deployment)" | Guide: "Service Deployment > Host Deployment" (x86_64 and aarch64; all exporters in one container) | DPF public docs page "DOCA Telemetry Service" + `dpuservices/dts/DPUService.yaml` (a Spectrum-X variant `DPUServiceSPX.yaml` sits beside it) |
 
@@ -234,12 +234,12 @@ block carry a commented NetFlow section (`#netflow-collector-ip=`,
 not set"). Say that it exists but is undocumented, point the user at
 the commented block in *their* generated config rather than asserting
 its semantics, and route collector-level NetFlow design to
-[`doca-collectx-deployment`](../../doca-collectx-deployment/SKILL.md).
+`doca-collectx-deployment/SKILL.md`.
 Never name a key that is not in their file or the guide. A NetFlow
 "no" still owes a ladder for each alternative: *application-side
 NetFlow* through the exporter library → its own test / debug anchors
-([`libs/doca-telemetry-exporter ## test`](../../libs/doca-telemetry-exporter/TASKS.md#test),
-[`## debug`](../../libs/doca-telemetry-exporter/TASKS.md#debug));
+(`libs/doca-telemetry-exporter ## test` (`doca-telemetry-exporter/TASKS.md#test`),
+`## debug` (`doca-telemetry-exporter/TASKS.md#debug`));
 *the undocumented DTS block, if the user enables it anyway* → layer 4
 (does the start-up block list the NetFlow exporter as enabled after the
 restart?), layer 5 (is the collector reachable on the UDP port named in
@@ -297,8 +297,8 @@ Integration"): the export modules exist in both the library and DTS,
 so an application exports either directly from the library or
 indirectly via DTS — which of the two is in play decides whether an
 exporter symptom belongs to this skill or to the library skill. The *application* side of IPC (API calls, linking) belongs
-to [`libs/doca-telemetry-exporter`](../../libs/doca-telemetry-exporter/SKILL.md)
-and [`libs/doca-telemetry`](../../libs/doca-telemetry/SKILL.md); this
+to `libs/doca-telemetry-exporter` (`doca-telemetry-exporter/SKILL.md`)
+and `libs/doca-telemetry` (`doca-telemetry/SKILL.md`); this
 skill owns only the DTS-side mounts and the guide section "Enabling
 IPC with External Applications".
 
@@ -323,7 +323,7 @@ the guide, not here.
 
 For the canonical DOCA version-detection chain, NGC container
 semantics, and the headers-win-over-docs rule, see
-[`doca-version`](../../doca-version/SKILL.md). The body lives there;
+`doca-version/SKILL.md`. The body lives there;
 this skill does not duplicate it.
 
 **The DTS-specific overlay** is:
@@ -341,7 +341,7 @@ this skill does not duplicate it.
   to reuse (DPU: `1.26.5-doca3.5.0`; host: `1.26.5-doca3.5.0-host`).
   If the page cannot be reached, say so and ask the user to paste the
   tag list. Rule of record:
-  [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install).
+  `doca-setup ## no-install` (`doca-setup/TASKS.md#no-install`).
 - **Chart version != image tag.** The `doca-telemetry` chart has its
   own version series (e.g. `1.26.5`, `1.25.5` observed 2026-09-16) and
   pins the image tag internally; inspect with `helm show chart` /
@@ -373,7 +373,7 @@ identify the layer before changing anything (the debug loop in
    or on DPF `DPUService` conditions `ApplicationPrereqsReconciled` /
    `ApplicationsReconciled` false, `nodeSelector` / `tolerations`
    excluding every DPU). Owner: kubelet / DPF operator; mechanics in
-   [`doca-container-deployment ## debug`](../../doca-container-deployment/TASKS.md#debug).
+   `doca-container-deployment ## debug` (`doca-container-deployment/TASKS.md#debug`).
 3. **Init container / config generation layer** — `telemetry-init.sh`
    ran against a non-empty dir and left stale config in place; on the
    host the documented `DTS_CONFIG_DIR=host` prefix was omitted from
@@ -415,7 +415,7 @@ the alternative recommended by a boundary answer.
 DTS does not surface `DOCA_ERROR_*` to the operator; its outward
 surface is container exit status, log lines, and the exporters. The
 DOCA error taxonomy matters only on the *application* side of IPC
-([`libs/doca-telemetry-exporter`](../../libs/doca-telemetry-exporter/SKILL.md)).
+(`libs/doca-telemetry-exporter` (`doca-telemetry-exporter/SKILL.md`)).
 
 ## Observability
 
@@ -508,13 +508,13 @@ Documented observability surfaces, by shape:
   before scraping.
 - **Cross-skill spine.** Read-only triple capture and the bounded
   loop are defined in
-  [`doca-debug ## Universal debug-loop contract`](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract);
+  `doca-debug ## Universal debug-loop contract` (`doca-debug/CAPABILITIES.md#universal-debug-loop-contract`);
   generic command shapes in
-  [`doca-debug ## Command appendix`](../../doca-debug/TASKS.md#command-appendix).
+  `doca-debug ## Command appendix` (`doca-debug/TASKS.md#command-appendix`).
 
 ## Safety policy
 
-> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in [`doca-hardware-safety` CAPABILITIES.md ## Safety policy](../../doca-hardware-safety/CAPABILITIES.md#safety-policy) (specifically [### Per-artifact overlay pattern](../../doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
+> **Overlay on the bundle-wide hardware-safety meta-policy.** The rules below are this skill's per-artifact overlay on the cross-cutting rules in `doca-hardware-safety` CAPABILITIES.md ## Safety policy (`doca-hardware-safety/CAPABILITIES.md#safety-policy`) (specifically ### Per-artifact overlay pattern (`doca-hardware-safety/CAPABILITIES.md#per-artifact-overlay-pattern`)). When the two layers disagree, the stricter wins; when either layer says STOP, the agent stops.
 
 DTS itself is **read-only telemetry**: it reads counters and does not
 reconfigure firmware, ports, or the network. The safety-relevant
@@ -591,7 +591,7 @@ The canonical public sources for DTS are:
 
 Verify that the guide page version matches the DOCA component of the
 deployed container tag / chart version before quoting option names.
-The bundle's [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
+The bundle's `doca-public-knowledge-map/SKILL.md`
 carries a **DTS-as-deployed row in its externally-productized routing
 table** (`references/map.md`) that still routes DTS as out of scope
 with a bare guide URL, and `AGENTS.md ## Non-goals` still lists

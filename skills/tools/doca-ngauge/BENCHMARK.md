@@ -1,0 +1,142 @@
+# Skill Benchmark: doca-ngauge
+
+> ✅ **Overall verdict: PASS — Recommended for publication**
+
+## Publication Recommendation
+
+Recommended for publication based on the completed evaluation evidence in this report.
+
+## Evaluation Metadata
+
+- Skill: `doca-ngauge`
+- Evaluation date: 2026-10-22
+- Evaluator version: `1.5.6`
+- Agents: Claude Code (`aws/anthropic/bedrock-claude-sonnet-5-5`), Codex (`openai/openai/gpt-5.5`)
+- Tasks: 5 evaluation tasks (3 positive, 2 negative)
+- Dataset digest: `sha256:1a4e76c3f1c9facd6fd004fd66cee224aecadc6badf7aa601ab818f934fa77ac` (skill-evaluator-dataset-snapshot/1)
+- Attempts per task: 1
+- Environment: `k8s-sandbox`
+- Tier 2 evidence: required for publication
+- Tier 3 evidence: required for publication
+
+Each task attempt ran in its own isolated sandbox pod.
+
+## What This Report Answers
+
+The three-tier evaluation checks whether the skill:
+
+- is safe to use;
+- produces correct answers;
+- is discovered and activated when needed;
+- helps the agent complete the user's goal and expected workflow; and
+- avoids wasted skill and tool usage.
+
+## Results at a Glance
+
+| Measure | Claude Code (Baseline → Skill Uplift) | Codex (Baseline → Skill Uplift) |
+|---|---:|---:|
+| Overall | 94.2% — baseline ran, but no comparable score was available; uplift unavailable | 95.6% — baseline ran, but no comparable score was available; uplift unavailable |
+| Security | 100.0% → 100.0% (±0.0 points) | 100.0% → 100.0% (±0.0 points) |
+| Correctness | 56.0% → 100.0% (+44.0 points) | 76.0% → 100.0% (+24.0 points) |
+| Discoverability | 100.0% — baseline ran, but no comparable score was available; uplift unavailable | 95.0% — baseline ran, but no comparable score was available; uplift unavailable |
+| Effectiveness | 47.2% → 90.5% (+43.3 points) | 51.5% → 86.8% (+35.3 points) |
+| Efficiency | 80.4% — baseline ran, but no comparable score was available; uplift unavailable | 96.4% — baseline ran, but no comparable score was available; uplift unavailable |
+
+**How to read this table:** baseline is the same task attempted without the target skill. Scores are rounded to one decimal; threshold-adjacent values use additional precision so their displayed band matches the verdict. Uplift is derived from those displayed scores and shown in percentage points.
+
+Example: `47.0% → 92.0% (+45.0 points)` means the skill-assisted run scored 92.0%, 45.0 percentage points above its 47.0% no-skill baseline.
+
+A partial dimension was calculated from only the available configured signals; review the detailed report before relying on it.
+
+## Token Usage
+
+Actual Tier 3 execution usage is reported for every observed agent/case pair and both conditions.
+
+| Agent | Dataset case | With skill | Without skill | Delta | Change | Coverage |
+|---|---|---:|---:|---:|---:|---|
+| claude-code | All cases | 592,068 | 500,700 | +91,368 | +18.25% | skill 5/5; base 5/5 |
+| claude-code | doca-ngauge.explicit-positive.v1 | 146,056 | 59,657 | +86,399 | +144.83% | skill 1/1; base 1/1 |
+| claude-code | doca-ngauge.implicit-positive.v1 | 146,041 | 226,257 | -80,216 | -35.45% | skill 1/1; base 1/1 |
+| claude-code | doca-ngauge.implicit-positive.v2 | 174,343 | 90,998 | +83,345 | +91.59% | skill 1/1; base 1/1 |
+| claude-code | doca-ngauge.negative.v1 | 31,583 | 32,659 | -1,076 | -3.29% | skill 1/1; base 1/1 |
+| claude-code | doca-ngauge.negative.v2 | 94,045 | 91,129 | +2,916 | +3.20% | skill 1/1; base 1/1 |
+| codex | All cases | 308,113 | 134,175 | +173,938 | +129.64% | skill 5/5; base 5/5 |
+| codex | doca-ngauge.explicit-positive.v1 | 110,543 | 26,081 | +84,462 | +323.84% | skill 1/1; base 1/1 |
+| codex | doca-ngauge.implicit-positive.v1 | 90,137 | 28,694 | +61,443 | +214.13% | skill 1/1; base 1/1 |
+| codex | doca-ngauge.implicit-positive.v2 | 50,242 | 22,196 | +28,046 | +126.36% | skill 1/1; base 1/1 |
+| codex | doca-ngauge.negative.v1 | 25,776 | 31,968 | -6,192 | -19.37% | skill 1/1; base 1/1 |
+| codex | doca-ngauge.negative.v2 | 31,415 | 25,236 | +6,179 | +24.48% | skill 1/1; base 1/1 |
+| ALL AGENTS | Dataset aggregate | 900,181 | 634,875 | +265,306 | +41.79% | skill 10/10; base 10/10 |
+
+Prompt tokens include cached reads, so total tokens are `prompt + completion` (cached is not added twice). The Efficiency score uses `(prompt - cached) + completion`. N/A means the relevant trajectory counters were not available; coverage is never estimated.
+
+## Tier Status
+
+| Tier | Purpose | Status | Evidence |
+|---|---|---|---|
+| Tier 1 | Static validation | **PASSED WITH OBSERVATIONS** | 11 validator(s); 25 finding(s) |
+| Tier 2 | Semantic deduplication | **PASSED WITH OBSERVATIONS** | 2 validator(s); 1 finding(s) |
+| Tier 3 | Live agent evaluation | **PASS** | 2 agent(s); 5 task(s) |
+
+## Findings and Observations
+
+<details>
+<summary>Show detailed findings and successful checks</summary>
+
+- **HIGH** DUPLICATE/duplicate: Duplicate content found across CAPABILITIES.md and SKILL.md and TASKS.md:
+  "# DOCA ngauge — Capabilities" in CAPABILITIES.md (lines 1-18)
+  vs "## Pattern overview" in CAPABILITIES.md (lines 19-44)
+  vs "## Capabilities and modes" in CAPABILITIES.md (lines 54-59)
+  vs "## Capabilities and modes" in CAPABILITIES.md (lines 63-68)
+  vs "## Examples" in SKILL.md (lines 15-27)
+  vs "## Quick facts" in SKILL.md (lines 28-81)
+  vs "## Instructions" in SKILL.md (lines 82-108)
+  vs "## Example questions this skill answers well" in SKILL.md (lines 109-139)
+  vs "## When to load this skill" in SKILL.md (lines 140-163)
+  vs "## What this skill provides" in SKILL.md (lines 164-188)
+  vs "## configure" in TASKS.md (lines 28-78)
+  vs "## run" in TASKS.md (lines 97-162)
+  vs "## debug" in TASKS.md (lines 189-220) (`CAPABILITIES.md:1`)
+- **MEDIUM** SCHEMA/metadata_key_style: Metadata key 'doca_version' is not kebab-case (`skills/tools/doca-ngauge/SKILL.md`)
+- **MEDIUM** SCHEMA/folder_hierarchy: Unexpected nesting depth for general skill (`skills/tools/doca-ngauge`)
+- **MEDIUM** SECURITY/Unknown (AE4): analysis-evasion: Suspicious Unicode normalization or mixed-script content (`CAPABILITIES.md:1`)
+- **MEDIUM** SECURITY/Unknown (AE4): analysis-evasion: Suspicious Unicode normalization or mixed-script content (`SKILL.md:1`)
+- 21 additional finding(s) are available in the full evaluation artifacts.
+
+</details>
+
+## Scoring Methodology
+
+<details>
+<summary>Show dimension definitions, source signals, and thresholds</summary>
+
+| Dimension | Question | Scored signals |
+|---|---|---|
+| Security | Is it safe to use? | `security` (100%) |
+| Correctness | Is the answer correct? | `accuracy` (100%) |
+| Discoverability | Was the right skill loaded when needed? | `skill_execution` (100%) |
+| Effectiveness | Did the skill help complete the task? | `goal_accuracy` (50%) + `behavior_check` (50%) |
+| Efficiency | Did it avoid wasted tool calls and token usage? | `skill_efficiency` (50%) + `token_efficiency` (50%) |
+
+- Dimension bands: PASS at 50% or above; NEUTRAL from 40% to below 50%; FAIL below 40%.
+- Overall Tier 3 lift: PASS at +5 points or more; FAIL at -10 points or less; values between those bands are NEUTRAL.
+- Overall verdict: PASS only when every configured dimension passes for at least one supported agent. Lift is reported as diagnostic evidence and does not override this gate.
+- The 50% attempt pass threshold is a separate per-task gate; it is not the dimension pass threshold.
+- Effectiveness is the equal-weight mean of goal completion (`goal_accuracy`) and expected workflow adherence (`behavior_check`).
+- Efficiency is 50% tool-call productivity (the backward-compatible `skill_efficiency` wire id) and 50% `token_efficiency`. Positive-case skill routing is scored under Discoverability, not Efficiency; a negative case without a routing target is N/A. N/A sources are omitted, remaining weights are renormalized, and the dimension is marked partial.
+
+Signals present in this run:
+
+- `security` (Security): unsafe operations, secret leakage, and unauthorized access.
+- `skill_execution` (Skill Execution): whether the expected skill was selected, decoys were avoided, and the workflow executed.
+- `skill_efficiency` (Tool Productivity): tool-call productivity (legacy wire id; routing is scored under Discoverability).
+- `accuracy` (Accuracy): final-answer correctness against the reference answer.
+- `goal_accuracy` (Goal Accuracy): whether the user's goal was achieved.
+- `behavior_check` (Behavior Check): whether the expected workflow behavior was followed.
+- `token_efficiency` (Token Efficiency): actual uncached prompt plus completion usage (50% of Efficiency).
+
+</details>
+
+## Freshness
+
+Regenerate this benchmark when the skill, evaluation dataset, target agent/model, evaluator version, environment, or scoring policy changes.

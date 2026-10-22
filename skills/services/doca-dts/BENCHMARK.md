@@ -9,7 +9,7 @@ Recommended for publication based on the completed evaluation evidence in this r
 ## Evaluation Metadata
 
 - Skill: `doca-dts`
-- Evaluation date: 2026-10-13
+- Evaluation date: 2026-10-21
 - Evaluator version: `1.5.6`
 - Agents: Claude Code (`aws/anthropic/bedrock-claude-opus-4-8`), Codex (`openai/openai/gpt-5.5`)
 - Tasks: 6 evaluation tasks (4 positive, 2 negative)
@@ -35,12 +35,12 @@ The three-tier evaluation checks whether the skill:
 
 | Measure | Claude Code (Baseline → Skill Uplift) | Codex (Baseline → Skill Uplift) |
 |---|---:|---:|
-| Overall | 97.6% — baseline ran, but no comparable score was available; uplift unavailable | 90.5% — baseline ran, but no comparable score was available; uplift unavailable |
-| Security | 100.0% → 100.0% (±0.0 points) | 100.0% → 100.0% (±0.0 points) |
-| Correctness | 43.3% → 100.0% (+56.7 points) | 83.3% → 86.7% (+3.4 points) |
+| Overall | 93.8% — baseline ran, but no comparable score was available; uplift unavailable | 86.0% — baseline ran, but no comparable score was available; uplift unavailable |
+| Security | 91.7% → 100.0% (+8.3 points) | 100.0% → 83.3% (-16.7 points) |
+| Correctness | 46.7% → 100.0% (+53.3 points) | 86.7% → 83.3% (-3.4 points) |
 | Discoverability | 100.0% — baseline ran, but no comparable score was available; uplift unavailable | 95.0% — baseline ran, but no comparable score was available; uplift unavailable |
-| Effectiveness | 33.1% → 95.8% (+62.7 points) | 56.1% → 87.2% (+31.1 points) |
-| Efficiency | 92.2% — baseline ran, but no comparable score was available; uplift unavailable | 83.8% — baseline ran, but no comparable score was available; uplift unavailable |
+| Effectiveness | 36.4% → 83.2% (+46.8 points) | 53.3% → 83.6% (+30.3 points) |
+| Efficiency | 85.8% — baseline ran, but no comparable score was available; uplift unavailable | 84.6% — baseline ran, but no comparable score was available; uplift unavailable |
 
 **How to read this table:** baseline is the same task attempted without the target skill. Scores are rounded to one decimal; threshold-adjacent values use additional precision so their displayed band matches the verdict. Uplift is derived from those displayed scores and shown in percentage points.
 
@@ -54,21 +54,21 @@ Actual Tier 3 execution usage is reported for every observed agent/case pair and
 
 | Agent | Dataset case | With skill | Without skill | Delta | Change | Coverage |
 |---|---|---:|---:|---:|---:|---|
-| claude-code | All cases | 1,184,833 | 1,595,077 | -410,244 | -25.72% | skill 6/6; base 6/6 |
-| claude-code | doca-dts.explicit-positive.v1 | 141,395 | 182,631 | -41,236 | -22.58% | skill 1/1; base 1/1 |
-| claude-code | doca-dts.implicit-positive.v1 | 141,303 | 126,326 | +14,977 | +11.86% | skill 1/1; base 1/1 |
-| claude-code | doca-dts.implicit-positive.v2 | 142,709 | 122,772 | +19,937 | +16.24% | skill 1/1; base 1/1 |
-| claude-code | doca-dts.implicit-positive.v3 | 141,726 | 124,579 | +17,147 | +13.76% | skill 1/1; base 1/1 |
-| claude-code | doca-dts.negative.v1 | 32,845 | 123,551 | -90,706 | -73.42% | skill 1/1; base 1/1 |
-| claude-code | doca-dts.negative.v2 | 584,855 | 915,218 | -330,363 | -36.10% | skill 1/1; base 1/1 |
-| codex | All cases | 662,817 | 256,828 | +405,989 | +158.08% | skill 6/6; base 6/6 |
-| codex | doca-dts.explicit-positive.v1 | 146,734 | 34,128 | +112,606 | +329.95% | skill 1/1; base 1/1 |
-| codex | doca-dts.implicit-positive.v1 | 99,222 | 29,283 | +69,939 | +238.84% | skill 1/1; base 1/1 |
-| codex | doca-dts.implicit-positive.v2 | 128,391 | 25,708 | +102,683 | +399.42% | skill 1/1; base 1/1 |
-| codex | doca-dts.implicit-positive.v3 | 119,340 | 36,408 | +82,932 | +227.79% | skill 1/1; base 1/1 |
-| codex | doca-dts.negative.v1 | 91,679 | 70,425 | +21,254 | +30.18% | skill 1/1; base 1/1 |
-| codex | doca-dts.negative.v2 | 77,451 | 60,876 | +16,575 | +27.23% | skill 1/1; base 1/1 |
-| ALL AGENTS | Dataset aggregate | 1,847,650 | 1,851,905 | -4,255 | -0.23% | skill 12/12; base 12/12 |
+| claude-code | All cases | 1,209,512 | 2,827,453 | -1,617,941 | -57.22% | skill 6/6; base 6/6 |
+| claude-code | doca-dts.explicit-positive.v1 | 218,054 | 183,909 | +34,145 | +18.57% | skill 1/1; base 1/1 |
+| claude-code | doca-dts.implicit-positive.v1 | 141,127 | 91,824 | +49,303 | +53.69% | skill 1/1; base 1/1 |
+| claude-code | doca-dts.implicit-positive.v2 | 140,885 | 31,367 | +109,518 | +349.15% | skill 1/1; base 1/1 |
+| claude-code | doca-dts.implicit-positive.v3 | 218,368 | 481,309 | -262,941 | -54.63% | skill 1/1; base 1/1 |
+| claude-code | doca-dts.negative.v1 | 64,128 | 93,729 | -29,601 | -31.58% | skill 1/1; base 1/1 |
+| claude-code | doca-dts.negative.v2 | 426,950 | 1,945,315 | -1,518,365 | -78.05% | skill 1/1; base 1/1 |
+| codex | All cases | 604,351 | 561,720 | +42,631 | +7.59% | skill 6/6; base 6/6 |
+| codex | doca-dts.explicit-positive.v1 | 75,791 | 27,796 | +47,995 | +172.67% | skill 1/1; base 1/1 |
+| codex | doca-dts.implicit-positive.v1 | 62,834 | 25,772 | +37,062 | +143.81% | skill 1/1; base 1/1 |
+| codex | doca-dts.implicit-positive.v2 | 158,812 | 52,381 | +106,431 | +203.19% | skill 1/1; base 1/1 |
+| codex | doca-dts.implicit-positive.v3 | 105,556 | 111,331 | -5,775 | -5.19% | skill 1/1; base 1/1 |
+| codex | doca-dts.negative.v1 | 69,991 | 276,451 | -206,460 | -74.68% | skill 1/1; base 1/1 |
+| codex | doca-dts.negative.v2 | 131,367 | 67,989 | +63,378 | +93.22% | skill 1/1; base 1/1 |
+| ALL AGENTS | Dataset aggregate | 1,813,863 | 3,389,173 | -1,575,310 | -46.48% | skill 12/12; base 12/12 |
 
 Prompt tokens include cached reads, so total tokens are `prompt + completion` (cached is not added twice). The Efficiency score uses `(prompt - cached) + completion`. N/A means the relevant trajectory counters were not available; coverage is never estimated.
 
@@ -76,7 +76,7 @@ Prompt tokens include cached reads, so total tokens are `prompt + completion` (c
 
 | Tier | Purpose | Status | Evidence |
 |---|---|---|---|
-| Tier 1 | Static validation | **PASSED WITH OBSERVATIONS** | 11 validator(s); 20 finding(s) |
+| Tier 1 | Static validation | **PASSED WITH OBSERVATIONS** | 11 validator(s); 21 finding(s) |
 | Tier 2 | Semantic deduplication | **PASSED** | 2 validator(s); 0 finding(s) |
 | Tier 3 | Live agent evaluation | **PASS** | 2 agent(s); 6 task(s) |
 
@@ -87,10 +87,10 @@ Prompt tokens include cached reads, so total tokens are `prompt + completion` (c
 
 - **MEDIUM** QUALITY/quality_correctness: SKILL_SPEC recommended field missing: 'metadata.author' (`skills/services/doca-dts/SKILL.md`)
 - **MEDIUM** QUALITY/quality_correctness: SKILL_SPEC recommended field missing: 'metadata.tags' (`skills/services/doca-dts/SKILL.md`)
+- **MEDIUM** SCHEMA/metadata_key_style: Metadata key 'doca_version' is not kebab-case (`skills/services/doca-dts/SKILL.md`)
 - **MEDIUM** SCHEMA/folder_hierarchy: Unexpected nesting depth for general skill (`skills/services/doca-dts`)
 - **MEDIUM** SCHEMA/body_recommended_section: Missing recommended section: '## Instructions' (`skills/services/doca-dts/SKILL.md`)
-- **MEDIUM** SCHEMA/body_recommended_section: Missing recommended section: '## Examples' (`skills/services/doca-dts/SKILL.md`)
-- 15 additional finding(s) are available in the full evaluation artifacts.
+- 16 additional finding(s) are available in the full evaluation artifacts.
 
 </details>
 

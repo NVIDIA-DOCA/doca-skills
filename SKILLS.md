@@ -74,7 +74,7 @@ break agent discovery.
 | `doca-bf4-deployment` | [skills/doca-bf4-deployment/SKILL.md](skills/doca-bf4-deployment/SKILL.md) | The user is doing BlueField-4 (BF4) day-1 platform bring-up — the BMC-driven path: the three OS-ISO install methods (UEFI HTTP boot / PXE / Redfish Virtual Media), the PLDM firmware-update flow (BMC/NIC/SBIOS/ERoT), and the Grace Ubuntu + cloud-init install. Public-safe ({curly} placeholders, no internal hosts/paths/credentials). Distinct from the BF3 RShim/BFB path (`doca-bf3-deployment`); mutating firmware/power-cycle ops route to `doca-hardware-safety`. |
 | `doca-collectx-deployment` | [skills/doca-collectx-deployment/SKILL.md](skills/doca-collectx-deployment/SKILL.md) | The user is deploying/operating a CollectX (clx) telemetry **collection** pipeline (providers/counters → schema → collector daemon → exporters: Prometheus / Fluent Bit / NetFlow / file-IPC). Owns the clx collection class; routes the reader API to `doca-telemetry`, the publisher API to `doca-telemetry-exporter`, and the productized DTS container (deploy / configure) to `doca-dts`. |
 
-### Per-artifact skills (49 — strict 1:1 with `doca/{libs,services,tools}` plus `doca-dts` at the **publicly-released DOCA the bundle is documented for, currently `3.3.0109`** — see README.md "Standards & Compatibility")
+### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` plus `doca-dts` at the **publicly-released DOCA the bundle is documented for, currently `3.5.0019`** — see README.md "Standards & Compatibility")
 
 This bundle ships one skill per artifact in the DOCA monorepo at the
 DOCA release the bundle is aligned to. The agent loads the matching
@@ -138,7 +138,7 @@ and the knowledge-map row still name it, reconciliation pending) — see
 | `doca-argus` | [skills/services/doca-argus/SKILL.md](skills/services/doca-argus/SKILL.md) | DOCA Argus Service — runtime-security / monitoring on BlueField. |
 | `doca-dts` | [skills/services/doca-dts/SKILL.md](skills/services/doca-dts/SKILL.md) | DOCA Telemetry Service — deploy + configure DTS on BlueField (kubelet static pod), host (docker), or DPF (DPUService/helm); providers, exporters, level labels. |
 
-**Tools (16) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
+**Tools (20) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
@@ -154,10 +154,14 @@ and the knowledge-map row still name it, reconciliation pending) — see
 | `doca-socket-relay` | [skills/tools/doca-socket-relay/SKILL.md](skills/tools/doca-socket-relay/SKILL.md) | DOCA Socket Relay — socket relay between host and DPU. |
 | `doca-dpa-hl-tracer` | [skills/tools/doca-dpa-hl-tracer/SKILL.md](skills/tools/doca-dpa-hl-tracer/SKILL.md) | DOCA DPA High-Level Tracer — captures DPA-side execution traces with higher-level events than raw cycle counts. |
 | `doca-gpunetio-ib-write-bw` | [skills/tools/doca-gpunetio-ib-write-bw/SKILL.md](skills/tools/doca-gpunetio-ib-write-bw/SKILL.md) | DOCA GPUNetIO ib_write_bw — RDMA-write bandwidth benchmark from the GPUNetIO framework. |
+| `doca-perftest` | [skills/tools/doca-perftest/SKILL.md](skills/tools/doca-perftest/SKILL.md) | DOCA Perftest — RDMA bandwidth, message-rate and latency benchmark (point-to-point and multi-node, optional DOCA Verbs and GPUNetIO engines). |
 | `doca-gpunetio-ib-write-lat` | [skills/tools/doca-gpunetio-ib-write-lat/SKILL.md](skills/tools/doca-gpunetio-ib-write-lat/SKILL.md) | DOCA GPUNetIO ib_write_lat — RDMA-write latency benchmark from the GPUNetIO framework. |
 | `doca-sha-offload-engine` | [skills/tools/doca-sha-offload-engine/SKILL.md](skills/tools/doca-sha-offload-engine/SKILL.md) | DOCA SHA Offload Engine — OpenSSL ENGINE wrapping the DOCA SHA library; lets unmodified OpenSSL-based applications offload SHA without code changes. |
 | `doca-spcx-cc` | [skills/tools/doca-spcx-cc/SKILL.md](skills/tools/doca-spcx-cc/SKILL.md) | DOCA SPCX-CC — Programmable Congestion-Control extension (next-gen). Pairs with `doca-pcc`, `doca-pcc-ztr-rttcc-algo`. Live-fabric safety implications: heavy use of `doca-hardware-safety`. |
 | `doca-telemetry-utils` | [skills/tools/doca-telemetry-utils/SKILL.md](skills/tools/doca-telemetry-utils/SKILL.md) | DOCA Telemetry Utils — operator-side support CLI for a DOCA Telemetry exporter pipeline. Translates name ↔ Data ID, enumerates the diagnostic-counter schema, and probes per-device counter support before an exporter config commits to it. |
+| `doca-ngauge` | [skills/tools/doca-ngauge/SKILL.md](skills/tools/doca-ngauge/SKILL.md) | Analyze, visualize, and debug single-node network performance by probing NIC hardware counters and storing collected data in HDF5 format. |
+| `doca-pipeline-language-developer-tools` | [skills/tools/doca-pipeline-language-developer-tools/SKILL.md](skills/tools/doca-pipeline-language-developer-tools/SKILL.md) | Use this skill to inspect and debug DOCA Pipeline Language programs on BlueField DPUs with DPL Nspect, DPL Debugger, DPL Admin, P4 Runtime Shell, and DPL Runtime Controller SDK. |
+| `doca-telemetry-traceback-application` | [skills/tools/doca-telemetry-traceback-application/SKILL.md](skills/tools/doca-telemetry-traceback-application/SKILL.md) | Use this skill to configure, build, run, and debug the DOCA Telemetry Traceback application for local telemetry monitoring and event logging on BlueField DPUs or ConnectX NICs. |
 
 ## Adding a new skill
 

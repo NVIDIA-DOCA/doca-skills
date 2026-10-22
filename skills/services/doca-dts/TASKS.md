@@ -25,7 +25,7 @@ Deciding the shape, the version anchor, and the configuration plan
 before any artifact is written.
 
 1. **Pin the deployment shape first.** Route through
-   [`doca-setup ## recognize`](../../doca-setup/TASKS.md#recognize)
+   `doca-setup ## recognize` (`doca-setup/TASKS.md#recognize`)
    (auto-detect `uname -m`, `lspci -d 15b3:`, `bf-release`) and map
    onto the shape table in
    [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes):
@@ -43,7 +43,7 @@ before any artifact is written.
 2. **Pin the version anchor — never fabricate it.** The anchor is the
    container tag or chart version, *not* the host DOCA install
    ([`CAPABILITIES.md ## Version compatibility`](CAPABILITIES.md#version-compatibility),
-   [`doca-version`](../../doca-version/SKILL.md)):
+   `doca-version/SKILL.md`):
    - (A): the image tag already in the installed
      `/etc/kubelet.d/doca_telemetry_standalone.yaml` (backup copies:
      `doca_telemetry_service_${version}_arm64.tar.gz` and the yaml on
@@ -136,7 +136,7 @@ the pinned version — never hand-writing it.
   `crictl` inspection commands come from the DTS guide and the NGC
   container page and are this skill's; generic kubelet static-pod
   manifest mechanics:
-  [`doca-container-deployment ## configure`](../../doca-container-deployment/TASKS.md#configure).
+  `doca-container-deployment ## configure` (`doca-container-deployment/TASKS.md#configure`).
 - **(B) Host (docker).** The artifact is the two invocations from the
   guide's "Host Deployment" section — copy them verbatim for your
   version: the one-shot init (`docker run` with auto-remove, interactive,
@@ -214,7 +214,7 @@ to the environment with the minimum change**.
    (privileged mode, `/dev/mst`, fwctl, `systemctl start dpe`, DPF
    flavor-template changes that reprovision DPUs). Any widening the
    user did not ask for is a stop condition
-   ([`doca-hardware-safety ## Safety policy`](../../doca-hardware-safety/CAPABILITIES.md#safety-policy)).
+   (`doca-hardware-safety ## Safety policy` (`doca-hardware-safety/CAPABILITIES.md#safety-policy`)).
 
 ## run
 
@@ -227,7 +227,7 @@ Start / stop / restart / upgrade, per shape.
   yaml (keep a copy — it is the rollback artifact). *Restart after a
   yaml change*: "applied on system restart" — reboot, or the
   kubelet-side mechanics in
-  [`doca-container-deployment ## run`](../../doca-container-deployment/TASKS.md#run);
+  `doca-container-deployment ## run` (`doca-container-deployment/TASKS.md#run`);
   a `dts_config.ini` edit is normally picked up without it (collector
   respawn within ~60 s; `crictl stop <container-id>` is the no-reboot
   restart when it is not) — only the `level_labels.ini` auto-reload is
@@ -238,7 +238,9 @@ Start / stop / restart / upgrade, per shape.
   init even when the config dir is non-empty (the non-empty rule
   protects only `telemetry-init.sh` output), so re-apply your Fluent
   Bit destination in the new yaml before dropping it into
-  `/etc/kubelet.d`. "After any
+  `/etc/kubelet.d`, and after the restart confirm the regenerated
+  `fluent_bit_configs/` exp-file names your `-i=`/`-p=` destination,
+  not `127.0.0.1:24224` — the reset is silent otherwise. "After any
   server configuration changes (firmware, networking, firewall),
   restart DTS."
 - **(B) Host (docker).** *Start*: the documented init container once,
@@ -279,9 +281,10 @@ configuration mutation (provider enabled, exporter changed, port moved,
 tag bumped, label file edited) re-opens the sweep, because the restart that
 applies it (automatic for `level_labels.ini`, otherwise the shape's
 restart rule) can fail silently (provider missing
-its prerequisite, port already bound). Permit one mutation-and-rerun
-cycle total per test invocation, regardless of which back-edge consumes
-it. If the second sweep reveals any failure, including a different
+its prerequisite, port already bound). The bound is per invocation:
+the first sweep plus at most one mutation followed by one complete
+second sweep — regardless of which back-edge consumes it. If the
+second sweep reveals any failure, including a different
 class, do not take another back-edge: return a diagnostic bundle (all
 smoke results, debug-layer captures, the capability snapshot if step 6
 was reached) and mark the result `requires_human_decision`. Rollback is
@@ -366,7 +369,7 @@ single-variable change*; clear a layer before dropping below it. One
 change per iteration, re-capture; if still not green after one
 iteration, roll back per `## test` and return
 `requires_human_decision`. Generic loop contract:
-[`doca-debug ## Universal debug-loop contract`](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract).
+`doca-debug ## Universal debug-loop contract` (`doca-debug/CAPABILITIES.md#universal-debug-loop-contract`).
 
 **Every debug answer opens with the deployment shape and closes with
 the `/metrics` proof.** State the shape before the first command, even
@@ -393,7 +396,7 @@ apart, and show a counter or timestamp that advanced.
    system restarted since; (C) `kubectl get pods -n dpf-operator-system`,
    the DPUService conditions, `serviceDaemonSet.nodeSelector` /
    `tolerations`. Kubelet mechanics:
-   [`doca-container-deployment ## debug`](../../doca-container-deployment/TASKS.md#debug).
+   `doca-container-deployment ## debug` (`doca-container-deployment/TASKS.md#debug`).
    *Change*: one manifest field or one restart.
 3. **Init container / config generation layer.** *Symptom*: DTS runs
    but the expected config is missing — no new defaults after an
@@ -443,7 +446,7 @@ apart, and show a counter or timestamp that advanced.
    `shareHostSharedMemory` for bare-metal clients — confirm with
    `helm show values`). *Change*: one consumer-side setting; API
    questions go to
-   [`libs/doca-telemetry-exporter`](../../libs/doca-telemetry-exporter/SKILL.md).
+   `libs/doca-telemetry-exporter` (`doca-telemetry-exporter/SKILL.md`).
 
 ### Path-specific ladders
 
@@ -524,14 +527,14 @@ Three cross-cutting rules for this appendix:
   running container's log.
 - **Cross-link instead of duplicate.** The read-only triple, `dmesg`,
   and generic container-runtime commands live in
-  [`doca-debug ## Command appendix`](../../doca-debug/TASKS.md#command-appendix)
-  and [`doca-container-deployment ## Command appendix`](../../doca-container-deployment/TASKS.md#command-appendix).
+  `doca-debug ## Command appendix` (`doca-debug/TASKS.md#command-appendix`)
+  and `doca-container-deployment ## Command appendix` (`doca-container-deployment/TASKS.md#command-appendix`).
 
 ## Deferred task verbs
 
 - **Installing DOCA / preparing the host or BlueField** — route to
-  [`doca-setup ## configure`](../../doca-setup/TASKS.md#configure) and
-  [`doca-setup ## no-install`](../../doca-setup/TASKS.md#no-install).
+  `doca-setup ## configure` (`doca-setup/TASKS.md#configure`) and
+  `doca-setup ## no-install` (`doca-setup/TASKS.md#no-install`).
   (B) and (C) need no host DOCA install — the anchor is the container
   tag / chart version.
 - **Installing or operating the DPF cluster itself** (operator install,
@@ -541,8 +544,8 @@ Three cross-cutting rules for this appendix:
   `DPUService` and its values.
 - **Library API questions** (`doca_telemetry_*`,
   `doca_telemetry_exporter_*`, IPC client code, custom schemas) —
-  [`libs/doca-telemetry`](../../libs/doca-telemetry/SKILL.md) and
-  [`libs/doca-telemetry-exporter`](../../libs/doca-telemetry-exporter/SKILL.md).
+  `libs/doca-telemetry` (`doca-telemetry/SKILL.md`) and
+  `libs/doca-telemetry-exporter` (`doca-telemetry-exporter/SKILL.md`).
   This skill stops at "the socket dir exists and the client can write".
 - **Prometheus server / Grafana administration** — the guide's
   "Deploying with Grafana Monitoring" section names the DTS-side
@@ -570,7 +573,7 @@ Three cross-cutting rules for this appendix:
 - DTS is read-only telemetry, but privileged mode, the MST device mapping,
   fwctl exposure, `systemctl start dpe`, and DPF flavor-template changes
   (DPU reprovision) are the safety-relevant actions —
-  [`doca-hardware-safety ## Safety policy`](../../doca-hardware-safety/CAPABILITIES.md#safety-policy)
+  `doca-hardware-safety ## Safety policy` (`doca-hardware-safety/CAPABILITIES.md#safety-policy`)
   and [`CAPABILITIES.md ## Safety policy`](CAPABILITIES.md#safety-policy).
 - Every change-recommending answer ends with the bundle's five-step
   verification contract (preconditions → smoke spawn → smoke probe →
@@ -579,7 +582,7 @@ Three cross-cutting rules for this appendix:
   negative side. Not-green fires `## debug` for one bounded iteration,
   then rollback.
 - For URL routing see
-  [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md);
+  `doca-public-knowledge-map/SKILL.md`;
   its externally-productized table (`references/map.md`) still routes
   DTS-as-deployed as out of scope and `AGENTS.md ## Non-goals` still
   lists it, so until the owners repoint them at this skill

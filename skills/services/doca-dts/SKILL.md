@@ -20,6 +20,7 @@ description: >
   skills or to external products.
 metadata:
   kind: service
+  doca_version: "3.5"
 compatibility: >
   Container-shaped DOCA service. On BlueField Arm it ships inside
   the BlueField OS image (upgradable from the NGC image); on an
@@ -40,14 +41,14 @@ and the DOCA Platform (DPF) public docs. This skill covers DTS **as
 deployed and configured** — which manifest or invocation starts it,
 which `dts_config.ini` keys shape it, how to verify it exports. It does
 not cover the library side: reading telemetry in your own program is
-[`libs/doca-telemetry`](../../libs/doca-telemetry/SKILL.md), publishing
+`libs/doca-telemetry` (`doca-telemetry/SKILL.md`), publishing
 into DTS over IPC from your own program is
-[`libs/doca-telemetry-exporter`](../../libs/doca-telemetry-exporter/SKILL.md).
+`libs/doca-telemetry-exporter` (`doca-telemetry-exporter/SKILL.md`).
 
 **Where to start:** decide the **deployment type** before anything
 else — it selects the manifest, the config-directory path, the restart
 mechanism and the debug commands. Route through
-[`doca-setup ## recognize`](../../doca-setup/TASKS.md#recognize)
+`doca-setup ## recognize` (`doca-setup/TASKS.md#recognize`)
 (`uname -m`, `lspci -d 15b3:`, `bf-release`) to learn whether you are
 on a BlueField Arm image (shape A), a plain host (shape B), or inside a
 DPF-managed cluster (shape C), then open
@@ -62,7 +63,7 @@ least two `update` intervals apart showing a counter that advanced
 can DTS collect and export, and in which mode*, start at
 [`CAPABILITIES.md ## Capabilities and modes`](CAPABILITIES.md#capabilities-and-modes).
 If DOCA / the BlueField OS is not installed yet, route to
-[`doca-setup`](../../doca-setup/SKILL.md) first.
+`doca-setup/SKILL.md` first.
 
 **Host docker container exits right after start (shape B).** Check the
 documented host shape and copy the exact invocations from the
@@ -122,7 +123,7 @@ example is one instance.
   + the NGC-yaml download pattern in
   [`TASKS.md ## build`](TASKS.md#build), with the generic kubelet
   static-pod manifest mechanics in
-  [`doca-container-deployment`](../../doca-container-deployment/TASKS.md#configure).
+  `doca-container-deployment/TASKS.md#configure`.
 - **"How do I attach rack / pod / SU labels to every metric?"** —
   worked example: *"per-rack level labels for a DPF-managed fleet"*.
   Answered by the level-labels model in
@@ -172,8 +173,8 @@ Load this skill for **hands-on DTS deployment or configuration work**:
 Do **not** load this skill for general DOCA orientation, installing
 DOCA or the BlueField OS, installing DPF itself, library-API questions,
 or building Grafana dashboards. For those, route via
-[`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md),
-[`doca-setup`](../../doca-setup/SKILL.md), or the matching `libs/`
+`doca-public-knowledge-map/SKILL.md`,
+`doca-setup/SKILL.md`, or the matching `libs/`
 skill.
 
 ## What this skill provides
@@ -218,7 +219,7 @@ and pull requests should not add:
   `<dts-version>-doca<doca-version>[-host]` shape and are read from the
   NGC tag list at answer time; a memorized tag is the canonical
   hallucination for a service skill. See
-  [`doca-version`](../../doca-version/SKILL.md).
+  `doca-version/SKILL.md`.
 - **Grafana dashboards or Prometheus / Fluent Bit server configs.**
   The skill names the DTS-side endpoint and the consumer-side target
   shape and stops there.
@@ -235,7 +236,7 @@ and pull requests should not add:
 1. Read this file first to confirm the question is about DTS *as
    deployed* (not the library API, not DPF installation), and fix the
    deployment shape via
-   [`doca-setup ## recognize`](../../doca-setup/TASKS.md#recognize).
+   `doca-setup ## recognize` (`doca-setup/TASKS.md#recognize`).
 2. **For the shape table, providers, exporters, version anchor, error
    taxonomy, observability and safety policy, see
    [CAPABILITIES.md](CAPABILITIES.md).**
@@ -250,12 +251,12 @@ and pull requests should not add:
 
 ## Related skills
 
-- [`doca-setup`](../../doca-setup/SKILL.md) — the front door:
-  [`## recognize`](../../doca-setup/TASKS.md#recognize) decides the
+- `doca-setup/SKILL.md` — the front door:
+  `## recognize` (`doca-setup/TASKS.md#recognize`) decides the
   deployment shape;
-  [`## no-install`](../../doca-setup/TASKS.md#no-install) carries the
+  `## no-install` (`doca-setup/TASKS.md#no-install`) carries the
   tag-selection rule this skill reuses.
-- [`doca-container-deployment`](../../doca-container-deployment/SKILL.md)
+- `doca-container-deployment/SKILL.md`
   — generic kubelet standalone / static-pod manifest mechanics on
   BlueField and the pod-spec do-not-invent rule; the DTS-specific
   facts (`/etc/kubelet.d/doca_telemetry_standalone.yaml`, the NGC
@@ -263,26 +264,26 @@ and pull requests should not add:
   `crictl logs` inspection) come from the DTS guide and the NGC
   container page and live in this skill. Shape A delegates only the
   generic mechanics there via
-  [`## configure`](../../doca-container-deployment/TASKS.md#configure)
-  and [`## run`](../../doca-container-deployment/TASKS.md#run).
-- [`doca-version`](../../doca-version/SKILL.md) — canonical
+  `## configure` (`doca-container-deployment/TASKS.md#configure`)
+  and `## run` (`doca-container-deployment/TASKS.md#run`).
+- `doca-version/SKILL.md` — canonical
   version-handling rules; DTS overlays "the anchor is the container
   tag / chart version, not the host DOCA release".
-- [`doca-debug`](../../doca-debug/SKILL.md) — the
-  [universal debug-loop contract](../../doca-debug/CAPABILITIES.md#universal-debug-loop-contract)
+- `doca-debug/SKILL.md` — the
+  universal debug-loop contract (`doca-debug/CAPABILITIES.md#universal-debug-loop-contract`)
   and shared
-  [command appendix](../../doca-debug/TASKS.md#command-appendix) that
+  command appendix (`doca-debug/TASKS.md#command-appendix`) that
   `TASKS.md ## debug` overlays.
-- [`doca-hardware-safety`](../../doca-hardware-safety/CAPABILITIES.md#safety-policy)
+- `doca-hardware-safety/CAPABILITIES.md#safety-policy`
   — DTS is read-only telemetry, but its deployment touches privileged
   containers, `dpe`, firmware-facing devices and DPF reprovisioning.
-- [`libs/doca-telemetry`](../../libs/doca-telemetry/SKILL.md) — the
+- `libs/doca-telemetry` (`doca-telemetry/SKILL.md`) — the
   reader library; "consume telemetry in my program" goes there.
-- [`libs/doca-telemetry-exporter`](../../libs/doca-telemetry-exporter/SKILL.md)
+- `libs/doca-telemetry-exporter` (`doca-telemetry-exporter/SKILL.md`)
   — the publisher library; "my app reports but DTS sees nothing" is
   split: IPC socket / shared-memory mounts are this skill's, the
   `doca_telemetry_exporter_*` calls are that skill's.
-- [`doca-public-knowledge-map`](../../doca-public-knowledge-map/SKILL.md)
+- `doca-public-knowledge-map/SKILL.md`
   — URL routing for the public DOCA documentation set. The map's
   externally-productized routing table (`references/map.md`) carries a
   DTS-as-deployed row that still routes DTS as out of scope with a bare
