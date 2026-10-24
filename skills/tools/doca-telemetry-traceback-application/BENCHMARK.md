@@ -35,11 +35,11 @@ The three-tier evaluation checks whether the skill:
 
 | Measure | Claude Code (Baseline → Skill Uplift) | Codex (Baseline → Skill Uplift) |
 |---|---:|---:|
-| Overall | 94.2% — baseline ran, but no comparable score was available; uplift unavailable | 95.5% — baseline ran, but no comparable score was available; uplift unavailable |
-| Security | 90.0% → 100.0% (+10.0 points) | 80.0% → 100.0% (+20.0 points) |
-| Correctness | 60.0% → 100.0% (+40.0 points) | 84.0% → 100.0% (+16.0 points) |
+| Overall | 93.5% — baseline ran, but no comparable score was available; uplift unavailable | 96.5% — baseline ran, but no comparable score was available; uplift unavailable |
+| Security | 100.0% → 100.0% (±0.0 points) | 100.0% → 100.0% (±0.0 points) |
+| Correctness | 56.0% → 96.0% (+40.0 points) | 84.0% → 100.0% (+16.0 points) |
 | Discoverability | 100.0% — baseline ran, but no comparable score was available; uplift unavailable | 95.0% — baseline ran, but no comparable score was available; uplift unavailable |
-| Effectiveness | 34.5% → 96.0% (+61.5 points) | 47.2% → 82.5% (+35.3 points) |
+| Effectiveness | 40.3% → 96.5% (+56.2 points) | 47.7% → 87.3% (+39.6 points) |
 | Efficiency | 75.0% — baseline ran, but no comparable score was available; uplift unavailable | 100.0% — baseline ran, but no comparable score was available; uplift unavailable |
 
 **How to read this table:** baseline is the same task attempted without the target skill. Scores are rounded to one decimal; threshold-adjacent values use additional precision so their displayed band matches the verdict. Uplift is derived from those displayed scores and shown in percentage points.
@@ -54,19 +54,19 @@ Actual Tier 3 execution usage is reported for every observed agent/case pair and
 
 | Agent | Dataset case | With skill | Without skill | Delta | Change | Coverage |
 |---|---|---:|---:|---:|---:|---|
-| claude-code | All cases | 629,531 | 597,908 | N/A | N/A | skill 1/5; base 1/5 |
-| claude-code | doca-telemetry-traceback-application.explicit-positive.v1 | N/A | 597,908 | N/A | N/A | skill 0/1; base 1/1 |
+| claude-code | All cases | 652,124 | 565,217 | N/A | N/A | skill 1/5; base 1/5 |
+| claude-code | doca-telemetry-traceback-application.explicit-positive.v1 | N/A | 565,217 | N/A | N/A | skill 0/1; base 1/1 |
 | claude-code | doca-telemetry-traceback-application.implicit-positive.v1 | N/A | N/A | N/A | N/A | skill 0/1; base 0/1 |
 | claude-code | doca-telemetry-traceback-application.implicit-positive.v2 | N/A | N/A | N/A | N/A | skill 0/1; base 0/1 |
-| claude-code | doca-telemetry-traceback-application.negative.v1 | 629,531 | N/A | N/A | N/A | skill 1/1; base 0/1 |
+| claude-code | doca-telemetry-traceback-application.negative.v1 | 652,124 | N/A | N/A | N/A | skill 1/1; base 0/1 |
 | claude-code | doca-telemetry-traceback-application.negative.v2 | N/A | N/A | N/A | N/A | skill 0/1; base 0/1 |
-| codex | All cases | 632,730 | 516,748 | N/A | N/A | skill 1/5; base 1/5 |
-| codex | doca-telemetry-traceback-application.explicit-positive.v1 | 632,730 | N/A | N/A | N/A | skill 1/1; base 0/1 |
-| codex | doca-telemetry-traceback-application.implicit-positive.v1 | N/A | 516,748 | N/A | N/A | skill 0/1; base 1/1 |
-| codex | doca-telemetry-traceback-application.implicit-positive.v2 | N/A | N/A | N/A | N/A | skill 0/1; base 0/1 |
+| codex | All cases | 785,077 | 558,246 | N/A | N/A | skill 1/5; base 1/5 |
+| codex | doca-telemetry-traceback-application.explicit-positive.v1 | N/A | 558,246 | N/A | N/A | skill 0/1; base 1/1 |
+| codex | doca-telemetry-traceback-application.implicit-positive.v1 | N/A | N/A | N/A | N/A | skill 0/1; base 0/1 |
+| codex | doca-telemetry-traceback-application.implicit-positive.v2 | 785,077 | N/A | N/A | N/A | skill 1/1; base 0/1 |
 | codex | doca-telemetry-traceback-application.negative.v1 | N/A | N/A | N/A | N/A | skill 0/1; base 0/1 |
 | codex | doca-telemetry-traceback-application.negative.v2 | N/A | N/A | N/A | N/A | skill 0/1; base 0/1 |
-| ALL AGENTS | Dataset aggregate | 1,262,261 | 1,114,656 | N/A | N/A | skill 2/10; base 2/10 |
+| ALL AGENTS | Dataset aggregate | 1,437,201 | 1,123,463 | N/A | N/A | skill 2/10; base 2/10 |
 
 Prompt tokens include cached reads, so total tokens are `prompt + completion` (cached is not added twice). The Efficiency score uses `(prompt - cached) + completion`. N/A means the relevant trajectory counters were not available; coverage is never estimated.
 
@@ -74,7 +74,7 @@ Prompt tokens include cached reads, so total tokens are `prompt + completion` (c
 
 | Tier | Purpose | Status | Evidence |
 |---|---|---|---|
-| Tier 1 | Static validation | **PASSED WITH OBSERVATIONS** | 11 validator(s); 22 finding(s) |
+| Tier 1 | Static validation | **PASSED WITH OBSERVATIONS** | 11 validator(s); 23 finding(s) |
 | Tier 2 | Semantic deduplication | **PASSED WITH OBSERVATIONS** | 2 validator(s); 2 finding(s) |
 | Tier 3 | Live agent evaluation | **PASS** | 2 agent(s); 5 task(s) |
 
@@ -91,8 +91,8 @@ Prompt tokens include cached reads, so total tokens are `prompt + completion` (c
   vs "## debug" in TASKS.md (lines 292-312) (`CAPABILITIES.md:148`)
 - **MEDIUM** SCHEMA/metadata_key_style: Metadata key 'doca_version' is not kebab-case (`skills/tools/doca-telemetry-traceback-application/SKILL.md`)
 - **MEDIUM** SCHEMA/folder_hierarchy: Unexpected nesting depth for general skill (`skills/tools/doca-telemetry-traceback-application`)
-- **MEDIUM** SECURITY/Session Persistence (RA2): Rogue Agent: plist (`CAPABILITIES.md:72`)
-- 19 additional finding(s) are available in the full evaluation artifacts.
+- **MEDIUM** SECURITY/Session Persistence (RA2): Rogue Agent: plist (`BENCHMARK.md:94`)
+- 20 additional finding(s) are available in the full evaluation artifacts.
 
 </details>
 

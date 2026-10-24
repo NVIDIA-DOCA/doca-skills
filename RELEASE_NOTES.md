@@ -21,6 +21,11 @@ Content queued for the next promotion to the published bundle.
 
 ### Skill changes
 
+**Catalog update.** Telemetry collection is consolidated into `doca-dts`
+(DOCA Telemetry Service), and the catalog is aligned with the DOCA 3.5
+component set. Routing in `doca-flow-perf`, `doca-flow-tune`,
+`doca-perftest`, `doca-flow` and the knowledge map is updated accordingly.
+
 **`doca-verbs`** — three corrections, all aimed at making the skill's answers
 complete and its routing boundary explicit.
 

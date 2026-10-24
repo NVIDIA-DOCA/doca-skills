@@ -35,7 +35,6 @@ skills/
 ├── doca-bare-metal-deployment/   # cross-cutting bare-metal-binary deployment path (sibling of container-deployment)
 ├── doca-bf3-deployment/          # cross-cutting BlueField-3 day-1 platform bring-up (RShim/BFB path)
 ├── doca-bf4-deployment/          # cross-cutting BlueField-4 day-1 platform bring-up (BMC/Redfish path)
-├── doca-collectx-deployment/     # cross-cutting CollectX (clx) telemetry-collection deployment
 ├── libs/<library>/               # one skill per doca/libs/<library>
 ├── services/<service>/           # one skill per doca/services/<service>
 └── tools/<tool>/                 # one skill per doca/tools/<tool>
@@ -56,7 +55,7 @@ break agent discovery.
 
 ## Index
 
-### Top-level cross-cutting skills (13)
+### Top-level cross-cutting skills (12)
 
 | Skill | Source | When to load |
 | --- | --- | --- |
@@ -72,9 +71,8 @@ break agent discovery.
 | `doca-bare-metal-deployment` | [skills/doca-bare-metal-deployment/SKILL.md](skills/doca-bare-metal-deployment/SKILL.md) | The user is deploying a DOCA-linked **application binary** directly on hardware — no container — on host x86 (DOCA host install talking to a remote BlueField NIC over PCIe) OR on BlueField Arm bare-metal (DOCA app on the DPU cores). Owns the launch contract (direct / tmux / systemd), hardware-resource binding (PF/VF/representor + NUMA + CPU pinning + IRQ affinity), per-tenant isolation (cgroup-v2 + namespaces + numactl), the bare-metal error taxonomy, observability (stdout / journald / devlink / sysfs), and the restart-loop-is-HIGH-STAKES rule. The BARE-METAL half of the two-path deployment landscape; the container half lives in `doca-container-deployment`. Routed to from `doca-setup ## recognize`. |
 | `doca-bf3-deployment` | [skills/doca-bf3-deployment/SKILL.md](skills/doca-bf3-deployment/SKILL.md) | The user is doing BlueField-3 (BF3) day-1 platform bring-up — the classic RShim/BFB path: `bfb-install` over RShim, TMFIFO (`192.168.100.x`) management channel, DPU vs separated-host mode via `mlxconfig`, post-BFB recovery + the six-state classifier, host-side vs Arm-side DOCA install. Distinct from the BF4 BMC/Redfish path (`doca-bf4-deployment`). Every mutating burn/mode-flip routes to `doca-hardware-safety`; once the platform is up, routes onward to `doca-bare-metal-deployment` / `doca-container-deployment`. |
 | `doca-bf4-deployment` | [skills/doca-bf4-deployment/SKILL.md](skills/doca-bf4-deployment/SKILL.md) | The user is doing BlueField-4 (BF4) day-1 platform bring-up — the BMC-driven path: the three OS-ISO install methods (UEFI HTTP boot / PXE / Redfish Virtual Media), the PLDM firmware-update flow (BMC/NIC/SBIOS/ERoT), and the Grace Ubuntu + cloud-init install. Public-safe ({curly} placeholders, no internal hosts/paths/credentials). Distinct from the BF3 RShim/BFB path (`doca-bf3-deployment`); mutating firmware/power-cycle ops route to `doca-hardware-safety`. |
-| `doca-collectx-deployment` | [skills/doca-collectx-deployment/SKILL.md](skills/doca-collectx-deployment/SKILL.md) | The user is deploying/operating a CollectX (clx) telemetry **collection** pipeline (providers/counters → schema → collector daemon → exporters: Prometheus / Fluent Bit / NetFlow / file-IPC). Owns the clx collection class; routes the reader API to `doca-telemetry`, the publisher API to `doca-telemetry-exporter`, and the productized DTS container (deploy / configure) to `doca-dts`. |
 
-### Per-artifact skills (52 — strict 1:1 with `doca/{libs,services,tools}` plus `doca-dts` at the **publicly-released DOCA the bundle is documented for, currently `3.5.0019`** — see README.md "Standards & Compatibility")
+### Per-artifact skills (44 — strict 1:1 with `doca/{libs,services,tools}` plus `doca-dts` at the **publicly-released DOCA the bundle is documented for, currently `3.5.0019`** — see README.md "Standards & Compatibility")
 
 This bundle ships one skill per artifact in the DOCA monorepo at the
 DOCA release the bundle is aligned to. The agent loads the matching
@@ -87,7 +85,7 @@ The compact triple table below is the discovery surface every fresh
 agent walks. Strict 1:1 alignment with the named DOCA release is
 verified on every commit.
 
-**Libraries (27) — `skills/libs/<name>/`, 1:1 with `doca/libs/`** (excluding the internal-only `doca_gpunetio_internal`)
+**Libraries (24) — `skills/libs/<name>/`, 1:1 with `doca/libs/`** (excluding the internal-only `doca_gpunetio_internal`)
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
@@ -97,9 +95,7 @@ verified on every commit.
 | `doca-rdma` | [skills/libs/doca-rdma/SKILL.md](skills/libs/doca-rdma/SKILL.md) | DOCA RDMA — DOCA's RDMA surface (send/recv/write/read patterns). |
 | `doca-verbs` | [skills/libs/doca-verbs/SKILL.md](skills/libs/doca-verbs/SKILL.md) | DOCA Verbs — lower-level ibverbs-style API beneath DOCA RDMA / DOCA Eth, exposing raw QP / CQ / PD / MR / SRQ / Address-Handle primitives. Primary job is to ROUTE back to the matching higher-level library; only takes the conversation when the higher-level library does not expose the specific verb / opcode the user needs. |
 | `doca-dpa` | [skills/libs/doca-dpa/SKILL.md](skills/libs/doca-dpa/SKILL.md) | DOCA DPA — host/device split-build, DPACC context, DPA annotation. Folds DPA Comms as `## comms` and DPA Verbs as `## verbs`. |
-| `doca-flow-dpa-provider` | [skills/libs/doca-flow-dpa-provider/SKILL.md](skills/libs/doca-flow-dpa-provider/SKILL.md) | DOCA Flow DPA Provider — bridges a `doca-flow` pipe into a DPA execution target so flow execution can run on the DPA processor instead of the host or DPU-CPU path. |
 | `doca-gpunetio` | [skills/libs/doca-gpunetio/SKILL.md](skills/libs/doca-gpunetio/SKILL.md) | DOCA GPUNetIO — GPU-initiated networking + CUDA integration. |
-| `doca-gpi` | [skills/libs/doca-gpi/SKILL.md](skills/libs/doca-gpi/SKILL.md) | DOCA GPI — GPU Programming Interface for kernel-launched RDMA operations directly from a CUDA thread. Pairs with `doca-rdma` and `doca-gpunetio` (different runtime surface for GPU-initiated networking). |
 | `doca-comch` | [skills/libs/doca-comch/SKILL.md](skills/libs/doca-comch/SKILL.md) | DOCA Comch (formerly Comm Channel) — host↔DPU control-plane messaging. |
 | `doca-telemetry` | [skills/libs/doca-telemetry/SKILL.md](skills/libs/doca-telemetry/SKILL.md) | DOCA Telemetry — per-domain hardware-counter READER (six sub-libs: `_pcc`, `_dpa`, `_diag`, `_adp_retx`, `_phy`, `_pci`). Not a NetFlow / IPFIX / DTS-shaped collector framework — for OpenTelemetry / OTLP application-side publishing route to `doca-telemetry-exporter`; for DTS (the productized service, as deployed) route to `doca-dts`. |
 | `doca-telemetry-exporter` | [skills/libs/doca-telemetry-exporter/SKILL.md](skills/libs/doca-telemetry-exporter/SKILL.md) | DOCA Telemetry Exporter — application-side publish library. |
@@ -114,7 +110,6 @@ verified on every commit.
 | `doca-argp` | [skills/libs/doca-argp/SKILL.md](skills/libs/doca-argp/SKILL.md) | DOCA Arg Parser — argument parser used by every shipped sample. |
 | `doca-devemu` | [skills/libs/doca-devemu/SKILL.md](skills/libs/doca-devemu/SKILL.md) | DOCA Device Emulation — umbrella for PCI Generic, virtio, virtio-fs. |
 | `doca-mgmt` | [skills/libs/doca-mgmt/SKILL.md](skills/libs/doca-mgmt/SKILL.md) | DOCA MGMT (Management library) — programmatic management of DOCA device state. Pairs with `doca-dms` (service-side) and `doca-version`. |
-| `doca-rdmi` | [skills/libs/doca-rdmi/SKILL.md](skills/libs/doca-rdmi/SKILL.md) | DOCA RDMI (DOCA RDMA Initiator) — accelerator-initiated (host or DPA-kernel) one-sided RDMA flow surface; pairs with `doca-rdma` (general RDMA) and `doca-dpa` / `doca-verbs` for the DPA-kernel-initiated path. **Route here directly** for any `doca_rdmi_*` / RDMA-initiator / "DPA kernel posts RDMA" / RDMI build-run-debug question — including the full *"walk me through doca-rdmi end-to-end"* workflow, which is answerable entirely from this skill's own `TASKS.md ## end-to-end (quickref)`. Do **not** detour through `doca-programming-guide` or `doca-setup` first for an RDMI build/run question; those are optional overlays only. |
 | `doca-sta` | [skills/libs/doca-sta/SKILL.md](skills/libs/doca-sta/SKILL.md) | DOCA STA — storage-focused reference apps + storage transport acceleration. |
 | `doca-rmax` | [skills/libs/doca-rmax/SKILL.md](skills/libs/doca-rmax/SKILL.md) | DOCA Rivermax — media / streaming integration. |
 | `doca-dpdk-bridge` | [skills/libs/doca-dpdk-bridge/SKILL.md](skills/libs/doca-dpdk-bridge/SKILL.md) | DOCA DPDK Bridge — interop layer for an existing DPDK application to reach DOCA libraries. |
@@ -138,7 +133,7 @@ and the knowledge-map row still name it, reconciliation pending) — see
 | `doca-argus` | [skills/services/doca-argus/SKILL.md](skills/services/doca-argus/SKILL.md) | DOCA Argus Service — runtime-security / monitoring on BlueField. |
 | `doca-dts` | [skills/services/doca-dts/SKILL.md](skills/services/doca-dts/SKILL.md) | DOCA Telemetry Service — deploy + configure DTS on BlueField (kubelet static pod), host (docker), or DPF (DPUService/helm); providers, exporters, level labels. |
 
-**Tools (20) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
+**Tools (15) — `skills/tools/<name>/`, 1:1 with `doca/tools/`**
 
 | Skill | Source | What it covers |
 | --- | --- | --- |
@@ -147,15 +142,10 @@ and the knowledge-map row still name it, reconciliation pending) — see
 | `doca-bench-extension` | [skills/tools/doca-bench-extension/SKILL.md](skills/tools/doca-bench-extension/SKILL.md) | DOCA Bench Extension — the in-tree extension / plug-in framework that lets `doca-bench` measure workload classes its built-in modes do not cover. Reference exemplar `doca_bench_cuda` drives GPUNetIO RX / TX kernels. |
 | `doca-comm-channel-admin` | [skills/tools/doca-comm-channel-admin/SKILL.md](skills/tools/doca-comm-channel-admin/SKILL.md) | Comm Channel Admin Tool — admin CLI for Comch channels. |
 | `doca-flow-tune` | [skills/tools/doca-flow-tune/SKILL.md](skills/tools/doca-flow-tune/SKILL.md) | DOCA Flow Tune — unified tool for offline / online tuning of a live `doca-flow` pipeline. ONE binary with TWO internal roles (server role: snapshots and exposes pipe / counter / KPI state; client / consumer role: dumps / analyzes / visualizes / recommends). |
-| `doca-flow-perf` | [skills/tools/doca-flow-perf/SKILL.md](skills/tools/doca-flow-perf/SKILL.md) | DOCA Flow Perf — host / DPU-CPU control-plane rule-rate measurement (install / delete / query rate). Distinct from `doca-flow-dpa-perf` (DPA-offloaded path) and `doca-flow-tune` (optimizes a deployed pipeline). |
-| `doca-flow-dpa-perf` | [skills/tools/doca-flow-dpa-perf/SKILL.md](skills/tools/doca-flow-dpa-perf/SKILL.md) | DOCA Flow DPA Perf — flow performance for the DPA-offloaded execution path. |
-| `doca-flow-grpc-server` | [skills/tools/doca-flow-grpc-server/SKILL.md](skills/tools/doca-flow-grpc-server/SKILL.md) | DOCA Flow gRPC Server — gRPC remote-control server for `doca-flow` rule programming. |
+| `doca-flow-perf` | [skills/tools/doca-flow-perf/SKILL.md](skills/tools/doca-flow-perf/SKILL.md) | DOCA Flow Perf — host / DPU-CPU control-plane rule-rate measurement (install / delete / query rate). Distinct from `doca-flow-tune` (optimizes a deployed pipeline). |
 | `doca-pcc-counters` | [skills/tools/doca-pcc-counters/SKILL.md](skills/tools/doca-pcc-counters/SKILL.md) | DOCA PCC Counters — the `pcc_counters.sh` script arms (`set`) and reads (`query`) the device's firmware/HW PCC diagnostic counters via mst + the mlx5 debugfs `diag_cnt` interface. |
 | `doca-socket-relay` | [skills/tools/doca-socket-relay/SKILL.md](skills/tools/doca-socket-relay/SKILL.md) | DOCA Socket Relay — socket relay between host and DPU. |
-| `doca-dpa-hl-tracer` | [skills/tools/doca-dpa-hl-tracer/SKILL.md](skills/tools/doca-dpa-hl-tracer/SKILL.md) | DOCA DPA High-Level Tracer — captures DPA-side execution traces with higher-level events than raw cycle counts. |
-| `doca-gpunetio-ib-write-bw` | [skills/tools/doca-gpunetio-ib-write-bw/SKILL.md](skills/tools/doca-gpunetio-ib-write-bw/SKILL.md) | DOCA GPUNetIO ib_write_bw — RDMA-write bandwidth benchmark from the GPUNetIO framework. |
 | `doca-perftest` | [skills/tools/doca-perftest/SKILL.md](skills/tools/doca-perftest/SKILL.md) | DOCA Perftest — RDMA bandwidth, message-rate and latency benchmark (point-to-point and multi-node, optional DOCA Verbs and GPUNetIO engines). |
-| `doca-gpunetio-ib-write-lat` | [skills/tools/doca-gpunetio-ib-write-lat/SKILL.md](skills/tools/doca-gpunetio-ib-write-lat/SKILL.md) | DOCA GPUNetIO ib_write_lat — RDMA-write latency benchmark from the GPUNetIO framework. |
 | `doca-sha-offload-engine` | [skills/tools/doca-sha-offload-engine/SKILL.md](skills/tools/doca-sha-offload-engine/SKILL.md) | DOCA SHA Offload Engine — OpenSSL ENGINE wrapping the DOCA SHA library; lets unmodified OpenSSL-based applications offload SHA without code changes. |
 | `doca-spcx-cc` | [skills/tools/doca-spcx-cc/SKILL.md](skills/tools/doca-spcx-cc/SKILL.md) | DOCA SPCX-CC — Programmable Congestion-Control extension (next-gen). Pairs with `doca-pcc`, `doca-pcc-ztr-rttcc-algo`. Live-fabric safety implications: heavy use of `doca-hardware-safety`. |
 | `doca-telemetry-utils` | [skills/tools/doca-telemetry-utils/SKILL.md](skills/tools/doca-telemetry-utils/SKILL.md) | DOCA Telemetry Utils — operator-side support CLI for a DOCA Telemetry exporter pipeline. Translates name ↔ Data ID, enumerates the diagnostic-counter schema, and probes per-device counter support before an exporter config commits to it. |

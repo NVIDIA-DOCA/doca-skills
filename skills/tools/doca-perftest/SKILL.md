@@ -11,8 +11,7 @@ description: >
   nodes", "perftest says the device is busy", "my latency numbers differ between
   client and server", "launch the server over SSH", or "run an all-to-all RDMA
   test from a JSON scenario". Refuse and route elsewhere for DOCA install
-  (doca-setup), the GPU-initiated WRITE tools (doca-gpunetio-ib-write-bw and
-  -lat), DOCA Bench (doca-bench), and application-level throughput.
+  (doca-setup), DOCA Bench (doca-bench), and application-level throughput.
 metadata:
   author: NVIDIA <doca@nvidia.com>
   kind: tool
@@ -47,8 +46,7 @@ Load this skill when the user wants to — or the agent needs to — run
 - Interpreting a run: client-vs-server number drift, "device busy",
   inconsistent latency across runs.
 
-Do **not** load this skill for DOCA install (`doca-setup`), GPU-initiated
-WRITE tools (`doca-gpunetio-ib-write-bw` / `-lat`), the doca-bench harness,
+Do **not** load this skill for DOCA install (`doca-setup`), the doca-bench harness,
 control-plane flow-rule rate (`doca-flow-perf`), or application-level
 throughput.
 
@@ -64,7 +62,7 @@ Follow the loading order below. Open `TASKS.md` for the commands and `CAPABILITI
 
 **Where to start:** DOCA Perftest is the DOCA 3.5 replacement for legacy `ib_write_bw` / `ib_send_lat` plus the orchestration scripts used to run them on many nodes. Start at `TASKS.md ## point-to-point` for a first run. Use `## multi-node` for scenarios and `## debug` when a run fails or the numbers look wrong.
 
-If DOCA is not installed, route to `doca-setup/SKILL.md`. Client and server must run the same DOCA Perftest version; check with `doca-version/SKILL.md` before comparing numbers across hosts. If the question is about the GPU posting the work requests, route to `doca-gpunetio-ib-write-bw/SKILL.md` or `doca-gpunetio-ib-write-lat/SKILL.md` (the GPUNetIO engine here is a different path).
+If DOCA is not installed, route to `doca-setup/SKILL.md`. Client and server must run the same DOCA Perftest version; check with `doca-version/SKILL.md` before comparing numbers across hosts. If the question is about GPU-initiated RDMA in the user's own code, route to `doca-gpunetio/SKILL.md`.
 
 ## Example questions this skill answers well
 

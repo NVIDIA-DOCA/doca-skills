@@ -13,9 +13,9 @@
 
 ---
 
-This repository ships **65 portable, [AgentSkills.io](https://agentskills.io/specification)-compliant skills** that teach AI agents — Cursor, Anthropic Claude Code, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, custom in-house LLMs — how to use NVIDIA DOCA correctly on host x86, BlueField Arm bare-metal, or inside containerized environments.
+This repository ships **56 portable, [AgentSkills.io](https://agentskills.io/specification)-compliant skills** that teach AI agents — Cursor, Anthropic Claude Code, OpenAI Codex CLI, Gemini CLI, GitHub Copilot, custom in-house LLMs — how to use NVIDIA DOCA correctly on host x86, BlueField Arm bare-metal, or inside containerized environments.
 
-The external plugin candidate bundles the same 65 signed skills in one install
+The external plugin candidate bundles the same 56 signed skills in one install
 for Cursor, Claude Code and Codex. This release is skills-only: the local
 stdio MCP server is not included and stays in `plugin/mcp/servers.stdio.yml` for a later,
 separately reviewed release. Plugin release and marketplace publication
@@ -232,7 +232,7 @@ These load on top-level questions that aren't tied to a single library/service/t
 | [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) | Master routing index — every authoritative DOCA information source (public docs URLs, on-disk `/opt/mellanox/doca` layout, public GitHub repos, NGC catalog, Developer Forum) + the 26-product routing table for externally-productized NVIDIA networking software not in this bundle. | Any "where is / which doc / how do I find" question, AND any out-of-scope question that requires routing-with-substance (non-goal #7 contract). |
 | [`doca-structured-tools-contract`](skills/doca-structured-tools-contract/SKILL.md) | JSON schemas the agent must produce for every infra step (env probe, version detect, hardware probe, capability snapshot, validate-before-commit, host-vs-DPU state diff). Plus the Detect / Prefer / Fall-back / Report behavior contract for the future structured-tools binaries. | The agent is about to emit JSON for any infra step, or is being wired into a structured-tool / function-calling dispatcher (MCP, OpenAI function calling) and needs the JSON-schema contract. |
 
-### DOCA Libraries (27 skills)
+### DOCA Libraries (24 skills)
 
 Each library skill teaches the agent the library's API surface, build / link, lifecycle, the library-specific `DOCA_ERROR_*` shapes, and the derive-from-sample first-app pattern.
 
@@ -250,14 +250,11 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-erasure-coding`](skills/libs/doca-erasure-coding/SKILL.md) | DOCA Erasure Coding | EC encode / decode offload — Reed-Solomon / matrix-based EC, on BlueField. |
 | [`doca-eth`](skills/libs/doca-eth/SKILL.md) | DOCA Ethernet | Ethernet RX / TX queues (`doca_eth_rxq`, `doca_eth_txq`) — the queue layer underneath Flow steering. |
 | [`doca-flow`](skills/libs/doca-flow/SKILL.md) | DOCA Flow | Programmable hardware steering on BlueField / ConnectX — pipes, match / action, counters, validation, HWS / SWS modes, Flow-CT for stateful. |
-| [`doca-flow-dpa-provider`](skills/libs/doca-flow-dpa-provider/SKILL.md) | DOCA Flow DPA Provider | DPA-side helper for Flow actions / counters that run inside a DPA program. |
-| [`doca-gpi`](skills/libs/doca-gpi/SKILL.md) | DOCA GPI | GPU Programming Interface — kernel-launched RDMA operations issued directly from a CUDA thread (pairs with `doca-rdma` and `doca-gpunetio`). |
 | [`doca-gpunetio`](skills/libs/doca-gpunetio/SKILL.md) | DOCA GPUNetIO | GPU-side networking — RX / TX queues, semaphores, Flow steering controlled from CUDA kernels (no CPU on the data path). |
 | [`doca-mgmt`](skills/libs/doca-mgmt/SKILL.md) | DOCA Management | Programmatic management APIs (devlink, firmware-version queries, NIC-state introspection) for tools that don't shell out. |
 | [`doca-pcc`](skills/libs/doca-pcc/SKILL.md) | DOCA PCC | Programmable Congestion Control library — DPA-hosted algorithm slot + matching host-side glue; distinct from `doca_pcc_counter` (operator-side counter inspection) and the PCC reference application. |
 | [`doca-pcc-ztr-rttcc-algo`](skills/libs/doca-pcc-ztr-rttcc-algo/SKILL.md) | DOCA PCC ZTR-RTTCC Algorithm | Shipped reference Zero-Touch-RTT Congestion-Control algorithm that runs under `doca-pcc`. |
 | [`doca-rdma`](skills/libs/doca-rdma/SKILL.md) | DOCA RDMA | RDMA send / recv / write / read on RoCE + InfiniBand — verbs-equivalent surface with DOCA's lifecycle. |
-| [`doca-rdmi`](skills/libs/doca-rdmi/SKILL.md) | DOCA RDMI | DOCA RDMA Initiator — accelerator-initiated (host or DPA-kernel) one-sided RDMA flow surface; pairs with `doca-rdma` for the general RDMA path. |
 | [`doca-rmax`](skills/libs/doca-rmax/SKILL.md) | DOCA Rivermax | Sub-microsecond-jitter SMPTE 2110 / NMOS media streaming — wraps the external Rivermax SDK (license required, see non-goal #7 routing). |
 | [`doca-sha`](skills/libs/doca-sha/SKILL.md) | DOCA SHA | Hardware-offloaded SHA-1 / SHA-256 / SHA-512 hashing. |
 | [`doca-sta`](skills/libs/doca-sta/SKILL.md) | DOCA STA | DOCA Storage-Target-Acceleration library — NVMe-oF transport-acceleration substrate that sits under SPDK / kernel-nvme; the per-IO transport-layer offload, not the NVMe protocol stack itself. |
@@ -276,7 +273,7 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-dts`](skills/services/doca-dts/SKILL.md) | DOCA Telemetry Service | Deploy + configure DTS by deployment type — BlueField kubelet static pod, host docker container (NGC `-host` image), or DPF `DPUService` / `doca-telemetry` helm chart; `dts_config.ini` providers, exporters (Prometheus / Fluent Bit / OpenTelemetry / storage), level labels. |
 | [`doca-urom-svc`](skills/services/doca-urom-svc/SKILL.md) | DOCA UROM Service | The deployed service half of UROM — manages offloaded RDMA flow state. |
 
-### DOCA Tools (20 skills)
+### DOCA Tools (15 skills)
 
 | Skill | DOCA tool | What it does |
 |---|---|---|
@@ -284,13 +281,8 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-bench-extension`](skills/tools/doca-bench-extension/SKILL.md) | `doca_bench_extension` | Plugin surface for adding new bench scenarios. |
 | [`doca-caps`](skills/tools/doca-caps/SKILL.md) | `doca_caps` | Read-only `/opt/mellanox/doca/tools/doca_caps` — devices, representors, per-library per-device capabilities, logger names. The canonical first-step state snapshot. |
 | [`doca-comm-channel-admin`](skills/tools/doca-comm-channel-admin/SKILL.md) | `doca_comm_channel_admin` | Admin / diagnostics for the comm-channel transport under Comch. |
-| [`doca-dpa-hl-tracer`](skills/tools/doca-dpa-hl-tracer/SKILL.md) | `doca_dpa_hl_tracer` | DPA high-level tracer — visibility into DPA execution. |
-| [`doca-flow-dpa-perf`](skills/tools/doca-flow-dpa-perf/SKILL.md) | `doca_flow_dpa_perf` | Performance harness for Flow's DPA path. |
-| [`doca-flow-grpc-server`](skills/tools/doca-flow-grpc-server/SKILL.md) | `doca_flow_grpc` | Remote programmable steering — pushes Flow pipes / entries via gRPC. |
 | [`doca-flow-perf`](skills/tools/doca-flow-perf/SKILL.md) | `doca_flow_perf` | Throughput / steering-rate benchmark for Flow. |
 | [`doca-flow-tune`](skills/tools/doca-flow-tune/SKILL.md) | `doca_flow_tune` | Unified visibility / analysis / recommendation tool for a live `doca-flow` pipeline — five subcommands (MONITOR / ANALYZE / VISUALIZE / DUMP / WEB). The binary is a CLIENT to the server-side library linked into the running doca-flow application. |
-| [`doca-gpunetio-ib-write-bw`](skills/tools/doca-gpunetio-ib-write-bw/SKILL.md) | `doca_gpunetio_ib_write_bw` | Bandwidth micro-benchmark for GPUNetIO IB-write. |
-| [`doca-gpunetio-ib-write-lat`](skills/tools/doca-gpunetio-ib-write-lat/SKILL.md) | `doca_gpunetio_ib_write_lat` | Latency micro-benchmark for GPUNetIO IB-write. |
 | [`doca-ngauge`](skills/tools/doca-ngauge/SKILL.md) | `ngauge` | Analyze, visualize, and debug single-node network performance by probing NIC hardware counters and storing collected data in HDF5 format. |
 | [`doca-pcc-counters`](skills/tools/doca-pcc-counters/SKILL.md) | `pcc_counters.sh` | Bash script that arms (`set`) and reads (`query`) the device's firmware/HW PCC diagnostic counters via mst + the mlx5 debugfs `diag_cnt` interface. |
 | [`doca-perftest`](skills/tools/doca-perftest/SKILL.md) | `doca_perftest` | RDMA bandwidth, message-rate and latency benchmark — point-to-point or multi-node (JSON scenario / `--traffic_pattern`), optional DOCA Verbs (`-r dv`) and GPUNetIO (`--engine gpunetio`) backends. |
@@ -382,7 +374,7 @@ doca-skills/
 - **C / C++ consumers** are the canonical case. The "first app" workflow is *modify a shipped C sample on your DOCA-installed Linux host*; the build manifest is meson + `pkg-config doca-<library>`.
 - **Other-language consumers** (Rust, Go, Python, …) consume DOCA via FFI / language-specific bindings against the same `*.so` libraries the C samples link against. The skills route you to the public C API surface (which is what your bindings will call) and keep the install / runtime / safety guidance language-agnostic. Your build system (cargo, go build, setup.py, …) is your concern; DOCA appears to it as a system C library.
 
-**What is in scope:** The strict-1:1 set with the `doca/{libs,services,tools}/` monorepo at DOCA 3.5 — 27 libraries + 4 services + 20 tools, plus `doca-dts` under `skills/services/`. (DOCA App Shield, the OS Inspector Service, and the Flow Inspector Service exist in the monorepo but are policy-excluded from this public bundle — see [`AGENTS.md ## Non-goals`](AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely) item 7.)
+**What is in scope:** The strict-1:1 set with the `doca/{libs,services,tools}/` monorepo at DOCA 3.5 — 24 libraries + 4 services + 15 tools, plus `doca-dts` under `skills/services/`. (DOCA App Shield, the OS Inspector Service, and the Flow Inspector Service exist in the monorepo but are policy-excluded from this public bundle — see [`AGENTS.md ## Non-goals`](AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely) item 7.)
 
 **What is intentionally out of scope (non-goal #7):** 26 externally-productized NVIDIA networking products that NVIDIA ships *outside* the DOCA monorepo — BlueField BSP / `bfb-install` / RShim, DOCA Platform Framework (DPF), NVIDIA Network Operator, MLNX_OFED-as-separate-install, NVIDIA UFM, NVIDIA Cumulus Linux, NVIDIA Firmware Tools (MFT), NVIDIA Rivermax SDK (the license layer), BlueField BMC, DOCA HBN, DOCA BlueMan, DOCA SNAP Services, DOCA Virtio-net Service, DOCA DPL Service (Pipeline Language), OVS-DOCA (ASAP² Open vSwitch offload), DOCA DPACC Compiler, DPA Tools, DOCA DPU CLI, DOCA Ngauge, `doca-hugepages` helper, DOCA Privileged Executor (DPE), NIC Configuration Operator, NVIDIA NetQ, NVIDIA NVOS, NVIDIA Spectrum-X Validated Solution Stack, NVIDIA GPU Operator. Each has a per-product row in [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md) with authoritative docs URL + common-gotcha class + Developer Forum entry. The bundle's contract requires agents to give the **three-part response** (recognize + name boundary + route with substance) for these — not a bare-URL handoff.
 

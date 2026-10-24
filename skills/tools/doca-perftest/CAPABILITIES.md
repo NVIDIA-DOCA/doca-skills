@@ -35,7 +35,7 @@ What the tool measures, which backends and memory types it supports, and what it
 ## Engines
 
 - Default CPU-driven engine.
-- `--engine gpunetio`: GPU-initiated data path (CUDA kernels post WQEs, ring doorbells, poll CQ). Write verb only, unidirectional only, needs `-r dv`, CUDA memory and a Volta+ GPU. Use the separate `doca-gpunetio-ib-write-bw` / `-lat` skills for the standalone GPU tools.
+- `--engine gpunetio`: GPU-initiated data path (CUDA kernels post WQEs, ring doorbells, poll CQ). Write verb only, unidirectional only, needs `-r dv`, CUDA memory and a Volta+ GPU.
 
 ## Traffic shapes
 

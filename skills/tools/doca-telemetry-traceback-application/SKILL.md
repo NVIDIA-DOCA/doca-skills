@@ -52,6 +52,10 @@ the request, and stop.
 - **"Can I monitor telemetry trends on the DPU without streaming all raw data?"** — in scope. Configure rules and sample history depth; do not use the DOCA Telemetry Diag API directly here.
 - **"The event log is empty even though a threshold was crossed."** — check rule `comparison_type` and `sample_history_depth`; differential rules require depth samples before functioning.
 - **"How do I build only this application?"** — use the Meson isolation flags; see the tasks companion.
+- **"I'm writing my own C code against the DOCA Telemetry Diag library to read counters."** — that part is
+  `doca-telemetry`'s: the application uses Diag internally, but programming the Diag API is not this skill.
+  Name `doca-telemetry` for it and do not write Diag API code here; handle every other part of the request
+  as this skill describes (for example, `--force-ownership` still goes through `doca-hardware-safety`).
 
 ## Quick facts
 

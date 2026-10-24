@@ -173,7 +173,7 @@ Providers" / "Enabling Providers" sections for the deployed version.
 > **Do-not-invent guard (providers).** Name a provider only if it is
 > in this table, in the guide, or on an `enable-provider=` line
 > (active or commented) of the user's generated config. Names you may
-> remember from CollectX internals or older releases (`hcaperf`,
+> remember from internal components or older releases (`hcaperf`,
 > `bluefield`, `ppcc`, …) are not to be offered unless the user's file
 > shows them — say "check the commented `enable-provider=` lines in
 > your generated `dts_config.ini`" instead.
@@ -233,8 +233,8 @@ block carry a commented NetFlow section (`#netflow-collector-ip=`,
 `#netflow-collector-port=`, "Exporter is disabled if this option is
 not set"). Say that it exists but is undocumented, point the user at
 the commented block in *their* generated config rather than asserting
-its semantics, and route collector-level NetFlow design to
-`doca-collectx-deployment/SKILL.md`.
+its semantics, and route collector-level NetFlow design to the
+public DTS guide via `doca-public-knowledge-map/SKILL.md`.
 Never name a key that is not in their file or the guide. A NetFlow
 "no" still owes a ladder for each alternative: *application-side
 NetFlow* through the exporter library → its own test / debug anchors
