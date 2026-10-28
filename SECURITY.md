@@ -11,7 +11,7 @@ for a runtime project, but two classes of issue are still in scope.
 | Class | What to do |
 | --- | --- |
 | **Leaked confidential or NVIDIA-internal information in a skill file** — internal URLs, internal hostnames, internal Jira / Bug numbers, customer names, embargoed unreleased features. | Do **not** open a public Issue. Email NVIDIA Product Security via <https://www.nvidia.com/en-us/security/> with the offending file path and line. We will rewrite or remove the content and force-push history if required. |
-| **Skill content that, if followed by an agent, could damage hardware or destabilise production** — wrong rollback procedure, missing safety pre-flight, hot-applied `mlxconfig`-class change. | Open an Issue on this repository and tag it `safety-bug`. Reference the offending skill file, the offending anchor, and the production scenario it misroutes. The on-call DOCA-skills maintainer triages safety-bugs ahead of feature work. |
+| **Skill content that, if followed by an agent, could damage hardware or destabilise production** — wrong rollback procedure, missing safety pre-flight, hot-applied `mlxconfig`-class change. | Open an Issue on this repository and tag it `safety-bug`. Reference the offending skill file, the offending anchor, and the production scenario it misroutes. Maintainers triage safety-bugs ahead of feature work. |
 | **External skill recommends running a third-party binary / curl-pipe-bash / unverified container image.** | Open a public Issue. Recommendations of that shape are out of policy and will be rewritten to route to the matching public NVIDIA install path. |
 
 ## Out of scope

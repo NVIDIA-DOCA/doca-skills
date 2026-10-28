@@ -19,7 +19,7 @@ description: >
   DOCA install/bring-up to doca-setup,
   and hardware or firmware state changes to doca-hardware-safety.
 metadata:
-  author: NVIDIA <doca@nvidia.com>
+  author: NVIDIA <doca-feedback@nvidia.com>
   kind: tool
   doca_version: "3.5"
   tags:
@@ -46,7 +46,10 @@ compatibility: >
 These requests are out of scope: say so, name the skill that owns
 the request, and stop.
 
-- installing DOCA and bringing up the DPL Runtime Service container: `doca-setup/SKILL.md`.
+- installing DOCA and bringing up the DPL Runtime Service container:
+  `doca-setup/SKILL.md`. Name `doca-setup` in the answer and route the
+  whole install/bring-up there; do not walk the install steps from this
+  skill or from the DPL Installation Guide.
 - DPU mode or firmware state changes: `doca-hardware-safety/SKILL.md`.
 - which DOCA version is installed, version compatibility: `doca-version/SKILL.md`.
 - authoring, compiling and deploying DPL programs (DOCA Pipeline Language Service Guide): `doca-public-knowledge-map/SKILL.md`.

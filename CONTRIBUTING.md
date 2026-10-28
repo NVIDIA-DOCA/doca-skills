@@ -1,11 +1,9 @@
 # Contributing to NVIDIA DOCA Skills
 
-> **Note — this public repository is a read-only mirror and is not accepting
-> external contributions.** It is generated and re-synced automatically from
-> NVIDIA's internal source of truth, so pull requests opened here cannot be
-> merged. The authoring rules below are the internal rules-of-engagement that
-> NVIDIA maintainers follow on the source repository; they are published here
-> for transparency. To report a problem or request a change, use the issue and
+> **Note — this repository is not accepting external contributions.** It is
+> maintained by NVIDIA, so pull requests opened here cannot be merged. The
+> authoring rules below are the rules NVIDIA maintainers follow; they are
+> published here for transparency. To report a problem or request a change, use the issue and
 > forum channels in the [README](README.md#getting-help--contributing).
 
 Thank you for your interest in improving the public DOCA agent-skills
@@ -59,34 +57,21 @@ Every shipping skill (libraries, services, tools) additionally ships:
   `provenance.signed_by`) are populated by NVIDIA's NVCARPS scanning +
   signing pipeline at publication time.
 
-## How a PR is gated
+## How changes are checked
 
-Pull requests merge only after every gate below is green:
+Every release passes automated checks before it is published:
 
-1. **DCO sign-off** — every commit on the PR has a
-   `Signed-off-by: Name <email>` line that matches the commit author.
-   Enforced by `.github/workflows/nvskills-ci.yml`.
-2. **NVCARPS scan** — comment `/nvskills-ci` on the PR to trigger
-   NVIDIA's central scanning + signing pipeline. The pipeline
-   validates each `SKILL.md` against the agentskills.io spec,
-   scans for prompt-injection patterns and supply-chain risks, and
-   on success produces `*.sig` signature files plus filled-in
-   `SKILLCARD.yaml` metadata.
-3. **Bundle regression suite** — the DOCA team's internal CI runs a
-   structural-regression suite (per-skill conformance, anchor density,
-   public-source-URL allowlist, cross-link integrity,
-   AgentSkills.io reference validity, frozen-baseline no-regression).
-   This suite is upstream-of-publish and runs against every PR before
-   the bundle is mirrored into the NVIDIA Skills catalog.
-4. **Deep end-to-end suite** — for any PR that changes a shipping
-   skill, the DOCA team's internal CI re-grades the affected
-   artifact's end-to-end behaviour against a strict grader rubric
-   (see [`BENCHMARK.md`](BENCHMARK.md)). PRs that introduce a
-   `PASS→FAIL` against the frozen baseline are rejected.
-
-The first two gates run in this public repo. The last two run upstream
-in the DOCA team's internal development repo and must be green before
-a release lands in this catalog.
+1. **Signing** — each skill is scanned and signed by NVIDIA's skills
+   publishing pipeline, which validates each `SKILL.md` against the
+   agentskills.io spec, scans for prompt-injection patterns and
+   supply-chain risks, and produces the `*.sig` signature files plus the
+   filled-in `SKILLCARD.yaml` metadata.
+2. **Structural checks** — per-skill conformance, anchor density,
+   public-source-URL allowlist, cross-link integrity, AgentSkills.io
+   reference validity, and no regression against the previous release.
+3. **End-to-end checks** — changed skills are re-graded against a strict
+   grader rubric (see [`BENCHMARK.md`](BENCHMARK.md)); a regression
+   blocks the release.
 
 ## What does NOT belong in this bundle
 

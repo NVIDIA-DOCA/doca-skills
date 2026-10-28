@@ -35,7 +35,7 @@ compatibility: >
 # DOCA Telemetry Service (DTS)
 
 **Scope note.** DTS is an *externally productized* DOCA service: it is
-not built from `doca/services/` in the DOCA monorepo, and its source of
+not one of the DOCA SDK libraries, and its source of
 truth is the public DTS guide plus the NGC container / helm-chart pages
 and the DOCA Platform (DPF) public docs. This skill covers DTS **as
 deployed and configured** — which manifest or invocation starts it,
@@ -284,10 +284,6 @@ and pull requests should not add:
   split: IPC socket / shared-memory mounts are this skill's, the
   `doca_telemetry_exporter_*` calls are that skill's.
 - `doca-public-knowledge-map/SKILL.md`
-  — URL routing for the public DOCA documentation set. The map's
-  externally-productized routing table (`references/map.md`) carries a
-  DTS-as-deployed row that still routes DTS as out of scope with a bare
-  guide URL, and `AGENTS.md ## Non-goals` still lists it; until the
-  owners repoint both at this skill,
+  — URL routing for the public DOCA documentation set;
   [`CAPABILITIES.md ## Public-source pointer`](CAPABILITIES.md#public-source-pointer)
-  carries the DTS guide, NGC and DPF URLs directly.
+  carries the DTS guide, NGC and DPF URLs.

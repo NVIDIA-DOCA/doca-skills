@@ -20,8 +20,8 @@ contract without forcing the reader to leave the repository.
   contributions about hardware safety, version pinning, and rollback paths
   with the same care you would give a production change.
 - No private commercial information, no embargoed feature names, no
-  NVIDIA-internal URLs. Public sources only — enforced upstream by the
-  DOCA skills development pipeline and by NVCARPS at publication time.
+  NVIDIA-internal URLs. Public sources only — enforced by automated checks
+  and by NVCARPS at publication time.
 - Follow [`CONTRIBUTING.md`](CONTRIBUTING.md) for the rules of engagement.
 
 ## Reporting
@@ -46,5 +46,5 @@ This Code of Conduct applies to:
 - All interactions on this repository (Issues, Pull Requests, Discussions,
   review comments, commit messages).
 - Out-of-band channels used to coordinate work on this repository (email
-  threads, internal NVIDIA channels mirrored back to this repo, public
+  threads, public
   forums where this repository is being discussed).

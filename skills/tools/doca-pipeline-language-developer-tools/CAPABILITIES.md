@@ -106,7 +106,8 @@ Starting a debug session adds two more prerequisites:
 
 **Availability.** The developer tools are included in the DPL
 Development Container, which is publicly available on NGC.
-Installation instructions refer to the DPL Installation Guide.
+Installation instructions refer to the DPL Installation Guide; DOCA
+install and DPL Runtime Service bring-up requests route to `doca-setup`.
 
 ## Version compatibility
 
@@ -140,7 +141,7 @@ DPL Debugger exposes packet flow through the DPL program as a
 graphical interface. P4 Runtime Shell exposes the P4Runtime API
 control plane. DPL Admin exposes and changes configuration items
 in the DPL Runtime Daemon. No separate logging or metrics surface
-is documented in the provided material; the agent must not invent
+is documented in the public DPL Developer Tools guide; the agent must not invent
 one.
 
 ## Safety policy
@@ -162,9 +163,9 @@ one.
 
 ## Public-source pointer
 
-The only public-source pointer documented in the provided material
-is the P4 Runtime Shell, described as an open-source control plane
+The only public-source pointer documented in the public DPL
+Developer Tools guide is the P4 Runtime Shell, described as an open-source control plane
 manager implementing the P4Runtime API. The DPL Development
 Container is publicly available on NGC as a distribution channel;
 no source repository for the other tools is documented in the
-provided material. The agent must not invent source URLs.
+guide. The agent must not invent source URLs.

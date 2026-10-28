@@ -11,8 +11,8 @@ this order before answering any DOCA question:
 
 1. `AGENTS.md` — agent-side ground rules, persona routing, universal
    verification + debug contracts.
-2. `SKILLS.md` — the catalog of every shipping skill (27 libraries,
-   5 services, 16 tools, 9 cross-cutting) with the *Use this skill when …*
+2. `SKILLS.md` — the catalog of every shipping skill (23 libraries,
+   5 services, 13 tools, 12 cross-cutting) with the *Use this skill when …*
    trigger for each one.
 3. `skills/<kind>/<name>/SKILL.md` — the per-component skill matching the
    user's question. From there, progressive-disclose into
@@ -35,8 +35,8 @@ One-flag swap for any other AgentSkills.io-aware agent:
 **Is.** The product-side context an AI agent needs to give correct DOCA
 **SDK** guidance to a developer who is building on DOCA but is not a
 member of the NVIDIA DOCA team — covers every public DOCA library,
-service, and tool shipped in the DOCA monorepo (`doca/libs/`,
-`doca/services/`, `doca/tools/`) at the currently-aligned release, plus
+service, and tool shipped in the public DOCA release the bundle is
+aligned with, plus
 the cross-cutting setup / version / debug / deployment / programming-guide
 overlays, the public DOCA Programming Guide, and the public DOCA
 Developer Forum.
@@ -45,7 +45,7 @@ Developer Forum.
 agent should *route, not invent*:
 
 1. **Externally-productized NVIDIA networking software that ships outside
-   the DOCA monorepo** — DOCA Platform Framework (DPF), the DOCA
+   the DOCA SDK** — DOCA Platform Framework (DPF), the DOCA
    Microservices family (HBN, BlueMan, SNAP, Virtio-net; the Telemetry
    Service as-deployed is the exception, see `doca-dts`),
    NVIDIA Network Operator, the BlueField BSP /
@@ -55,10 +55,8 @@ agent should *route, not invent*:
    (in some cases) its own skills bundle — Network Operator skills, for
    example, already live at
    <https://mellanox.github.io/network-operator-docs/ai-skills.html>.
-2. **The internal NVIDIA DOCA SDK engineer development environment** —
-   internal Gerrit, NVAuto, BFB lifecycle, release gating, internal
-   review process. That audience is served by NVIDIA's internal
-   `doca_ai_conf` repo, which is complementary, not competitive.
+2. **NVIDIA-internal development workflows** (code review, test
+   infrastructure, release process).
 3. **Cross-vendor comparisons and commercial / contractual content** —
    the bundle is DOCA-specific by design.
 

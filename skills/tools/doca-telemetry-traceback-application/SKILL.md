@@ -18,7 +18,7 @@ description: >
   doca-telemetry, DOCA install/bring-up to doca-setup, and version
   questions to doca-version.
 metadata:
-  author: NVIDIA <doca@nvidia.com>
+  author: NVIDIA <doca-feedback@nvidia.com>
   kind: tool
   doca_version: "3.5"
   tags:
@@ -49,10 +49,10 @@ the request, and stop.
 
 ## Examples
 
-- **"Can I monitor telemetry trends on the DPU without streaming all raw data?"** — in scope. Configure rules and sample history depth; do not use the DOCA Telemetry Diag API directly here.
-- **"The event log is empty even though a threshold was crossed."** — check rule `comparison_type` and `sample_history_depth`; differential rules require depth samples before functioning.
-- **"How do I build only this application?"** — use the Meson isolation flags; see the tasks companion.
-- **"I'm writing my own C code against the DOCA Telemetry Diag library to read counters."** — that part is
+- **“Can I monitor telemetry trends on the DPU without streaming all raw data?”** — in scope. Configure rules and sample history depth; do not use the DOCA Telemetry Diag API directly here.
+- **“The event log is empty even though a threshold was crossed.”** — check rule `comparison_type` and `sample_history_depth`; differential rules require depth samples before functioning.
+- **“How do I build only this application?”** — use the Meson isolation flags; see the tasks companion.
+- **“I'm writing my own C code against the DOCA Telemetry Diag library to read counters.”** — that part is
   `doca-telemetry`'s: the application uses Diag internally, but programming the Diag API is not this skill.
   Name `doca-telemetry` for it and do not write Diag API code here; handle every other part of the request
   as this skill describes (for example, `--force-ownership` still goes through `doca-hardware-safety`).
@@ -118,27 +118,27 @@ The CLASSES of telemetry-traceback questions this skill is built to answer,
 each with one worked example. The class is the load-bearing piece; the
 worked example is one instance.
 
-- **"How do I set up local telemetry monitoring with traceback logging?"** —
-  worked example: *"I want to monitor `port_0_rx_bytes` on the DPU and log
-  history before and after it exceeds 1 MB/s"*. Answered by the JSON
+- **“How do I set up local telemetry monitoring with traceback logging?”** —
+  worked example: *“I want to monitor `port_0_rx_bytes` on the DPU and log
+  history before and after it exceeds 1 MB/s”*. Answered by the JSON
   configuration and rule definitions in the tasks companion.
-- **"What rule types are available and when do they activate/deactivate?"** —
-  worked example: *"I need a rule that triggers each time a counter increases
-  by a threshold, not just when it exceeds a fixed value"*. Answered by the
+- **“What rule types are available and when do they activate/deactivate?”** —
+  worked example: *“I need a rule that triggers each time a counter increases
+  by a threshold, not just when it exceeds a fixed value”*. Answered by the
   rule definitions in the capabilities companion.
-- **"Why is my differential rule not triggering?"** — worked example: *"I
-  configured `differential_greater_than` but the event log stays empty"*.
+- **“Why is my differential rule not triggering?”** — worked example: *“I
+  configured `differential_greater_than` but the event log stays empty”*.
   Answered by the depth requirement and delta logic in the capabilities
   companion.
-- **"How do I compile and run only this application?"** — worked example: *"I
-  want to build just the Telemetry Traceback app, not all DOCA applications"*.
+- **“How do I compile and run only this application?”** — worked example: *“I
+  want to build just the Telemetry Traceback app, not all DOCA applications”*.
   Answered by the Meson isolation flags in the tasks companion.
-- **"What does the event log contain when multiple events overlap?"** —
-  worked example: *"Two rules trigger at the same time; how are begin/end
-  markers written?"*. Answered by the event log lifecycle in the capabilities
+- **“What does the event log contain when multiple events overlap?”** —
+  worked example: *“Two rules trigger at the same time; how are begin/end
+  markers written?”*. Answered by the event log lifecycle in the capabilities
   companion.
-- **"How do I know if my device supports the data IDs I configured?"** —
-  worked example: *"The application reports unsupported IDs; what do I do?"*.
+- **“How do I know if my device supports the data IDs I configured?”** —
+  worked example: *“The application reports unsupported IDs; what do I do?”*.
   Answered by the unsupported data ID handling in the tasks companion.
 
 ## When to load this skill

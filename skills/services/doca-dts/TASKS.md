@@ -108,7 +108,7 @@ before any artifact is written.
    on (C) either `configMapData.levelLabels` (template-only key — not
    in `values.yaml`; verify with `helm template`, not `helm show values`)
    or per-DPU generation by a `DPUFlavorTemplate`
-   into `/opt/mellanox/doca/telemetry/config-dpu/level_labels.ini` —
+   into the DPU's `level_labels.ini` —
    which **reprovisions DPUs** when template or `DPUDevice` values
    change. Confirm with `helm show values` and the DPF level-labels page
    which carrier the pinned chart wires into `level-labels-file=`; do
@@ -496,7 +496,7 @@ the pinned version is the only source for the verbatim form. `<addr>`,
 | --- | --- | --- | --- |
 | Shape detection | `uname -m`, `lspci -d 15b3:`, `cat /etc/mlnx-release` (BlueField bundle) or `/etc/nvidia/bf-release` (if present) | [`## configure`](#configure) step 1 | Output pins exactly one of (A)/(B)/(C); user acknowledges. |
 | (A) pod state | `crictl pods`, `crictl ps` | [`## run`](#run), [`## test`](#test) step 1 | DTS pod Ready, container Running, restart count flat across two reads. |
-| (A) logs | `crictl logs <container-id>` (init container id for layer 3); persisted copy under the host dir the yaml's `volumes:` maps to `/var/log` (`/var/log/doca/telemetry` in the shipped yaml) | [`## debug`](#debug) layers 3–4 | Start-up block lists the intended providers as enabled; no repeating provider / exporter error; exporter statistics lines recur at their `*-stats-log-interval-sec`. |
+| (A) logs | `crictl logs <container-id>` (init container id for layer 3); persisted copy under the host dir the yaml's `volumes:` maps to `/var/log` (`/var/log/doca/telemetry` in the shipped yaml) | [`## debug`](#debug) layers 3–4 | Start-up block lists the intended providers as enabled; no repeating provider / exporter error. |
 | Management API (all shapes, needs `prometheus=`) | `curl -s <addr>:<port>/management` (route table), `/management/provider`, `/management/provider/<name>`, `/management/exporter`, `/management/exporter/<name>`, `/management/config_file`, `/management/all_configs`, `/management/(cset\|fset\|xcset)[/<name>]` | [`## test`](#test), [`## debug`](#debug) layers 4–5 | Providers report `run_status: running`; exporter `statistics` counters increase between two calls; `config_file` shows your edit. |
 | In-container log (all shapes) | `crictl exec <id> tail -n 200 /var/log/clx.log` / `docker exec doca-telemetry tail -n 200 /var/log/clx.log` / `kubectl exec <pod> -- tail -n 200 /var/log/clx.log` | [`## debug`](#debug) | Start-up block (`# of enabled providers`) present; no repeating provider / exporter error. |
 | Log verbosity (all shapes) | `verbose=` in the generated `dts_config.ini` (scale in its inline comment: error / info / debug); raise for one restart cycle, then restore | [`## debug`](#debug) | Debug-level lines appear after the restart; value restored afterwards. |
@@ -583,8 +583,5 @@ Three cross-cutting rules for this appendix:
   then rollback.
 - For URL routing see
   `doca-public-knowledge-map/SKILL.md`;
-  its externally-productized table (`references/map.md`) still routes
-  DTS-as-deployed as out of scope and `AGENTS.md ## Non-goals` still
-  lists it, so until the owners repoint them at this skill
   [`CAPABILITIES.md ## Public-source pointer`](CAPABILITIES.md#public-source-pointer)
-  carries the guide, NGC, and DPF URLs directly.
+  carries the guide, NGC, and DPF URLs.

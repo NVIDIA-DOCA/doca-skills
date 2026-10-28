@@ -10,7 +10,7 @@ cd doca-skills
 ./install.sh --agent <cursor|claude-code|codex|gemini-cli|kiro-cli>
 ```
 
-Pick the agent you use. The installer writes (or symlinks) the 61 skill
+Pick the agent you use. The installer writes (or symlinks) the 53 skill
 folders into the right discovery path for that agent. Repeat with another
 `--agent` flag if you use more than one — they don't collide.
 
@@ -53,15 +53,16 @@ for `~/.claude/skills/`, `~/.agents/skills/` (Codex / cross-platform), or
 
 ## What's in the bundle
 
-- **27 library skills** (one per DOCA library — Flow, RDMA, GPUNetIO,
+- **23 library skills** (one per DOCA library — Flow, RDMA, GPUNetIO,
   AES-GCM, Telemetry, …)
-- **4 service skills** (Firefly, DMS, Argus, URO M Svc)
-- **16 tool skills** (bench, caps, flow-perf, flow-tune,
+- **5 service skills** (Firefly, DMS, Argus, UROM Service, DTS)
+- **13 tool skills** (bench, caps, flow-tune,
   pcc-counters, …)
-- **10 cross-cutting skills** that overlay on top of any per-component
+- **12 cross-cutting skills** that overlay on top of any per-component
   answer: `doca-setup`, `doca-version`, `doca-debug`,
   `doca-programming-guide`, `doca-public-knowledge-map`,
   `doca-container-deployment`, `doca-bare-metal-deployment`,
+  `doca-bf3-deployment`, `doca-bf4-deployment`, `doca-upgrade`,
   `doca-hardware-safety`, `doca-structured-tools-contract`.
 
 ## Next steps
@@ -90,28 +91,23 @@ workflow.
 SDK** — meant for anyone building an application against the public DOCA
 libraries, services, or tools from outside the NVIDIA DOCA SDK team.
 
-**Covers (in scope).** Every public DOCA **library** under `doca/libs/`,
-every public DOCA **service** under `doca/services/`, every public DOCA
-**tool** under `doca/tools/`, plus the cross-cutting setup / version /
+**Covers (in scope).** Every public DOCA **library**, every public DOCA
+**service**, every public DOCA **tool**, plus the cross-cutting setup / version /
 debug / deployment / programming-guide overlays.
 
 **Does not cover (out of scope on purpose; routed to the right owner).**
 
-- **DOCA Platform Framework (DPF)** — separately-productized; DPF
-  skills are being prepared as part of the DPF PoR. Ask DPF-specific
-  questions against the DPF docs / DPF skills, not this bundle.
-- **DOCA Microservices** (HBN, BlueMan, SNAP, Virtio-net, Telemetry
-  Service as-deployed) — productized externally to `doca/services/` and
-  not modelled here.
+- **DOCA Platform Framework (DPF)** — separately-productized. Ask DPF-specific
+  questions against the DPF docs, not this bundle.
+- **DOCA Microservices** (HBN, BlueMan, SNAP, Virtio-net) — productized
+  outside the DOCA SDK and not modelled here (DTS as deployed is covered
+  by `doca-dts`).
 - **NVIDIA Network Operator** — has its own AI skills at
   <https://mellanox.github.io/network-operator-docs/ai-skills.html>;
   use those.
 - **BlueField BSP / BFB / RShim / TMFIFO / BMC** lifecycle — out of
   bundle; the agent will route to public BlueField BSP docs.
 
-If you're *inside* the NVIDIA DOCA SDK team and need Gerrit-upload /
-NVAuto / BFB-build / release-gate workflows, the internal `doca_ai_conf`
-repo is the better fit; the two bundles are complementary, not
-competing. When you ask this bundle an out-of-scope question, the agent
+NVIDIA-internal development workflows are out of scope for this bundle. When you ask this bundle an out-of-scope question, the agent
 should name the boundary explicitly and route you to the right docs URL
 + Developer Forum search — never invent an answer.

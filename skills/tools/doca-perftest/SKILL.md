@@ -13,7 +13,7 @@ description: >
   test from a JSON scenario". Refuse and route elsewhere for DOCA install
   (doca-setup), DOCA Bench (doca-bench), and application-level throughput.
 metadata:
-  author: NVIDIA <doca@nvidia.com>
+  author: NVIDIA <doca-feedback@nvidia.com>
   kind: tool
   doca_version: "3.5"
   tags:
@@ -47,7 +47,7 @@ Load this skill when the user wants to — or the agent needs to — run
   inconsistent latency across runs.
 
 Do **not** load this skill for DOCA install (`doca-setup`), the doca-bench harness,
-control-plane flow-rule rate (`doca-flow-perf`), or application-level
+Flow pipeline tuning (`doca-flow-tune`), or application-level
 throughput.
 
 ## Examples

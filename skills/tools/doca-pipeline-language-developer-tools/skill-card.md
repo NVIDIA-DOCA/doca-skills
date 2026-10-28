@@ -1,5 +1,5 @@
 ## Description: <br>
-Guides an agent driving the DOCA Pipeline Language (DPL) Developer Tools — DPL Nspect, DPL Debugger, DPL Admin, P4 Runtime Shell, and the DPL Runtime Controller SDK — to inspect and debug DPL programs running on a BlueField DPU. <br>
+Guides an agent in driving the DOCA Pipeline Language (DPL) Developer Tools on a BlueField DPU — DPL Nspect for runtime state such as tables, keys, and counters, DPL Debugger for packet-flow visualization, DPL Admin for dynamic configuration changes in the DPL Runtime Daemon (`dpl_rtd`), P4 Runtime Shell as a P4Runtime control plane manager, and the DPL Runtime Controller SDK for custom P4Runtime applications and DPL shared memory APIs — while routing DPL program authoring/compilation/deployment, DOCA install, version, and hardware or firmware state changes to their owning skills or guides. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -7,9 +7,9 @@ This skill is ready for commercial/non-commercial use. <br>
 NVIDIA <br>
 
 ### License/Terms of Use: <br>
-Apache 2.0 AND CC-BY-4.0 <br>
+Apache 2.0 <br>
 ## Use Case: <br>
-Developers and engineers inspecting and debugging DOCA Pipeline Language (DPL) programs on a BlueField DPU use this skill to drive the DPL Developer Tools — inspecting runtime state (tables, keys, counters), visualizing packet flow, dynamically modifying dpl_rtd configuration, and building custom P4Runtime applications — while routing authoring, install, version, and hardware/firmware changes to other skills. <br>
+Developers, network and platform engineers, and AI agents use this skill to inspect and debug DPL programs loaded on a BlueField DPU — inspecting runtime tables and counters, visualizing packet flow, changing `dpl_rtd` configuration items, building custom P4Runtime control-plane applications, and diagnosing why the developer tools cannot reach `dpl_rtd`. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
@@ -25,57 +25,58 @@ Risk: Review before execution as proposals could introduce incorrect or misleadi
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [DOCA SDK Documentation](https://docs.nvidia.com/doca/sdk/index.html) <br>
-- [NVIDIA DOCA Enterprise Networking Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
-- [Capabilities companion](CAPABILITIES.md) <br>
-- [Tasks companion](TASKS.md) <br>
+- [CAPABILITIES.md](CAPABILITIES.md) <br>
+- [TASKS.md](TASKS.md) <br>
+- [DOCA SDK Documentation Index](https://docs.nvidia.com/doca/sdk/index.html) <br>
+- [NVIDIA DOCA Developer Forum](https://forums.developer.nvidia.com/c/infrastructure/doca/370) <br>
 
 
 ## Skill Output: <br>
 **Output Type(s):** [Analysis, Shell commands, Configuration instructions] <br>
-**Output Format:** [Markdown with inline command examples] <br>
+**Output Format:** [Markdown with inline bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
 
 ## Evaluation Agents Used: <br>
-- Claude Code (`aws/anthropic/bedrock-claude-sonnet-5-5`) <br>
-- Codex (`openai/openai/gpt-5.5`) <br>
+- Claude Code (`aws/anthropic/bedrock-claude-opus-5-5`) <br>
+- Codex (`openai/openai/gpt-6.1-sol`) <br>
 
 
 
 ## Evaluation Tasks: <br>
-5 evaluation tasks (3 positive, 2 negative), each attempt run in its own isolated sandbox pod (k8s-sandbox). <br>
+5 evaluation tasks (3 positive, 2 negative), one attempt per task, each in an isolated k8s-sandbox pod. <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
-- Security: Is it safe to use — checks for unsafe operations, secret leakage, and unauthorized access. <br>
-- Correctness: Is the answer correct — final-answer correctness against the reference answer. <br>
-- Discoverability: Was the right skill loaded when needed — expected skill selected and decoys avoided. <br>
-- Effectiveness: Did the skill help complete the task — equal-weight mean of goal completion and expected workflow adherence. <br>
-- Efficiency: Did it avoid wasted tool calls and token usage — tool-call productivity and token efficiency. <br>
+- Security: Whether the skill is safe to use, checking for unsafe operations, secret leakage, and unauthorized access. <br>
+- Correctness: Whether the final answer is correct against the reference answer. <br>
+- Discoverability: Whether the expected skill was loaded when needed and decoys were avoided. <br>
+- Effectiveness: Whether the skill helped complete the task, as the equal-weight mean of goal completion and expected-workflow adherence. <br>
+- Efficiency: Whether the skill avoided wasted tool calls and token usage, as the equal-weight mean of tool-call productivity and token efficiency. <br>
 
 Underlying evaluation signals used in this run: <br>
 - `security`: Unsafe operations, secret leakage, and unauthorized access. <br>
-- `skill_execution`: Whether the expected skill was selected, decoys were avoided, and the workflow executed. <br>
 - `accuracy`: Final-answer correctness against the reference answer. <br>
+- `skill_execution`: Whether the expected skill was selected, decoys were avoided, and the workflow executed. <br>
 - `goal_accuracy`: Whether the user's goal was achieved. <br>
 - `behavior_check`: Whether the expected workflow behavior was followed. <br>
-- `skill_efficiency`: Tool-call productivity (legacy wire id; routing is scored under Discoverability). <br>
+- `skill_efficiency`: Tool-call productivity. <br>
+- `token_efficiency`: Actual uncached prompt plus completion token usage. <br>
 
 
 
 ## Evaluation Results: <br>
 | Measure | Claude Code (Baseline -> Skill Uplift) | Codex (Baseline -> Skill Uplift) |
 |---|---:|---:|
-| Overall | 90.3% (uplift unavailable) | 93.4% (uplift unavailable) |
-| Security | 100.0% -> 100.0% (+0.0 points) | 100.0% -> 100.0% (+0.0 points) |
-| Correctness | 20.0% -> 100.0% (+80.0 points) | 72.0% -> 100.0% (+28.0 points) |
-| Discoverability | 100.0% (uplift unavailable) | 95.0% (uplift unavailable) |
-| Effectiveness | 23.7% -> 91.0% (+67.3 points) | 31.2% -> 93.0% (+61.8 points) |
-| Efficiency | 60.7% (uplift unavailable) | 79.1% (uplift unavailable) |
+| Overall | 92.2% (uplift unavailable) | 92.5% (uplift unavailable) |
+| Security | 100.0% -> 100.0% (±0.0 points) | 90.0% -> 100.0% (+10.0 points) |
+| Correctness | 40.0% -> 88.0% (+48.0 points) | 64.0% -> 96.0% (+32.0 points) |
+| Discoverability | 100.0% (uplift unavailable) | 93.3% (uplift unavailable) |
+| Effectiveness | 25.0% -> 85.0% (+60.0 points) | 35.0% -> 100.0% (+65.0 points) |
+| Efficiency | 88.1% (uplift unavailable) | 73.4% (uplift unavailable) |
 
 ## Skill Version(s): <br>
-3bc1c5d (source: git SHA, committed 2026-10-22) <br>
+c98e456 (source: git SHA, committed 2026-10-28) <br>
 
 ## Ethical Considerations: <br>
 NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications. When downloaded or used in accordance with our terms of service, developers should work with their internal team to ensure this skill meets requirements for the relevant industry and use case and addresses unforeseen product misuse. <br>

@@ -35,7 +35,7 @@
       "id": "doca-perftest.negative.v1",
       "prompt": "I need to build a DOCA Flow pipeline that forwards packets between two representors and count hits per rule. How should I approach this?",
       "expected_skill": null,
-      "expected_output": "PASS when the answer names doca-flow (the DOCA Flow library skill) as the guidance that owns this request \u2014 not doca-perftest.",
+      "expected_output": "PASS when the answer names doca-flow (the DOCA Flow library skill) as the guidance that owns this request — not doca-perftest.",
       "assertions": [
         "The answer names doca-flow as the skill that owns this request."
       ]
@@ -43,10 +43,10 @@
     {
       "id": "doca-perftest.negative.v2",
       "prompt": "How many flow rules per second can the host CPU path install and delete? Which tool measures that?",
-      "expected_skill": "doca-flow-perf",
-      "expected_output": "PASS when the answer names doca-flow-perf (the doca_flow_perf tool) as the tool that measures rule install/delete rate \u2014 not doca-perftest.",
+      "expected_skill": "doca-flow-tune",
+      "expected_output": "PASS when the answer does not present doca-perftest (an RDMA data-plane benchmark) as the tool for Flow rule install/delete rates, and points to doca-flow-tune monitor mode for the running pipeline's rule-install rate.",
       "assertions": [
-        "The answer names doca-flow-perf as the tool that owns this measurement."
+        "The answer keeps doca-perftest out of Flow rule-rate measurement and routes the question to doca-flow-tune."
       ]
     }
   ]

@@ -173,7 +173,7 @@ Providers" / "Enabling Providers" sections for the deployed version.
 > **Do-not-invent guard (providers).** Name a provider only if it is
 > in this table, in the guide, or on an `enable-provider=` line
 > (active or commented) of the user's generated config. Names you may
-> remember from internal components or older releases (`hcaperf`,
+> remember from older releases (`hcaperf`,
 > `bluefield`, `ppcc`, …) are not to be offered unless the user's file
 > shows them — say "check the commented `enable-provider=` lines in
 > your generated `dts_config.ini`" instead.
@@ -266,11 +266,9 @@ owns the failure before debugging.
   from `values.yaml`, so `helm show values` will not list it; verify
   with `helm template` on the pinned chart version),
   while the fleet-scale path
-  is: `DPUDevice.spec.values` (podId, suId, rack, eastWestDevices…)
-  rendered by a `DPUFlavorTemplate` Go template into a `DPUFlavor`
-  `configFiles` entry at
-  `/opt/mellanox/doca/telemetry/config-dpu/level_labels.ini`,
-  referenced from `DPUDeployment.spec.dpus.flavorTemplate` or
+  is: per-DPU `DPUDevice.spec.values` rendered by a
+  `DPUFlavorTemplate` Go template into a `DPUFlavor` `configFiles`
+  entry for `level_labels.ini`, referenced from `DPUDeployment.spec.dpus.flavorTemplate` or
   `DPUSet.spec.dpuTemplate.spec.dpuFlavorTemplate`. Rendered
   sections: `[global_labels] [device_labels] [device_mapping]
   [data_types_mapping]`. Preview with
@@ -470,12 +468,8 @@ Documented observability surfaces, by shape:
   expects that is absent or rejected there is a misspelled name or an
   unmet prerequisite (layer 4), while a provider that came up followed
   by an exporter complaining is layer 5. Quote the exact line from the
-  user's log; do not paraphrase it from memory. *Steady state:* if your
-  generated `dts_config.ini` carries `*-stats-log-interval-sec` keys
-  (newer builds; the 1.26.5-doca3.5.0 image does not), the exporters
-  log periodic throughput / statistics lines at that interval and an
-  exporter silent for longer than its interval is itself a signal;
-  without those keys, judge steady state from `/metrics` or the
+  user's log; do not paraphrase it from memory. *Steady state:*
+  judge steady state from `/metrics` or the
   destination, not from log cadence. *Verbosity:* the `verbose=` key in the generated
   `dts_config.ini` carries its own scale in the inline comment
   (error / info / debug); raise it for one restart cycle and restore it
@@ -591,9 +585,3 @@ The canonical public sources for DTS are:
 
 Verify that the guide page version matches the DOCA component of the
 deployed container tag / chart version before quoting option names.
-The bundle's `doca-public-knowledge-map/SKILL.md`
-carries a **DTS-as-deployed row in its externally-productized routing
-table** (`references/map.md`) that still routes DTS as out of scope
-with a bare guide URL, and `AGENTS.md ## Non-goals` still lists
-DTS-as-deployed; until the owners repoint both at this skill, this
-section carries the URLs directly.

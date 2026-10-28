@@ -5,10 +5,7 @@ the test surface is, how it is graded, what counts as "green", and where the
 artifacts live. It is the BENCHMARK.md companion to `LICENSE`, `CONTRIBUTING.md`,
 and `SECURITY.md` required by the NVIDIA Skills Publishing Onboarding contract.
 
-The skills themselves are documentation. The repository also carries a
-separately qualified read-only MCP plugin and an opt-in private-review operator,
-so structural qualification covers both Markdown behavior and executable plugin
-contracts. The grading rubric is deliberately strict: the bundle's job is to
+The skills themselves are documentation. The grading rubric is deliberately strict: the bundle's job is to
 keep agents from inventing symbols, paths, flags, or subcommands, and from
 skipping safety-relevant preconditions.
 
@@ -19,7 +16,7 @@ Two orthogonal axes:
 | Axis | What it measures | How it runs |
 | --- | --- | --- |
 | **A. Structural regression** | The bundle still satisfies every declared contract (skill structure, links and anchors, public-source URLs, frontmatter `kind`, AgentSkills.io validity, non-goal routing, JTBD coverage, plugin qualification, and publishing readiness). | The manifest-driven suite runs every required static gate and reports any optional or post-evaluation gate separately; a skip is never printed as an all-gates pass. |
-| **B. Per-skill end-to-end agent behavior** | A real AI agent is handed the bundle and one end-to-end prompt per shipping skill. A separate strict grader subagent then grades the response on 5 dimensions against the bundle's authoritative skill files. | Generator + per-prompt agent dispatch + per-response grader dispatch + aggregation. Same internal pipeline as Axis A. |
+| **B. Per-skill end-to-end agent behavior** | A real AI agent is handed the bundle and one end-to-end prompt per shipping skill. A separate strict grader subagent then grades the response on 5 dimensions against the bundle's authoritative skill files. | Generator + per-prompt agent dispatch + per-response grader dispatch + aggregation. |
 
 Both axes run from the same source-of-truth bundle layout (`AGENTS.md`,
 `SKILLS.md`, `skills/<kind>/<name>/{SKILL,CAPABILITIES,TASKS}.md`).
@@ -46,13 +43,13 @@ checked against that manifest on every run.
 | `quality-schema-validation` | Current/prior evidence schemas and negative fixtures | Required static |
 | `eval-validity` | Complete label-free eval kinds, hard set, wrong-context arm, and grader fixtures | Required static |
 | `benchmark-evidence` | Post-sign evidence has its source dataset, matching task count, PASS verdict, and the NVCARPS-recorded attempt count | Required post-sign |
-| `skill-quality-report` | Generated 60-skill scorecard, context analysis, and HTML dashboard | Required static |
+| `skill-quality-report` | Generated per-skill scorecard and context analysis | Required static |
 | `advisory-agent-policy` | Classification routing, budgets, denials, checkpoints, and human interrupt | Required static |
 | `public-surface-invariants` | Five publish-surface invariants | Required static |
-| `public-mirror-boundary` | Exact allowlisted mirror has no private/plugin paths or hygiene findings | Required static and release |
+| `public-mirror-boundary` | Published file set matches the allowlist and passes hygiene | Required static and release |
 | `live-hardware-harness` | Read-only live-hardware adapter fixtures | Required static |
 | `agentskills-io-compliance` | Agent Skills frontmatter and layout contract | Required static |
-| `non-goal-routing` | Live externally-productized routing table (currently 26 product rows) and public count | Required static |
+| `non-goal-routing` | Live externally-productized routing table (currently 25 product rows) and public count | Required static |
 | `reference-hygiene` | No internal paths, audit history, or private references | Required static |
 | `url-liveness` | Full public URL GET validation | Required in CI/release; network-declared locally |
 | `nvskills-readiness` | NVIDIA Skills publishing artifacts | Required static |
@@ -60,21 +57,17 @@ checked against that manifest on every run.
 | `plugin-verification` | Signed plugin/operator build, reproducibility, install, and security | Required post-sign |
 | `plugin-mutation` | Fixed security-mutant catalog with a 100% current baseline | Nightly/opt-in; required for release |
 | `frontmatter-kind` | `libs→library`, `services→service`, `tools→tool` | Required static |
-| `jenkinsfile-budget-and-syntax` | Groovy parse plus frozen monolith line budget | Required static |
 | `deep-e2e-generate` | Deterministic prompt/grader generation for every skill | Required static |
 | `no-regression` | Comparable post-evaluation evidence has no blocking regression | Required post-evaluation |
 | `eval-replay-regression` | Candidate replay has no decisive failure (a task passing zero of its attempts), no hard veto, no unsound evidence, and no bundle pass-rate drop against the frozen baseline | Required post-evaluation; tasks that pass some attempts but not a majority are recorded as unstable and also block under `release` |
+| `jenkinsfile-budget-and-syntax` | CI pipeline syntax and size check | Required static |
 
 ## Release evidence policy
 
-- This release candidate is qualified against `devops-ai` harness commit
-  `dabc13523ba604f8843e3993014df2f369300828` on `main`.
 - `skill-card.md` is the required canonical card for every skill. A signer may
   also generate `SKILLCARD.yaml`; its presence does not replace the canonical
   card and does not widen the public allowlist.
-- Private plugin source and artifacts remain in the private repository. The
-  public mirror copies only the explicit allowlist and rejects every plugin
-  path until a separate official signing approval and allowlist review.
+- The optional plugin is distributed separately and is not part of this repository.
 - Missing behavioral evidence is reported as `NOT_MEASURED`, never inferred as
   a pass from deterministic or signing checks.
 
@@ -91,7 +84,7 @@ For each shipping skill, the deep E2E suite generates:
 
   | Dim | What it tests | What FAIL looks like |
   | --- | --- | --- |
-  | D1 invented_tokens | Every symbol, flag, subcommand, path, and pkg-config module is traceable to the bundle, AGENTS.md, or a real NVIDIA public doc. | Fabricated names (e.g. `--pipeline` on a tool that has no such flag, `_v1` suffix on a real symbol, `samples/gpunetio/` when the real path is `tools/gpunetio_ib_write_lat/`). |
+  | D1 invented_tokens | Every symbol, flag, subcommand, path, and pkg-config module is traceable to the bundle, AGENTS.md, or a real NVIDIA public doc. | Fabricated names (e.g. `--pipeline` on a tool that has no such flag, `_v1` suffix on a real symbol, `samples/gpunetio/` when the documented path differs). |
   | D2 sequence_correctness | Steps satisfy each other's preconditions; the 5-step contract is visibly walked. | Build before install, or skipping the discovery step. |
   | D3 validation_concreteness | Step 4 names a concrete observable tied to the artifact's semantics. | "Exit 0 / no error" alone. |
   | D4 debug_concreteness | Step 5 names 3 distinct layers each with a distinguishing symptom. | A single generic "rerun with `-vvv`" bullet. |
@@ -102,18 +95,13 @@ For each shipping skill, the deep E2E suite generates:
 
 ## Latest measurement
 
-The current generated inventory is 60 skills: 13 cross-cutting and 47 product
-skills (27 libraries, 4 services, 16 tools). Historical measurements used a
-different inventory and leaked labels in some prompts, so they are retained as
-historical evidence but are not treated as a comparable current baseline.
-Until the regenerated hard set and calibrated grader run, current behavioral
+The current generated inventory is 53 skills: 12 cross-cutting and 41 product
+skills (23 libraries, 5 services, 13 tools). Until the regenerated hard set and calibrated grader run, current behavioral
 status is `NOT_MEASURED`, not an inferred pass.
 
 ## How to reproduce
 
-The structural-regression suite and the deep end-to-end suite are run in the
-DOCA team's internal development pipeline. Downstream consumers who want to
-reproduce the per-skill end-to-end measurement against their own agent can
+Downstream consumers who want to reproduce the per-skill end-to-end measurement against their own agent can
 do so directly from this repository:
 
 1. Load this bundle into the target agent (`./install.sh --agent <agent>`).
@@ -134,9 +122,9 @@ targets:
 
 | Env | What changes | How it's covered |
 | --- | --- | --- |
-| Public DOCA inventory | The bundle aligns only to the publicly released DOCA `3.3.0109` documentation set. | Validated against the versioned public inventory sourced from the DOCA Libraries, Services, and Tools indexes; unreleased source trees are never used as publication inputs. |
-| Without the DOCA monorepo (the customer's normal environment) | The bundle must be self-sufficient — no internal-only paths, no hostnames that resolve only inside NVIDIA, no references to files that only exist in the monorepo. | Reference-hygiene gate (gate 4) blocks any leak; AgentSkills.io compliance gate blocks any unresolved reference. |
-| On a real BlueField host (BF2 + BF3 DPUs) | The TMFIFO, RShim, apt-source, log-level, and `bf.cfg` claims must match what the hardware actually reports. | The latest live hardware probe folded its 5 findings back into `doca-bare-metal-deployment`, `doca-version`, and `doca-public-knowledge-map`; the live-hardware harness gate (gate 3) keeps the harness shape from drifting. |
+| Public DOCA inventory | The bundle aligns only to the publicly released DOCA documentation set for the aligned release. | Validated against the versioned inventory sourced from the DOCA Libraries, Services, and Tools indexes. |
+| Without NVIDIA-internal sources (the customer's normal environment) | The bundle must be self-sufficient — no internal-only paths, no hostnames that resolve only inside NVIDIA, no references to files that only exist inside NVIDIA. | The reference-hygiene gate blocks any such reference; AgentSkills.io compliance gate blocks any unresolved reference. |
+| On a real BlueField host (BF2 + BF3 DPUs) | The TMFIFO, RShim, apt-source, log-level, and `bf.cfg` claims must match what the hardware actually reports. | Claims were checked against real BlueField hardware; the live-hardware harness gate keeps the harness shape from drifting. |
 
 ## Out of scope for this benchmark
 

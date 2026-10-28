@@ -55,7 +55,7 @@ What the tool measures, which backends and memory types it supports, and what it
 - Not a replacement for DOCA Bench, which measures DOCA library APIs rather than raw RDMA verbs.
 - Does not install drivers, firmware or DOCA. Use `doca-setup`.
 - Does not measure application end-to-end throughput.
-- The GPU-initiated `ib_write_bw` / `ib_write_lat` samples are separate tools with their own skills.
+- GPU-initiated RDMA from the user's own code is covered by `doca-gpunetio`.
 
 ## Known limits to state with any number
 

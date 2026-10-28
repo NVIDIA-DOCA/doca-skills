@@ -15,7 +15,7 @@ description: >
   doca-version, hardware/firmware state changes to doca-hardware-safety,
   raw packet I/O to doca-eth, and host-DPU messaging to doca-comch.
 metadata:
-  author: NVIDIA <doca@nvidia.com>
+  author: NVIDIA <doca-feedback@nvidia.com>
   kind: tool
   doca_version: "3.5"
   tags:

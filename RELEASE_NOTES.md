@@ -15,16 +15,19 @@ consumer of the bundle has to act on.
 - Versions are date-anchored (`YYYY.MM.N`) rather than semantic, because the
   bundle is a catalog of independent skills, not a single API surface.
 
-## Unreleased
-
-Content queued for the next promotion to the published bundle.
+## DOCA 3.5 bundle update
 
 ### Skill changes
 
-**Catalog update.** Telemetry collection is consolidated into `doca-dts`
-(DOCA Telemetry Service), and the catalog is aligned with the DOCA 3.5
-component set. Routing in `doca-flow-perf`, `doca-flow-tune`,
-`doca-perftest`, `doca-flow` and the knowledge map is updated accordingly.
+**Improvements and DOCA 3.5 adjustments.** `doca-bench` covers GPUNetIO
+benchmarks end to end, including the DOCA Bench Extension prerequisites.
+`doca-flow-tune` covers the full measure-then-tune loop on the user's own
+pipeline (monitor-mode baseline, analysis, re-measure). `doca-bf4-deployment`
+follows the DOCA Management Service BlueField-4 install path. `doca-dts`
+covers DOCA Telemetry Service deployment and configuration, and the
+catalog follows the DOCA 3.5 component set. `doca-devemu`,
+`doca-sha-offload-engine`, `doca-spcx-cc` and the knowledge map
+follow the DOCA 3.5 headers and installed files.
 
 **`doca-verbs`** — three corrections, all aimed at making the skill's answers
 complete and its routing boundary explicit.
@@ -43,17 +46,11 @@ complete and its routing boundary explicit.
   budget after the checklist was added. The example *classes* were redundant
   with the capability and task guidance the checklist now points at directly.
 
-### Evaluation changes
-
-- `doca-verbs` negative-routing evaluation now distinguishes conceptual terms
-  from invented API symbols, and no longer asserts a subjective judgment that
-  produced inconsistent verdicts across repeated runs. The remaining
-  assertions still cover grounding and hallucination.
-
 ### Notes for consumers
 
-No action required. No skill was added or removed, and no evaluation dataset
-changed size.
+Some skills left the catalog in this update. Re-run
+`./install.sh --agent <agent> --force` and delete any skill folder that is
+no longer listed in `SKILLS.md` from your agent's skills directory.
 
 ## Known limitations
 
@@ -61,18 +58,11 @@ These are tracked and not yet resolved. They are recorded here so consumers
 are not surprised by them.
 
 - **Benchmark evidence reports one attempt per task.** The per-skill
-  `BENCHMARK.md` files are generated and signed upstream, and they record
-  `Attempts per task: 1`. The bundle's own regression evaluation is stricter:
-  it refuses to run fewer than three attempts and requires a majority to pass.
-  Correcting the published figure requires an upstream re-run and re-sign.
-- **Six skills carry no Tier 3 measurement.** `doca-caps`, `doca-dpa`,
-  `doca-dpdk-bridge`, `doca-erasure-coding`, `doca-eth`, and
-  `doca-flow-dpa-provider` report a Tier 3 verdict without underlying results,
-  because their evaluation dataset was not carried into the report payload.
-  Their `BENCHMARK.md` also reports the number of recorded *trials* where the
-  task count belongs, which makes their datasets look larger than they are;
-  all six contain four evaluation tasks.
-- **Skill card format is not uniform.** 47 skills ship `SKILLCARD.yaml`
-  alongside `skill-card.md`; the remaining 13 ship only `skill-card.md`. Both
-  forms are covered by their skill's signature, so converging on one format
-  requires an upstream re-sign.
+  `BENCHMARK.md` files record `Attempts per task: 1`.
+- **Some skills carry no Tier 3 measurement.** `doca-caps`, `doca-dpa`,
+  `doca-dpdk-bridge`, `doca-erasure-coding` and `doca-eth` report a Tier 3
+  verdict without underlying results. Their `BENCHMARK.md` also reports the
+  number of recorded *trials* where the task count belongs; all of them
+  contain four evaluation tasks.
+- **Skill card format is not uniform.** 41 skills ship `SKILLCARD.yaml`
+  alongside `skill-card.md`; the remaining 12 ship only `skill-card.md`.
