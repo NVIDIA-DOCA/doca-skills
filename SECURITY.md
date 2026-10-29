@@ -51,9 +51,20 @@ runtime. The installer (`install.sh`) is a dependency-free POSIX
 shell script that copies skill directories into the consuming
 agent's skill discovery path.
 
-Each skill carries a `SKILLCARD.yaml` with provenance metadata
-(`source.repo`, `source.path`, `source.branch`, `source.license`)
-and an NVCARPS-issued cryptographic signature at publication time.
-Consumers verifying a skill's authenticity should validate the
-signature against the NVCARPS public keyring published alongside
-the NVIDIA Skills catalog.
+Each skill directory carries a detached signature, `skill.oms.sig`
+(OpenSSF Model Signing format), that covers every file in the
+directory. To verify a skill before use, download the trust anchor
+`nv-agent-root-cert.pem` from <https://github.com/NVIDIA/skills> and
+run an OMS verifier such as `model-signing`:
+
+```bash
+pip install model-signing
+model_signing verify certificate SKILL_DIR \
+  --signature SKILL_DIR/skill.oms.sig \
+  --certificate-chain nv-agent-root-cert.pem
+```
+
+See
+<https://github.com/NVIDIA/skills/blob/main/docs/signing-agent-skills.mdx>
+for details. `SKILLCARD.yaml`, where present, carries provenance
+metadata only; it is not the signature.

@@ -51,11 +51,10 @@ Every shipping skill (libraries, services, tools) additionally ships:
   loaded with the skill produces a workable end-to-end answer for the
   artifact. Schema is documented at <https://agentskills.io>.
 - `SKILLCARD.yaml` — machine-readable metadata for identity,
-  provenance, quality baseline, and behavioural boundaries. The
-  cryptographic-signature fields (`identity.signature`,
-  `provenance.scan_run_id`, `provenance.signed_at`,
-  `provenance.signed_by`) are populated by NVIDIA's NVCARPS scanning +
-  signing pipeline at publication time.
+  provenance, quality baseline, and behavioural boundaries.
+- `skill.oms.sig` — the detached signature over the whole skill
+  directory, added by NVIDIA's scanning and signing pipeline at
+  publication time (see `SECURITY.md` for how to verify it).
 
 ## How changes are checked
 
