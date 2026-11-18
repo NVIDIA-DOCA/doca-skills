@@ -17,7 +17,7 @@ This repository ships **53 portable, [AgentSkills.io](https://agentskills.io/spe
 
 > ### Scope at a glance — what this bundle covers, and what it does not
 >
-> **In scope.** This bundle is focused on the **NVIDIA DOCA SDK** as shipped in the public DOCA release it is aligned with (DOCA 3.5 / `doca-3.5.0`): every public DOCA **library**, every public DOCA **service**, every public DOCA **tool**, plus the cross-cutting setup / version / debug / deployment / programming-guide overlays. If a developer building an application against the DOCA SDK headers can ask a question about it, that question is in scope for this bundle.
+> **In scope.** This bundle is focused on the **NVIDIA DOCA SDK** as shipped in the public DOCA release it is aligned with (DOCA 3.6 / `doca-3.6.0`): every public DOCA **library**, every public DOCA **service**, every public DOCA **tool**, plus the cross-cutting setup / version / debug / deployment / programming-guide overlays. If a developer building an application against the DOCA SDK headers can ask a question about it, that question is in scope for this bundle.
 >
 > **Out of scope (covered by sibling efforts, not by this bundle).** Externally-productized NVIDIA networking software that ships **outside** the DOCA SDK is intentionally excluded so that this bundle stays focused and accurate. The major examples — each owned by a different team with its own skill / docs surface — are:
 >
@@ -28,7 +28,7 @@ This repository ships **53 portable, [AgentSkills.io](https://agentskills.io/spe
 >
 > When the agent receives a question about an out-of-scope product it does **not** synthesize an answer from training knowledge. The required response shape is: (a) name the product as externally-productized and out-of-bundle, (b) name the boundary (the bundle covers the public DOCA SDK), and (c) route the user to the right authoritative `docs.nvidia.com/doca/sdk/` page and the DOCA Developer Forum search hint — via the per-product row in [`doca-public-knowledge-map`](skills/doca-public-knowledge-map/SKILL.md). Full non-goal contract: [`AGENTS.md` § Non-goals item 7](AGENTS.md#non-goals-questions-the-agent-should-recognize-and-refuse-politely).
 
-The bundle covers **one skill per library, service and tool of the public DOCA release** it is aligned with (DOCA 3.5 / `doca-3.5.0`): every public DOCA library, every public DOCA service, every public DOCA tool — plus 12 cross-cutting skills for setup, debug, hardware safety, version-pinning, upgrade planning, bare-metal vs containerized deployment, programming patterns, public-docs routing, structured-tools contract, and non-goal routing for externally-productized NVIDIA networking software (25 products covered).
+The bundle covers **one skill per library, service and tool of the public DOCA release** it is aligned with (DOCA 3.6 / `doca-3.6.0`): every public DOCA library, every public DOCA service, every public DOCA tool — plus 12 cross-cutting skills for setup, debug, hardware safety, version-pinning, upgrade planning, bare-metal vs containerized deployment, programming patterns, public-docs routing, structured-tools contract, and non-goal routing for externally-productized NVIDIA networking software (25 products covered).
 
 The whole bundle is **vendor-neutral by design**: the directory layout is `skills/<name>/SKILL.md` (the AgentSkills.io standard), not `.claude/skills/` or any other runtime-specific path, so the bundle reads naturally to any agent that follows the open standard.
 
@@ -38,7 +38,7 @@ The whole bundle is **vendor-neutral by design**: the directory layout is `skill
 
 ### Install (one-liner)
 
-> **Repository host.** The `doca-skills` bundle is published from the public NVIDIA-owned GitHub repository [`NVIDIA-DOCA/doca-skills`](https://github.com/NVIDIA-DOCA/doca-skills). The clone URLs in the Quickstart below resolve over the public internet; no NVIDIA-internal credentials are required. The bundle is also mirrored into the [NVIDIA Skills catalog](https://github.com/NVIDIA/skills) — skill changes land in this repository first and are mirrored daily.
+> **Repository host.** The `doca-skills` bundle is published from the public NVIDIA-owned GitHub repository [`NVIDIA-DOCA/doca-skills`](https://github.com/NVIDIA-DOCA/doca-skills). The clone URLs in the Quickstart below resolve over the public internet; no NVIDIA-internal credentials are required. The bundle is also mirrored into the [NVIDIA Skills catalog](https://github.com/NVIDIA/skills) — skill changes land in this repository first and are mirrored.
 
 The same one-liner installs into **any AgentSkills.io-aware agent** — `cursor`, `claude-code`, `codex`, `gemini-cli`, `kiro-cli`, `agents` (the cross-platform standard), or `custom --dest /path/to/anywhere`. Replace `<agent>` with whichever you want:
 
@@ -247,7 +247,7 @@ Each library skill teaches the agent the library's API surface, build / link, li
 | [`doca-flow`](skills/libs/doca-flow/SKILL.md) | DOCA Flow | Programmable hardware steering on BlueField / ConnectX — pipes, match / action, counters, validation, HWS / SWS modes, Flow-CT for stateful. |
 | [`doca-gpunetio`](skills/libs/doca-gpunetio/SKILL.md) | DOCA GPUNetIO | GPU-side networking — RX / TX queues, semaphores, Flow steering controlled from CUDA kernels (no CPU on the data path). |
 | [`doca-mgmt`](skills/libs/doca-mgmt/SKILL.md) | DOCA Management | Programmatic management APIs (devlink, firmware-version queries, NIC-state introspection) for tools that don't shell out. |
-| [`doca-pcc`](skills/libs/doca-pcc/SKILL.md) | DOCA PCC | Programmable Congestion Control library — DPA-hosted algorithm slot + matching host-side glue; distinct from `doca_pcc_counter` (operator-side counter inspection) and the PCC reference application. |
+| [`doca-pcc`](skills/libs/doca-pcc/SKILL.md) | DOCA PCC | Programmable Congestion Control library — DPA-hosted algorithm slot + matching host-side glue; distinct from `pcc_counters.sh` (package `doca-pcc-counters`, operator-side counter inspection) and the PCC reference application. |
 | [`doca-rdma`](skills/libs/doca-rdma/SKILL.md) | DOCA RDMA | RDMA send / recv / write / read on RoCE + InfiniBand — verbs-equivalent surface with DOCA's lifecycle. |
 | [`doca-rmax`](skills/libs/doca-rmax/SKILL.md) | DOCA Rivermax | Sub-microsecond-jitter SMPTE 2110 / NMOS media streaming — wraps the external Rivermax SDK (license required, see non-goal #7 routing). |
 | [`doca-sha`](skills/libs/doca-sha/SKILL.md) | DOCA SHA | Hardware-offloaded SHA-1 / SHA-256 / SHA-512 hashing. |
@@ -309,7 +309,7 @@ cd /tmp/agentskills/skills-ref && uv sync
 
 Full list in [`AGENTS.md`](AGENTS.md). The non-negotiables:
 
-- **Public sources only** (skill body content) — every skill's `SKILL.md` / `CAPABILITIES.md` / `TASKS.md` body, every prompt, and every URL the agent **cites to the user as a fact about DOCA** must resolve from the public internet; internal NVIDIA hostnames (`gerrit-master`, `nvbugs`, `gitlab-master`, internal wikis) are banned from skill body content and fail an automated gate. This rule governs *what the agent quotes back* to a user; the public install path (which is `git clone https://github.com/NVIDIA-DOCA/doca-skills.git` over the public internet) does not touch skill body content.
+- **Public sources only** (skill body content) — every skill's `SKILL.md` / `CAPABILITIES.md` / `TASKS.md` body, every prompt, and every URL the agent **cites to the user as a fact about DOCA** must resolve from the public internet; internal NVIDIA hostnames (`gerrit*`, `nvbugs`, `gitlab-master`, internal wikis) are banned from skill body content and fail an automated gate. This rule governs *what the agent quotes back* to a user; the public install path (which is `git clone https://github.com/NVIDIA-DOCA/doca-skills.git` over the public internet) does not touch skill body content.
 - **Prefer the local install at `/opt/mellanox/doca`** over the web — for symbol resolution, sample paths, and bin locations on a real DOCA host.
 - **Never invent symbols, URLs, paths, or package names** — every claim must be traceable to either the installed tree, an authoritative `docs.nvidia.com/doca/sdk/` URL, or a sample under `samples/` / `applications/`.
 - **Always check the installed DOCA version before quoting API names** — load `doca-version` first.
@@ -396,9 +396,8 @@ External consumers of this bundle do not need to run any checks themselves. Ever
 3. **Public-sources-only references** — no internal hostnames or paths.
 4. **Cross-link integrity** — every inter-skill anchor reference resolves.
 5. **Coverage** — every library, service and tool of the aligned public DOCA release has a corresponding skill.
-6. **Live-hardware checks** — the live-hardware harness stays exercisable against a real BlueField.
-7. **Non-goal routing** — the out-of-scope routing table is consistent across the bundle.
-8. **No regression** against the previous release.
+6. **Non-goal routing** — the out-of-scope routing table is consistent across the bundle.
+7. **No regression** against the previous release.
 
 Every release of this bundle has already passed these checks. You don't need any of the CI tooling to load and use the skills — just clone the repo, run `./install.sh --agent <your-agent>`, and ask your agent a DOCA question.
 

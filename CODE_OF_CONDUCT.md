@@ -8,8 +8,7 @@ The full text lives at
 <https://www.contributor-covenant.org/version/2/1/code_of_conduct/>; the
 canonical NVIDIA-wide adoption lives at
 <https://github.com/NVIDIA/skills/blob/main/CODE_OF_CONDUCT.md>. This file
-exists so that the standalone DOCA bundle satisfies the publishing-onboarding
-contract without forcing the reader to leave the repository.
+exists so that the reader does not have to leave the repository.
 
 ## TL;DR
 
@@ -37,7 +36,7 @@ Conduct issues that are **not** safety bugs in skill content:
 Safety bugs in skill content — wrong rollback procedure, missing safety
 pre-flight, hot-applied `mlxconfig`-class change — go through the
 `safety-bug` Issue flow described in [`SECURITY.md`](SECURITY.md). Those are
-treated as on-call work, not Code-of-Conduct matters.
+prioritized by maintainers, not Code-of-Conduct matters.
 
 ## Scope
 

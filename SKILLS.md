@@ -83,7 +83,7 @@ routing tables so the agent can reach the skill from either entry point.
 
 The compact triple table below is the discovery surface every fresh
 agent walks. Strict 1:1 alignment with the named DOCA release is
-verified on every commit.
+checked before each release.
 
 **Libraries (23) — `skills/libs/<name>/`**
 

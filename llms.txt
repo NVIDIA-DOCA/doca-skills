@@ -66,7 +66,7 @@ response shape, lives in `AGENTS.md` (Non-goals section).
 
 ## Where to learn more
 
-- Public catalog (mirrored daily): <https://github.com/NVIDIA/skills>
+- Public catalog (mirrored): <https://github.com/NVIDIA/skills>
 - Source of truth: <https://github.com/NVIDIA-DOCA/doca-skills>
 - AgentSkills.io specification: <https://agentskills.io/specification>
 - DOCA public docs: <https://docs.nvidia.com/doca/sdk/>

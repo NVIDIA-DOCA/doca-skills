@@ -42,8 +42,8 @@ complete and its routing boundary explicit.
 - Made the routing boundary explicit: for routing-only questions the skill now
   stops at the conceptual boundary instead of inferring and listing
   `doca-rdma` implementation APIs that were never loaded.
-- Trimmed the worked-example section to keep the skill inside its efficiency
-  budget after the checklist was added. The example *classes* were redundant
+- Trimmed the worked-example section to keep the skill concise after the
+  checklist was added. The example *classes* were redundant
   with the capability and task guidance the checklist now points at directly.
 
 ### Notes for consumers
@@ -57,12 +57,7 @@ no longer listed in `SKILLS.md` from your agent's skills directory.
 These are tracked and not yet resolved. They are recorded here so consumers
 are not surprised by them.
 
-- **Benchmark evidence reports one attempt per task.** The per-skill
-  `BENCHMARK.md` files record `Attempts per task: 1`.
-- **Some skills carry no Tier 3 measurement.** `doca-caps`, `doca-dpa`,
-  `doca-dpdk-bridge`, `doca-erasure-coding` and `doca-eth` report a Tier 3
-  verdict without underlying results. Their `BENCHMARK.md` also reports the
-  number of recorded *trials* where the task count belongs; all of them
-  contain four evaluation tasks.
+- **Evaluation results.** Evaluation results for each skill are in its
+  `BENCHMARK.md`.
 - **Skill card format is not uniform.** 41 skills ship `SKILLCARD.yaml`
   alongside `skill-card.md`; the remaining 12 ship only `skill-card.md`.

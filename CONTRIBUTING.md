@@ -18,7 +18,7 @@ a new skill or change an existing one.
    `ngc.nvidia.com`, `forums.developer.nvidia.com`, `nvcr.io`,
    `github.com/NVIDIA*`). Internal hostnames
    (`gerrit*`, `nvbugs*`, `*.internal.*`, `gitlab-master*`, `labhome*`)
-   are rejected at PR time.
+   are rejected before release.
 2. **Guidance-only, not codegen.** Skills teach the agent the *shape*
    of an answer. They do **not** ship working code, generated
    manifests, or scaffolded apps. The agent uses the skill to derive
@@ -65,7 +65,7 @@ Every release passes automated checks before it is published:
    agentskills.io spec, scans for prompt-injection patterns and
    supply-chain risks, and produces the `*.sig` signature files plus the
    filled-in `SKILLCARD.yaml` metadata.
-2. **Structural checks** — per-skill conformance, anchor density,
+2. **Structural checks** — per-skill conformance,
    public-source-URL allowlist, cross-link integrity, AgentSkills.io
    reference validity, and no regression against the previous release.
 3. **End-to-end checks** — changed skills are re-graded against a strict
